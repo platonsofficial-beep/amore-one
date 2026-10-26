@@ -2215,11 +2215,11 @@ export function StockDashboardView({
           onOpenAddSupplier={onOpenAddSupplier}
           supplierPrefill={supplierPrefill}
           onSupplierPrefillApplied={onSupplierPrefillApplied}
-          onSubmit={async (payload) => {
+          onSubmit={async (payload, extras) => {
             if (editingItem?.id) {
               await onUpdateItem(editingItem.id, payload)
             } else {
-              await onCreateItem(payload)
+              await onCreateItem(payload, extras)
             }
           }}
         />

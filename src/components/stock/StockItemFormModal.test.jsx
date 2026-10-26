@@ -192,6 +192,59 @@ describe('StockItemFormModal workspace storage integration', () => {
       .filter((button) => !button.dataset.stockCreateStorage)
       .map((button) => button.textContent)
     expect(labels).toEqual([...STOCK_LOCATIONS])
+    expect(host.querySelector('[data-testid="stock-item-default-storage-par"]')).toBeTruthy()
+    expect(host.textContent).toContain('Par in')
+
+    cleanup()
+  })
+
+  it('sends an optional par for the chosen default storage when creating an item', async () => {
+    listWorkspaceStoragesMock.mockResolvedValue([
+      { id: 's-supply', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 0 },
+      { id: 's-bar', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 1 },
+    ])
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    const { host, cleanup } = renderModal({ onSubmit })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(host.textContent).toContain('Par in Bar')
+    const parInput = host.querySelector('[data-testid="stock-item-default-storage-par"]')
+    const nameInput = host.querySelector('input[placeholder="e.g. Belvedere Vodka"]')
+
+    const setInputValue = (input, value) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+      setter?.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+
+    await act(async () => {
+      setInputValue(nameInput, 'Cola')
+      setInputValue(parInput, '6')
+    })
+
+    const storageButtons = [...host.querySelectorAll('.stock-location-preset')]
+      .filter((button) => button.textContent === 'Main Storage')
+    await act(async () => {
+      storageButtons[0].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(host.textContent).toContain('Par in Main Storage')
+
+    await act(async () => {
+      host.querySelector('form.stock-item-form').dispatchEvent(new Event('submit', {
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+    })
+
+    expect(onSubmit).toHaveBeenCalled()
+    expect(onSubmit.mock.calls[0][0].storageLocation).toBe('Main Storage')
+    expect(onSubmit.mock.calls[0][1]).toEqual({ storagePar: '6' })
+    expect(onSubmit.mock.calls[0][0].targetQuantity).toBeNull()
 
     cleanup()
   })

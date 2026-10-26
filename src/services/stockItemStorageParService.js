@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { listWorkspaceStorages } from './workspaceStorageService'
 import {
   STORAGE_PAR_UNAVAILABLE_MESSAGE,
   isStockStorageParSchemaMissing,
@@ -109,4 +110,54 @@ export async function clearStockItemStoragePar(workspaceId, stockItemId, workspa
     workspaceStorageId: normalizedStorageId,
     parQuantity: null,
   }
+}
+
+/**
+ * Match the catalog default storage (location key or name) to a workspace storage row.
+ *
+ * @param {Array<{ id?: string, locationKey?: string, location_key?: string, name?: string }>|null|undefined} storages
+ * @param {unknown} storageLocation
+ */
+export function findWorkspaceStorageForLocation(storages, storageLocation) {
+  const key = `${storageLocation ?? ''}`.trim().toLocaleLowerCase('en-US')
+  if (!key) return null
+  return (Array.isArray(storages) ? storages : []).find((storage) => {
+    const locationKey = `${storage?.locationKey ?? storage?.location_key ?? ''}`.trim().toLocaleLowerCase('en-US')
+    const name = `${storage?.name ?? ''}`.trim().toLocaleLowerCase('en-US')
+    return locationKey === key || name === key
+  }) ?? null
+}
+
+/**
+ * Optional par from Add item. Blank input does not write a row.
+ * The item create stays the caller's job so a par failure can be reported after the product exists.
+ *
+ * @param {{
+ *   workspaceId: string,
+ *   stockItemId: string,
+ *   storageLocation: string,
+ *   parInput: unknown,
+ *   listStorages?: typeof listWorkspaceStorages,
+ *   savePar?: typeof setStockItemStoragePar,
+ * }} args
+ */
+export async function saveNewItemDefaultStoragePar({
+  workspaceId,
+  stockItemId,
+  storageLocation,
+  parInput,
+  listStorages = listWorkspaceStorages,
+  savePar = setStockItemStoragePar,
+}) {
+  const parsed = parseStorageParInput(parInput)
+  if (!parsed.ok) throw new Error(parsed.error)
+  if (parsed.clear) return null
+
+  const storages = await listStorages(workspaceId)
+  const storage = findWorkspaceStorageForLocation(storages, storageLocation)
+  if (!storage?.id) {
+    throw new Error('Choose a workspace storage before saving a par.')
+  }
+
+  return savePar(workspaceId, stockItemId, storage.id, parsed.value)
 }

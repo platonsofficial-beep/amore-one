@@ -503,6 +503,8 @@ import {
 } from './lib/todayAttentionNavigation'
 import { TodayAttentionPanel } from './components/today/TodayAttentionPanel'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
+import { resolveSupplierOrderVenueName } from './lib/stockOrderSend'
+import { saveNewItemDefaultStoragePar } from './services/stockItemStorageParService'
 import { buildStockDashboardSummary, resolveDashboardStockAlerts } from './lib/stockUtils'
 import { dismissStockSearchKeyboardOnEnter } from './lib/stockDashboardBrowse'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
@@ -17648,6 +17650,15 @@ function App() {
     return `${brandDisplay.businessNameLabel ?? ''}`.trim()
   }, [workspace?.name, brandDisplay.businessNameLabel])
 
+  const supplierOrderVenueName = useMemo(
+    () => resolveSupplierOrderVenueName(
+      workspaceProfile?.businessName,
+      workspace?.name,
+      brandDisplay.businessName,
+    ),
+    [workspaceProfile?.businessName, workspace?.name, brandDisplay.businessName],
+  )
+
   const refreshReservations = useCallback(async () => {
     if (!activeWorkspaceId) {
       setReservations([])
@@ -23292,20 +23303,35 @@ function App() {
     }
   }
 
-  const handleCreateStockItem = async (payload) => {
+  const handleCreateStockItem = async (payload, extras = {}) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to add stock items.')
     }
-    if (isSavingStockItemRef.current) return
+    if (isSavingStockItemRef.current) return null
 
     isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
     try {
-      await createStockItem(activeWorkspaceId, payload)
+      const created = await createStockItem(activeWorkspaceId, payload)
+      let notice = 'Stock item added.'
+      const parInput = `${extras?.storagePar ?? ''}`.trim()
+      if (parInput && created?.id) {
+        try {
+          await saveNewItemDefaultStoragePar({
+            workspaceId: activeWorkspaceId,
+            stockItemId: created.id,
+            storageLocation: payload?.storageLocation,
+            parInput,
+          })
+        } catch (parError) {
+          notice = `Stock item added. ${parError?.message || 'The shelf par still needs to be saved from Storages.'}`
+        }
+      }
       await refreshStockItems()
-      setStockItemsNotice('Stock item added.')
+      setStockItemsNotice(notice)
+      return created
     } catch (error) {
       setStockItemsNotice(error.message || 'Unable to add stock item right now.')
       throw error
@@ -25621,7 +25647,7 @@ function App() {
             orders={stockOrders}
             stockItems={stockItems}
             suppliers={suppliers}
-            venueName={todayWorkspaceBadge}
+            venueName={supplierOrderVenueName}
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
             searchTerm={searchTerm}

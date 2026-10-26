@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest'
+/**
+ * @vitest-environment jsdom
+ */
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildStockOrderMailtoUrl,
   buildStockOrderPrintHtml,
@@ -9,7 +12,11 @@ import {
   formatStockOrderSendText,
   formatSupplierPhoneDigits,
   isSupplierEmail,
+  openStockOrderExternalLink,
+  openStockOrderPrintWindow,
   resolveStockOrderSupplierContact,
+  resolveSupplierOrderVenueName,
+  stockOrderGreeting,
 } from './stockOrderSend'
 
 const order = {
@@ -42,16 +49,88 @@ describe('stock order send', () => {
   })
 
   it('formats a supplier-ready order message', () => {
-    expect(buildStockOrderSendSubject(order, 'Amore')).toBe('Amore order #0012')
-    const text = formatStockOrderSendText(order, { supplierName: 'Directory name' })
-    expect(text).toContain('Supplier: Directory name')
+    expect(resolveSupplierOrderVenueName('Workspace', 'AMORE.NICOSIA')).toBe('AMORE.NICOSIA')
+    expect(resolveSupplierOrderVenueName('Workspace', 'Workspace not set')).toBe('')
+    expect(stockOrderGreeting('el-GR')).toBe('Καλησπέρα,')
+    expect(stockOrderGreeting('en-GB')).toBe('Hello,')
+    expect(buildStockOrderSendSubject(order, 'Workspace')).toBe('Order #0012')
+    expect(buildStockOrderSendSubject(order, 'AMORE.NICOSIA')).toBe('AMORE.NICOSIA – Order #0012')
+    const text = formatStockOrderSendText(order, {
+      supplierName: 'Directory name',
+      venueName: 'AMORE.NICOSIA',
+      includeCost: true,
+      language: 'en',
+    })
+    expect(text.startsWith('Hello,\n\nSupplier: Directory name')).toBe(true)
     expect(text).toContain('Expected: 28 Oct 2026')
     expect(text).toContain('4 Bottles KETEL ONE — €20.00 each (€80.00)')
     expect(text).toContain('2 kg Ice')
     expect(text).not.toContain('Ice —')
     expect(text).toContain('Total: €80.00')
     expect(text).toContain('Notes: Leave at the back door')
-    expect(buildStockOrderSendMessage(order, { venueName: 'Amore' })).toMatch(/^Amore order #0012\n\nSupplier:/)
+    expect(text.trimEnd().endsWith('AMORE.NICOSIA\nRequested delivery: 28 Oct 2026')).toBe(true)
+    expect(buildStockOrderSendMessage(order, {
+      venueName: 'AMORE.NICOSIA',
+      includeCost: true,
+      language: 'el',
+    })).toMatch(/^AMORE\.NICOSIA – Order #0012\n\nΚαλησπέρα,/)
+  })
+
+  it('hides a zero total and never prints cost unless the caller includes it', () => {
+    const unpriced = {
+      ...order,
+      items: [{ itemName: 'Ice', quantity: 2, unit: 'kg', costPrice: 0, totalPrice: 0 }],
+    }
+    const managerText = formatStockOrderSendText(unpriced, {
+      venueName: 'Amore',
+      includeCost: true,
+    })
+    expect(managerText).not.toContain('Total:')
+    expect(managerText).not.toContain('€')
+    const staffText = formatStockOrderSendText(order, {
+      venueName: 'Amore',
+      includeCost: false,
+    })
+    expect(staffText).toContain('4 Bottles KETEL ONE')
+    expect(staffText).not.toContain('€')
+    expect(staffText).not.toContain('Total:')
+  })
+
+  it('opens https links with an anchor click and prints from an iframe', () => {
+    const click = vi.fn()
+    const originalCreate = document.createElement.bind(document)
+    const print = vi.fn()
+    const write = vi.fn()
+    vi.spyOn(document, 'createElement').mockImplementation((tag) => {
+      if (tag === 'a') {
+        const anchor = originalCreate('a')
+        anchor.click = click
+        return anchor
+      }
+      if (tag === 'iframe') {
+        const frame = originalCreate('iframe')
+        Object.defineProperty(frame, 'contentDocument', {
+          configurable: true,
+          value: { open: vi.fn(), write, close: vi.fn() },
+        })
+        Object.defineProperty(frame, 'contentWindow', {
+          configurable: true,
+          value: { focus: vi.fn(), print, addEventListener: vi.fn() },
+        })
+        return frame
+      }
+      return originalCreate(tag)
+    })
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    expect(openStockOrderExternalLink('https://wa.me/357')).toBe(true)
+    expect(open).not.toHaveBeenCalled()
+    expect(click).toHaveBeenCalled()
+    expect(openStockOrderPrintWindow('<p>Order</p>')).toBe(true)
+    expect(open).not.toHaveBeenCalled()
+    expect(write).toHaveBeenCalledWith('<p>Order</p>')
+    expect(print).toHaveBeenCalled()
+    open.mockRestore()
+    document.createElement.mockRestore()
   })
 
   it('builds mailto, WhatsApp, and Viber links from contact details', () => {

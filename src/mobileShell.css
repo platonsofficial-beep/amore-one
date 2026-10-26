@@ -237,7 +237,7 @@
 
 .mobile-card-label {
   margin: 0 0 6px;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -301,7 +301,7 @@
 }
 
 .mobile-task-summary-item span {
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.8rem;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -538,7 +538,7 @@
 
 .mobile-schedule-day-date {
   margin: 2px 0 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.84rem;
 }
 
@@ -552,7 +552,7 @@
 
 .mobile-schedule-day-off {
   margin: 10px 0 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.9rem;
 }
 
@@ -836,12 +836,12 @@
 }
 
 .mobile-task-category {
-  color: #8f8778 !important;
+  color: var(--one-text-muted) !important;
   font-size: 0.78rem !important;
 }
 
 .mobile-task-assignment {
-  color: #8f8778 !important;
+  color: var(--one-text-muted) !important;
   font-size: 0.78rem !important;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -884,7 +884,7 @@
 }
 
 .mobile-task-completion-preview {
-  color: #8f8778 !important;
+  color: var(--one-text-muted) !important;
   font-size: 0.8rem !important;
 }
 
@@ -1017,7 +1017,7 @@
 
 .mobile-task-detail-grid dt {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -1088,7 +1088,7 @@
 }
 
 .mobile-task-department {
-  color: #8f8778 !important;
+  color: var(--one-text-muted) !important;
   font-size: 0.78rem !important;
 }
 
@@ -1165,7 +1165,7 @@
 
 .mobile-menu-section-title {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -1264,7 +1264,7 @@
 
 .mobile-manager-menu-status-line {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   line-height: 1.35;
 }
@@ -1342,7 +1342,7 @@
 }
 
 .mobile-manager-menu-nav-subtitle {
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -1409,7 +1409,7 @@
 
 .mobile-profile-detail-row dt {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.88rem;
 }
 
@@ -1482,7 +1482,7 @@
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #8f8778;
+  color: var(--one-text-muted);
   cursor: pointer;
 }
 
@@ -1652,7 +1652,7 @@
 
 .mobile-manager-role-label {
   margin: 6px 0 0;
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
 }
 
@@ -1696,7 +1696,7 @@
   align-items: center;
   gap: 2px 6px;
   margin: 0;
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.76rem;
   line-height: 1.2;
   min-width: 0;
@@ -1837,7 +1837,7 @@
 
 .mobile-manager-home-context {
   margin: 2px 0 0;
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -2089,7 +2089,7 @@
 
 .mobile-manager-command-center .mobile-manager-priority-item span {
   font-size: 0.78rem;
-  color: #8f8778;
+  color: var(--one-text-muted);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -2608,7 +2608,7 @@
 
 .mobile-manager-tasks-loading {
   margin: 4px 0 0;
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.9rem;
 }
 
@@ -2647,7 +2647,7 @@
 
 .mobile-manager-tasks-command-summary {
   margin: 0;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.88rem;
   line-height: 1.2;
 }
@@ -2774,7 +2774,7 @@
 }
 
 .mobile-manager-task-attention-owner {
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-weight: 600;
 }
 
@@ -2844,7 +2844,7 @@
 }
 
 .mobile-manager-tasks-empty.is-subtle .mobile-manager-tasks-empty-message {
-  color: #8f8778;
+  color: var(--one-text-muted);
 }
 
 .mobile-manager-tasks-empty.is-hero {
@@ -2872,7 +2872,7 @@
   margin: 0;
   padding: 8px 10px;
   border-radius: 10px;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
   line-height: 1.35;
   background: rgba(255, 255, 255, 0.02);
@@ -2968,7 +2968,7 @@
 
 .mobile-manager-tasks-note-meta {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.76rem;
   line-height: 1.35;
 }
@@ -3096,7 +3096,7 @@
 }
 
 .mobile-manager-today-task-priority.priority-normal {
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   background: rgba(255, 255, 255, 0.06);
 }
 
@@ -3111,7 +3111,7 @@
 
 .mobile-manager-today-task-owner {
   margin: 0;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.84rem;
   font-weight: 600;
   line-height: 1.3;
@@ -3212,7 +3212,7 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.8rem;
   line-height: 1.2;
 }
@@ -3350,9 +3350,9 @@
   padding: 0 11px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #c9bfb0;
+  background: var(--one-bronze);
+  box-shadow: none;
+  color: var(--one-bronze-ink);
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
@@ -3421,7 +3421,7 @@
 
 .mobile-manager-stock-loading {
   margin: 6px 0 0;
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.9rem;
 }
 
@@ -3466,7 +3466,7 @@
 
 .mobile-manager-stock-card-category {
   margin: 1px 0 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   line-height: 1.25;
 }
@@ -3568,7 +3568,7 @@
 }
 
 .mobile-manager-stock-card-supplier-name {
-  color: #9f9588;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
   line-height: 1.3;
 }
@@ -4847,7 +4847,7 @@
   gap: 8px 12px;
   align-items: center;
   text-align: center;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.72rem;
   line-height: 1.2;
   max-width: min(100%, 420px);
@@ -4951,7 +4951,7 @@
 
 .host-reservation-list-empty.is-host-queue-empty .host-reservation-list-empty-title {
   margin: 0 0 12px;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
 }
 
@@ -5365,7 +5365,7 @@
 
 .mobile-host-reservations-stats {
   margin: 0;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.84rem;
 }
 
@@ -5649,7 +5649,7 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   font-weight: 600;
   text-align: left;
@@ -6142,7 +6142,7 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.02);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.86rem;
 }
 
@@ -6461,7 +6461,7 @@
 }
 
 .mobile-host-floor-empty-hint {
-  color: #8f8778 !important;
+  color: var(--one-text-muted) !important;
   font-size: 0.8rem !important;
 }
 
@@ -6832,7 +6832,7 @@
 }
 
 .mobile-host-reservation-detail-grid dt {
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -6847,7 +6847,7 @@
 
 .mobile-host-reservations-detail-hint {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.8rem;
   line-height: 1.35;
 }
@@ -6886,7 +6886,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.74rem;
   font-weight: 600;
 }
@@ -7159,7 +7159,7 @@
 
 .mobile-host-form-hint {
   margin: 0;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.74rem;
 }
 
@@ -7182,7 +7182,7 @@
 
 .mobile-host-quick-create-table-status {
   margin: 0;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.78rem;
   font-weight: 600;
 }
@@ -7309,7 +7309,7 @@
 }
 
 .mobile-host-quick-create-table-capacity-summary {
-  color: #c9bfb0;
+  color: var(--one-text-muted);
 }
 
 .mobile-host-quick-create-table-capacity-warning {
@@ -7982,7 +7982,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   gap: 6px;
   height: 100%;
   padding: 24px;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
 }
 
 .mobile-host-reservations-detail-empty-title {
@@ -7996,7 +7996,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin: 0;
   font-size: 0.86rem;
   line-height: 1.4;
-  color: #8f8778;
+  color: var(--one-text-muted);
 }
 
 .app-shell.is-host-station-shell .mobile-host-panel-dialog {

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { parseStorageParInput } from '../../lib/stockStoragePar'
+import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   PRODUCT_METADATA_LIMITS,
@@ -49,11 +51,40 @@ export function StockItemFormModal({
     if (initialForm) return initialForm
     return buildEmptyStockItemForm()
   })
+  const [storagePar, setStoragePar] = useState('')
+  const [workspaceStorages, setWorkspaceStorages] = useState([])
   const [error, setError] = useState('')
 
   useEscapeToClose(() => {
     if (!isSaving) onClose?.()
   })
+
+  useEffect(() => {
+    if (isEditing) return undefined
+    const workspaceKey = `${workspaceId ?? ''}`.trim()
+    if (!workspaceKey) return undefined
+    let cancelled = false
+    listWorkspaceStorages(workspaceKey)
+      .then((rows) => {
+        if (!cancelled) setWorkspaceStorages(Array.isArray(rows) ? rows : [])
+      })
+      .catch(() => {
+        if (!cancelled) setWorkspaceStorages([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isEditing, workspaceId])
+
+  const parStorageLabel = useMemo(() => {
+    const key = `${form.storageLocation ?? ''}`.trim()
+    const match = workspaceStorages.find((storage) => {
+      const locationKey = `${storage?.locationKey ?? storage?.location_key ?? ''}`.trim()
+      const name = `${storage?.name ?? ''}`.trim()
+      return locationKey === key || name === key
+    })
+    return `${match?.name ?? ''}`.trim() || key || 'default storage'
+  }, [form.storageLocation, workspaceStorages])
 
   useEffect(() => {
     if (!supplierPrefill) return
@@ -113,6 +144,14 @@ export function StockItemFormModal({
       return
     }
 
+    if (!isEditing) {
+      const parsedPar = parseStorageParInput(storagePar)
+      if (!parsedPar.ok) {
+        setError(parsedPar.error)
+        return
+      }
+    }
+
     const inactiveSupplierSelected = supplierOptions.some(
       (option) => option.disabled && option.value === normalizeSupplierName(form.supplier),
     )
@@ -123,7 +162,9 @@ export function StockItemFormModal({
 
     try {
       setError('')
-      await onSubmit(stockFormToPayload(form))
+      await onSubmit(stockFormToPayload(form), {
+        storagePar: isEditing ? '' : storagePar,
+      })
       onClose()
     } catch (submitError) {
       setError(submitError?.message || 'Unable to save this item right now. Please try again.')
@@ -350,6 +391,22 @@ export function StockItemFormModal({
                   }))}
                 />
               </div>
+
+              {!isEditing ? (
+                <label className="stock-form-field stock-form-field-full">
+                  <span>{`Par in ${parStorageLabel}`}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    inputMode="decimal"
+                    value={storagePar}
+                    onChange={(event) => setStoragePar(event.target.value)}
+                    placeholder="Optional"
+                    data-testid="stock-item-default-storage-par"
+                  />
+                </label>
+              ) : null}
 
               <div className="stock-form-row">
                 <label className="stock-form-field">
