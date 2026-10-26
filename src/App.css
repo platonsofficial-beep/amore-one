@@ -43,10 +43,39 @@
 
 .brand-block {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   width: 100%;
   min-width: 0;
+  text-align: center;
+}
+
+.brand-product-mark {
+  width: 72px;
+  height: auto;
+  display: block;
+}
+
+.brand-wordmark {
+  margin: 2px 0 0;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  line-height: 1;
+  padding-left: 0.32em;
+}
+
+.brand-tagline {
+  margin: 0;
+  width: 100%;
+  color: #d4af37;
+  font-size: 0.56rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  line-height: 1.35;
+  text-align: center;
 }
 
 .brand-avatar {
@@ -59,11 +88,13 @@
 }
 
 .brand-business-name {
-  margin: 0;
+  margin: 6px 0 0;
+  width: 100%;
   color: #f7efe1;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   line-height: 1.3;
   font-weight: 600;
+  text-align: center;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -27844,8 +27875,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   justify-content: center;
   padding: 24px 16px;
   background:
-    radial-gradient(circle at top, rgba(212, 175, 55, 0.08), transparent 42%),
-    #12100d;
+    radial-gradient(circle at top, rgba(212, 175, 55, 0.1), transparent 46%),
+    #0b0f17;
 }
 
 .auth-loading-page {
@@ -27859,7 +27890,51 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 18px;
+  text-align: center;
+}
+
+.one-full-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0 auto 6px;
+}
+
+.one-full-logo-art {
+  width: min(100%, 210px);
+  aspect-ratio: 660 / 736;
+  overflow: hidden;
+}
+
+.one-full-logo.is-compact .one-full-logo-art {
+  width: min(100%, 156px);
+}
+
+.one-full-logo-art img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.one-full-logo-tagline {
+  margin: 8px 0 0;
+  max-width: 36ch;
+  color: #d4af37;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.one-full-logo.is-compact .one-full-logo-tagline {
+  font-size: 0.58rem;
+  letter-spacing: 0.14em;
 }
 
 .auth-brand {

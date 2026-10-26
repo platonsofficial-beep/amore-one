@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { OneFullLogo } from '../brand/OneFullLogo'
 import { useAuth } from '../../context/AuthContext'
 import {
   clearSessionEndedNotice,
@@ -124,7 +125,7 @@ export function LoginView() {
     <div className="auth-page">
       <div className="auth-card panel staff-panel">
         <header className="auth-header">
-          <p className="auth-brand">ONE</p>
+          <OneFullLogo />
           <h1 className="auth-title">{title}</h1>
           <p className="auth-subtitle">Operations platform for hospitality teams.</p>
         </header>
