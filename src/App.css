@@ -33583,6 +33583,102 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   cursor: not-allowed;
 }
 
+.employee-modal.staff-shelf-count-sheet {
+  width: min(560px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(165deg, var(--one-navy-800), var(--one-navy-900));
+  padding-bottom: max(24px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+.staff-shelf-count-note,
+.staff-shelf-count-skipped,
+.staff-shelf-count-status {
+  margin: 0;
+  color: var(--one-text-muted, #a9c0d6);
+  line-height: 1.4;
+}
+
+.staff-shelf-count-status.is-error {
+  color: rgba(255, 170, 160, 0.95);
+}
+
+.staff-shelf-count-status.is-success {
+  color: var(--one-gold-light, #f3d27a);
+}
+
+.staff-shelf-count-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.staff-shelf-count-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--one-navy-600);
+}
+
+.staff-shelf-count-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.staff-shelf-count-identity span {
+  color: var(--one-text-muted, #a9c0d6);
+  font-size: 0.92rem;
+}
+
+.staff-shelf-count-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.staff-shelf-count-qty {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
+  background: var(--one-navy-900);
+  color: var(--one-text, #f7f4ee);
+  font-size: 1.125rem;
+}
+
+.staff-shelf-count-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.staff-shelf-count-actions .primary-btn,
+.staff-shelf-count-actions .ghost-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+@media (max-width: 720px) {
+  .employee-modal-backdrop.staff-shelf-count-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .employee-modal.staff-shelf-count-sheet {
+    width: 100%;
+    max-height: min(92dvh, 92vh);
+    border-radius: 20px 20px 0 0;
+  }
+}
+
 .stock-storage-refill-launch {
   display: flex;
   flex-wrap: wrap;

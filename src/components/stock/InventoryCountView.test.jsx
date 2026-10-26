@@ -242,6 +242,36 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     cleanup()
   })
 
+  it('shows a staff shelf count as waiting for the manager to post', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [
+        sessionFixture({
+          id: 'shelf-1',
+          status: 'counting_complete',
+          statusLabel: 'Counting complete',
+          countType: 'partial',
+          countTypeLabel: 'Partial Count',
+          note: 'Staff shelf count',
+          locations: ['Back bar'],
+          progressLabel: '1 / 1 locations',
+        }),
+      ],
+      paused: [],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    expect(container.textContent).toContain('Staff shelf count')
+    expect(container.textContent).toContain('Waiting for a manager to post. Stock is unchanged.')
+    expect(container.textContent).toContain('Back bar')
+    expect(getButtonByText(container, 'Post Count')).toBeTruthy()
+    expect(container.textContent).not.toContain('Partial Count')
+
+    cleanup()
+  })
+
   it('opens an active session through the existing workspace flow', async () => {
     listHomeSessionsMock.mockResolvedValue({
       active: [sessionFixture({ id: 'active-open' })],
