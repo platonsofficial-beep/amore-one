@@ -27,10 +27,13 @@ import {
   assertLocationStockMovementTarget,
   getSupportsLocationBalances,
   isStockLocationVersionMismatch,
+  isTakeFromSupplyRpcMissing,
   mapStockTransferRpcError,
   recordStockMutation,
   recordStockMutationLegacy,
   recordStockMutationLocationAware,
+  staffTakeFromSupplyAvailable,
+  takeFromSupplyStorage,
   transferStockBetweenLocations,
 } from './stockMutationService'
 import { recordStockMovement } from './stockMovementService'
@@ -633,5 +636,37 @@ describe('transferStockBetweenLocations — P8.30.6', () => {
       expectedSourceQuantityVersion: 1,
       expectedDestinationQuantityVersion: 1,
     })).rejects.toThrow(/no balance for this product/i)
+  })
+
+  it('uses take_from_supply_storage for a staff take and treats a missing function as unavailable', async () => {
+    expect(isTakeFromSupplyRpcMissing({ code: 'PGRST202', message: 'Could not find the function' })).toBe(true)
+    expect(mapStockTransferRpcError({ message: 'take_from_supply_source_not_supply' }).message)
+      .toMatch(/supply storage/i)
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { code: 'PGRST202', message: 'Could not find the function take_from_supply_storage' },
+    })
+    await expect(staffTakeFromSupplyAvailable()).resolves.toBe(false)
+
+    rpcMock.mockResolvedValueOnce({
+      data: { ok: true, origin_workflow: 'take_from_supply' },
+      error: null,
+    })
+    await takeFromSupplyStorage({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      sourceWorkspaceStorageId: 'supply-1',
+      destinationWorkspaceStorageId: 'shelf-1',
+      quantity: 2,
+      expectedSourceQuantityVersion: 3,
+      expectedDestinationQuantityVersion: 1,
+      note: 'Take from supply storage',
+    })
+    expect(rpcMock).toHaveBeenLastCalledWith('take_from_supply_storage', expect.objectContaining({
+      p_source_workspace_storage_id: 'supply-1',
+      p_destination_workspace_storage_id: 'shelf-1',
+      p_quantity: 2,
+    }))
   })
 })

@@ -28,6 +28,11 @@ import {
   setStockItemStoragePar,
 } from '../../services/stockItemStorageParService'
 import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
+import {
+  staffTakeFromSupplyAvailable,
+  takeFromSupplyStorage,
+  transferStockBetweenLocations,
+} from '../../services/stockMutationService'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
 import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
@@ -327,6 +332,7 @@ function StorageProductRow({
  *   onSupplyRefillComplete?: () => void|Promise<void>,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
+ *   staffTakeAvailable?: typeof staffTakeFromSupplyAvailable,
  * }} props
  */
 export function StockStorageDetailWorkspace({
@@ -351,6 +357,7 @@ export function StockStorageDetailWorkspace({
   startFastCountSession = startStorageFastCountSession,
   saveStoragePar = setStockItemStoragePar,
   clearStoragePar = clearStockItemStoragePar,
+  staffTakeAvailable = staffTakeFromSupplyAvailable,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
@@ -370,6 +377,7 @@ export function StockStorageDetailWorkspace({
   const [adjustmentRow, setAdjustmentRow] = useState(/** @type {object|null} */ (null))
   const [belowParOnly, setBelowParOnly] = useState(false)
   const [refillOpen, setRefillOpen] = useState(false)
+  const [staffTakeReady, setStaffTakeReady] = useState(false)
   const [parBusy, setParBusy] = useState(false)
   const [parError, setParError] = useState('')
   const [parFocusRequest, setParFocusRequest] = useState(0)
@@ -378,6 +386,25 @@ export function StockStorageDetailWorkspace({
   const fastCountRequestIdRef = useRef(0)
 
   const storageId = `${storage?.id ?? ''}`.trim()
+  const staffTakeOpen = !canManage && storage?.isSupply !== true
+
+  useEffect(() => {
+    if (!staffTakeOpen) {
+      setStaffTakeReady(false)
+      return undefined
+    }
+    let cancelled = false
+    staffTakeAvailable()
+      .then((ready) => {
+        if (!cancelled) setStaffTakeReady(Boolean(ready))
+      })
+      .catch(() => {
+        if (!cancelled) setStaffTakeReady(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [staffTakeOpen, staffTakeAvailable])
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
 
   const requestParFocus = (stockItemId) => {
@@ -757,22 +784,22 @@ export function StockStorageDetailWorkspace({
               type="button"
               className="primary-btn stock-storage-detail-action-btn"
               data-testid="supply-refill-open"
-              disabled={!canManage || storage?.active === false || isLaunchingFastCount || status === 'loading' || status === 'error'}
+              disabled={(!canManage && !staffTakeReady) || storage?.active === false || isLaunchingFastCount || status === 'loading' || status === 'error'}
               title={
-                !canManage
+                !canManage && !staffTakeReady
                   ? STAFF_REFILL_BLOCKED_MESSAGE
                   : storage?.active === false
                     ? 'Unavailable for archived storage'
                     : undefined
               }
               onClick={() => {
-                if (!canManage || storage?.active === false) return
+                if ((!canManage && !staffTakeReady) || storage?.active === false) return
                 setRefillOpen(true)
               }}
             >
               {TAKE_FROM_SUPPLY_LABEL}
             </button>
-            {!canManage ? (
+            {!canManage && !staffTakeReady ? (
               <p className="stock-supply-refill-staff-note" role="status" data-testid="supply-refill-staff-note">
                 {STAFF_REFILL_BLOCKED_MESSAGE}
               </p>
@@ -883,6 +910,7 @@ export function StockStorageDetailWorkspace({
           workspaceId={workspaceId}
           destinationStorage={storage}
           products={payload?.products ?? []}
+          transfer={canManage ? transferStockBetweenLocations : takeFromSupplyStorage}
           onClose={() => {
             if (isLaunchingFastCount) return
             setRefillOpen(false)

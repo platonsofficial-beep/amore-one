@@ -326,6 +326,7 @@ export async function recordStockMutationLocationAware(input) {
 }
 
 const TRANSFER_RPC = 'transfer_stock_between_locations'
+const TAKE_FROM_SUPPLY_RPC = 'take_from_supply_storage'
 
 const TRANSFER_ERROR_MESSAGES = Object.freeze({
   stock_transfer_unauthenticated: 'Sign in to transfer stock.',
@@ -347,6 +348,8 @@ const TRANSFER_ERROR_MESSAGES = Object.freeze({
   stock_transfer_insufficient_source: 'Not enough quantity in the source storage.',
   stock_transfer_source_version_mismatch: 'Source quantity changed. Refresh and try again.',
   stock_transfer_destination_version_mismatch: 'Destination quantity changed. Refresh and try again.',
+  take_from_supply_source_not_supply: 'Take only from a supply storage.',
+  take_from_supply_destination_is_supply: 'Take onto a shelf, not into another supply storage.',
 })
 
 /**
@@ -362,23 +365,39 @@ export function mapStockTransferRpcError(error) {
   return new Error(raw || 'Unable to transfer stock right now.')
 }
 
+export function isTakeFromSupplyRpcMissing(error) {
+  const code = `${error?.code ?? ''}`
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return code === 'PGRST202'
+    || code === '42883'
+    || message.includes('could not find the function')
+    || message.includes('schema cache')
+}
+
 /**
- * P8.30.6 — Thin wrapper around production transfer_stock_between_locations.
- * No direct quantity patches or movement inserts.
- *
- * @param {{
- *   workspaceId?: string,
- *   stockItemId?: string,
- *   sourceWorkspaceStorageId?: string,
- *   destinationWorkspaceStorageId?: string,
- *   quantity?: number,
- *   expectedSourceQuantityVersion?: number,
- *   expectedDestinationQuantityVersion?: number,
- *   note?: string,
- *   originRefId?: string|null,
- * }} [input]
+ * True when take_from_supply_storage exists for this client.
+ * A missing function keeps staff on the current manager-only behavior.
  */
-export async function transferStockBetweenLocations({
+export async function staffTakeFromSupplyAvailable() {
+  if (!supabase) return false
+  const { error } = await supabase.rpc(TAKE_FROM_SUPPLY_RPC, {
+    p_workspace_id: null,
+    p_stock_item_id: null,
+    p_source_workspace_storage_id: null,
+    p_destination_workspace_storage_id: null,
+    p_quantity: null,
+    p_expected_source_quantity_version: null,
+    p_expected_destination_quantity_version: null,
+  })
+  if (!error) return true
+  if (isTakeFromSupplyRpcMissing(error)) return false
+  const code = `${error.code ?? ''}`
+  const message = `${error.message ?? ''}`.toLowerCase()
+  if (code === '42501' || message.includes('permission denied')) return false
+  return true
+}
+
+async function callLocationTransferRpc(rpcName, {
   workspaceId = '',
   stockItemId = '',
   sourceWorkspaceStorageId = '',
@@ -415,7 +434,7 @@ export async function transferStockBetweenLocations({
     throw new Error('Destination balance version is required to transfer stock.')
   }
 
-  const { data, error } = await supabase.rpc(TRANSFER_RPC, {
+  const { data, error } = await supabase.rpc(rpcName, {
     p_workspace_id,
     p_stock_item_id,
     p_source_workspace_storage_id,
@@ -428,7 +447,7 @@ export async function transferStockBetweenLocations({
   })
 
   if (error) {
-    console.error('[stockMutationService] transferStockBetweenLocations error:', error)
+    console.error(`[stockMutationService] ${rpcName} error:`, error)
     throw mapStockTransferRpcError(error)
   }
 
@@ -438,6 +457,18 @@ export async function transferStockBetweenLocations({
   }
 
   return payload
+}
+
+/**
+ * Manager move between any two storages.
+ * No direct quantity patches or movement inserts.
+ */
+export async function transferStockBetweenLocations(input = {}) {
+  return callLocationTransferRpc(TRANSFER_RPC, input)
+}
+
+export async function takeFromSupplyStorage(input = {}) {
+  return callLocationTransferRpc(TAKE_FROM_SUPPLY_RPC, input)
 }
 
 /**
