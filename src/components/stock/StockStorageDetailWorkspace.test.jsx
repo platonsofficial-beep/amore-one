@@ -1081,4 +1081,24 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.textContent).not.toContain('Inventory value')
     expect(container.textContent).not.toContain('12')
   })
+
+  it('lets staff open take from supply when the staff function is available', async () => {
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
+      canManage: false,
+      staffTakeAvailable: async () => true,
+      loadProducts: async () => ({
+        storageId: 's-bar',
+        parsAvailable: true,
+        products: [],
+        summary: { productCount: 0, totalQuantity: 0, nonZeroBalanceCount: 0, inventoryValue: 0 },
+      }),
+    })
+    await settle()
+    const open = container.querySelector('[data-testid="supply-refill-open"]')
+    expect(open.disabled).toBe(false)
+    expect(container.querySelector('[data-testid="supply-refill-staff-note"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-storage-detail-action-bar"]')).toBeNull()
+  })
 })
