@@ -1,5 +1,5 @@
 import { filterTasksExcludingAnnouncementDuplicates } from './operationsAnnouncementUtils'
-import { isTaskOverdue } from './taskUtils'
+import { calculateTaskOverview, isTaskOverdue } from './taskUtils'
 
 function taskStatus(task) {
   return `${task?.status ?? ''}`.trim().toLowerCase()
@@ -82,13 +82,56 @@ export function buildSharedTaskWindow(tasks = [], todayKey = '') {
   })
 
   pastDueTasks.sort((left, right) => taskDueDate(left).localeCompare(taskDueDate(right)))
+  const undatedOpenTasks = openTasks.filter((task) => !taskDueDate(task))
+  const futureDueTasks = openTasks.filter((task) => {
+    const dueDate = taskDueDate(task)
+    if (!dueDate) return false
+    if (!today) return true
+    return dueDate > today
+  })
 
   return {
     openCount: openTasks.length,
     pastDueCount: pastDueTasks.length,
     dueTodayCount: dueTodayTasks.length,
     completedToday,
-    listTasks: [...pastDueTasks, ...dueTodayTasks, ...openTasks.filter((task) => !taskDueDate(task))],
+    listTasks: [...pastDueTasks, ...dueTodayTasks, ...undatedOpenTasks, ...futureDueTasks],
+  }
+}
+
+/**
+ * One open / past-due count for Insights, the Today chip, and Operations.
+ * Board and operations rows stay labeled separately, and those two parts
+ * add up to openCount.
+ */
+export function buildUnifiedOperationalTaskCounts({
+  boardTasks = [],
+  operationsTasks = [],
+  todayKey = '',
+  announcements = [],
+} = {}) {
+  const combined = combineOperationalTasks(
+    boardTasks,
+    operationsTasks,
+    todayKey,
+    announcements,
+  )
+  const window = buildSharedTaskWindow(combined, todayKey)
+  const openTasks = combined.filter((task) => isSharedOpenTask(task))
+  const boardOpenTasks = openTasks.filter((task) => task.taskSource === 'workspace')
+  const boardOpen = boardOpenTasks.length
+  const boardPastDue = boardOpenTasks.filter((task) => isSharedTaskOverdue(task, todayKey)).length
+  const taskOverview = calculateTaskOverview(combined, todayKey)
+
+  return {
+    openCount: window.openCount,
+    pastDueCount: window.pastDueCount,
+    completedToday: window.completedToday,
+    completionPercent: taskOverview.completionPercent,
+    boardOpen,
+    boardPastDue,
+    opsOpen: openTasks.length - boardOpen,
+    listTasks: window.listTasks,
   }
 }
 

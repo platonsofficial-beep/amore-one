@@ -65,6 +65,45 @@ describe('reportsUtils', () => {
     expect(weekReport.metrics.bookings).toBe(2)
   })
 
+  it('counts bookings the way Reservations counts expected guests', () => {
+    const report = buildReservationsReport([
+      makeReservation({ id: 'pending', status: 'Pending', guests: 2 }),
+      makeReservation({ id: 'seated', status: 'Checked In', guests: 4 }),
+      makeReservation({ id: 'done', status: 'Checked Out', guests: 3 }),
+      makeReservation({ id: 'cancelled', status: 'Cancelled', guests: 5 }),
+    ], {
+      period: REPORT_PERIOD_TODAY,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      connected: true,
+    })
+
+    expect(report.metrics.bookings).toBe(1)
+    expect(report.metrics.guests).toBe(2)
+    expect(report.metrics.inHouse).toBe(1)
+    expect(report.metrics.completed).toBe(1)
+    expect(report.metrics.cancelled).toBe(1)
+  })
+
+  it('places timestamped reservations on the workspace calendar day', () => {
+    const report = buildReservationsReport([
+      makeReservation({
+        id: 'nicosia-next-day',
+        date: '2026-10-25T22:30:00.000Z',
+        status: 'Confirmed',
+        guests: 2,
+      }),
+    ], {
+      period: REPORT_PERIOD_TODAY,
+      todayKey: '2026-10-26',
+      weekStartDate: '2026-10-26',
+      timeZone: 'Europe/Nicosia',
+      connected: true,
+    })
+
+    expect(report.metrics.bookings).toBe(1)
+  })
+
   it('returns disconnected placeholders for tasks when module is off', () => {
     const report = buildTasksReport([{ id: '1', status: 'active' }], {
       connected: false,
@@ -155,11 +194,33 @@ describe('reportsUtils', () => {
       connected: true,
     })
 
+    expect(todayReport.usesDraftSchedule).toBe(true)
     expect(todayReport.metrics.issues).not.toBeNull()
     expect(weekReport.metrics.issues).toBeNull()
     if (todayReport.metrics.issues > 0) {
       expect(todayReport.coverageDetail).toContain('gap')
     }
+  })
+
+  it('can report the published week instead of draft shifts', () => {
+    const report = buildScheduleReport({
+      shifts: [{
+        id: 'published',
+        date: TODAY,
+        employeeId: 'e1',
+        startTime: '10:00',
+        endTime: '14:00',
+      }],
+      period: REPORT_PERIOD_TODAY,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      connected: true,
+      usesDraftSchedule: false,
+    })
+
+    expect(report.usesDraftSchedule).toBe(false)
+    expect(report.metrics.scheduledStaff).toBe(1)
+    expect(report.metrics.scheduledHours).toBe(4)
   })
 
   it('shows items to order in overview when pending orders are zero', () => {
@@ -306,6 +367,24 @@ describe('reportsUtils', () => {
     expect(bundle.stockReport.metrics.pendingOrders).toBe(1)
     expect(bundle.insightsAttention).toHaveLength(1)
     expect(bundle.healthSummary).toContain('attention')
+  })
+
+  it('uses the same open and overdue counts for board and operations tasks', () => {
+    const report = buildTasksReport([
+      { id: 'board', status: 'active', dueDate: '2026-07-01' },
+    ], {
+      period: REPORT_PERIOD_TODAY,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      connected: true,
+      operationsTasks: [
+        { id: 'ops', status: 'pending', dueDate: '2026-07-02' },
+      ],
+    })
+
+    expect(report.metrics.active).toBe(2)
+    expect(report.metrics.overdue).toBe(2)
+    expect(report.metrics.completionPercent).toBe(0)
   })
 })
 
