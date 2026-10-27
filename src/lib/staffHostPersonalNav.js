@@ -39,8 +39,9 @@ export function withStaffHostRailItems(items, access) {
   ]
 }
 
-export function staffHostAvatarActions({ canRequestLeave = false } = {}) {
+export function staffHostAvatarActions({ canRequestLeave = false, canUseChat = false } = {}) {
   return [
+    ...(canUseChat ? [{ id: 'chat', label: 'Chat' }] : []),
     { id: 'my-week', label: 'My week' },
     { id: 'account', label: 'Profile' },
     { id: 'clock', label: 'Clock in/out' },

@@ -17,6 +17,8 @@ describe('push service worker contract', () => {
   it('shows the notification and opens or focuses the payload url', () => {
     expect(pushWorker).toContain("addEventListener('push'")
     expect(pushWorker).toContain('showNotification')
+    expect(pushWorker).toContain('payload.tag')
+    expect(pushWorker).toContain('tag,')
     expect(pushWorker).toContain("icon: '/icon-192.png'")
     expect(pushWorker).toContain("badge: '/favicon-32.png'")
     expect(pushWorker).toContain("addEventListener('notificationclick'")

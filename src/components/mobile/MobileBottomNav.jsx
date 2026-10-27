@@ -20,9 +20,10 @@ export function MobileBottomNav({
           className={`mobile-bottom-nav-item${activeTab === tab.id ? ' is-active' : ''}`}
           onClick={() => onTabChange(tab.id)}
           aria-current={activeTab === tab.id ? 'page' : undefined}
-          aria-label={tab.ariaLabel || tab.label}
+          aria-label={tab.badge ? `${tab.ariaLabel || tab.label}, ${tab.badge} unread` : (tab.ariaLabel || tab.label)}
         >
           <span className="mobile-bottom-nav-icon" aria-hidden="true">{tab.icon}</span>
+          {tab.badge ? <span className="mobile-bottom-nav-badge">{Number(tab.badge) > 9 ? '9+' : tab.badge}</span> : null}
           <span className="mobile-bottom-nav-label">{tab.label}</span>
         </button>
       ))}

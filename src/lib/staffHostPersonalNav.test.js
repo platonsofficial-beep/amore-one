@@ -41,6 +41,7 @@ describe('staff and host personal navigation', () => {
       'Request Leave',
     ])
     expect(staffHostAvatarActions().some((item) => item.id === 'leave')).toBe(false)
+    expect(staffHostAvatarActions({ canUseChat: true }).map((item) => item.label)[0]).toBe('Chat')
   })
 
   it('keeps personal routes for staff and host and maps them back to the portrait screen', () => {

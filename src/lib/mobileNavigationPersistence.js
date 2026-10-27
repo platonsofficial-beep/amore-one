@@ -4,16 +4,17 @@ const DEFAULT_MOBILE_TAB = 'home'
 const DEFAULT_HOST_MOBILE_TAB = 'reservations'
 const DEFAULT_MANAGER_MOBILE_TAB = 'today'
 
-const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'availability', 'tasks', 'menu'])
+const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'availability', 'chat', 'tasks', 'menu'])
 const VALID_HOST_MOBILE_TABS = new Set([
   'home',
   'schedule',
   'availability',
+  'chat',
   'tasks',
   'reservations',
   'menu',
 ])
-const VALID_MANAGER_MOBILE_TABS = new Set(['today', 'stock', 'tasks', 'menu'])
+const VALID_MANAGER_MOBILE_TABS = new Set(['today', 'stock', 'tasks', 'chat', 'menu'])
 
 export function normalizeMobileTab(value, { variant = 'staff' } = {}) {
   const normalized = `${value ?? ''}`.trim().toLowerCase()

@@ -49,6 +49,22 @@ export const NOTIFICATION_GROUPS = [
     types: ['task_assigned'],
     managerOnly: false,
   },
+  {
+    id: 'chat_message',
+    label: 'Team & group chats',
+    detail: 'Messages in Team and group channels.',
+    icon: '💬',
+    types: ['chat_message'],
+    managerOnly: false,
+  },
+  {
+    id: 'chat_direct',
+    label: 'Direct messages',
+    detail: 'Private messages sent to you.',
+    icon: '✉️',
+    types: ['chat_direct'],
+    managerOnly: false,
+  },
 ]
 
 const VIEW_BY_TYPE = {
@@ -58,9 +74,11 @@ const VIEW_BY_TYPE = {
   timeclock_request: 'attendance',
   schedule_published: 'schedule',
   task_assigned: 'tasks',
+  chat_message: 'chat',
+  chat_direct: 'chat',
 }
 
-const KNOWN_VIEWS = new Set(['clock', 'attendance', 'schedule', 'tasks', 'home'])
+const KNOWN_VIEWS = new Set(['clock', 'attendance', 'schedule', 'tasks', 'home', 'chat'])
 
 function storageKey(prefix, userId) {
   return `${prefix}.${userId}`
@@ -177,11 +195,13 @@ export function deviceLabelFromAgent(userAgent = '', deviceLabel = '') {
 
 export function resolveNotificationTarget(row) {
   const data = row?.data && typeof row.data === 'object' ? row.data : {}
-  const requested = `${data.view || VIEW_BY_TYPE[row?.type] || 'home'}`.trim()
+  const requested = `${data.view || row?.view || VIEW_BY_TYPE[row?.type] || 'home'}`.trim()
   return {
     view: KNOWN_VIEWS.has(requested) ? requested : 'home',
     weekStartDate: `${data.week_start_date ?? ''}`.trim(),
     taskId: `${data.task_id ?? ''}`.trim(),
+    conversationId: `${data.conversation_id ?? row?.conversation_id ?? ''}`.trim(),
+    messageId: `${data.message_id ?? row?.message_id ?? ''}`.trim(),
     notificationId: `${row?.id ?? ''}`.trim(),
   }
 }
@@ -190,6 +210,13 @@ export function planNotificationOpen(target, { useMobileExperience = false, isMa
   const view = target?.view || 'home'
   const weekStartDate = `${target?.weekStartDate ?? ''}`.trim()
   const taskId = `${target?.taskId ?? ''}`.trim()
+
+  if (view === 'chat') {
+    return {
+      action: 'chat',
+      conversationId: `${target?.conversationId ?? ''}`.trim(),
+    }
+  }
 
   if (view === 'clock') {
     if (useMobileExperience && !isManagerMobile) return { action: 'staff-clock' }

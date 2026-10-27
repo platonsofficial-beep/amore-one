@@ -54,7 +54,7 @@ describe('MemberAccessPanel', () => {
     view.unmount()
   })
 
-  it('shows the nine areas, salary toggle, and clock-in note for a member', async () => {
+  it('shows the ten areas, salary toggle, and clock-in note for a member', async () => {
     const loadLinkedMembership = vi.fn().mockResolvedValue(MEMBERSHIP)
     const loadPermissionRows = vi.fn().mockResolvedValue(
       Object.entries(presetLevelsForRole('manager')).map(([module, level]) => ({ module, level })),
@@ -77,7 +77,8 @@ describe('MemberAccessPanel', () => {
     expect(view.container.textContent).toContain('Salaries & personal data')
     expect(view.container.textContent).toContain('Clock in/out')
     expect(view.container.textContent).not.toContain('Coming soon')
-    expect(view.container.querySelectorAll('.member-access-row')).toHaveLength(9)
+    expect(view.container.textContent).toContain('Chat')
+    expect(view.container.querySelectorAll('.member-access-row')).toHaveLength(10)
     expect(view.container.textContent).toContain('None')
     expect(view.container.textContent).toContain('View')
     expect(view.container.textContent).toContain('Manage')

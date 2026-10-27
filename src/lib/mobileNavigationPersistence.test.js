@@ -13,6 +13,8 @@ describe('host mobile tab persistence', () => {
     expect(normalizeMobileTab('stock', { variant: 'host' })).toBe('reservations')
     expect(normalizeMobileTab('home', { variant: 'staff' })).toBe('home')
     expect(normalizeMobileTab('availability', { variant: 'staff' })).toBe('availability')
+    expect(normalizeMobileTab('chat', { variant: 'staff' })).toBe('chat')
+    expect(normalizeMobileTab('chat', { variant: 'host' })).toBe('chat')
     expect(normalizeMobileTab('availability', { variant: 'host' })).toBe('availability')
     expect(normalizeMobileTab('reservations', { variant: 'staff' })).toBe('home')
   })

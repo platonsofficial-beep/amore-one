@@ -1,5 +1,6 @@
 export const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: '◈' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'reservations', label: 'Reservations', icon: '🍽️' },
   { id: 'team', label: 'Team', icon: '👥' },
   { id: 'stock', label: 'Stock', icon: '📦' },
@@ -44,6 +45,7 @@ export const MODULE_LABELS = {
   account: 'Profile',
   clock: 'Clock in/out',
   notifications: 'Notifications',
+  chat: 'Chat',
 }
 
 const LEGACY_ACTIVE_VIEW_MAP = {
@@ -148,6 +150,7 @@ export function getModuleTitle(activeView, {
   if (activeView === 'account') return 'Profile'
   if (activeView === 'clock') return 'Clock in/out'
   if (activeView === 'notifications') return 'Notifications'
+  if (activeView === 'chat') return 'Chat'
   if (activeView === 'time-clock' || activeView === 'attendance') return 'Time clock'
   return getModuleLabel(activeView)
 }
@@ -185,6 +188,7 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'account') return 'Personal details and account.'
   if (activeView === 'clock') return 'Clock in or out for this shift.'
   if (activeView === 'notifications') return 'Reminders, quiet hours and this device.'
+  if (activeView === 'chat') return 'Team messages.'
   if (activeView === 'time-clock' || activeView === 'attendance') return "Who is in, late arrivals, and this week's hours."
   return ''
 }
@@ -213,6 +217,7 @@ export function shouldShowModuleSearch(activeView, teamSection, stockSection = '
   if (isTeamScheduleView(activeView, teamSection)) return false
   if (activeView === 'team' && teamSection === 'today') return false
   if (activeView === 'settings') return false
+  if (activeView === 'chat') return false
   if (activeView === 'time-clock' || activeView === 'attendance') return false
   if (activeView === 'stock') return Boolean(stockSection)
   return true

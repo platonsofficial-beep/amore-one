@@ -47,7 +47,7 @@ describe('MobileStaffApp host shell', () => {
     expect(navLabels(container)).toEqual([
       'Home',
       'Schedule',
-      'Tasks',
+      'Chat',
       'Bookings',
       'Profile',
     ])
@@ -96,7 +96,7 @@ describe('MobileStaffApp host shell', () => {
     unmount()
   })
 
-  it('keeps availability on the staff bar with labels that fit a phone', () => {
+  it('keeps My week inside Schedule and puts Chat on the staff bar', () => {
     const { container, unmount } = renderHostApp({
       shellVariant: 'staff',
       activeTab: 'home',
@@ -105,11 +105,25 @@ describe('MobileStaffApp host shell', () => {
     expect(navLabels(container)).toEqual([
       'Home',
       'Schedule',
-      'My week',
+      'Chat',
       'Tasks',
       'Profile',
     ])
-    expect(container.querySelector('.mobile-bottom-nav-item[aria-label="My week"]')).toBeTruthy()
+    expect(container.querySelector('.mobile-bottom-nav-item[aria-label="My week"]')).toBeNull()
+
+    const schedule = Array.from(container.querySelectorAll('.mobile-bottom-nav-item'))
+      .find((node) => node.textContent.includes('Schedule'))
+    act(() => {
+      schedule.click()
+    })
+    const segments = Array.from(container.querySelectorAll('.mobile-schedule-segments button')).map((node) => node.textContent)
+    expect(segments).toEqual(['Shifts', 'My week'])
+    const myWeek = container.querySelectorAll('.mobile-schedule-segments button')[1]
+    act(() => {
+      myWeek.click()
+    })
+    expect(container.textContent).toContain('Weekly availability')
+    expect(container.querySelector('.mobile-bottom-nav-item.is-active')?.textContent).toContain('Schedule')
     unmount()
   })
 })
