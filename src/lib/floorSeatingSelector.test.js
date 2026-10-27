@@ -92,8 +92,58 @@ describe('FloorSeatingSelector', () => {
       }))
     })
 
+    expect(container.querySelectorAll('.floor-plan-legend')).toHaveLength(1)
     expect(container.querySelector('.floor-seating-selector-legend')).toBeTruthy()
+    expect(container.querySelector('.floor-seating-legend-popover')).toBeNull()
     expect(container.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(2)
+  })
+
+  it('mounts the colour legend inside the info popover only after it opens on a short landscape', () => {
+    const originalMatchMedia = window.matchMedia
+    window.matchMedia = (query) => ({
+      matches: query.includes('max-height: 520px'),
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+      addListener() {},
+      removeListener() {},
+    })
+
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    try {
+      act(() => {
+        root.render(createElement(FloorSeatingSelector, {
+          seatings: SEATINGS,
+          selectedSeatingId: 'brunch',
+          onSelect: () => {},
+          legendItems: [
+            { id: 'available', label: 'Available', tone: 'host-available' },
+            { id: 'reserved', label: 'Reserved', tone: 'host-reserved' },
+          ],
+        }))
+      })
+
+      expect(container.querySelector('.floor-seating-selector-legend')).toBeNull()
+      expect(container.querySelector('.floor-seating-legend-disclosure-btn')).toBeTruthy()
+      expect(container.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(0)
+
+      const details = container.querySelector('details')
+      act(() => {
+        details.open = true
+        details.dispatchEvent(new Event('toggle', { bubbles: true }))
+      })
+
+      const chips = container.querySelectorAll('.floor-seating-legend-popover .floor-plan-legend-chip')
+      expect(chips).toHaveLength(2)
+      expect([...chips].map((chip) => chip.textContent)).toEqual(['Available', 'Reserved'])
+      expect(container.querySelector('.floor-seating-selector-legend')).toBeNull()
+      expect(container.querySelectorAll('.floor-plan-legend')).toHaveLength(1)
+    } finally {
+      window.matchMedia = originalMatchMedia
+    }
   })
 
   it('renders seating chip operational metrics line', () => {

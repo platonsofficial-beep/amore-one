@@ -234,7 +234,6 @@ import {
   buildSeatingsById,
   formatSeatingChipLabel,
   getActiveSeatingsForDate,
-  seatingsForAuthBypassPreview,
   matchReservationTimeToSeating,
   resolveHostStationInitialSeatingId,
   resolveReservationSeatingId,
@@ -17247,16 +17246,11 @@ function App() {
       try {
         const remoteSeatings = await getReservationSeatings(activeWorkspaceId, { includeInactive: true })
         if (!isMounted) return
-        setReservationSeatings(seatingsForAuthBypassPreview(remoteSeatings))
+        setReservationSeatings(remoteSeatings)
       } catch (error) {
         if (!isMounted) return
-        const preview = seatingsForAuthBypassPreview([])
-        setReservationSeatings(preview)
-        if (preview.length > 0) {
-          setReservationSeatingsNotice('')
-        } else {
-          setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
-        }
+        setReservationSeatings([])
+        setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
       } finally {
         if (isMounted) {
           setIsReservationSeatingsLoading(false)

@@ -155,15 +155,32 @@ function chromePath() {
     || '/usr/bin/google-chrome'
 }
 
+const VIEWPORT_SEATINGS = [
+  ['preview-brunch', 'Brunch', '10:00', 0],
+  ['preview-lunch', 'Lunch', '12:30', 1],
+  ['preview-dinner-1', 'Dinner 1', '18:00', 2],
+  ['preview-dinner-2', 'Dinner 2', '21:00', 3],
+].map(([id, name, start_time, sort_order]) => ({
+  id,
+  name,
+  start_time,
+  duration_minutes: 120,
+  days_of_week: [0, 1, 2, 3, 4, 5, 6],
+  sort_order,
+  is_active: true,
+}))
+
 function bootSource(navigation) {
   const layout = JSON.stringify(FLOOR_LAYOUT)
   const nav = JSON.stringify(navigation)
+  const seatings = JSON.stringify(VIEWPORT_SEATINGS)
   return `
     try {
       localStorage.setItem('one.navigation.v2', ${JSON.stringify(nav)});
       localStorage.removeItem('one.navigation.v1');
       localStorage.setItem('amore-floor-plan-published-v1--dev-workspace-id', ${JSON.stringify(layout)});
       localStorage.setItem('amore-floor-plan-published-v1', ${JSON.stringify(layout)});
+      localStorage.setItem('amore-viewport-seatings-v1', ${JSON.stringify(seatings)});
       const applySafe = () => {
         const landscape = window.innerWidth > window.innerHeight;
         const root = document.documentElement;

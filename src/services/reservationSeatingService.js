@@ -5,6 +5,7 @@ import {
 import { supabase } from '../lib/supabaseClient'
 
 const SEATINGS_TABLE = 'reservation_seatings'
+const VIEWPORT_SEATING_FIXTURE_KEY = 'amore-viewport-seatings-v1'
 
 function isTableUnavailableError(error) {
   const message = error?.message?.toLowerCase() ?? ''
@@ -34,8 +35,29 @@ function mapSeating(record) {
   })
 }
 
+function readViewportSeatingFixture() {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(VIEWPORT_SEATING_FIXTURE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return null
+    return parsed.map(mapSeating).filter(Boolean)
+  } catch {
+    return null
+  }
+}
+
 export async function getReservationSeatings(workspaceId, { includeInactive = false } = {}) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+
+  if (!supabase) {
+    const seeded = readViewportSeatingFixture()
+    if (seeded) {
+      return includeInactive ? seeded : seeded.filter((seating) => seating.isActive)
+    }
+    throw new Error('Unable to load reservation seatings right now.')
+  }
 
   let query = supabase
     .from(SEATINGS_TABLE)

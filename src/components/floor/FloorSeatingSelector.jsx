@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { FloorPlanLegend } from './FloorPlanLegend'
 import { formatHostQueueSeatingChipMetricsLine } from '../../lib/hostQueueServiceMetrics'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import {
   formatHostSeatingTableAvailabilityAccessible,
   formatHostSeatingTableAvailabilityDisplay,
 } from '../../lib/tableAvailability'
+
+const COMPACT_LEGEND_QUERY = '(orientation: landscape) and (max-height: 520px)'
 
 export function FloorSeatingSelector({
   seatings = [],
@@ -13,6 +17,8 @@ export function FloorSeatingSelector({
   summaries = {},
   legendItems = null,
 }) {
+  const compactLegend = useMediaQuery(COMPACT_LEGEND_QUERY)
+  const [legendOpen, setLegendOpen] = useState(false)
   if (!seatings.length) return null
 
   return (
@@ -62,23 +68,31 @@ export function FloorSeatingSelector({
         </div>
         {legendItems?.length ? (
           <div className="floor-seating-legend-slot">
-            <FloorPlanLegend
-              items={legendItems}
-              variant="compact"
-              className="floor-seating-selector-legend"
-              ariaLabel="Floor plan table colors"
-            />
-            <details className="floor-seating-legend-disclosure">
-              <summary className="floor-seating-legend-disclosure-btn" aria-label="Table colors">
-                i
-              </summary>
+            {compactLegend ? (
+              <details
+                className="floor-seating-legend-disclosure"
+                onToggle={(event) => setLegendOpen(event.currentTarget.open)}
+              >
+                <summary className="floor-seating-legend-disclosure-btn" aria-label="Table colors">
+                  i
+                </summary>
+                {legendOpen ? (
+                  <FloorPlanLegend
+                    items={legendItems}
+                    variant="compact"
+                    className="floor-seating-legend-popover"
+                    ariaLabel="Floor plan table colors"
+                  />
+                ) : null}
+              </details>
+            ) : (
               <FloorPlanLegend
                 items={legendItems}
                 variant="compact"
-                className="floor-seating-legend-popover"
+                className="floor-seating-selector-legend"
                 ariaLabel="Floor plan table colors"
               />
-            </details>
+            )}
           </div>
         ) : null}
       </div>
