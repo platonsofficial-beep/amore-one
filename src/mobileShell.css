@@ -7674,6 +7674,22 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     padding: 8px 10px;
     font-size: 0.82rem;
   }
+
+  .app-shell.is-mobile-shell.is-settings-view .workspace-nav-links {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .app-shell.is-mobile-shell.is-settings-view .workspace-nav-link {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 0.82rem;
+  }
 }
 
 /* Host station — dedicated shell for host role on phone, tablet, and desktop */

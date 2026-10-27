@@ -340,6 +340,20 @@ describe('reservationSeatings', () => {
     })
   })
 
+  it('rejects an update that blanks the seating name', () => {
+    const result = validateReservationSeatingForm({
+      name: '   ',
+      startTime: '19:00',
+      durationMinutes: 120,
+      daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
+      isActive: true,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('Seating name is required.')
+    expect(result.seating).toBeUndefined()
+  })
+
   it('requires at least one selected day', () => {
     const result = validateReservationSeatingForm({
       name: 'Brunch',
