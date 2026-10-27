@@ -9,7 +9,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:viewports": "node scripts/phone-viewport-matrix.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

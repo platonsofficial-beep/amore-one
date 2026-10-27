@@ -1,25 +1,62 @@
 import { spawn } from 'node:child_process'
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function waitForHttp(url, timeoutMs = 60000) {
+  const started = Date.now()
+  let lastError = 'no response'
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const response = await fetch(url, { signal: AbortSignal.timeout(2000) })
+      if (response.status < 500) return
+      lastError = `HTTP ${response.status}`
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+    }
+    await sleep(250)
+  }
+  throw new Error(`Timed out waiting for ${url} (${lastError})`)
+}
+
 async function resolveBaseUrl() {
-  const preferred = process.env.ONE_VIEWPORT_BASE_URL || 'http://127.0.0.1:5173'
-  try {
-    const response = await fetch(preferred, { signal: AbortSignal.timeout(1500) })
-    if (response.ok || response.status < 500) return { url: preferred, close: async () => {} }
-  } catch {
-    // Start a local Vite server when one is not already running.
+  const preferred = `${process.env.ONE_VIEWPORT_BASE_URL ?? ''}`.trim()
+  if (preferred) {
+    await waitForHttp(preferred)
+    return { url: preferred, close: async () => {} }
   }
 
-  const { createServer } = await import('vite')
-  const vite = await createServer({
-    server: { host: '127.0.0.1', port: 4173, strictPort: false },
+  // CI has no .env and no dev server. Bake the same local auth bypass into a
+  // production preview and wait until that port is actually serving.
+  // An empty env dir keeps a developer .env from being required.
+  process.env.VITE_AUTH_DISABLED = 'true'
+  const envDir = await mkdtemp(join(tmpdir(), 'one-viewport-env-'))
+  const { build, preview } = await import('vite')
+  await build({ logLevel: 'warn', mode: 'production', envDir })
+  const server = await preview({
     logLevel: 'error',
+    envDir,
+    preview: {
+      host: '127.0.0.1',
+      port: 4173,
+      strictPort: false,
+    },
   })
-  await vite.listen()
+  const address = server.httpServer?.address?.()
+  const port = address && typeof address === 'object' ? address.port : 4173
+  const url = server.resolvedUrls?.local?.[0] || `http://127.0.0.1:${port}/`
+  await waitForHttp(url)
   return {
-    url: `http://127.0.0.1:${vite.config.server.port}/`,
-    close: () => vite.close(),
+    url,
+    close: async () => {
+      await server.close()
+      await rm(envDir, { recursive: true, force: true }).catch(() => {})
+    },
   }
 }
 
@@ -357,15 +394,19 @@ function assertMeasurement(page, width, height, measurement) {
 
 async function waitForApp(send) {
   const started = Date.now()
-  while (Date.now() - started < 12000) {
+  while (Date.now() - started < 45000) {
     const result = await send('Runtime.evaluate', {
       expression: `document.querySelector('.app-shell') ? 'ready' : ''`,
       returnByValue: true,
     })
     if (result.result?.value === 'ready') return
-    await new Promise((resolve) => setTimeout(resolve, 150))
+    await sleep(200)
   }
-  throw new Error('App shell did not render')
+  const diag = await send('Runtime.evaluate', {
+    expression: `JSON.stringify({ href: location.href, title: document.title, text: (document.body && document.body.innerText || '').slice(0, 400) })`,
+    returnByValue: true,
+  }).catch(() => null)
+  throw new Error(`App shell did not render ${diag?.result?.value || ''}`.trim())
 }
 
 export async function runPhoneViewportMatrix({
@@ -411,7 +452,7 @@ export async function runPhoneViewportMatrix({
         const token = `${page.id}-${width}x${height}-${Date.now()}`
         await send('Page.navigate', { url: `${baseUrl}&viewportCase=${token}` })
         const started = Date.now()
-        while (Date.now() - started < 12000) {
+        while (Date.now() - started < 45000) {
           const located = await send('Runtime.evaluate', {
             expression: `location.search.includes(${JSON.stringify(token)}) && document.querySelector('.app-shell') ? 'ready' : ''`,
             returnByValue: true,
@@ -524,4 +565,21 @@ export async function runPhoneViewportMatrix({
   }
 
   return { failures, shots }
+}
+
+const invokedDirectly = process.argv[1]
+  && import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+
+if (invokedDirectly) {
+  const report = await runPhoneViewportMatrix({
+    screenshotDir: `${process.env.ONE_VIEWPORT_SCREENSHOTS ?? ''}`.trim(),
+  })
+  if (report.failures.length) {
+    for (const failure of report.failures) {
+      console.error(`${failure.page} ${failure.size} ${failure.mode}: ${failure.failures.join(', ')}`)
+    }
+    console.error(`phone viewport matrix failed (${report.failures.length})`)
+    process.exit(1)
+  }
+  console.log('phone viewport matrix passed')
 }
