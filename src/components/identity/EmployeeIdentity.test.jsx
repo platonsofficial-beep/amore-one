@@ -5,6 +5,7 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { describe, expect, it } from 'vitest'
+import { AvatarDirectoryContext } from '../../context/AvatarDirectoryContext'
 import { EmployeeIdentity } from './EmployeeIdentity'
 
 function renderIdentity(props = {}) {
@@ -57,6 +58,38 @@ describe('EmployeeIdentity', () => {
     expect(image?.getAttribute('alt')).toBe('Evie profile photo')
 
     cleanup()
+  })
+
+  it('uses a signed avatar from the directory and still falls back to initials', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    const directory = {
+      lookup: ({ employeeId }) => (
+        employeeId === 'emp-1'
+          ? { url: 'https://signed.example/alex.jpg', updatedAt: '9', path: 'user/alex.jpg' }
+          : null
+      ),
+      setOptimistic() {},
+      refresh: async () => {},
+    }
+
+    act(() => {
+      root.render(createElement(AvatarDirectoryContext.Provider, { value: directory },
+        createElement('div', null,
+          createElement(EmployeeIdentity, { employee: { id: 'emp-1', name: 'Alex Kim' } }),
+          createElement(EmployeeIdentity, { employee: { id: 'emp-2', name: 'Mina Costa' } }),
+        ),
+      ))
+    })
+
+    const images = container.querySelectorAll('.employee-identity-photo')
+    expect(images).toHaveLength(1)
+    expect(images[0].getAttribute('src')).toBe('https://signed.example/alex.jpg?v=9')
+    expect(container.querySelector('.employee-identity-initials')?.textContent).toBe('MC')
+
+    act(() => root.unmount())
+    container.remove()
   })
 
   it('renders unknown placeholder for missing employees', () => {

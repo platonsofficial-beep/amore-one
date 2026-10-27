@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ProfilePhotoBlock } from '../profile/ProfilePhotoBlock'
 
 export function MobileProfileView({
   displayName = '',
@@ -57,6 +58,8 @@ export function MobileProfileView({
         </button>
         <h1>Profile</h1>
       </header>
+
+      <ProfilePhotoBlock displayName={displayName} />
 
       <section className="mobile-card mobile-profile-readonly" aria-label="Account details">
         <dl className="mobile-profile-details">

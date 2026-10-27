@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../../context/AuthContext'
+import { PersonAvatar } from '../identity/PersonAvatar'
 import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { resolveUserDisplayName } from '../../lib/userDisplayName'
@@ -135,7 +136,15 @@ export function UserMenu({
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <div className="profile-avatar">{chipInitials}</div>
+        <div className="profile-avatar">
+          <PersonAvatar
+            authUserId={user?.id || membership?.authUserId}
+            memberId={membership?.id}
+            employeeId={membership?.employeeId}
+            name={memberDisplayName}
+            fallback={chipInitials}
+          />
+        </div>
         {variant === 'command' || variant === 'today-compact' ? (
           <div className="profile-chip-copy">
             <strong>{memberDisplayName}</strong>
