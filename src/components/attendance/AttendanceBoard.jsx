@@ -34,6 +34,18 @@ import {
   loadAttendanceSettings,
   loadAttendanceShifts,
 } from '../../services/attendanceService'
+import { PersonAvatar } from '../identity/PersonAvatar'
+
+function AttendanceFace({ employeeId = '', memberId = '', name = '' }) {
+  return (
+    <span className="attendance-person-line">
+      <span className="attendance-avatar" aria-hidden="true">
+        <PersonAvatar employeeId={employeeId} memberId={memberId} name={name} />
+      </span>
+      <strong>{name}</strong>
+    </span>
+  )
+}
 
 function personName(employees, employeeId, fallback = 'Team member') {
   const match = (employees ?? []).find((employee) => `${employee?.id ?? ''}` === `${employeeId ?? ''}`)
@@ -120,6 +132,8 @@ export function AttendanceBoard({
         rows.push({
           id: `late-${entry.id}`,
           name: entryPersonName(entry, employees),
+          employeeId: entry.employee_id,
+          memberId: entry.member_id,
           detail: `Late by ${entry.late_minutes ?? 0} min`,
         })
       }
@@ -144,6 +158,7 @@ export function AttendanceBoard({
       rows.push({
         id: `shift-${shift.id}`,
         name: personName(employees, shift.employee_id),
+        employeeId: shift.employee_id,
         detail: lateTodayDetail(shift, status, minutesAfterShiftStart(shift, now, timeZone)),
       })
     }
@@ -156,15 +171,19 @@ export function AttendanceBoard({
       if (!range.dates.includes(shiftDateKey(shift))) continue
       const key = `${shift.employee_id ?? ''}`
       if (!key) continue
-      keys.set(key, personName(employees, key))
+      keys.set(key, { name: personName(employees, key), employeeId: shift.employee_id, memberId: '' })
     }
     for (const entry of entries) {
       if (!range.dates.includes(`${entry.work_date ?? ''}`.slice(0, 10)) && !isOpenEntry(entry)) continue
       const key = personKeyForEntry(entry)
       if (!key || keys.has(key)) continue
-      keys.set(key, entryPersonName(entry, employees))
+      keys.set(key, {
+        name: entryPersonName(entry, employees),
+        employeeId: entry.employee_id,
+        memberId: entry.member_id,
+      })
     }
-    return [...keys.entries()].map(([id, name]) => ({ id, name })).sort((left, right) => left.name.localeCompare(right.name))
+    return [...keys.entries()].map(([id, person]) => ({ id, ...person })).sort((left, right) => left.name.localeCompare(right.name))
   }, [employees, entries, range.dates, shifts])
 
   const activeKey = selectedKey || people[0]?.id || ''
@@ -254,7 +273,11 @@ export function AttendanceBoard({
               const onBreak = (breaksByEntry[entry.id] ?? []).some((item) => isOpenBreak(item))
               return (
                 <li key={entry.id}>
-                  <strong>{entryPersonName(entry, employees)}</strong>
+                  <AttendanceFace
+                    employeeId={entry.employee_id}
+                    memberId={entry.member_id}
+                    name={entryPersonName(entry, employees)}
+                  />
                   <span>Since {formatClockTime(entry.clock_in_at, timeZone)}</span>
                   {onBreak ? <span className="attendance-pill">☕ On break</span> : null}
                   <span>{formatHoursMinutes(actualWorkedMinutes(entry, breaksByEntry[entry.id] ?? [], now))}</span>
@@ -270,7 +293,7 @@ export function AttendanceBoard({
           <ul className="attendance-list">
             {lateRows.map((row) => (
               <li key={row.id}>
-                <strong>{row.name}</strong>
+                <AttendanceFace employeeId={row.employeeId} memberId={row.memberId} name={row.name} />
                 <span>{row.detail}</span>
               </li>
             ))}
@@ -289,7 +312,11 @@ export function AttendanceBoard({
               })
               return (
                 <li key={exception.id}>
-                  <strong>{entryPersonName(exception, employees)}</strong>
+                  <AttendanceFace
+                    employeeId={exception.employee_id}
+                    memberId={exception.member_id}
+                    name={entryPersonName(exception, employees)}
+                  />
                   <span>{exceptionKindLabel(exception.kind)}</span>
                   {exception.distance_m != null ? <span>About {exception.distance_m} m away</span> : null}
                   {exception.reason ? <span>{exception.reason}</span> : null}
@@ -335,6 +362,9 @@ export function AttendanceBoard({
               className={`attendance-choice${person.id === activeKey ? ' is-selected' : ''}`}
               onClick={() => setSelectedKey(person.id)}
             >
+              <span className="attendance-avatar attendance-avatar-small" aria-hidden="true">
+                <PersonAvatar employeeId={person.employeeId || person.id} memberId={person.memberId} name={person.name} />
+              </span>
               {person.name}
             </button>
           ))}

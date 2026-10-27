@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PersonAvatar } from '../identity/PersonAvatar'
 import { getIdentityColorById } from '../../lib/identity/identityColorPalette'
 import {
   CHAT_EMOJIS,
@@ -397,7 +398,14 @@ export function ChatScreen({
                     style={color ? { '--chat-ring': color.ring, '--chat-ink': color.text } : undefined}
                     aria-hidden="true"
                   >
-                    {row.icon || initials(title)}
+                    {row.kind === 'direct' ? (
+                      <PersonAvatar
+                        memberId={row.other_member_id}
+                        employeeId={membersById[row.other_member_id]?.employeeId}
+                        name={title}
+                        fallback={row.icon || initials(title)}
+                      />
+                    ) : (row.icon || initials(title))}
                   </span>
                   <span className="chat-row-copy">
                     <strong>{title}</strong>
@@ -469,8 +477,19 @@ export function ChatScreen({
                 ? seenByLabels(participants, message, membersById)
                 : []
               return (
-                <div key={message.id} id={`chat-message-${message.id}`}>
+                <div key={message.id} id={`chat-message-${message.id}`} className="chat-message-wrap">
                   {showDay ? <p className="chat-day">{dayLabel(message.created_at)}</p> : null}
+                  <div className={`chat-message${mine ? ' is-mine' : ''}`}>
+                  {!mine ? (
+                    <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
+                      <PersonAvatar
+                        memberId={author?.id}
+                        employeeId={author?.employeeId}
+                        name={author?.name}
+                        fallback={initials(author?.name)}
+                      />
+                    </span>
+                  ) : null}
                   <article
                     className={`chat-bubble${mine ? ' is-mine' : ''}${deleted ? ' is-deleted' : ''}`}
                     onContextMenu={(event) => {
@@ -507,6 +526,7 @@ export function ChatScreen({
                     ) : null}
                     {seen.length > 0 ? <p className="chat-meta">Seen by {seen.join(', ')}</p> : null}
                   </article>
+                  </div>
                 </div>
               )
             })}

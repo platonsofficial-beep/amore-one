@@ -1,3 +1,4 @@
+import { PersonAvatar } from '../identity/PersonAvatar'
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
 import { MemberAccessPanel } from './MemberAccessPanel'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
@@ -375,7 +376,9 @@ export function TeamPeopleView({
                 onKeyDown={(event) => handleEmployeeCardKeyDown(event, employee, onSelectEmployee)}
               >
                 <div className="team-people-card-top">
-                  <div className="employee-photo">{getInitials(employee.name)}</div>
+                  <div className="employee-photo">
+                    <PersonAvatar employeeId={employee.id} name={employee.name} fallback={getInitials(employee.name)} />
+                  </div>
                   <div className="team-people-card-identity">
                     <h4 className="team-people-card-name">{employee.name}</h4>
                     <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
@@ -423,7 +426,9 @@ export function TeamPeopleView({
           </div>
 
           <header className="employee-profile-drawer-identity">
-            <div className="employee-photo large">{getInitials(selectedEmployee.name)}</div>
+            <div className="employee-photo large">
+              <PersonAvatar employeeId={selectedEmployee.id} name={selectedEmployee.name} fallback={getInitials(selectedEmployee.name)} />
+            </div>
             <div className="employee-profile-drawer-identity-copy">
               <h3 className="employee-profile-drawer-name">{selectedEmployee.name}</h3>
               <p className="employee-profile-drawer-role">{formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}</p>

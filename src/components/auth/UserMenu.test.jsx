@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
+import { AvatarDirectoryContext } from '../../context/AvatarDirectoryContext'
 import { UserMenu } from './UserMenu'
 
 const useAuthMock = vi.hoisted(() => vi.fn())
@@ -145,5 +146,43 @@ describe('UserMenu', () => {
     expect(document.querySelector('.user-menu-panel')).toBeNull()
     expect(signOut).not.toHaveBeenCalled()
     unmount()
+  })
+
+  it('shows a profile photo in the avatar and keeps initials when there is none', () => {
+    useAuthMock.mockReturnValue({
+      user: { id: 'user-1', email: 'host@example.com' },
+      membership: { id: 'member-1', email: 'host@example.com', role: 'host', authUserId: 'user-1' },
+      role: 'host',
+      roleLabel: 'Host',
+      isAuthDisabled: false,
+      signOut: vi.fn(),
+    })
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    const directory = {
+      lookup: ({ authUserId }) => (
+        authUserId === 'user-1'
+          ? { url: 'https://signed.example/host.jpg', updatedAt: '4', path: 'user-1/host.jpg' }
+          : null
+      ),
+      setOptimistic() {},
+      refresh: async () => {},
+    }
+    act(() => {
+      root.render(createElement(AvatarDirectoryContext.Provider, { value: directory },
+        createElement(UserMenu, {
+          profileChipDisplay: { name: 'Test Host', isConfigured: true },
+          onOpenWorkspaceProfile: vi.fn(),
+          canOpenWorkspaceProfile: true,
+          onOpenNotifications: vi.fn(),
+          accountActions: [],
+          onAccountAction: vi.fn(),
+        }),
+      ))
+    })
+    expect(container.querySelector('.profile-avatar img')?.getAttribute('src')).toBe('https://signed.example/host.jpg?v=4')
+    act(() => root.unmount())
+    container.remove()
   })
 })

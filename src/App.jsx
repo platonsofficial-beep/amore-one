@@ -1050,8 +1050,16 @@ function resolveScheduleIdentityEmployee(source, fallbackName = '') {
   const joinedEmployee = Array.isArray(source.employees) ? source.employees[0] : (source.employees ?? null)
   const isPlainEmployee = !employeeRecord && !joinedEmployee && (source.id || source.name || source.full_name)
 
+  const employeeId = employeeRecord?.id
+    ?? joinedEmployee?.id
+    ?? source.employeeId
+    ?? source.employee_id
+    ?? ((source.startTime || source.start_time) ? null : source.id)
+    ?? null
+
   if (isPlainEmployee) {
     return {
+      id: employeeId,
       name: source.name ?? source.full_name ?? fallbackName,
       identityColor: source.identityColor ?? source.identity_color ?? null,
       photoUrl: source.photoUrl ?? source.photo_url ?? null,
@@ -1059,6 +1067,7 @@ function resolveScheduleIdentityEmployee(source, fallbackName = '') {
   }
 
   return {
+    id: employeeId,
     name: joinedEmployee?.full_name
       ?? employeeRecord?.name
       ?? employeeRecord?.full_name

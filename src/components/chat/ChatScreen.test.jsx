@@ -41,6 +41,7 @@ vi.mock('../../services/chatService', () => ({
   chatAttachmentUrl: vi.fn(async () => ''),
 }))
 
+import { AvatarDirectoryContext } from '../../context/AvatarDirectoryContext'
 import { ChatScreen } from './ChatScreen'
 
 const inbox = [
@@ -118,5 +119,49 @@ describe('ChatScreen', () => {
       replyToId: null,
     })
     view.unmount()
+  })
+
+  it('shows a signed profile photo on the chat list and falls back to initials', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    const directory = {
+      lookup: ({ memberId }) => (
+        memberId === 'alex'
+          ? { url: 'https://signed.example/alex.jpg', updatedAt: '9', path: 'user/alex.jpg' }
+          : null
+      ),
+      setOptimistic() {},
+      refresh: async () => {},
+    }
+    act(() => {
+      root.render(createElement(AvatarDirectoryContext.Provider, { value: directory },
+        createElement(ChatScreen, {
+          workspaceId: 'ws-1',
+          memberId: 'me',
+          inboxRows: inbox,
+          layout: 'stack',
+        }),
+      ))
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const rows = [...container.querySelectorAll('.chat-row')]
+    const alex = rows.find((row) => row.textContent.includes('Alex'))
+    const team = rows.find((row) => row.querySelector('strong')?.textContent === 'Team')
+    expect(alex?.querySelector('img')?.getAttribute('src')).toBe('https://signed.example/alex.jpg?v=9')
+    expect(team?.querySelector('.chat-avatar')?.textContent).toMatch(/T/)
+    expect(team?.querySelector('img')).toBeNull()
+
+    await act(async () => {
+      alex.click()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('.chat-avatar-inline img')?.getAttribute('src')).toBe('https://signed.example/alex.jpg?v=9')
+    expect(container.querySelector('.chat-bubble img')).toBeNull()
+    act(() => root.unmount())
+    container.remove()
   })
 })

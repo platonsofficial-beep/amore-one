@@ -14,6 +14,8 @@ const MEMBERSHIP_ROW_SELECT = [
   'display_name',
   'email',
   'role',
+  'avatar_path',
+  'avatar_updated_at',
   'created_at',
   'last_seen_at',
 ].join(', ')
@@ -82,6 +84,8 @@ function mapMembership(record) {
     displayName: `${record.display_name ?? record.displayName ?? ''}`.trim(),
     email: `${record.email ?? ''}`.trim(),
     role: rawRole,
+    avatarPath: normalizeOptionalId(record.avatar_path ?? record.avatarPath),
+    avatarUpdatedAt: record.avatar_updated_at ?? record.avatarUpdatedAt ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
     lastSeenAt: record.last_seen_at ?? record.lastSeenAt ?? null,
   }
@@ -311,7 +315,7 @@ export async function linkMembershipEmployee(authUserId, employeeId) {
     .from('workspace_members')
     .update({ employee_id: employeeId })
     .eq('auth_user_id', authUserId)
-    .select('id, workspace_id, auth_user_id, employee_id, display_name, email, role')
+    .select('id, workspace_id, auth_user_id, employee_id, display_name, email, role, avatar_path, avatar_updated_at')
 
   if (error) {
     throw error

@@ -39,6 +39,7 @@ import {
   requestEdit,
   startBreak,
 } from '../../services/attendanceService'
+import { PersonAvatar } from '../identity/PersonAvatar'
 
 function emptySnapshot() {
   return {
@@ -295,7 +296,12 @@ export function AttendanceClockScreen({
     <section className="attendance-clock" aria-label="Clock in and out">
       <header className="attendance-clock-header">
         <p className="attendance-clock-kicker">⏱ Clock</p>
-        <h2 className="attendance-clock-title">{employeeName || 'Your shift'}</h2>
+        <div className="attendance-clock-identity">
+          <span className="attendance-avatar" aria-hidden="true">
+            <PersonAvatar employeeId={employeeId} memberId={memberId} name={employeeName} />
+          </span>
+          <h2 className="attendance-clock-title">{employeeName || 'Your shift'}</h2>
+        </div>
         <p className="attendance-clock-shift">{shiftSummary.label}</p>
       </header>
 

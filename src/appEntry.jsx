@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './mobileShell.css'
 import { AuthProvider } from './context/AuthContext'
+import { AvatarDirectoryProvider } from './context/AvatarDirectoryContext'
 import { AuthGate } from './components/auth/AuthGate'
 import { ManagerLandscapeGate } from './components/shell/ManagerLandscapeGate.jsx'
 import { PwaShell } from './components/pwa/PwaShell.jsx'
@@ -13,13 +14,15 @@ registerPwaServiceWorker()
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <AuthGate>
-        <ManagerLandscapeGate>
-          <PwaShell>
-            <App />
-          </PwaShell>
-        </ManagerLandscapeGate>
-      </AuthGate>
+      <AvatarDirectoryProvider>
+        <AuthGate>
+          <ManagerLandscapeGate>
+            <PwaShell>
+              <App />
+            </PwaShell>
+          </ManagerLandscapeGate>
+        </AuthGate>
+      </AvatarDirectoryProvider>
     </AuthProvider>
   </StrictMode>,
 )

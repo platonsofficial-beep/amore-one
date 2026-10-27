@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
 import {
   EMPLOYEE_IDENTITY_MODES,
   resolveEmployeeIdentityPresentation,
@@ -18,7 +20,21 @@ export function EmployeeIdentity({
   showName = false,
   showRole = false,
 }) {
-  const presentation = resolveEmployeeIdentityPresentation(employee)
+  const directory = useAvatarDirectory()
+  const employeeForIdentity = useMemo(() => {
+    const photo = directory.lookup?.({
+      employeeId: employee?.id ?? employee?.employeeId ?? employee?.employee_id,
+      memberId: employee?.memberId ?? employee?.member_id,
+      authUserId: employee?.authUserId ?? employee?.auth_user_id,
+    })
+    if (!photo?.url) return employee
+    return {
+      ...employee,
+      photoUrl: photo.url,
+      avatarVersion: photo.updatedAt || employee?.avatarVersion || '',
+    }
+  }, [directory, employee])
+  const presentation = resolveEmployeeIdentityPresentation(employeeForIdentity)
   const sizeConfig = resolveEmployeeIdentitySize(size)
   const normalizedSize = `${size ?? 'md'}`.trim().toLowerCase()
 

@@ -78,7 +78,7 @@ export async function fetchChatMembers(workspaceId) {
   const client = requireClient()
   const { data, error } = await client
     .from('workspace_members')
-    .select('id, display_name, email, role, employee_id')
+    .select('id, display_name, email, role, employee_id, avatar_path, avatar_updated_at')
     .eq('workspace_id', workspaceId)
   if (error) fail(error)
   const members = data ?? []
@@ -101,6 +101,8 @@ export async function fetchChatMembers(workspaceId) {
       role: member.role || '',
       employeeId: member.employee_id || '',
       identityColor: employee?.identity_color || '',
+      avatarPath: `${member.avatar_path ?? ''}`.trim(),
+      avatarUpdatedAt: member.avatar_updated_at ?? null,
     }
   })
 }
