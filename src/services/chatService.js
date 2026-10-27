@@ -78,7 +78,7 @@ export async function fetchChatMembers(workspaceId) {
   const client = requireClient()
   const { data, error } = await client
     .from('workspace_members')
-    .select('id, display_name, email, role, employee_id, avatar_path, avatar_updated_at')
+    .select('id, display_name, email, role, employee_id, avatar_path, avatar_updated_at, auth_user_id')
     .eq('workspace_id', workspaceId)
   if (error) fail(error)
   const members = data ?? []
@@ -103,8 +103,22 @@ export async function fetchChatMembers(workspaceId) {
       identityColor: employee?.identity_color || '',
       avatarPath: `${member.avatar_path ?? ''}`.trim(),
       avatarUpdatedAt: member.avatar_updated_at ?? null,
+      authUserId: `${member.auth_user_id ?? ''}`.trim(),
     }
   })
+}
+
+export async function fetchChatNameHints(workspaceId) {
+  const client = requireClient()
+  const { data, error } = await client
+    .from('notifications')
+    .select('type, title, body, data')
+    .eq('workspace_id', workspaceId)
+    .in('type', ['chat_direct', 'chat_message'])
+    .order('created_at', { ascending: false })
+    .limit(100)
+  if (error) fail(error)
+  return data ?? []
 }
 
 export async function sendChatMessage({

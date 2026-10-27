@@ -299,6 +299,39 @@
   gap: 8px;
 }
 
+.main-panel-schedule:has(.mobile-app-embedded-schedule) {
+  overflow: hidden;
+  padding: 8px 12px;
+  gap: 0;
+}
+
+.main-panel-schedule:has(.mobile-app-embedded-schedule) > div:not([hidden]) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.mobile-app.mobile-app-embedded-schedule {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  flex: 1 1 auto;
+  background: transparent;
+}
+
+.mobile-app.mobile-app-embedded-schedule .mobile-app-content {
+  padding: 4px 0 8px;
+}
+
+.mobile-app-embedded-schedule .mobile-screen-title,
+.mobile-app-embedded-schedule .mobile-screen-subtitle,
+.mobile-app-embedded-schedule .mobile-card-detail {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
 .app-shell.schedule-focus-mode {
   grid-template-columns: 1fr;
 }
@@ -50735,11 +50768,13 @@ summary:focus-visible {
     overflow-x: auto;
   }
 
-  .app-shell.is-host-account:not(.is-mobile-shell) {
+  .app-shell.is-host-account:not(.is-mobile-shell),
+  .app-shell.is-staff-account:not(.is-mobile-shell) {
     grid-template-columns: 72px minmax(0, 1fr);
   }
 
-  .app-shell.is-host-account:not(.is-mobile-shell) .sidebar {
+  .app-shell.is-host-account:not(.is-mobile-shell) .sidebar,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .sidebar {
     width: 72px;
     min-width: 72px;
     max-width: 72px;
@@ -50748,7 +50783,8 @@ summary:focus-visible {
     overflow-y: auto;
   }
 
-  .app-shell.is-host-account:not(.is-mobile-shell) .brand-product-mark {
+  .app-shell.is-host-account:not(.is-mobile-shell) .brand-product-mark,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .brand-product-mark {
     width: 32px;
   }
 
@@ -50756,7 +50792,12 @@ summary:focus-visible {
   .app-shell.is-host-account:not(.is-mobile-shell) .brand-tagline,
   .app-shell.is-host-account:not(.is-mobile-shell) .brand-business-name,
   .app-shell.is-host-account:not(.is-mobile-shell) .brand-powered-by,
-  .app-shell.is-host-account:not(.is-mobile-shell) .nav-link > span:last-child {
+  .app-shell.is-host-account:not(.is-mobile-shell) .nav-link > span:last-child,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .brand-wordmark,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .brand-tagline,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .brand-business-name,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .brand-powered-by,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .nav-link > span:last-child {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -50768,11 +50809,13 @@ summary:focus-visible {
     border: 0;
   }
 
-  .app-shell.is-host-account:not(.is-mobile-shell) .nav-links {
+  .app-shell.is-host-account:not(.is-mobile-shell) .nav-links,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .nav-links {
     gap: 4px;
   }
 
-  .app-shell.is-host-account:not(.is-mobile-shell) .nav-link {
+  .app-shell.is-host-account:not(.is-mobile-shell) .nav-link,
+  .app-shell.is-staff-account:not(.is-mobile-shell) .nav-link {
     justify-content: center;
     padding: 8px;
     min-height: 44px;
@@ -50979,6 +51022,85 @@ summary:focus-visible {
   .user-menu-item {
     min-height: 44px;
     padding: 0 8px;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .main-panel {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    max-height: 56px;
+    border-radius: 16px;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar-title-block {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 0;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar-title-block h2 {
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .welcome-subtitle,
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .date-pill,
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .search-bar {
+    display: none;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar-meta {
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    width: auto;
+    gap: 6px;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip > div:not(.profile-avatar) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 0.72rem;
+  }
+
+  .mobile-app-embedded-schedule .mobile-screen-eyebrow {
+    display: none;
+  }
+
+  .mobile-app-embedded-schedule .mobile-screen-title {
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .mobile-app-embedded-schedule .mobile-screen-header {
+    padding: 0;
   }
 }
 

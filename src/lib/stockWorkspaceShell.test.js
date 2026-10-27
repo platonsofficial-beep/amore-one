@@ -49,7 +49,10 @@ describe('Stock full-screen workspace shell wiring', () => {
   })
 
   it('does not alter Reservations or Schedule focus wiring', () => {
-    expect(appSource).toContain('const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell')
+    expect(appSource).toContain('const isStaffHostScheduleRail = isStaffHostAccount && isShortLandscapeRail && isTeamScheduleView(activeView, teamSection) && !useDedicatedShell')
+    expect(appSource).toContain('const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell && !isStaffHostScheduleRail')
+    expect(appSource).toContain('embeddedSchedule')
+    expect(appCss).toContain('.app-shell.is-staff-account:not(.is-mobile-shell)')
     expect(appSource).toContain('handleTeamSectionChange(\'members\')')
     expect(appSource).toContain('resolveExitReservationsHostDestination')
     expect(appSource).toContain('const useHostStationShell = isHostAccount && activeView === \'reservations\' && (!useMobileExperience || mobileReservationsHostMode)')

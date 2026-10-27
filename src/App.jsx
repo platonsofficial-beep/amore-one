@@ -14789,6 +14789,11 @@ function App() {
   } = useAuth()
 
   const [isMobileViewport, setIsMobileViewport] = useState(() => shouldUseMobileShell())
+  const [isShortLandscapeRail, setIsShortLandscapeRail] = useState(() => (
+    typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(max-width: 900px) and (max-height: 500px)').matches
+  ))
   const forceMobileDevice =
     typeof navigator !== 'undefined'
     && /iPhone|iPod/i.test(navigator.userAgent)
@@ -14814,6 +14819,9 @@ function App() {
       window.cancelAnimationFrame(frameId)
       frameId = window.requestAnimationFrame(() => {
         setIsMobileViewport(shouldUseMobileShell())
+        if (typeof window.matchMedia === 'function') {
+          setIsShortLandscapeRail(window.matchMedia('(max-width: 900px) and (max-height: 500px)').matches)
+        }
       })
     }
 
@@ -16054,9 +16062,12 @@ function App() {
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
   const isHostAccount = !isAuthLoading && isHostMobileRole(role)
+  const isStaffHostAccount = !isAuthLoading && isStaffOrHostRole(role)
+  const isStaffAccount = isStaffHostAccount && !isHostAccount
   const useHostStationShell = isHostAccount && activeView === 'reservations' && (!useMobileExperience || mobileReservationsHostMode)
   const useDedicatedShell = useMobileExperience
-  const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
+  const isStaffHostScheduleRail = isStaffHostAccount && isShortLandscapeRail && isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
+  const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell && !isStaffHostScheduleRail
   const isStockFocusMode = isStockWorkspaceView(activeView) && !useDedicatedShell
   const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell || isScheduleFocusMode || isStockFocusMode
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
@@ -23627,6 +23638,21 @@ function App() {
     })
   }
 
+  const staffHostScheduleProps = {
+    weekLabel: mobileScheduleWeekLabel,
+    employeeName: mobileScheduleDisplay.employeeName,
+    days: mobileScheduleDisplay.days,
+    needsEmployeeLink: mobileNeedsEmployeeLink,
+    isWeekPublished: mobileScheduleDisplay.isWeekPublished,
+    isWeekUpdating: isMobileWeekLoading,
+    isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
+    canOpenFullSchedule: canOpenMobileFullSchedule(permissionAccess),
+    onOpenFullSchedule: handleMobileOpenFullSchedule,
+    onPreviousWeek: handleMobilePreviousWeek,
+    onGoToCurrentWeek: handleMobileGoToCurrentWeek,
+    onNextWeek: handleMobileNextWeek,
+  }
+
   const handleMobileSignOut = async () => {
     setMobileStaffTab('home')
     setMobileManagerTab('today')
@@ -23848,7 +23874,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {notificationSettingsOpen && !useDedicatedShell ? (
         <div className="notification-settings-overlay" role="presentation">
@@ -24140,6 +24166,18 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'team' ? (
           <div hidden={teamSection !== 'schedule'}>
+            {isStaffHostScheduleRail ? (
+              <MobileStaffApp
+                embeddedSchedule
+                shellVariant={isHostAccount ? 'host' : 'staff'}
+                activeTab="schedule"
+                scheduleProps={staffHostScheduleProps}
+                tasksProps={{
+                  currentEmployeeId: mobileEmployeeId,
+                  needsEmployeeLink: mobileNeedsEmployeeLink,
+                }}
+              />
+            ) : (
             <ScheduleView
               shifts={canEditScheduleRole ? shifts : (publishedShifts ?? [])}
               scheduleCapacities={scheduleCapacities}
@@ -24202,6 +24240,7 @@ function App() {
               canRequestLeave={canRequestOwnLeave}
               onOpenRequestLeave={() => setIsRequestLeaveModalOpen(true)}
             />
+            )}
           </div>
         ) : null}
 

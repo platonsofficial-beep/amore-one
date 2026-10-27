@@ -13,6 +13,7 @@ vi.mock('../../services/chatService', () => ({
     { id: 'me', name: 'Mina' },
     { id: 'alex', name: 'Alex' },
   ]),
+  fetchChatNameHints: vi.fn(async () => []),
   fetchChatMessages: vi.fn(async () => [{
     id: 'm1',
     conversation_id: 'team-1',

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { resolveEmployeePhotoUrl } from '../../lib/identity/employeeIdentityResolve'
 import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
@@ -12,12 +13,16 @@ export function PersonAvatar({
 }) {
   const directory = useAvatarDirectory()
   const photo = directory.lookup({ employeeId, memberId, authUserId })
-  if (photo?.url) {
-    const src = resolveEmployeePhotoUrl({
+  const src = photo?.url
+    ? resolveEmployeePhotoUrl({
       photoUrl: photo.url,
       avatarVersion: photo.updatedAt,
     })
-    return <img src={src} alt={alt} />
+    : ''
+  const [failedSrc, setFailedSrc] = useState('')
+  const initials = fallback || getProfileInitials(name)
+  if (src && failedSrc !== src) {
+    return <img src={src} alt={alt} onError={() => setFailedSrc(src)} />
   }
-  return fallback || getProfileInitials(name)
+  return initials
 }
