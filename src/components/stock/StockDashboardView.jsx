@@ -1096,6 +1096,7 @@ export function StockDashboardView({
   onOpenCounts,
   onOpenInventoryCountSession,
   isSavingOrders = false,
+  isPreparingDrafts = false,
   timeZone = '',
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -1479,7 +1480,7 @@ export function StockDashboardView({
   }
 
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))
-  const isStockActionBusy = isSaving || isSavingOrders
+  const isStockActionBusy = isSaving || isSavingOrders || isPreparingDrafts
 
   // P8.17.3a / P8.17.3b / P8.17.3c — KPI cards toggle the same statusFilter used by All Products.
   // Scroll lands on the filtered-context header so the title/count stay visible on iPad.
@@ -1635,7 +1636,7 @@ export function StockDashboardView({
               disabled={!isWorkspaceReady || isStockActionBusy}
             >
               <StockActionIcon name="bag" />
-              <span>{isSavingOrders ? 'Saving…' : 'Suggest order'}</span>
+              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : 'Suggest order')}</span>
             </button>
           ) : null}
           <button

@@ -27,6 +27,7 @@ describe('resolveStockSectionNav', () => {
       'Orders',
     ])
     expect(nav.overflow.map((section) => section.label)).toEqual([
+      'Orders',
       'Suppliers',
       'Import',
     ])
@@ -43,7 +44,7 @@ describe('resolveStockSectionNav', () => {
       'suppliers',
       'orders',
     ])
-    expect(phone.overflow.map((section) => section.id)).toEqual(['suppliers'])
+    expect(phone.overflow.map((section) => section.id)).toEqual(['orders', 'suppliers'])
     expect(resolvePermittedStockSection('migration', false)).toBe('dashboard')
     expect(resolvePermittedStockSection('inventory', false)).toBe('dashboard')
     expect(resolvePermittedStockSection('orders', false)).toBe('orders')

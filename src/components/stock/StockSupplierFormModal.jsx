@@ -72,6 +72,7 @@ export function StockSupplierFormModal({
         </div>
 
         <form className="employee-form stock-supplier-form" onSubmit={handleSubmit}>
+          <div className="stock-supplier-form-scroll">
           <div className="form-grid">
             <label className="form-field">
               <span>Supplier name</span>
@@ -138,8 +139,9 @@ export function StockSupplierFormModal({
               <span>Inactive suppliers stay in history but are hidden from new orders.</span>
             </span>
           </label>
+          </div>
 
-          <div className="modal-actions">
+          <div className="modal-actions stock-supplier-form-footer">
             <button type="button" className="ghost-btn stock-supplier-form-action" onClick={onClose}>
               Cancel
             </button>

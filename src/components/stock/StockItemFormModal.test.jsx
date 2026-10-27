@@ -211,7 +211,15 @@ describe('StockItemFormModal workspace storage integration', () => {
       await Promise.resolve()
     })
 
-    expect(host.textContent).toContain('Par in Bar')
+    expect(host.textContent).toContain('Par in default storage')
+    const categorySelect = [...host.querySelectorAll('select')].find((select) => (
+      [...select.options].some((option) => option.value === 'Beverages')
+    ))
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+      setter?.call(categorySelect, 'Beverages')
+      categorySelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
     const parInput = host.querySelector('[data-testid="stock-item-default-storage-par"]')
     const nameInput = host.querySelector('input[placeholder="e.g. Belvedere Vodka"]')
 
