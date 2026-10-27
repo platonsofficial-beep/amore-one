@@ -47,28 +47,47 @@ function filterBarBottom() {
   return bar.getBoundingClientRect().bottom
 }
 
-function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
+export function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   const minTop = Math.max(MENU_MARGIN, filterBarBottom() + MENU_MARGIN)
+  const maxBottom = viewportHeight - MENU_MARGIN
+  const safeHeight = Math.max(menuHeight, 0)
 
   let left = anchorRect.right - menuWidth
-  let top = anchorRect.bottom + MENU_MARGIN
-  let placement = 'below'
-
   left = Math.max(MENU_MARGIN, Math.min(left, viewportWidth - menuWidth - MENU_MARGIN))
 
-  if (top + menuHeight > viewportHeight - MENU_MARGIN) {
-    const above = anchorRect.top - menuHeight - MENU_MARGIN
-    if (above >= minTop) {
-      top = above
-      placement = 'above'
-    }
+  const belowTop = anchorRect.bottom + MENU_MARGIN
+  const spaceBelow = Math.max(0, maxBottom - belowTop)
+  const spaceAbove = Math.max(0, anchorRect.top - MENU_MARGIN - minTop)
+
+  let placement = 'below'
+  let top = belowTop
+  let maxHeight = null
+
+  if (safeHeight <= spaceBelow) {
+    placement = 'below'
+    top = belowTop
+  } else if (safeHeight <= spaceAbove) {
+    placement = 'above'
+    top = anchorRect.top - MENU_MARGIN - safeHeight
+  } else if (spaceAbove > spaceBelow) {
+    placement = 'above'
+    maxHeight = spaceAbove
+    top = Math.max(minTop, anchorRect.top - MENU_MARGIN - maxHeight)
+  } else {
+    placement = 'below'
+    maxHeight = spaceBelow
+    top = belowTop
   }
 
   if (top < minTop) top = minTop
+  const usedHeight = maxHeight ?? safeHeight
+  if (top + usedHeight > maxBottom) {
+    maxHeight = Math.max(0, maxBottom - top)
+  }
 
-  return { top, left, placement }
+  return { top, left, placement, maxHeight }
 }
 
 function hasValidAnchorRect(anchorEl) {
@@ -96,7 +115,7 @@ export function StockItemMoreMenu({
   onCount,
 }) {
   const panelRef = useRef(null)
-  const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below' })
+  const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below', maxHeight: null })
   const [isMobileSheet, setIsMobileSheet] = useState(false)
   const [isPositioned, setIsPositioned] = useState(false)
 
@@ -121,8 +140,11 @@ export function StockItemMoreMenu({
     }
 
     const anchorRect = anchorEl.getBoundingClientRect()
-    const { width, height } = panelRef.current.getBoundingClientRect()
-    setPosition(computeMenuPosition(anchorRect, width, height))
+    const panel = panelRef.current
+    const bounds = panel.getBoundingClientRect()
+    const menuHeight = Math.max(bounds.height, panel.scrollHeight)
+    const menuWidth = Math.max(bounds.width, panel.offsetWidth)
+    setPosition(computeMenuPosition(anchorRect, menuWidth, menuHeight))
     setIsPositioned(true)
   }, [anchorEl, isMobileSheet, isOpen, itemName])
 
@@ -145,8 +167,11 @@ export function StockItemMoreMenu({
     const handleReposition = () => {
       if (isMobileSheet || !hasValidAnchorRect(anchorEl) || !panelRef.current) return
       const anchorRect = anchorEl.getBoundingClientRect()
-      const { width, height } = panelRef.current.getBoundingClientRect()
-      setPosition(computeMenuPosition(anchorRect, width, height))
+      const panel = panelRef.current
+      const bounds = panel.getBoundingClientRect()
+      const menuHeight = Math.max(bounds.height, panel.scrollHeight)
+      const menuWidth = Math.max(bounds.width, panel.offsetWidth)
+      setPosition(computeMenuPosition(anchorRect, menuWidth, menuHeight))
     }
 
     document.addEventListener('mousedown', handlePointerDown)
@@ -265,6 +290,7 @@ export function StockItemMoreMenu({
           left: isPositioned ? `${position.left}px` : '-10000px',
           visibility: isPositioned ? 'visible' : 'hidden',
           zIndex: MENU_Z_INDEX,
+          maxHeight: position.maxHeight ? `${position.maxHeight}px` : undefined,
         }}
         onClick={(event) => event.stopPropagation()}
       >
