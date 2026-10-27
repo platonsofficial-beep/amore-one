@@ -32,7 +32,7 @@ describe('navigationPersistence', () => {
   })
 
   it('redirects host away from persisted manager-only views', () => {
-    expect(resolvePermittedActiveView('host', normalizeActiveView('settings'))).toBe('reservations')
+    expect(resolvePermittedActiveView('host', normalizeActiveView('settings'))).toBe('settings')
     expect(resolvePermittedActiveView('host', normalizeActiveView('stock'))).toBe('reservations')
     expect(resolvePermittedActiveView('host', normalizeActiveView('reservations'))).toBe('reservations')
   })
@@ -62,8 +62,8 @@ describe('navigationPersistence', () => {
     expect(resolveInitialScheduleWeekStart('2026-10-26')).toBe('2026-10-26')
   })
 
-  it('redirects managers away from persisted settings', () => {
-    expect(resolvePermittedActiveView('manager', normalizeActiveView('settings'))).toBe('today')
+  it('lets managers open reservation seating settings', () => {
+    expect(resolvePermittedActiveView('manager', normalizeActiveView('settings'))).toBe('settings')
     expect(resolvePermittedActiveView('manager', normalizeActiveView('reservations'))).toBe('reservations')
   })
 })

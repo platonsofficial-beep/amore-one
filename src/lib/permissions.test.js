@@ -23,6 +23,7 @@ import {
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
   canOpenReservationsHostMode,
+  filterNavItemsByRole,
   filterOperationsSections,
   getAccessibleModules,
   getMobileBottomTabs,
@@ -139,12 +140,24 @@ describe('permissions', () => {
       expect(canManageReservations('staff')).toBe(false)
     })
 
-    it('limits seating configuration to management roles', () => {
+    it('allows anyone who can manage reservations to configure seatings', () => {
       expect(canConfigureReservationSeatings('owner')).toBe(true)
       expect(canConfigureReservationSeatings('general_manager')).toBe(true)
       expect(canConfigureReservationSeatings('manager')).toBe(true)
-      expect(canConfigureReservationSeatings('host')).toBe(false)
+      expect(canConfigureReservationSeatings('host')).toBe(true)
       expect(canConfigureReservationSeatings('staff')).toBe(false)
+      expect(canConfigureReservationSeatings({
+        role: 'staff',
+        permissions: { reservations: 'view' },
+        customModules: { reservations: true },
+      })).toBe(false)
+      expect(canConfigureReservationSeatings({
+        role: 'staff',
+        permissions: { reservations: 'manage' },
+        customModules: { reservations: true },
+      })).toBe(true)
+      expect(filterNavItemsByRole([{ id: 'settings' }, { id: 'stock' }], 'host').map((item) => item.id)).toEqual(['settings'])
+      expect(filterNavItemsByRole([{ id: 'settings' }, { id: 'today' }], 'staff').map((item) => item.id)).toEqual(['today'])
     })
   })
 

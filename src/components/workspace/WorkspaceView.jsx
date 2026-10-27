@@ -24,17 +24,26 @@ export function WorkspaceView({
   reservationSeatingsProps,
   teamProps,
   systemProps,
+  visibleSectionIds = null,
 }) {
+  const sections = Array.isArray(visibleSectionIds)
+    ? WORKSPACE_SECTIONS.filter((section) => visibleSectionIds.includes(section.id))
+    : WORKSPACE_SECTIONS
+  const sectionIds = new Set(sections.map((section) => section.id))
+  const resolvedSection = sectionIds.has(activeSection)
+    ? activeSection
+    : (sections[0]?.id ?? activeSection)
+
   return (
     <section className="staff-page workspace-page">
       <div className="workspace-layout">
         <aside className="workspace-nav" aria-label="Settings sections">
           <div className="workspace-nav-links">
-            {WORKSPACE_SECTIONS.map((section) => (
+            {sections.map((section) => (
               <button
                 key={section.id}
                 type="button"
-                className={`workspace-nav-link${activeSection === section.id ? ' active' : ''}`}
+                className={`workspace-nav-link${resolvedSection === section.id ? ' active' : ''}`}
                 onClick={() => onSectionChange(section.id)}
               >
                 <span className="workspace-nav-icon" aria-hidden="true">{section.icon}</span>
@@ -45,22 +54,22 @@ export function WorkspaceView({
         </aside>
 
         <div className="workspace-content">
-          {activeSection === 'profile' ? (
+          {resolvedSection === 'profile' ? (
             <WorkspaceBusinessProfileSection {...businessProfileProps} />
           ) : null}
-          {activeSection === 'positions' ? (
+          {resolvedSection === 'positions' ? (
             <WorkspacePositionsSection {...positionsProps} />
           ) : null}
-          {activeSection === 'venue' ? (
+          {resolvedSection === 'venue' ? (
             <WorkspaceVenueSetupSection {...venueSetupProps} />
           ) : null}
-          {activeSection === 'reservations' ? (
+          {resolvedSection === 'reservations' ? (
             <WorkspaceReservationSeatingsSection {...reservationSeatingsProps} />
           ) : null}
-          {activeSection === 'team' ? (
+          {resolvedSection === 'team' ? (
             <WorkspaceTeamSection {...teamProps} workspace={workspace} />
           ) : null}
-          {activeSection === 'system' ? (
+          {resolvedSection === 'system' ? (
             <WorkspaceSystemSection {...systemProps} />
           ) : null}
         </div>

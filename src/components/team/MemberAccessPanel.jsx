@@ -19,6 +19,13 @@ const LEVEL_OPTIONS = [
   { id: 'manage', label: 'Manage' },
 ]
 
+function levelOptionsFor(area) {
+  if (area.module !== 'stock') return LEVEL_OPTIONS
+  return LEVEL_OPTIONS.map((option) => (
+    option.id === 'view' ? { ...option, label: 'View & count' } : option
+  ))
+}
+
 function levelsEqual(left, right) {
   return MEMBER_ACCESS_AREAS.every((area) => left?.[area.module] === right?.[area.module])
 }
@@ -155,13 +162,13 @@ export function MemberAccessPanel({
 
   const handleSave = () => {
     if (!draft || status === 'saving') return
-    persistLevels(draft, 'Access saved.')
+    persistLevels(draft, 'Access saved')
   }
 
   const handleReset = () => {
     if (!linkedMembership || status === 'saving') return
     const preset = presetLevelsForRole(linkedMembership.role)
-    persistLevels(preset, 'Reset to the role default.')
+    persistLevels(preset, 'Access reset to the role default.')
   }
 
   return (
@@ -178,8 +185,12 @@ export function MemberAccessPanel({
       {status === 'locked' ? (
         <p className="member-access-locked">Full access (owner)</p>
       ) : null}
-      {errorMessage ? <p className="member-access-error" role="alert">{errorMessage}</p> : null}
-      {notice ? <p className="member-access-notice">{notice}</p> : null}
+      {errorMessage ? (
+        <div className="staff-status-banner auth-banner-error" role="alert">{errorMessage}</div>
+      ) : null}
+      {notice ? (
+        <div className="staff-status-banner auth-banner-success" role="status" aria-live="polite">{notice}</div>
+      ) : null}
 
       {editable && draft ? (
         <>
@@ -218,7 +229,7 @@ export function MemberAccessPanel({
                   </div>
                 ) : (
                   <div className="member-access-choices" role="group" aria-label={area.label}>
-                    {LEVEL_OPTIONS.map((option) => {
+                    {levelOptionsFor(area).map((option) => {
                       const selected = draft[area.module] === option.id
                       return (
                         <button

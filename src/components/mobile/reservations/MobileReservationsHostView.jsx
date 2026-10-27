@@ -73,6 +73,7 @@ export function MobileReservationsHostView({
   onSelectReservation,
   onClearAssignmentSelection,
   hostSettingsProps = null,
+  onOpenReservationServices = null,
   floorCreatePrefill = null,
   onFloorCreatePrefillConsumed,
   floorEditReservation = null,
@@ -659,6 +660,16 @@ export function MobileReservationsHostView({
           )}
         </div>
         <div className="mobile-host-sticky-actions">
+          {onOpenReservationServices ? (
+            <button
+              type="button"
+              className="mobile-host-services-btn"
+              onClick={onOpenReservationServices}
+              aria-label="Reservation services"
+            >
+              Services
+            </button>
+          ) : null}
           {hostSettingsProps ? (
             <button
               type="button"

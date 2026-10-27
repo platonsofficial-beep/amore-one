@@ -11456,6 +11456,7 @@ function MobileReservationsHostShell({
   reservationAttentionFocus = null,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  onOpenReservationServices = null,
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -11522,6 +11523,7 @@ function MobileReservationsHostShell({
         useControlledReloadReturn={useControlledReloadReturn}
         canUndoAutoClose={canUndoAutoClose}
         onUndoAutoClose={onUndoAutoClose}
+        onOpenReservationServices={onOpenReservationServices}
       />
     </ReservationWorkspaceProvider>
   )
@@ -11553,6 +11555,7 @@ function MobileReservationsHostShellBody({
   useControlledReloadReturn = false,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  onOpenReservationServices = null,
 }) {
   const {
     selectedReservation,
@@ -11878,6 +11881,7 @@ function MobileReservationsHostShellBody({
       hasLayout={hasDisplayableLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       hostSettingsProps={hostSettingsProps}
+      onOpenReservationServices={onOpenReservationServices}
       floorCreatePrefill={floorCreatePrefill}
       onFloorCreatePrefillConsumed={() => setFloorCreatePrefill(null)}
       floorEditReservation={floorEditReservation}
@@ -15030,7 +15034,10 @@ function App() {
     setActiveChecklistTaskId(null)
   }, [])
 
-  const isActiveViewAllowed = !isAuthLoading && canAccessModule(permissionAccess, activeView)
+  const isActiveViewAllowed = !isAuthLoading && (
+    (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
+    || canAccessModule(permissionAccess, activeView)
+  )
   const shouldRenderReservationsHostView = useMemo(
     () => shouldShowReservationsHostView({
       role: permissionAccess,
@@ -15142,7 +15149,15 @@ function App() {
       }
     }
 
+    const seatingSettingsOnly = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+    const nextSettingsSection = permittedView === 'settings' && seatingSettingsOnly
+      ? 'reservations'
+      : settingsSection
+
     setActiveView(permittedView)
+    if (permittedView === 'settings' && seatingSettingsOnly) {
+      setSettingsSection('reservations')
+    }
     if (permittedView === 'team') {
       setTeamSection(nextTeamSection)
     }
@@ -15152,12 +15167,12 @@ function App() {
 
     persistNavigation({
       activeView: permittedView,
-      settingsSection,
+      settingsSection: nextSettingsSection,
       teamSection: nextTeamSection,
       stockSection,
       operationsSection,
     })
-  }, [permissionAccess, activeView, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
+  }, [permissionAccess, activeView, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection, canConfigureReservationSeatingsRole, canOpenWorkspaceProfile])
 
   const handleTeamSectionChange = useCallback((nextSection) => {
     const permittedSection = resolvePermittedTeamSection(permissionAccess, nextSection)
@@ -15256,15 +15271,53 @@ function App() {
   }, [permissionAccess, activeView, settingsSection, teamSection, stockSection])
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
-    setSettingsSection(nextSection)
+    const seatingSettingsOnly = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+    const permittedSection = seatingSettingsOnly ? 'reservations' : nextSection
+    setSettingsSection(permittedSection)
     persistNavigation({
       activeView,
-      settingsSection: nextSection,
+      settingsSection: permittedSection,
       teamSection,
       stockSection,
       operationsSection,
     })
-  }, [activeView, teamSection, stockSection, operationsSection])
+  }, [
+    activeView,
+    teamSection,
+    stockSection,
+    operationsSection,
+    canConfigureReservationSeatingsRole,
+    canOpenWorkspaceProfile,
+  ])
+
+  useEffect(() => {
+    if (activeView !== 'settings') return
+    if (!canConfigureReservationSeatingsRole || canOpenWorkspaceProfile) return
+    if (settingsSection === 'reservations') return
+    handleSettingsSectionChange('reservations')
+  }, [
+    activeView,
+    settingsSection,
+    canConfigureReservationSeatingsRole,
+    canOpenWorkspaceProfile,
+    handleSettingsSectionChange,
+  ])
+
+  const handleOpenReservationServices = useCallback(() => {
+    if (!canConfigureReservationSeatingsRole) return
+    if (useMobileExperience) {
+      setMobileExpandedView('workspace')
+    } else {
+      setMobileReservationsHostMode(false)
+    }
+    handleActiveViewChange('settings')
+    handleSettingsSectionChange('reservations')
+  }, [
+    canConfigureReservationSeatingsRole,
+    useMobileExperience,
+    handleActiveViewChange,
+    handleSettingsSectionChange,
+  ])
 
   const workspaceTimeZone = workspaceProfile.timezone
 
@@ -23718,6 +23771,11 @@ function App() {
               reservationAttentionFocus={reservationAttentionFocus}
               canUndoAutoClose={isManagerRole(role)}
               onUndoAutoClose={handleUndoAutoClosedReservation}
+              onOpenReservationServices={
+                canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+                  ? handleOpenReservationServices
+                  : undefined
+              }
             />
           ) : (
             <ReservationsView
@@ -24054,6 +24112,7 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
+            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations']}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
@@ -24109,7 +24168,7 @@ function App() {
             } : {
               seatings: [],
               isLoading: false,
-              noticeMessage: 'Only owners, general managers, and managers can configure reservation seatings.',
+              noticeMessage: 'Reservation management permission is required to configure seatings.',
               form: createDefaultSeatingForm(),
               isSaving: false,
               editingSeatingId: null,
@@ -24274,6 +24333,11 @@ function App() {
                         membership,
                         onSignOut: handleMobileSignOut,
                       }}
+                      onOpenReservationServices={
+                        canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+                          ? handleOpenReservationServices
+                          : undefined
+                      }
                     />
                   )
 
