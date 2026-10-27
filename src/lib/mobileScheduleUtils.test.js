@@ -66,6 +66,32 @@ describe('mobileScheduleUtils', () => {
     expect(isMobileScheduleCompactLandscape()).toBe(true)
   })
 
+  it('treats a short wide phone as compact even when the orientation query is still portrait', async () => {
+    mockViewport({
+      width: 924,
+      height: 412,
+      landscape: false,
+    })
+    const { isMobileScheduleCompactLandscape, shouldUseShortScheduleDayNames } = await import('./mobileScheduleUtils')
+    expect(isMobileScheduleCompactLandscape()).toBe(true)
+    expect(shouldUseShortScheduleDayNames({
+      isCompactLandscape: false,
+      viewportWidth: 924,
+      viewportHeight: 412,
+    })).toBe(true)
+  })
+
+  it('keeps a short desktop window on full day names', async () => {
+    mockViewport({ width: 1400, height: 400, landscape: true })
+    const { isMobileScheduleCompactLandscape, shouldUseShortScheduleDayNames } = await import('./mobileScheduleUtils')
+    expect(isMobileScheduleCompactLandscape()).toBe(false)
+    expect(shouldUseShortScheduleDayNames({
+      isCompactLandscape: false,
+      viewportWidth: 1400,
+      viewportHeight: 400,
+    })).toBe(false)
+  })
+
   it('does not use compact landscape on desktop widths', async () => {
     mockViewport({ width: 1440, height: 900, landscape: true })
     const { isMobileScheduleCompactLandscape } = await import('./mobileScheduleUtils')

@@ -17,8 +17,26 @@ export function isMobileLandscapeOrientation() {
 
 export function isMobileScheduleCompactLandscape() {
   if (typeof window === 'undefined') return false
+  const width = window.innerWidth || 0
+  const height = window.innerHeight || 0
+  // A short wide phone is compact even when the orientation media query is
+  // still portrait, and even when the manager is on the workspace shell.
+  if (height > 0 && height <= 460 && width > height && width <= 1100) return true
   if (!shouldUseMobileShell()) return false
   return isMobileLandscapeOrientation()
+}
+
+export function shouldUseShortScheduleDayNames({
+  isCompactLandscape = false,
+  viewportWidth = 0,
+  viewportHeight = 0,
+} = {}) {
+  if (isCompactLandscape) return true
+  if (viewportWidth > 0 && viewportWidth <= 900) return true
+  return viewportWidth > 0
+    && viewportWidth <= 1100
+    && viewportHeight > 0
+    && viewportHeight <= 460
 }
 
 function resolveViewportWidth(viewportWidth = 0) {

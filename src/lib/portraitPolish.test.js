@@ -49,7 +49,7 @@ describe('portrait polish layout', () => {
     )
     expect(nameRule).toContain('white-space: normal')
     expect(nameRule).not.toContain('text-overflow: ellipsis')
-    const shortHeader = mediaBlocks(appCss, '@media (max-height: 430px)')
+    const shortHeader = mediaBlocks(appCss, '@media (max-height: 460px)')
       .find((block) => block.includes('portrait-week-header'))
     expect(shortHeader).toContain('.schedule-focus-workspace .schedule-header')
 

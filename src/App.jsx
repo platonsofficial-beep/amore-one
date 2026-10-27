@@ -582,6 +582,7 @@ import {
   getScheduleGridTableMinWidth,
   getScheduleShiftTimeSeparator,
   isMobileScheduleCompactLandscape,
+  shouldUseShortScheduleDayNames,
   shouldFillScheduleGridWidth,
   shouldShowScheduleDraftChangesBanner,
   shouldUseFluidScheduleDayColumns,
@@ -2972,6 +2973,9 @@ function ScheduleView({
   const [scheduleViewportWidth, setScheduleViewportWidth] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth : 0
   ))
+  const [scheduleViewportHeight, setScheduleViewportHeight] = useState(() => (
+    typeof window !== 'undefined' ? window.innerHeight : 0
+  ))
   const wasScheduleCompactLandscapeRef = useRef(isMobileScheduleCompactLandscape())
 
   const isDragDropDisabled = isSaving || isPublishing || !canEditSchedule
@@ -3007,8 +3011,11 @@ function ScheduleView({
   })
   const scheduleUsesFluidDayColumns = scheduleFillsWidth
     || shouldUseFluidScheduleDayColumns(scheduleDayColumnWidth)
-  const useShortScheduleDayNames = isScheduleCompactLandscape
-    || (scheduleViewportWidth > 0 && scheduleViewportWidth <= 900)
+  const useShortScheduleDayNames = shouldUseShortScheduleDayNames({
+    isCompactLandscape: isScheduleCompactLandscape,
+    viewportWidth: scheduleViewportWidth,
+    viewportHeight: scheduleViewportHeight,
+  })
 
   const scheduleGridTableMinWidth = useMemo(
     () => getScheduleGridTableMinWidth(weekDays.length, scheduleDayColumnWidth),
@@ -3023,7 +3030,9 @@ function ScheduleView({
       const wasCompact = wasScheduleCompactLandscapeRef.current
       wasScheduleCompactLandscapeRef.current = compact
       setIsScheduleCompactLandscape(compact)
-      setScheduleViewportWidth(readLiveViewportBox().width || window.innerWidth)
+      const liveBox = readLiveViewportBox()
+      setScheduleViewportWidth(liveBox.width || window.innerWidth)
+      setScheduleViewportHeight(liveBox.height || window.innerHeight)
       if (compact && !wasCompact) {
         setIsShiftTemplatesOpen(false)
       }
