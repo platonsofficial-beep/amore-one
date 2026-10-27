@@ -2,13 +2,18 @@
  * @vitest-environment jsdom
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import {
   isHostStationDesktopViewport,
   isHostTabletPanelViewport,
   isMobileHostSplitViewport,
+  resolveHostInitialLanding,
   resolveHostReservationFormVariant,
   shouldShowHostStationPortraitFallback,
 } from './mobileHostReservationUtils'
+
+const appSource = readFileSync(resolve(process.cwd(), 'src/App.jsx'), 'utf8')
 import {
   shouldUseHostStationLanding,
   shouldUseHostStationShell,
@@ -76,5 +81,46 @@ describe('host station shell', () => {
   it('lands host accounts on host tab regardless of mobile breakpoint', () => {
     expect(shouldUseHostStationLanding('host')).toBe(true)
     expect(shouldUseHostStationLanding('staff')).toBe(false)
+  })
+})
+
+describe('resolveHostInitialLanding', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('lands phone portrait hosts on Home and keeps reservations for landscape and desktop', () => {
+    mockViewport({ width: 390, height: 844, orientation: 'portrait' })
+    expect(resolveHostInitialLanding({ useMobileExperience: true })).toEqual({
+      activeView: 'today',
+      mobileTab: 'home',
+      openHostMode: false,
+    })
+
+    mockViewport({ width: 844, height: 390, orientation: 'landscape' })
+    expect(resolveHostInitialLanding({ useMobileExperience: true })).toEqual({
+      activeView: 'reservations',
+      mobileTab: 'reservations',
+      openHostMode: true,
+    })
+
+    mockViewport({ width: 1280, height: 800, orientation: 'landscape' })
+    expect(resolveHostInitialLanding({ useMobileExperience: false })).toEqual({
+      activeView: 'reservations',
+      mobileTab: 'reservations',
+      openHostMode: true,
+    })
+
+    mockViewport({ width: 820, height: 1180, orientation: 'portrait' })
+    expect(resolveHostInitialLanding({ useMobileExperience: true })).toEqual({
+      activeView: 'reservations',
+      mobileTab: 'reservations',
+      openHostMode: true,
+    })
+  })
+
+  it('uses the portrait landing helper from the host landing effect', () => {
+    expect(appSource).toContain('resolveHostInitialLanding({ useMobileExperience })')
+    expect(appSource).toContain('setMobileReservationsHostMode(landing.openHostMode)')
   })
 })

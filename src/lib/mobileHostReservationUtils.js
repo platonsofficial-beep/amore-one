@@ -108,6 +108,23 @@ export function shouldShowHostStationPortraitFallback() {
   return width < 700 && height > width
 }
 
+export function resolveHostInitialLanding({ useMobileExperience = false } = {}) {
+  const landOnHome = Boolean(useMobileExperience) && shouldShowHostStationPortraitFallback()
+  if (landOnHome) {
+    return {
+      activeView: 'today',
+      mobileTab: 'home',
+      openHostMode: false,
+    }
+  }
+
+  return {
+    activeView: 'reservations',
+    mobileTab: 'reservations',
+    openHostMode: true,
+  }
+}
+
 export function resolveHostReservationFormVariant({ isSplitLayout = false } = {}) {
   if (isSplitLayout) return 'inline'
   if (isHostTabletPanelViewport()) return 'panel'

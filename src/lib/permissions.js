@@ -29,7 +29,7 @@ export const MOBILE_HOST_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'reservations', label: 'Reservations', icon: '▣' },
+  { id: 'reservations', label: 'Bookings', icon: '▣' },
   { id: 'menu', label: 'Menu', icon: '≡' },
 ]
 

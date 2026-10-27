@@ -12,18 +12,17 @@ import { MobileTasksView } from './MobileTasksView'
 
 const STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
-  { id: 'schedule', label: 'My Schedule', icon: '◷' },
-  { id: 'availability', label: 'My Availability', icon: '◔' },
+  { id: 'schedule', label: 'Schedule', icon: '◷' },
+  { id: 'availability', label: 'Avail', ariaLabel: 'My Availability', icon: '◔' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
 const HOST_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
-  { id: 'schedule', label: 'My Schedule', icon: '◷' },
-  { id: 'availability', label: 'My Availability', icon: '◔' },
+  { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'reservations', label: 'Reservations', icon: '▣' },
+  { id: 'reservations', label: 'Bookings', ariaLabel: 'Reservations', icon: '▣' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
@@ -264,7 +263,10 @@ export function MobileStaffApp({
           menuProps?.screen === 'profile' ? (
             <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />
           ) : (
-            <MobileMenuView {...menuProps} />
+            <MobileMenuView
+              {...menuProps}
+              onOpenAvailability={isHostShell ? () => handleTabChange('availability') : undefined}
+            />
           )
         ) : null}
       </div>

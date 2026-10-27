@@ -20,6 +20,7 @@ export function MobileBottomNav({
           className={`mobile-bottom-nav-item${activeTab === tab.id ? ' is-active' : ''}`}
           onClick={() => onTabChange(tab.id)}
           aria-current={activeTab === tab.id ? 'page' : undefined}
+          aria-label={tab.ariaLabel || tab.label}
         >
           <span className="mobile-bottom-nav-icon" aria-hidden="true">{tab.icon}</span>
           <span className="mobile-bottom-nav-label">{tab.label}</span>

@@ -683,6 +683,7 @@ import {
   readPersistedMobileTab,
   readPersistedMobileWeekStart,
 } from './lib/mobileNavigationPersistence'
+import { resolveHostInitialLanding } from './lib/mobileHostReservationUtils'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
 
@@ -5426,7 +5427,7 @@ function ScheduleView({
   }
 
   const renderShiftTemplatesToggle = () => {
-    if (scheduleGridTemplates.length === 0) return null
+    if (!canEditSchedule || scheduleGridTemplates.length === 0) return null
 
     return (
       <button
@@ -6146,7 +6147,7 @@ function ScheduleView({
                             })}
                           </ul>
                         ) : null}
-                        {isCustomRow ? null : <button
+                        {isCustomRow || !canEditSchedule ? null : <button
                           type="button"
                           className="schedule-assign-btn"
                           onClick={(event) => {
@@ -6182,7 +6183,7 @@ function ScheduleView({
       </div>
         </div>
 
-        {scheduleGridTemplates.length > 0 ? (
+        {canEditSchedule && scheduleGridTemplates.length > 0 ? (
           <aside
             id="schedule-templates-panel"
             ref={scheduleTemplatesPanelRef}
@@ -15951,11 +15952,12 @@ function App() {
     if (isAuthLoading || !isHostAccount) return
     if (hostMobileLandedRef.current) return
     hostMobileLandedRef.current = true
-    handleActiveViewChange('reservations')
+    const landing = resolveHostInitialLanding({ useMobileExperience })
+    handleActiveViewChange(landing.activeView)
     if (!useMobileExperience) return
-    setMobileStaffTab('reservations')
-    persistMobileTab('reservations', 'host')
-    setMobileReservationsHostMode(true)
+    setMobileStaffTab(landing.mobileTab)
+    persistMobileTab(landing.mobileTab, 'host')
+    setMobileReservationsHostMode(landing.openHostMode)
   }, [
     isAuthLoading,
     isHostAccount,
