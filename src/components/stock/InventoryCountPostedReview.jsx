@@ -266,8 +266,8 @@ export function InventoryCountPostedReview({
   notice = '',
   timeZone = '',
 }) {
-  const { role } = useAuth()
-  const canManage = canManageStock(role)
+  const { role, permissionAccess } = useAuth()
+  const canManage = canManageStock(permissionAccess ?? role)
 
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')

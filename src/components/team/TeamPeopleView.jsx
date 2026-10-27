@@ -1,4 +1,5 @@
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+import { MemberAccessPanel } from './MemberAccessPanel'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { ManagerLeaveInbox } from './ManagerLeaveInbox'
 import {
@@ -250,6 +251,9 @@ export function TeamPeopleView({
   canManageInvites = false,
   canAssignManagerInviteRole = false,
   canViewSalary = false,
+  actorRole = '',
+  actorMemberId = '',
+  actorUserId = '',
   autoOpenInvite = false,
   onAutoOpenInviteConsumed,
   searchTerm = '',
@@ -496,6 +500,14 @@ export function TeamPeopleView({
                 {formatDrawerFieldValue(selectedEmployee.notes)}
               </p>
             </section>
+
+            <MemberAccessPanel
+              actorRole={actorRole}
+              workspaceId={workspaceId}
+              employeeId={selectedEmployee?.id}
+              actorMemberId={actorMemberId}
+              actorUserId={actorUserId}
+            />
 
             <section className="employee-profile-drawer-section employee-profile-drawer-account-section">
               <EmployeeAccountConnectionSection
