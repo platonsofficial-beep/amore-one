@@ -13,7 +13,7 @@ import { MobileTasksView } from './MobileTasksView'
 const STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'availability', label: 'Avail', ariaLabel: 'My Availability', icon: '◔' },
+  { id: 'availability', label: 'My week', ariaLabel: 'My week', icon: '◔' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
