@@ -39,6 +39,11 @@ describe('settings compact layout', () => {
     expect(compact).toContain('.app-shell.is-settings-view .workspace-nav-links')
     expect(compact).toContain('flex-wrap: nowrap')
     expect(compact).toContain('min-height: 44px')
+    expect(compact).toContain('.app-shell.is-settings-view .topbar')
+    expect(compact).toContain('max-height: 56px')
+    expect(compact).toContain('.app-shell.is-settings-view .topbar .date-pill')
+    expect(compact).toContain('.app-shell.is-settings-view .topbar .welcome-subtitle')
+    expect(compact).toContain('.app-shell.is-settings-view .topbar .profile-chip')
 
     for (const query of [
       '@media (max-width: 1180px)',
