@@ -257,10 +257,44 @@ function instantMs(now) {
 
 export function countsForLateToday(shift, todayKey) {
   const dateKey = shiftDateKey(shift)
-  if (!dateKey || !todayKey) return false
-  if (dateKey === todayKey) return true
-  return dateKey === addDaysToDateKey(todayKey, -1)
-    && isOvernightShift(shiftStartTime(shift), shiftEndTime(shift))
+  return Boolean(dateKey && todayKey && dateKey === todayKey)
+}
+
+// Shifts that started before clock in/out was live are not late or no-shows.
+// No settings row yet: nothing older than today in the venue timezone.
+// A settings row uses created_at when present, otherwise the earliest clock entry.
+export function attendanceLiveCutoffMs({
+  settings = null,
+  entries = [],
+  todayKey = '',
+  timeZone = 'Europe/Nicosia',
+} = {}) {
+  const startOfToday = zonedDateTime(todayKey, '00:00', timeZone)?.getTime() ?? null
+  if (settings == null) return startOfToday
+
+  const stamps = []
+  for (const raw of [settings.created_at, settings.createdAt]) {
+    const ms = Date.parse(`${raw ?? ''}`)
+    if (Number.isFinite(ms)) stamps.push(ms)
+  }
+  if (stamps.length === 0) {
+    for (const entry of entries ?? []) {
+      for (const raw of [entry?.created_at, entry?.createdAt, entry?.clock_in_at, entry?.clockInAt]) {
+        const ms = Date.parse(`${raw ?? ''}`)
+        if (Number.isFinite(ms)) stamps.push(ms)
+      }
+    }
+  }
+  if (stamps.length === 0) return startOfToday
+  return Math.min(...stamps)
+}
+
+export function shiftStartsBeforeAttendanceLive(shift, options = {}) {
+  const cutoff = attendanceLiveCutoffMs(options)
+  if (cutoff == null) return false
+  const bounds = shiftBounds(shift, options.timeZone || 'Europe/Nicosia')
+  if (!bounds) return false
+  return bounds.start.getTime() < cutoff
 }
 
 export function minutesAfterShiftStart(shift, now = new Date(), timeZone = 'Europe/Nicosia') {

@@ -17,6 +17,7 @@ import {
   isOpenEntry,
   lateTodayDetail,
   minutesAfterShiftStart,
+  shiftStartsBeforeAttendanceLive,
   personKeyForEntry,
   shiftDateKey,
   summarizeHours,
@@ -57,6 +58,7 @@ export function AttendanceBoard({
   const [exceptions, setExceptions] = useState([])
   const [shifts, setShifts] = useState([])
   const [graceMinutes, setGraceMinutes] = useState(DEFAULT_LATE_GRACE_MINUTES)
+  const [settingsRow, setSettingsRow] = useState(null)
   const [loadError, setLoadError] = useState('')
   const [notice, setNotice] = useState('')
   const [busyId, setBusyId] = useState('')
@@ -83,6 +85,7 @@ export function AttendanceBoard({
     setBreaks(nextBreaks)
     setExceptions(nextExceptions)
     setShifts(nextShifts)
+    setSettingsRow(settings ?? null)
     setGraceMinutes(Number.isFinite(Number(settings?.late_grace_minutes))
       ? Number(settings.late_grace_minutes)
       : DEFAULT_LATE_GRACE_MINUTES)
@@ -124,6 +127,12 @@ export function AttendanceBoard({
     const seenShift = new Set(entries.map((entry) => `${entry.shift_id ?? ''}`).filter(Boolean))
     for (const shift of shifts) {
       if (!countsForLateToday(shift, todayKey)) continue
+      if (shiftStartsBeforeAttendanceLive(shift, {
+        settings: settingsRow,
+        entries,
+        todayKey,
+        timeZone,
+      })) continue
       if (seenShift.has(`${shift.id}`)) continue
       const covered = entries.some((entry) => (
         `${entry.employee_id ?? ''}` === `${shift.employee_id ?? ''}`
@@ -139,7 +148,7 @@ export function AttendanceBoard({
       })
     }
     return rows
-  }, [employees, entries, graceMinutes, now, shifts, timeZone, todayKey])
+  }, [employees, entries, graceMinutes, now, settingsRow, shifts, timeZone, todayKey])
 
   const people = useMemo(() => {
     const keys = new Map()
