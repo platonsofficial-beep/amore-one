@@ -43,7 +43,7 @@ export async function loadAttendanceEntries(workspaceId, { fromDate = '', toDate
   const id = requireWorkspaceId(workspaceId)
   let query = client
     .from(ENTRIES_TABLE)
-    .select('id, workspace_id, member_id, employee_id, shift_id, work_date, clock_in_at, clock_out_at, in_distance_m, in_accuracy_m, in_inside, out_distance_m, out_accuracy_m, out_inside, scheduled_start_at, late_minutes, is_late, status, auto_closed')
+    .select('id, workspace_id, member_id, employee_id, shift_id, work_date, clock_in_at, clock_out_at, in_distance_m, in_accuracy_m, in_inside, out_distance_m, out_accuracy_m, out_inside, scheduled_start_at, late_minutes, is_late, status, auto_closed, created_at')
     .eq('workspace_id', id)
   if (fromDate && toDate) {
     query = query.or(`clock_out_at.is.null,and(work_date.gte.${fromDate},work_date.lte.${toDate})`)

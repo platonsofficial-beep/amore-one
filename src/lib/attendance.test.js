@@ -12,7 +12,9 @@ import {
   breakMinutes,
   canDecideOwnAttendance,
   classifyUnclockedShift,
+  attendanceLiveCutoffMs,
   countsForLateToday,
+  dateKeyInZone,
   clockInMessage,
   clockOutMessage,
   describeTodayShift,
@@ -22,6 +24,8 @@ import {
   isOvernightShift,
   lateTodayDetail,
   minutesAfterShiftStart,
+  shiftBounds,
+  shiftStartsBeforeAttendanceLive,
   needsManagerRequest,
   shiftDurationMinutes,
   summarizeHours,
@@ -185,13 +189,13 @@ describe('late today with a fixed clock', () => {
     expect(lateTodayDetail(evening, 'no-show', 0)).toBe('No-show · 16:30–00:30, Bar')
   })
 
-  it('keeps late today to today and yesterday’s overnight shift', () => {
+  it('keeps late today to shifts that start today', () => {
     expect(countsForLateToday(evening, '2026-10-27')).toBe(true)
     expect(countsForLateToday({
       shift_date: '2026-10-26',
       start_time: '16:30',
       end_time: '00:30',
-    }, '2026-10-27')).toBe(true)
+    }, '2026-10-27')).toBe(false)
     expect(countsForLateToday({
       shift_date: '2026-10-28',
       start_time: '16:30',
@@ -202,6 +206,89 @@ describe('late today with a fixed clock', () => {
       start_time: '09:00',
       end_time: '17:00',
     }, '2026-10-27')).toBe(false)
+  })
+
+  it('does not list 26 Oct 16:30–00:30 as No-show at 12:50 Nicosia on 27 Oct', () => {
+    const timeZone = 'Europe/Nicosia'
+    const todayKey = '2026-10-27'
+    const now = new Date('2026-10-27T10:50:00Z')
+    expect(dateKeyInZone(now, 'Asia/Nicosia')).toBe(todayKey)
+    expect(dateKeyInZone(now, timeZone)).toBe(todayKey)
+    const yesterdayEvening = {
+      id: 'shift-26-evening',
+      shift_date: '2026-10-26',
+      start_time: '16:30',
+      end_time: '00:30',
+      area: 'Bar',
+    }
+    const todayEvening = {
+      id: 'shift-27-evening',
+      shift_date: '2026-10-27',
+      start_time: '16:30',
+      end_time: '00:30',
+      area: 'Bar',
+    }
+    const todayMorning = {
+      id: 'shift-27-morning',
+      shift_date: '2026-10-27',
+      start_time: '08:30',
+      end_time: '16:30',
+      area: 'Bar',
+    }
+
+    const yesterdayBounds = shiftBounds(yesterdayEvening, timeZone)
+    expect(yesterdayBounds.end.toISOString()).toBe('2026-10-26T22:30:00.000Z')
+    expect(yesterdayBounds.end.getTime()).toBeGreaterThan(yesterdayBounds.start.getTime())
+    expect(classifyUnclockedShift(yesterdayEvening, { now, graceMinutes: 10, timeZone })).toBe('no-show')
+    expect(countsForLateToday(yesterdayEvening, todayKey)).toBe(false)
+
+    const todayEveningBounds = shiftBounds(todayEvening, timeZone)
+    expect(todayEveningBounds.start.toISOString()).toBe('2026-10-27T14:30:00.000Z')
+    expect(todayEveningBounds.end.toISOString()).toBe('2026-10-27T22:30:00.000Z')
+    expect(classifyUnclockedShift(todayEvening, { now, graceMinutes: 10, timeZone })).toBe('upcoming')
+    expect(countsForLateToday(todayEvening, todayKey)).toBe(true)
+
+    expect(classifyUnclockedShift(todayMorning, { now, graceMinutes: 10, timeZone })).toBe('not-clocked-in')
+    expect(minutesAfterShiftStart(todayMorning, now, timeZone)).toBe(260)
+    expect(lateTodayDetail(todayMorning, 'not-clocked-in', 260)).toBe('Not clocked in (late by 260 min) · 08:30–16:30, Bar')
+
+    const cutoff = attendanceLiveCutoffMs({
+      settings: null,
+      entries: [],
+      todayKey,
+      timeZone,
+    })
+    expect(new Date(cutoff).toISOString()).toBe('2026-10-26T22:00:00.000Z')
+    expect(shiftStartsBeforeAttendanceLive(yesterdayEvening, {
+      settings: null,
+      entries: [],
+      todayKey,
+      timeZone,
+    })).toBe(true)
+    expect(shiftStartsBeforeAttendanceLive(todayMorning, {
+      settings: null,
+      entries: [],
+      todayKey,
+      timeZone,
+    })).toBe(false)
+    expect(shiftStartsBeforeAttendanceLive(todayEvening, {
+      settings: null,
+      entries: [],
+      todayKey,
+      timeZone,
+    })).toBe(false)
+
+    const liveAt = new Date('2026-10-27T09:00:00Z')
+    expect(shiftStartsBeforeAttendanceLive(todayMorning, {
+      settings: { created_at: liveAt.toISOString() },
+      todayKey,
+      timeZone,
+    })).toBe(true)
+    expect(shiftStartsBeforeAttendanceLive(todayEvening, {
+      settings: { created_at: liveAt.toISOString() },
+      todayKey,
+      timeZone,
+    })).toBe(false)
   })
 })
 
