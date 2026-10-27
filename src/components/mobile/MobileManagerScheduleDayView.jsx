@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { HourMinuteField } from '../HourMinuteField'
 import { formatTime24 } from '../../lib/timeFormatUtils'
+import { portraitShiftSubtitle } from '../../lib/managerPortrait'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 
@@ -128,9 +129,7 @@ export function MobileManagerScheduleDayView({
                 </span>
                 <span className="manager-portrait-reservation-copy">
                   <strong>{name}</strong>
-                  <span>
-                    {[shift.role, shift.area].filter(Boolean).join(' · ') || 'Shift'}
-                  </span>
+                  <span>{portraitShiftSubtitle(shift)}</span>
                 </span>
               </button>
               {isEditing ? (

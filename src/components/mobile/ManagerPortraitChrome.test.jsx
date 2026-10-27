@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
+import { portraitShiftSubtitle } from '../../lib/managerPortrait'
 import { ManagerMoreSheet } from './ManagerMoreSheet'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 
@@ -54,5 +55,11 @@ describe('manager portrait chrome', () => {
     })
     expect(onSelect).toHaveBeenCalledWith('schedule')
     view.unmount()
+  })
+
+  it('shows a repeated shift role once', () => {
+    expect(portraitShiftSubtitle({ role: 'Service', area: 'Service' })).toBe('Service')
+    expect(portraitShiftSubtitle({ role: 'Bartender', area: 'Bar' })).toBe('Bartender · Bar')
+    expect(portraitShiftSubtitle({ role: '', area: '' })).toBe('Shift')
   })
 })

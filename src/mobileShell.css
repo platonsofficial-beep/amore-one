@@ -9210,15 +9210,20 @@ body:not(:has(.inventory-count-session)) :is(
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 52px 0 8px;
   padding: 8px 8px 8px 12px;
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 14px;
   background: rgba(212, 175, 55, 0.1);
   color: #f7efe1;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
-.manager-portrait-banner p {
+.manager-portrait-banner-copy {
   flex: 1 1 auto;
   margin: 0;
   font-size: 0.82rem;
@@ -9232,16 +9237,17 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .manager-portrait-banner-dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
-  border: 0;
   border-radius: 12px;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.06);
   color: #f7efe1;
   font-size: 1.4rem;
   line-height: 1;
-  cursor: pointer;
 }
 
 .manager-portrait-screen-header,
@@ -9394,6 +9400,20 @@ body:not(:has(.inventory-count-session)) :is(
   white-space: nowrap;
 }
 
+.manager-portrait-shift .manager-portrait-shift-summary {
+  align-items: flex-start;
+}
+
+.manager-portrait-shift .manager-portrait-reservation-copy strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.25;
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
 .manager-portrait-reservation-copy span,
 .manager-portrait-table-name span {
   color: rgba(247, 239, 225, 0.62);
@@ -9454,11 +9474,39 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .manager-portrait-module-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: 4px 0 8px;
-  background: rgba(10, 10, 11, 0.94);
+  position: static;
+  top: auto;
+  z-index: auto;
+  padding: 4px 56px 8px 0;
+  background: transparent;
+}
+
+.mobile-manager-app .manager-portrait-module [hidden] {
+  display: none !important;
+}
+
+.mobile-manager-app .manager-portrait-module .module-section-tabs {
+  position: static;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0;
+  padding: 0 56px 12px 0;
+  background: transparent;
+}
+
+.mobile-manager-app .manager-portrait-module .module-section-tabs ~ .module-section-tabs {
+  display: none;
+}
+
+.mobile-manager-app .team-people-page,
+.mobile-manager-app .team-people-header {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.mobile-manager-app .team-people-header-copy {
+  flex: 0 0 auto;
+  min-height: 0;
 }
 
 .manager-more-sheet {
@@ -9516,8 +9564,21 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .manager-more-list {
+  position: relative;
   overflow: auto;
-  padding-bottom: 12px;
+  padding-bottom: 28px;
+}
+
+.manager-more-list::after {
+  content: '';
+  position: sticky;
+  left: 0;
+  bottom: 0;
+  display: block;
+  height: 28px;
+  margin-top: -28px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(14, 16, 22, 0), rgba(14, 16, 22, 0.98));
 }
 
 .manager-more-item {
@@ -9555,4 +9616,74 @@ body:not(:has(.inventory-count-session)) :is(
 .manager-more-item-copy span {
   color: rgba(247, 239, 225, 0.62);
   font-size: 0.78rem;
+}
+
+.mobile-manager-stock-quick-label-short {
+  display: none;
+}
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .mobile-manager-app .mobile-manager-stock-action-bar {
+    background: #12141c;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-quick-btn {
+    white-space: nowrap;
+    font-size: 0.78rem;
+    padding-inline: 8px;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-quick-label-full {
+    display: none;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-quick-label-short {
+    display: inline;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-list {
+    padding-bottom: calc(88px + var(--one-mobile-bottom-inset, 96px));
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    overflow-x: hidden;
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet .mobile-host-form-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet .mobile-host-form-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet .reservation-phone-field {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet .reservation-phone-field-country-picker,
+  .mobile-manager-app .mobile-host-reservation-sheet .phone-country-picker {
+    flex: 0 0 auto;
+    width: auto;
+    align-self: center;
+  }
+
+  .mobile-manager-app .mobile-host-reservation-sheet .phone-country-picker-trigger,
+  .mobile-manager-app .mobile-host-reservation-sheet .reservation-phone-field-input {
+    box-sizing: border-box;
+    height: 44px;
+    min-height: 44px;
+  }
 }

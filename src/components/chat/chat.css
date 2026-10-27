@@ -573,6 +573,12 @@
   padding-right: 60px;
 }
 
+@media (max-width: 760px) and (orientation: portrait) {
+  .app-shell.is-mobile-shell .chat-list-header {
+    padding-right: 84px;
+  }
+}
+
 @media (max-width: 979px) {
   .chat-screen.is-split {
     display: flex;
