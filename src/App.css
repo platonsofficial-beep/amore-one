@@ -51960,7 +51960,7 @@ summary:focus-visible {
   }
 }
 
-@media (max-height: 430px) {
+@media (max-height: 460px) {
   /* portrait-week-header: short landscape keeps the week grid on screen. */
   .app-shell.schedule-focus-mode .main-panel.main-panel-schedule {
     padding: 4px 8px 6px;
@@ -52255,8 +52255,26 @@ summary:focus-visible {
     flex-direction: column;
   }
 
-  .employee-modal.stock-supply-refill-sheet.task-form-modal.is-responsive-sheet {
+  .employee-modal.stock-supply-refill-sheet.task-form-modal.is-responsive-sheet,
+  .employee-modal.stock-transfer-modal.task-form-modal.is-responsive-sheet {
     overflow: hidden;
+  }
+
+  .stock-transfer-modal .employee-form {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stock-transfer-modal .modal-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    padding-top: 8px;
+    background: #10141c;
   }
 
   .stock-supply-refill-title-full {
@@ -52370,13 +52388,19 @@ summary:focus-visible {
   }
 
   .stock-take-sources {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     order: 2;
     gap: 4px;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .stock-take-source {
-    min-height: 0;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    min-width: 0;
+    max-width: 100%;
     height: auto;
     padding: 0;
     border: 0;
@@ -52384,12 +52408,17 @@ summary:focus-visible {
     background: transparent;
     color: rgba(255, 247, 232, 0.62);
     font-size: 0;
-    line-height: 0;
+    line-height: 1.2;
     font-weight: 500;
+    overflow: hidden;
   }
 
   .stock-take-source::after {
     content: attr(data-compact-label);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 0.68rem;
     line-height: 1.2;
     font-weight: 500;
@@ -52415,6 +52444,7 @@ summary:focus-visible {
     flex: 0 0 auto;
     gap: 2px;
     margin-left: auto;
+    max-width: 100%;
   }
 
   .stock-take-stepper button {
@@ -52654,7 +52684,7 @@ summary:focus-visible {
   }
 }
 
-@media (max-height: 430px) {
+@media (max-height: 460px) {
   .stock-orders-header {
     flex-wrap: nowrap;
     align-items: center;
@@ -52791,6 +52821,139 @@ summary:focus-visible {
     max-width: none;
     flex: 0 1 auto;
     padding-inline: 12px;
+  }
+}
+
+/* Phone landscape: keep stock tabs on screen, slim supplier stats, and a
+   compact side rail. Active inventory count keeps its own scroll lock. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    z-index: 8;
+    flex: 0 0 auto;
+    background: var(--one-bg, #0e0e0f);
+  }
+
+  .stock-supplier-card-stats {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    margin-top: 8px;
+  }
+
+  .stock-supplier-card-stat {
+    flex: 0 0 auto;
+    gap: 1px;
+  }
+
+  .stock-supplier-card-stat-label,
+  .stock-supplier-card-stat-value {
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 460px) and (max-width: 1024px) {
+  .app-shell:not(.is-mobile-shell):has(> .sidebar) {
+    grid-template-columns: 78px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell:not(.is-mobile-shell):has(> .sidebar) > .main-panel {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .app-shell:not(.is-mobile-shell) .sidebar {
+    width: 78px;
+    min-width: 78px;
+    max-width: 78px;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    align-self: stretch;
+    padding: 4px;
+    gap: 2px;
+    overflow: hidden;
+    border-right: 1px solid var(--one-gold-line);
+    border-bottom: 0;
+  }
+
+  .app-shell:not(.is-mobile-shell) .brand-block {
+    gap: 0;
+    flex: 0 0 auto;
+  }
+
+  .app-shell:not(.is-mobile-shell) .brand-product-mark {
+    width: 28px;
+  }
+
+  .app-shell:not(.is-mobile-shell) .brand-wordmark,
+  .app-shell:not(.is-mobile-shell) .brand-tagline,
+  .app-shell:not(.is-mobile-shell) .brand-business-name,
+  .app-shell:not(.is-mobile-shell) .brand-powered-by {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .app-shell:not(.is-mobile-shell) .nav-links {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .app-shell:not(.is-mobile-shell) .nav-link {
+    flex: 1 1 0;
+    min-height: 0;
+    width: 100%;
+    padding: 1px 2px;
+    gap: 0;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.56rem;
+    line-height: 1.05;
+    text-align: center;
+  }
+
+  .app-shell:not(.is-mobile-shell) .nav-link > span:last-child {
+    flex: 0 1 auto;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    clip: auto;
+  }
+
+  .app-shell:not(.is-mobile-shell) .nav-icon {
+    font-size: 0.95rem;
+    line-height: 1;
   }
 }
 

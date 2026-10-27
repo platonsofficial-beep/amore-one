@@ -70,6 +70,8 @@ export const PHONE_VIEWPORT_SIZES = [
   [412, 915],
   [414, 896],
   [430, 932],
+  [360, 740],
+  [440, 956],
 ]
 
 export const PHONE_VIEWPORT_PAGES = [
@@ -375,6 +377,58 @@ const MEASURE_SOURCE = `(() => {
     tableTooSmall: sizedTables.some((table) => table.width < 36 || table.height < 36),
     tableLabelClipped: sizedTables.some((table) => table.labelClipped),
     tablesOverlap,
+    sidebar: (() => {
+      const el = document.querySelector('.sidebar')
+      if (!el) return null
+      const style = getComputedStyle(el)
+      if (style.display === 'none' || el.getClientRects().length === 0) return null
+      const rect = el.getBoundingClientRect()
+      const links = [...el.querySelectorAll('.nav-link')].map((link) => {
+        const linkRect = link.getBoundingClientRect()
+        return {
+          top: linkRect.top,
+          bottom: linkRect.bottom,
+          left: linkRect.left,
+          width: linkRect.width,
+          height: linkRect.height,
+        }
+      })
+      return {
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        scrollHeight: el.scrollHeight,
+        clientHeight: el.clientHeight,
+        linkCount: links.length,
+        linksInside: links.every((link) => (
+          link.top >= rect.top - 1
+          && link.bottom <= rect.bottom + 1
+          && link.left >= rect.left - 1
+          && link.width > 8
+          && link.height > 8
+        )),
+      }
+    })(),
+    reservationsNavLabel: (() => {
+      const el = [...document.querySelectorAll('.mobile-bottom-nav-label')]
+        .find((node) => node.textContent.trim() === 'Reservations')
+      if (!el || el.clientWidth < 1) return null
+      return {
+        text: el.textContent.trim(),
+        clipped: el.scrollWidth > el.clientWidth + 1,
+        clientWidth: el.clientWidth,
+        scrollWidth: el.scrollWidth,
+        fontSize: getComputedStyle(el).fontSize,
+      }
+    })(),
+    stockChromePosition: (() => {
+      const chrome = document.querySelector('.main-panel-stock > .stock-focus-chrome')
+      if (!chrome) return ''
+      return getComputedStyle(chrome).position
+    })(),
+    scheduleDayName: (() => {
+      const el = document.querySelector('.blend-grid-header-day-name')
+      return el ? el.textContent.trim() : ''
+    })(),
     nextArea: nextAreaRect && nextAreaRect.width > 1 ? {
       left: Math.round(nextAreaRect.left),
       right: Math.round(nextAreaRect.right),
@@ -547,6 +601,28 @@ function assertMeasurement(page, width, height, measurement) {
     }
   } else if (floorVisible && visibleTableCount < 1) {
     failures.push('floor plan is visible but its tables are outside the viewport')
+  }
+  const shortPhoneLandscape = width > height && height <= 460 && width <= 1024
+  if (page.id === 'shell' && shortPhoneLandscape && measurement.sidebar) {
+    const sidebar = measurement.sidebar
+    if (sidebar.width > 110) failures.push(`sidebar is ${sidebar.width}px wide`)
+    if (sidebar.scrollHeight > sidebar.clientHeight + 2) failures.push('sidebar items scroll')
+    if (!sidebar.linksInside || sidebar.linkCount < 1) failures.push('sidebar items are clipped')
+    if ((measurement.safeLeft || 0) >= 59 && sidebar.left < measurement.safeLeft - 1) {
+      failures.push(`sidebar starts at ${sidebar.left}px under the left safe area`)
+    }
+  }
+  if (page.id === 'shell' && height > width && width <= 430 && measurement.reservationsNavLabel?.clipped) {
+    const label = measurement.reservationsNavLabel
+    failures.push(`Reservations bottom nav label is truncated (${label.clientWidth}px holds ${label.scrollWidth}px at ${label.fontSize})`)
+  }
+  if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromePosition && measurement.stockChromePosition !== 'sticky') {
+    failures.push(`stock tabs are ${measurement.stockChromePosition}`)
+  }
+  if (page.id === 'schedule' && width > height && height <= 460 && width <= 1100 && measurement.scheduleDayName) {
+    if (measurement.scheduleDayName.length > 3) {
+      failures.push(`schedule day name is "${measurement.scheduleDayName}"`)
+    }
   }
   return failures
 }
