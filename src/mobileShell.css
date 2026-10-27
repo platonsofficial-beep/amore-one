@@ -9195,3 +9195,364 @@ body:not(:has(.inventory-count-session)) :is(
     padding: 0 16px;
   }
 }
+
+.mobile-manager-app .mobile-bottom-nav-label {
+  font-size: 0.62rem;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.manager-portrait-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  padding: 8px 8px 8px 12px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #f7efe1;
+}
+
+.manager-portrait-banner p {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.manager-portrait-banner-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--one-gold, #d4af37);
+}
+
+.manager-portrait-banner-dismiss {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #f7efe1;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.manager-portrait-screen-header,
+.manager-portrait-module-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0 0;
+}
+
+.manager-portrait-screen-header h1,
+.manager-portrait-module-header h1,
+.manager-portrait-reservations h2,
+.manager-portrait-schedule h1 {
+  margin: 0;
+  color: #f7efe1;
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.manager-portrait-date-label,
+.manager-portrait-empty,
+.manager-portrait-notice {
+  margin: 4px 0 0;
+  color: rgba(247, 239, 225, 0.72);
+  font-size: 0.85rem;
+}
+
+.manager-portrait-notice {
+  margin: 12px 0 0;
+}
+
+.manager-portrait-notice.is-error {
+  color: #ffb4b4;
+}
+
+.manager-portrait-add,
+.manager-portrait-date-nav button,
+.manager-more-item,
+.manager-more-close,
+.manager-portrait-shift-actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.manager-portrait-add {
+  border: 0;
+  border-radius: 999px;
+  padding: 0 16px;
+  background: var(--one-gold, #d4af37);
+  color: #1a1408;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manager-portrait-date-nav {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.manager-portrait-date-nav button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.manager-portrait-date-nav button:disabled {
+  opacity: 0.45;
+}
+
+.manager-portrait-reservations section,
+.manager-portrait-schedule {
+  padding-bottom: 8px;
+}
+
+.manager-portrait-reservations h2 {
+  padding: 18px 0 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(247, 239, 225, 0.62);
+}
+
+.manager-portrait-reservation-list,
+.manager-portrait-table-list,
+.manager-portrait-shift-list,
+.manager-more-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.manager-more-list {
+  padding: 0 16px 12px;
+}
+
+.manager-portrait-reservation,
+.manager-portrait-shift-summary,
+.manager-portrait-table {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f7efe1;
+  text-align: left;
+}
+
+.manager-portrait-reservation,
+.manager-portrait-shift-summary {
+  cursor: pointer;
+}
+
+.manager-portrait-reservation:disabled,
+.manager-portrait-shift-summary:disabled {
+  cursor: default;
+}
+
+.manager-portrait-reservation-time {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.manager-portrait-reservation-copy,
+.manager-portrait-table-name,
+.manager-portrait-table-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.manager-portrait-reservation-copy strong,
+.manager-portrait-table-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.manager-portrait-reservation-copy span,
+.manager-portrait-table-name span {
+  color: rgba(247, 239, 225, 0.62);
+  font-size: 0.78rem;
+}
+
+.manager-portrait-table {
+  justify-content: space-between;
+}
+
+.manager-portrait-table-meta {
+  align-items: flex-end;
+  flex: 0 0 auto;
+}
+
+.manager-portrait-status {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.manager-portrait-status.is-seated {
+  background: rgba(90, 154, 110, 0.28);
+}
+
+.manager-portrait-status.is-arrived,
+.manager-portrait-status.is-upcoming {
+  background: rgba(212, 175, 55, 0.22);
+}
+
+.manager-portrait-status.is-cleaning {
+  background: rgba(196, 92, 92, 0.28);
+}
+
+.manager-portrait-shift-editor {
+  display: grid;
+  gap: 8px;
+  margin: -4px 0 12px;
+  padding: 0 4px 8px;
+}
+
+.manager-portrait-shift-editor .hour-minute-field select {
+  min-height: 44px;
+}
+
+.manager-portrait-shift-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.manager-portrait-module {
+  min-width: 0;
+}
+
+.manager-portrait-module-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 4px 0 8px;
+  background: rgba(10, 10, 11, 0.94);
+}
+
+.manager-more-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+}
+
+.manager-more-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+
+.manager-more-card {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: rgba(14, 16, 22, 0.98);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+}
+
+.manager-more-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 18px;
+}
+
+.manager-more-header h2 {
+  margin: 0;
+  color: #f7efe1;
+  font-size: 1.1rem;
+}
+
+.manager-more-close {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #f7efe1;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.manager-more-list {
+  overflow: auto;
+  padding-bottom: 12px;
+}
+
+.manager-more-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f7efe1;
+  text-align: left;
+  cursor: pointer;
+}
+
+.manager-more-item.is-danger {
+  color: #ffb4b4;
+}
+
+.manager-more-item-icon {
+  width: 28px;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.manager-more-item-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.manager-more-item-copy span {
+  color: rgba(247, 239, 225, 0.62);
+  font-size: 0.78rem;
+}

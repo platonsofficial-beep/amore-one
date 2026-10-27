@@ -29,7 +29,7 @@ describe('manager landscape decision', () => {
       'manager',
       'Owner',
       ' Manager ',
-    ])('requires landscape for management role %j', (role) => {
+    ])('recognizes management role %j', (role) => {
       expect(isLandscapeRequiredRole(role)).toBe(true)
     })
 
@@ -42,44 +42,22 @@ describe('manager landscape decision', () => {
   })
 
   describe('shouldRequireManagerLandscape', () => {
-    it('blocks a manager holding a touch device in portrait', () => {
-      expect(shouldRequireManagerLandscape(READY_OWNER)).toBe(true)
-      expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'general_manager' })).toBe(true)
-      expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'manager' })).toBe(true)
-    })
-
-    it('lets host and staff stay in portrait on a touch device', () => {
+    it('never covers a manager, owner, host, or staff', () => {
+      expect(shouldRequireManagerLandscape(READY_OWNER)).toBe(false)
+      expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'general_manager' })).toBe(false)
+      expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'manager' })).toBe(false)
       expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'host' })).toBe(false)
       expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: 'staff' })).toBe(false)
-    })
-
-    it('does not block before the workspace role is known', () => {
+      expect(shouldRequireManagerLandscape({ ...READY_OWNER, coarsePointer: false })).toBe(false)
+      expect(shouldRequireManagerLandscape({ ...READY_OWNER, isPortrait: false })).toBe(false)
       expect(shouldRequireManagerLandscape({ ...READY_OWNER, roleKnown: false })).toBe(false)
-      expect(shouldRequireManagerLandscape({ ...READY_OWNER, role: '' })).toBe(false)
-    })
-
-    it('does not block fine-pointer desktops, including narrow portrait windows', () => {
-      expect(shouldRequireManagerLandscape({
-        ...READY_OWNER,
-        coarsePointer: false,
-      })).toBe(false)
-    })
-
-    it('does not block a manager who is already in landscape', () => {
-      expect(shouldRequireManagerLandscape({
-        ...READY_OWNER,
-        isPortrait: false,
-      })).toBe(false)
     })
   })
 
   describe('shouldLockManagerLandscape', () => {
-    it('asks supported touch devices to lock landscape for managers in either orientation', () => {
-      expect(shouldLockManagerLandscape(READY_OWNER)).toBe(true)
-      expect(shouldLockManagerLandscape({ ...READY_OWNER, isPortrait: false })).toBe(true)
-    })
-
-    it('does not lock for staff, fine pointers, or an unknown role', () => {
+    it('does not lock orientation for anyone', () => {
+      expect(shouldLockManagerLandscape(READY_OWNER)).toBe(false)
+      expect(shouldLockManagerLandscape({ ...READY_OWNER, isPortrait: false })).toBe(false)
       expect(shouldLockManagerLandscape({ ...READY_OWNER, role: 'staff' })).toBe(false)
       expect(shouldLockManagerLandscape({ ...READY_OWNER, role: 'host' })).toBe(false)
       expect(shouldLockManagerLandscape({ ...READY_OWNER, coarsePointer: false })).toBe(false)

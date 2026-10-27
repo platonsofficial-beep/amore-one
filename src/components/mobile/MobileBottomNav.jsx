@@ -8,6 +8,7 @@ export function MobileBottomNav({
   onTabChange,
   variant = 'staff',
   tabs,
+  moreExpanded = false,
 }) {
   const resolvedTabs = tabs ?? (variant === 'manager' ? MOBILE_MANAGER_BOTTOM_TABS : MOBILE_STAFF_BOTTOM_TABS)
 
@@ -20,6 +21,7 @@ export function MobileBottomNav({
           className={`mobile-bottom-nav-item${activeTab === tab.id ? ' is-active' : ''}`}
           onClick={() => onTabChange(tab.id)}
           aria-current={activeTab === tab.id ? 'page' : undefined}
+          aria-expanded={tab.id === 'more' ? moreExpanded : undefined}
           aria-label={tab.badge ? `${tab.ariaLabel || tab.label}, ${tab.badge} unread` : (tab.ariaLabel || tab.label)}
         >
           <span className="mobile-bottom-nav-icon" aria-hidden="true">{tab.icon}</span>

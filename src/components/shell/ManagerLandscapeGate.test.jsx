@@ -65,7 +65,7 @@ describe('ManagerLandscapeGate', () => {
     vi.clearAllMocks()
   })
 
-  it('covers the app for a manager on a touch device in portrait', async () => {
+  it('leaves a manager on a touch device in portrait able to use the app', async () => {
     const lock = vi.fn().mockRejectedValue(new Error('NotSupportedError'))
     const unlock = vi.fn()
     Object.defineProperty(window.screen, 'orientation', {
@@ -77,22 +77,17 @@ describe('ManagerLandscapeGate', () => {
 
     const { rootEl, cleanup } = renderGate()
 
-    const prompt = document.body.querySelector('.manager-landscape-gate')
-    expect(prompt).not.toBeNull()
-    expect(prompt?.getAttribute('role')).toBe('alertdialog')
-    expect(prompt?.textContent).toContain('Rotate your device')
+    expect(document.body.querySelector('.manager-landscape-gate')).toBeNull()
     expect(rootEl.textContent).toContain('Workspace')
-    expect(rootEl.getAttribute('inert')).toBe('')
-    expect(rootEl.getAttribute('aria-hidden')).toBe('true')
+    expect(rootEl.getAttribute('inert')).toBeNull()
+    expect(rootEl.getAttribute('aria-hidden')).toBeNull()
 
     await act(async () => {
       await Promise.resolve()
     })
-    expect(lock).toHaveBeenCalledWith('landscape')
+    expect(lock).not.toHaveBeenCalled()
 
     cleanup()
-    expect(document.body.querySelector('.manager-landscape-gate')).toBeNull()
-    expect(rootEl.getAttribute('inert')).toBeNull()
   })
 
   it.each([
