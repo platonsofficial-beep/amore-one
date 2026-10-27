@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { validateReservationSeatingForm } from '../lib/reservationSeatings'
-import { createReservationSeating } from './reservationSeatingService'
+import { createReservationSeating, getReservationSeatings } from './reservationSeatingService'
 
 const POPULATED_FORM = {
   name: 'Brunch',
@@ -9,6 +9,39 @@ const POPULATED_FORM = {
   daysOfWeek: [1, 2, 3, 4, 5, 6],
   isActive: true,
 }
+
+describe('reservation seating viewport fixture', () => {
+  const store = new Map()
+
+  beforeAll(() => {
+    globalThis.localStorage = {
+      getItem: (key) => (store.has(key) ? store.get(key) : null),
+      setItem: (key, value) => store.set(key, String(value)),
+      removeItem: (key) => store.delete(key),
+    }
+  })
+
+  afterEach(() => {
+    store.clear()
+  })
+
+  it('reads harness seatings from localStorage only when Supabase is not configured', async () => {
+    localStorage.setItem('amore-viewport-seatings-v1', JSON.stringify([
+      {
+        id: 'preview-brunch',
+        name: 'Brunch',
+        start_time: '10:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 0,
+        is_active: true,
+      },
+    ]))
+
+    const seatings = await getReservationSeatings('dev-workspace-id')
+    expect(seatings.map((seating) => seating.name)).toEqual(['Brunch'])
+  })
+})
 
 describe('reservation seating create path', () => {
   it('passes a non-null seating object from populated form validation', () => {
