@@ -16,6 +16,8 @@ export function TodayCommandHeader({
   canOpenWorkspaceProfile = true,
   notificationBell = null,
   onOpenNotifications,
+  accountActions = [],
+  onAccountAction,
 }) {
   const availableQuickActions = (quickActions ?? []).filter((action) => action.available)
 
@@ -56,6 +58,8 @@ export function TodayCommandHeader({
                 onOpenWorkspaceProfile={onOpenWorkspaceProfile}
                 canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                 onOpenNotifications={onOpenNotifications}
+                accountActions={accountActions}
+                onAccountAction={onAccountAction}
                 variant="today-compact"
               />
             </div>

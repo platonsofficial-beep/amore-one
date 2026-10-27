@@ -4,7 +4,7 @@ const DEFAULT_MOBILE_TAB = 'home'
 const DEFAULT_HOST_MOBILE_TAB = 'reservations'
 const DEFAULT_MANAGER_MOBILE_TAB = 'today'
 
-const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'tasks', 'menu'])
+const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'availability', 'tasks', 'menu'])
 const VALID_HOST_MOBILE_TABS = new Set([
   'home',
   'schedule',

@@ -10,6 +10,8 @@ export function UserMenu({
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
   onOpenNotifications,
+  accountActions = [],
+  onAccountAction,
   variant = 'default',
 }) {
   const {
@@ -135,6 +137,20 @@ export function UserMenu({
               Notifications
             </button>
           ) : null}
+          {accountActions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false)
+                onAccountAction?.(action.id)
+              }}
+            >
+              {action.label}
+            </button>
+          ))}
           {!isAuthDisabled ? (
             <button
               type="button"

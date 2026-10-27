@@ -58,6 +58,9 @@ export function MobileStaffApp({
   hostStationContent = null,
   notificationBell = null,
   clockOpenToken = 0,
+  personalDestination = '',
+  onPersonalDestination,
+  onLeavePersonal,
 }) {
   const isStaffShell = shellVariant === 'staff'
   const isHostShell = shellVariant === 'host'
@@ -77,12 +80,17 @@ export function MobileStaffApp({
 
   useEffect(() => {
     const syncedTabs = isHostShell
-      ? ['home', 'schedule', 'tasks', 'menu', 'reservations']
-      : ['home', 'schedule', 'tasks', 'menu']
+      ? ['home', 'schedule', 'availability', 'tasks', 'menu', 'reservations']
+      : ['home', 'schedule', 'availability', 'tasks', 'menu']
     if (syncedTabs.includes(activeTab)) {
       setStaffTab(activeTab)
     }
   }, [activeTab, isHostShell])
+
+  useEffect(() => {
+    if (personalDestination === 'my-week') setStaffTab('availability')
+    setClockOpen(personalDestination === 'clock')
+  }, [personalDestination])
 
   useEffect(() => {
     if (!clockOpenToken) return
@@ -138,6 +146,7 @@ export function MobileStaffApp({
     setClockOpen(false)
     if (tab === 'availability') {
       setStaffTab('availability')
+      onTabChange?.('availability')
       return
     }
 
@@ -258,7 +267,14 @@ export function MobileStaffApp({
       ) : null}
       {clockOpen ? (
         <div className="mobile-app-content attendance-clock-screen">
-          <button type="button" className="mobile-back-btn" onClick={() => setClockOpen(false)}>
+          <button
+            type="button"
+            className="mobile-back-btn"
+            onClick={() => {
+              setClockOpen(false)
+              onLeavePersonal?.()
+            }}
+          >
             ‹ Back
           </button>
           {homeProps?.clockCard}
@@ -290,7 +306,10 @@ export function MobileStaffApp({
           ) : (
             <MobileMenuView
               {...menuProps}
-              onOpenClock={homeProps?.clockCard ? () => setClockOpen(true) : undefined}
+              onOpenClock={homeProps?.clockCard ? () => {
+                setClockOpen(true)
+                onPersonalDestination?.('clock')
+              } : undefined}
               onOpenAvailability={isHostShell ? () => handleTabChange('availability') : undefined}
             />
           )

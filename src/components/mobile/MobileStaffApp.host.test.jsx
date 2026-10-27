@@ -59,7 +59,7 @@ describe('MobileStaffApp host shell', () => {
     unmount()
   })
 
-  it('leaves the host station for staff screens without notifying on availability', () => {
+  it('leaves the host station for staff screens and keeps My week as a route', () => {
     const onTabChange = vi.fn()
     const { container, unmount } = renderHostApp({ onTabChange })
 
@@ -87,9 +87,10 @@ describe('MobileStaffApp host shell', () => {
       availability.click()
     })
 
-    expect(onTabChange).toHaveBeenCalledTimes(2)
+    expect(onTabChange).toHaveBeenCalledTimes(3)
     expect(onTabChange).toHaveBeenNthCalledWith(1, 'home')
     expect(onTabChange).toHaveBeenNthCalledWith(2, 'menu')
+    expect(onTabChange).toHaveBeenNthCalledWith(3, 'availability')
     expect(container.textContent).toContain('Weekly availability')
     expect(container.querySelector('.mobile-availability-leave-dialog')).toBeNull()
     unmount()
