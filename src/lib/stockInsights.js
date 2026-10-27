@@ -88,24 +88,31 @@ function quantityStatus(item) {
  * so the group counts add up to the To order KPI (not Out + Low).
  */
 /**
- * Out, low, and under-target counts inside the one To order set.
- * Under target is a to-order item whose quantity status is still OK
- * (on hand above the minimum, below the catalog target).
+ * Out and low match the dashboard KPIs: every active item.
+ * The item count is the To order set only.
+ * Under target is a to-order item that is neither out nor low.
  */
 export function summarizeToOrderBreakdown(items = []) {
+  const list = Array.isArray(items) ? items : []
+  const active = list.filter((item) => item && item.active !== false)
   let out = 0
   let low = 0
-  const selected = selectItemsToOrder(items)
-  selected.forEach((item) => {
+  active.forEach((item) => {
     const status = resolveStockItemQuantityStatus(item)
     if (status === 'out') out += 1
     else if (status === 'low') low += 1
+  })
+  const selected = selectItemsToOrder(list)
+  let underTarget = 0
+  selected.forEach((item) => {
+    const status = resolveStockItemQuantityStatus(item)
+    if (status !== 'out' && status !== 'low') underTarget += 1
   })
   return {
     total: selected.length,
     out,
     low,
-    underTarget: selected.length - out - low,
+    underTarget,
   }
 }
 

@@ -47,6 +47,24 @@ describe('buildProductDisplayName', () => {
     })).toBe('Coca-Cola Zero 250 ml')
   })
 
+  it('does not parse or shorten a stored name', () => {
+    expect(buildProductDisplayNameFromItem({
+      brand: 'Heineken',
+      name: '0.0',
+      size: '330 ml',
+    })).toBe('Heineken 0.0 330 ml')
+
+    expect(buildProductDisplayNameFromItem({
+      brand: 'Metaxa',
+      name: '12 Stars',
+      size: '70 cl',
+    })).toBe('Metaxa 12 Stars 70 cl')
+
+    expect(buildProductDisplayNameFromItem({
+      name: 'Heineken 0.0 330 ml',
+    })).toBe('Heineken 0.0 330 ml')
+  })
+
   it('supports Name + Size, Brand + Name, and Name only', () => {
     expect(buildProductDisplayName({
       brand: '',
@@ -238,6 +256,7 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/stock/StockProductHistoryDrawer.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockStorageReceiveProductPicker.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockMovementModal.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockItemFormModal.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockUsageCostReport.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockTransferModal.jsx'),
       resolve(process.cwd(), 'src/components/stock/StaffShelfCountSheet.jsx'),

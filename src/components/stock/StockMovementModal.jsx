@@ -420,7 +420,7 @@ export function StockMovementModal({
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
       <div
-        className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet"
+        className="employee-modal stock-dashboard-modal stock-movement-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         data-testid="stock-movement-modal"
       >
@@ -433,6 +433,7 @@ export function StockMovementModal({
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
+          <div className="stock-movement-modal-body">
           {destinationLocked && destinationLabel ? (
             <div className="stock-movement-destination-lock" data-testid={lockTestId}>
               <span className="stock-movement-destination-lock-label">{lockLabel}</span>
@@ -639,6 +640,7 @@ export function StockMovementModal({
           </label>
 
           {error ? <div className="staff-status-banner" role="alert">{error}</div> : null}
+          </div>
 
           <div className="modal-actions">
             <button

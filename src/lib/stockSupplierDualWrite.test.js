@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { resolveSupplierIdForWrite } from './stockSupplierUtils'
 import { serializeStockItem } from '../services/stockItemService'
+import { serializeDraftOrderItems } from './stockOrderUtils'
 import { serializeStockOrder } from '../services/stockOrderService'
 
 describe('resolveSupplierIdForWrite', () => {
@@ -120,5 +121,24 @@ describe('stock order dual-write serialize', () => {
 
     expect(payload.supplier).toBe('Unassigned supplier')
     expect(payload.supplier_id).toBeNull()
+  })
+
+  it('keeps line cost when create serializes draft items a second time', () => {
+    const once = serializeDraftOrderItems([{
+      stockItemId: 'item-1',
+      itemName: 'Ketel One',
+      quantity: 2,
+      unit: 'bottle',
+      costPrice: 24.5,
+    }])
+    const payload = serializeStockOrder({
+      supplier: 'Wine House',
+      status: 'draft',
+      items: once,
+    }, 'ws-1', { supplierId: 20 })
+
+    expect(once[0].cost_price).toBe(24.5)
+    expect(serializeDraftOrderItems(once)[0].cost_price).toBe(24.5)
+    expect(payload.total_cost).toBe(49)
   })
 })

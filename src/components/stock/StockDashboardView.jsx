@@ -1114,6 +1114,7 @@ export function StockDashboardView({
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [usageReportOpen, setUsageReportOpen] = useState(false)
   const [catalogMoreOpen, setCatalogMoreOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [duplicateForm, setDuplicateForm] = useState(null)
@@ -1524,7 +1525,20 @@ export function StockDashboardView({
       data-stock-compact-browse-toolbar="true"
       aria-label="Stock catalog controls"
     >
-      <div className="stock-compact-browse-row" data-stock-compact-browse-row="true">
+      <button
+        type="button"
+        className="ghost-btn stock-browse-filters-toggle"
+        aria-expanded={filtersOpen}
+        aria-controls="stock-compact-browse-row"
+        onClick={() => setFiltersOpen((open) => !open)}
+      >
+        Filters
+      </button>
+      <div
+        id="stock-compact-browse-row"
+        className={`stock-compact-browse-row${filtersOpen ? ' is-open' : ''}`}
+        data-stock-compact-browse-row="true"
+      >
         <div className="stock-browse-control stock-browse-category">
           <span className="stock-browse-control-label">Category</span>
           <StockSortDropdown
@@ -2046,7 +2060,7 @@ export function StockDashboardView({
           anchorEl={menuAnchorEl}
           onClose={closeStockItemMenu}
           item={activeMenuItem}
-          itemName={activeMenuItem.name}
+          itemName={buildProductDisplayNameFromItem(activeMenuItem) || activeMenuItem.name}
           onUsage={() => openMovement(activeMenuItem, 'usage')}
           onWaste={() => openMovement(activeMenuItem, 'waste')}
           onAdjust={() => openMovement(activeMenuItem, 'adjustment')}

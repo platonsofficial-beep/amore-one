@@ -7,6 +7,7 @@ import {
   isStockOrderLineInactive,
   pickDefaultReceiveStorageId,
   replaceDraftOrderLineProduct,
+  resolveDisplayedOrderTotal,
   resolveOrderGroupIdentity,
   UNASSIGNED_SUPPLIER,
 } from './stockOrderUtils'
@@ -26,6 +27,33 @@ function needsOrderItem(overrides = {}) {
     ...overrides,
   }
 }
+
+describe('resolveDisplayedOrderTotal', () => {
+  it('uses catalog cost when a saved line has no cost', () => {
+    const estimate = resolveDisplayedOrderTotal({
+      totalCost: 0,
+      items: [{
+        stockItemId: 'cola',
+        quantity: 4,
+        costPrice: 0,
+      }],
+    }, [{ id: 'cola', costPrice: 2.5 }])
+
+    expect(estimate.total).toBe(10)
+    expect(estimate.usedCatalogFallback).toBe(true)
+    expect(estimate.missingCostLines).toBe(0)
+  })
+
+  it('reports lines that have neither stored nor catalog cost', () => {
+    const estimate = resolveDisplayedOrderTotal({
+      totalCost: 0,
+      items: [{ stockItemId: 'missing', quantity: 3, costPrice: 0 }],
+    }, [])
+
+    expect(estimate.total).toBe(0)
+    expect(estimate.missingCostLines).toBe(1)
+  })
+})
 
 describe('stockOrderUtils', () => {
   it('counts draft, awaiting, and partial orders for manager workflow', () => {

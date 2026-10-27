@@ -357,8 +357,14 @@ export function StockSuppliersView({
         </article>
         {canManage ? (
           <article className="stock-summary-card">
-            <p className="stock-summary-label">Total purchase value</p>
-            <p className="stock-summary-value">{formatStockPurchasePrice(dashboardSummary.totalPurchaseValue)}</p>
+            <p className="stock-summary-label">Received value</p>
+            <p className="stock-summary-value">
+              {dashboardSummary.receivedOrders > 0
+                ? (dashboardSummary.totalPurchaseValue > 0
+                  ? formatStockPurchasePrice(dashboardSummary.totalPurchaseValue)
+                  : 'No cost on received orders')
+                : 'No completed deliveries'}
+            </p>
           </article>
         ) : null}
         <article className="stock-summary-card tone-warning">
