@@ -43,6 +43,7 @@ vi.mock('../../services/chatService', () => ({
 }))
 
 import { AvatarDirectoryContext } from '../../context/AvatarDirectoryContext'
+import { fetchChatMessages, fetchChatParticipants } from '../../services/chatService'
 import { ChatScreen } from './ChatScreen'
 
 const inbox = [
@@ -164,5 +165,42 @@ describe('ChatScreen', () => {
     expect(container.querySelector('.chat-bubble img')).toBeNull()
     act(() => root.unmount())
     container.remove()
+  })
+
+  it('puts Seen by under an older own bubble after the other person opened the chat', async () => {
+    fetchChatMessages.mockResolvedValueOnce([
+      {
+        id: 'reply',
+        author_member_id: 'alex',
+        body: 'Private test',
+        created_at: '2026-10-27T15:49:14.761089+00:00',
+        deleted_at: null,
+      },
+      {
+        id: 'older',
+        author_member_id: 'me',
+        body: 'Before you opened',
+        created_at: '2026-10-27T15:47:56.240279+00:00',
+        deleted_at: null,
+      },
+    ])
+    fetchChatParticipants.mockResolvedValueOnce([
+      { member_id: 'me', last_read_at: '2026-10-27T16:54:56.505372+00:00' },
+      { member_id: 'alex', last_read_at: '2026-10-27T16:54:22.657562+00:00' },
+    ])
+    const onThreadChange = vi.fn()
+    const view = renderChat({ initialConversationId: 'direct-1', onThreadChange })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const seen = view.container.querySelector('.chat-seen')
+    expect(seen?.textContent).toBe('Seen by Alex')
+    expect(seen?.closest('.chat-bubble')).toBeNull()
+    expect(view.container.querySelector('.chat-bubble.is-mine .chat-seen')).toBeNull()
+    expect(onThreadChange).toHaveBeenCalledWith(true)
+    view.unmount()
+    expect(onThreadChange).toHaveBeenCalledWith(false)
   })
 })

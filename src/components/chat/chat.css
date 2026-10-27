@@ -142,6 +142,25 @@
   margin-left: auto;
 }
 
+.chat-message-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.chat-message.is-mine .chat-message-stack {
+  align-items: flex-end;
+}
+
+.chat-seen {
+  margin: 4px 2px 0;
+  color: #c8bfb2;
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
+
 .chat-message:not(.is-mine) {
   align-self: flex-start;
 }

@@ -16,6 +16,7 @@ import {
   orderInbox,
   seenByLabels,
   seenByText,
+  seenReceiptText,
 } from './chat'
 
 const inbox = [
@@ -72,6 +73,21 @@ describe('chat helpers', () => {
       { emoji: '👍', member_id: 'me' },
       { emoji: '👍', member_id: 'm2' },
     ], 'me')).toEqual([{ emoji: '👍', count: 2, mine: true }])
+  })
+
+  it('marks an older direct message seen when the other person opened the chat later', () => {
+    const messages = [
+      { id: 'older', author_member_id: 'owner', created_at: '2026-10-27 15:47:56.240279+00' },
+      { id: 'reply', author_member_id: 'test', created_at: '2026-10-27T15:49:14.761089+00:00' },
+    ]
+    const people = [
+      { member_id: 'owner', last_read_at: '2026-10-27T16:54:56.505372+00:00' },
+      { member_id: 'test', last_read_at: '2026-10-27T16:54:22.657562+00:00' },
+    ]
+    const names = { test: { name: 'one-test' } }
+    expect(seenByText(people, messages[0], names)).toBe('Seen by one-test')
+    expect(seenReceiptText(messages, 0, 'owner', people, names)).toBe('Seen by one-test')
+    expect(seenReceiptText(messages, 1, 'owner', people, names)).toBe('')
   })
 
   it('builds mute times, photo paths, day labels and plain errors', () => {

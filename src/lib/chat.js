@@ -96,12 +96,36 @@ export function canDeleteChatMessage(message, memberId, canManage) {
   return `${message.author_member_id ?? ''}` === `${memberId ?? ''}`
 }
 
+function readInstant(value) {
+  if (!value) return null
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function seenReaders(participants, message) {
-  if (!message?.created_at) return []
+  const created = readInstant(message?.created_at)
+  if (created == null) return []
   return (participants ?? [])
     .filter((participant) => !participant?.left_at)
     .filter((participant) => `${participant?.member_id ?? ''}` !== `${message.author_member_id ?? ''}`)
-    .filter((participant) => participant?.last_read_at && participant.last_read_at >= message.created_at)
+    .filter((participant) => {
+      const readAt = readInstant(participant?.last_read_at)
+      return readAt != null && readAt >= created
+    })
+}
+
+export function seenReceiptText(messages, index, memberId, participants, membersById = {}, aliases = {}) {
+  const message = messages?.[index]
+  if (!message || message.deleted_at) return ''
+  if (`${message.author_member_id ?? ''}` !== `${memberId ?? ''}`) return ''
+  const text = seenByText(participants, message, membersById, aliases)
+  if (!text) return ''
+  for (let later = index + 1; later < messages.length; later += 1) {
+    const next = messages[later]
+    if (`${next?.author_member_id ?? ''}` !== `${memberId ?? ''}` || next?.deleted_at) continue
+    if (seenByText(participants, next, membersById, aliases)) return ''
+  }
+  return text
 }
 
 export function seenByLabels(participants, message, membersById = {}, aliases = {}) {

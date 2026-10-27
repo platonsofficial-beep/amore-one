@@ -16,7 +16,7 @@ import {
   lastMessageTimeLabel,
   muteUntilValue,
   orderInbox,
-  seenByText,
+  seenReceiptText,
 } from '../../lib/chat'
 import {
   addChatReaction,
@@ -90,6 +90,7 @@ export function ChatScreen({
   canManage = false,
   inboxRows = [],
   onRefreshInbox,
+  onThreadChange,
   initialConversationId = '',
   layout = '',
 }) {
@@ -165,6 +166,11 @@ export function ChatScreen({
   useEffect(() => {
     if (initialConversationId) setOpenId(initialConversationId)
   }, [initialConversationId])
+
+  useEffect(() => {
+    onThreadChange?.(Boolean(openId))
+    return () => onThreadChange?.(false)
+  }, [onThreadChange, openId])
 
   const openIdRef = useRef(openId)
   openIdRef.current = openId
@@ -518,9 +524,7 @@ export function ChatScreen({
               const authorName = author?.name || aliases[message.author_member_id] || ''
               const reply = message.reply_to_id ? messagesById[message.reply_to_id] : null
               const grouped = groupReactions(reactions.filter((row) => row.message_id === message.id), memberId)
-              const seen = mine && index === messages.length - 1
-                ? seenByText(participants, message, membersById, aliases)
-                : ''
+              const seen = seenReceiptText(messages, index, memberId, participants, membersById, aliases)
               return (
                 <div key={message.id} id={`chat-message-${message.id}`} className="chat-message-wrap">
                   {showDay ? <p className="chat-day">{dayLabel(message.created_at)}</p> : null}
@@ -536,6 +540,7 @@ export function ChatScreen({
                       />
                     </span>
                   ) : null}
+                  <div className="chat-message-stack">
                   <article
                     className={`chat-bubble${mine ? ' is-mine' : ''}${deleted ? ' is-deleted' : ''}`}
                     onContextMenu={(event) => {
@@ -570,8 +575,9 @@ export function ChatScreen({
                         ))}
                       </div>
                     ) : null}
-                    {seen ? <p className="chat-meta">{seen}</p> : null}
                   </article>
+                  {seen ? <p className="chat-seen">{seen}</p> : null}
+                  </div>
                   </div>
                 </div>
               )

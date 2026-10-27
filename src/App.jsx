@@ -695,6 +695,7 @@ import { ScheduleCardActionMenu } from './components/schedule/ScheduleCardAction
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
 import { buildUnifiedOperationalTaskCounts, combineOperationalTasks } from './lib/sharedTaskWindow'
 import {
+  hasPersistedNavigation,
   persistNavigation,
   readPersistedNavigation,
   resolveInitialScheduleWeekStart,
@@ -14766,6 +14767,8 @@ function App() {
   const previousActiveViewRef = useRef(activeView)
   const preReservationsHostViewRef = useRef('today')
   const hostMobileLandedRef = useRef(false)
+  const hadPersistedNavigationRef = useRef(hasPersistedNavigation())
+  const [chatThreadOpen, setChatThreadOpen] = useState(false)
   const personalReturnRef = useRef('today')
   const scheduleEntryRef = useRef({ view: 'today', teamSection: 'today' })
   const templateGenerationKeyRef = useRef('')
@@ -16144,6 +16147,7 @@ function App() {
     if (isAuthLoading || !isHostAccount) return
     if (hostMobileLandedRef.current) return
     hostMobileLandedRef.current = true
+    if (hadPersistedNavigationRef.current) return
     const landing = resolveHostInitialLanding({ useMobileExperience })
     handleActiveViewChange(landing.activeView)
     if (!useMobileExperience) return
@@ -24008,7 +24012,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && !useDedicatedShell && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {notificationSettingsOpen && !useDedicatedShell ? (
         <div className="notification-settings-overlay" role="presentation">
@@ -24075,6 +24079,7 @@ function App() {
               canManage={canManageChatRole}
               inboxRows={chatInbox.rows}
               onRefreshInbox={chatInbox.refresh}
+              onThreadChange={setChatThreadOpen}
               initialConversationId={chatConversationId}
             />
           ) : null
@@ -24123,7 +24128,7 @@ function App() {
             </button>
           </div>
         ) : null}
-        {activeView === 'team' && isActiveViewAllowed ? (
+        {activeView === 'team' && isActiveViewAllowed && !isStaffHostScheduleRail ? (
           <ModuleSectionTabs
             sections={visibleTeamSections}
             activeSection={teamSection}
