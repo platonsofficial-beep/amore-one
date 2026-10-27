@@ -18,6 +18,15 @@ const STAFF_BOTTOM_TABS = [
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
+const HOST_BOTTOM_TABS = [
+  { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'schedule', label: 'My Schedule', icon: '◷' },
+  { id: 'availability', label: 'My Availability', icon: '◔' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'reservations', label: 'Reservations', icon: '▣' },
+  { id: 'menu', label: 'Profile', icon: '☺' },
+]
+
 function formatAvailabilityWeekLabel(weekStartDate = '') {
   const normalized = `${weekStartDate ?? ''}`.trim()
   if (!normalized) return ''
@@ -50,6 +59,8 @@ export function MobileStaffApp({
   hostStationContent = null,
 }) {
   const isStaffShell = shellVariant === 'staff'
+  const isHostShell = shellVariant === 'host'
+  const usesInternalTabs = isStaffShell || isHostShell
   const [staffTab, setStaffTab] = useState(activeTab)
   const [pendingTab, setPendingTab] = useState(null)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
@@ -63,13 +74,20 @@ export function MobileStaffApp({
   const availabilityDirtyRef = useRef(false)
 
   useEffect(() => {
-    if (['home', 'schedule', 'tasks', 'menu'].includes(activeTab)) {
+    const syncedTabs = isHostShell
+      ? ['home', 'schedule', 'tasks', 'menu', 'reservations']
+      : ['home', 'schedule', 'tasks', 'menu']
+    if (syncedTabs.includes(activeTab)) {
       setStaffTab(activeTab)
     }
-  }, [activeTab])
+  }, [activeTab, isHostShell])
 
-  const resolvedBottomTabs = isStaffShell ? STAFF_BOTTOM_TABS : bottomTabs
-  const resolvedActiveTab = isStaffShell ? staffTab : activeTab
+  const resolvedBottomTabs = isHostShell
+    ? HOST_BOTTOM_TABS
+    : isStaffShell
+      ? STAFF_BOTTOM_TABS
+      : bottomTabs
+  const resolvedActiveTab = usesInternalTabs ? staffTab : activeTab
   const employeeId = `${tasksProps?.currentEmployeeId ?? ''}`.trim()
   const needsEmployeeLink = Boolean(tasksProps?.needsEmployeeLink)
 
@@ -183,21 +201,6 @@ export function MobileStaffApp({
     needsEmployeeLink,
   ])
 
-  if (shellVariant === 'host') {
-    return (
-      <div className="mobile-app mobile-app-host-mode mobile-app-host-station is-reservations-host-mode is-host-only-station">
-        {noticeBanner}
-        <div className="mobile-host-mode-screen">
-          {hostStationContent ? (
-            <div className="mobile-workspace-module is-host-mode-module">
-              {hostStationContent}
-            </div>
-          ) : null}
-        </div>
-      </div>
-    )
-  }
-
   if (expandedView) {
     return (
       <div className="mobile-app mobile-app-expanded">
@@ -222,8 +225,10 @@ export function MobileStaffApp({
     )
   }
 
+  const showHostStation = isHostShell && resolvedActiveTab === 'reservations'
+
   return (
-    <div className="mobile-app">
+    <div className={`mobile-app${showHostStation ? ' mobile-app-host-mode mobile-app-host-station is-reservations-host-mode' : ''}`}>
       {noticeBanner}
       {showLeaveConfirm ? (
         <div className="mobile-availability-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="mobile-availability-leave-title">
@@ -241,6 +246,15 @@ export function MobileStaffApp({
           </div>
         </div>
       ) : null}
+      {showHostStation ? (
+        <div className="mobile-host-mode-screen">
+          {hostStationContent ? (
+            <div className="mobile-workspace-module is-host-mode-module">
+              {hostStationContent}
+            </div>
+          ) : null}
+        </div>
+      ) : (
       <div className="mobile-app-content">
         {resolvedActiveTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {resolvedActiveTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
@@ -254,6 +268,7 @@ export function MobileStaffApp({
           )
         ) : null}
       </div>
+      )}
       {showBottomNav ? (
         <MobileBottomNav activeTab={resolvedActiveTab} onTabChange={handleTabChange} tabs={resolvedBottomTabs} />
       ) : null}

@@ -303,6 +303,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     renderWorkspace({
       workspaceId: 'ws-1',
       storage: { id: 's-main', name: 'Main Storage', active: true },
+      role: 'staff',
       canManage: false,
       loadProducts,
     })
@@ -1165,6 +1166,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     renderWorkspace({
       workspaceId: 'ws-1',
       storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
+      role: 'staff',
       canManage: false,
       staffTakeAvailable: async () => true,
       loadProducts: async () => ({
@@ -1180,5 +1182,24 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="supply-refill-staff-note"]')).toBeNull()
     expect(container.querySelector('[data-storage-action="staff_count"]')?.textContent).toBe('Count shelf')
     expect(container.querySelector('[data-storage-action="receive"]')).toBeNull()
+  })
+
+  it('hides the staff shelf count from host even when stock management is off', async () => {
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
+      role: 'host',
+      canManage: false,
+      loadProducts: async () => ({
+        storageId: 's-bar',
+        products: [makeRow()],
+        summary: { productCount: 1, totalQuantity: 4, nonZeroBalanceCount: 1, inventoryValue: 40 },
+      }),
+    })
+    await settle()
+    expect(container.querySelector('[data-storage-action="staff_count"]')).toBeNull()
+    expect(container.querySelector('[data-testid="staff-shelf-count-sheet"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="receive"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="fast_count"]')).toBeNull()
   })
 })

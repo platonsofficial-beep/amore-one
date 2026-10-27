@@ -25,7 +25,13 @@ export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'menu', label: 'Menu', icon: '≡' },
 ]
 
-export const MOBILE_HOST_BOTTOM_TABS = []
+export const MOBILE_HOST_BOTTOM_TABS = [
+  { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'schedule', label: 'Schedule', icon: '◷' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'reservations', label: 'Reservations', icon: '▣' },
+  { id: 'menu', label: 'Menu', icon: '≡' },
+]
 
 export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'today', label: 'Today', icon: '◈' },
@@ -45,6 +51,9 @@ const ROLE_MODULE_ACCESS = {
     'floor-plan-builder',
   ],
   host: [
+    'today',
+    'team',
+    'operations',
     'reservations',
   ],
   staff: [
@@ -59,7 +68,7 @@ const TEAM_SECTION_ACCESS = {
   owner: ['today', 'members', 'schedule'],
   general_manager: ['today', 'members', 'schedule'],
   manager: ['today', 'members', 'schedule'],
-  host: [],
+  host: ['schedule'],
   staff: ['schedule'],
 }
 
@@ -196,6 +205,14 @@ export function resolveExitReservationsHostDestination(previousView, role) {
   return resolvePermittedActiveView(role, 'today')
 }
 
+const HOST_MOBILE_TAB_VIEWS = {
+  home: 'today',
+  schedule: 'team',
+  tasks: 'operations',
+  reservations: 'reservations',
+  host: 'reservations',
+}
+
 export function resolveHostMobileTabChange(tab, role) {
   if (!isHostRole(role)) {
     return {
@@ -205,10 +222,19 @@ export function resolveHostMobileTabChange(tab, role) {
     }
   }
 
+  const normalized = `${tab ?? ''}`.trim() || 'reservations'
+  if (normalized === 'reservations' || normalized === 'host') {
+    return {
+      tab: 'reservations',
+      openHostMode: true,
+      activeView: 'reservations',
+    }
+  }
+
   return {
-    tab: 'host',
-    openHostMode: true,
-    activeView: 'reservations',
+    tab: normalized,
+    openHostMode: false,
+    activeView: HOST_MOBILE_TAB_VIEWS[normalized] ?? 'today',
   }
 }
 
@@ -242,11 +268,19 @@ export function isManagementMobileRole(role) {
   return isManagerRole(role)
 }
 
+export function canSubmitStaffShelfCount(role) {
+  return normalizeWorkspaceRole(role, '') === 'staff'
+}
+
 export function canAccessMobileExpandedModule(role, moduleId) {
   const normalizedModuleId = `${moduleId ?? ''}`.trim()
 
   if (isHostRole(role)) {
-    return normalizedModuleId === 'reservations'
+    if (normalizedModuleId === 'stock') return false
+    if (normalizedModuleId === 'reservations' || normalizedModuleId === 'operations') {
+      return canAccessModule(role, normalizedModuleId)
+    }
+    return false
   }
 
   if (normalizedModuleId === 'stock' && canAccessModule(role, 'stock')) {
@@ -281,12 +315,12 @@ export function canOpenMobileFullSchedule(role) {
 }
 
 export function canOpenMobileTasksWorkspace(role) {
-  if (isHostRole(role)) return false
   return canAccessMobileExpandedModule(role, 'operations')
 }
 
 export function canAccessHostMobileTasksTab(role) {
-  return normalizeWorkspaceRole(role, 'staff') === 'staff'
+  const normalizedRole = normalizeWorkspaceRole(role, '')
+  return normalizedRole === 'staff' || normalizedRole === 'host'
 }
 
 export function resolvePermittedTeamSection(role, requestedSection) {

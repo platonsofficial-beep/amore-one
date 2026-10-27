@@ -6,6 +6,7 @@
  * @param {{
  *   storage: object,
  *   canManage?: boolean,
+ *   allowShelfCount?: boolean,
  *   isLaunchingFastCount?: boolean,
  *   countDisabled?: boolean,
  *   onCountShelf?: (storage: object) => void,
@@ -20,6 +21,7 @@
 export function StockStorageDetailActionBar({
   storage,
   canManage = false,
+  allowShelfCount = false,
   isLaunchingFastCount = false,
   countDisabled = false,
   onCountShelf,
@@ -31,7 +33,7 @@ export function StockStorageDetailActionBar({
   onRename,
 } = {}) {
   if (!canManage) {
-    if (storage?.isSupply === true) return null
+    if (storage?.isSupply === true || !allowShelfCount) return null
     const isArchived = storage?.active === false
     const shelfCountDisabled = isArchived || countDisabled
     return (

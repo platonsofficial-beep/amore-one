@@ -52,6 +52,6 @@ describe('Stock full-screen workspace shell wiring', () => {
     expect(appSource).toContain('const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell')
     expect(appSource).toContain('handleTeamSectionChange(\'members\')')
     expect(appSource).toContain('resolveExitReservationsHostDestination')
-    expect(appSource).toContain('useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell')
+    expect(appSource).toContain('const useHostStationShell = isHostAccount && activeView === \'reservations\' && (!useMobileExperience || mobileReservationsHostMode)')
   })
 })

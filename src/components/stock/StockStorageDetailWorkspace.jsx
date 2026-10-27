@@ -16,6 +16,7 @@ import {
   parseStorageParInput,
   storageParShort,
 } from '../../lib/stockStoragePar'
+import { canSubmitStaffShelfCount } from '../../lib/permissions'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import {
   STOCK_STORAGE_PRODUCT_SORT_OPTIONS,
@@ -332,6 +333,7 @@ function StorageProductRow({
  *   workspaceId?: string,
  *   storage: object,
  *   searchTerm?: string,
+ *   role?: string,
  *   canManage?: boolean,
  *   onBack?: () => void,
  *   onOpenActiveCountSession?: (sessionId: string) => void,
@@ -358,6 +360,7 @@ export function StockStorageDetailWorkspace({
   workspaceId = '',
   storage,
   searchTerm = '',
+  role = '',
   canManage = false,
   onBack,
   onOpenActiveCountSession,
@@ -382,6 +385,7 @@ export function StockStorageDetailWorkspace({
   staffTakeAvailable = staffTakeFromSupplyAvailable,
   timeZone = '',
 } = {}) {
+  const allowShelfCount = canSubmitStaffShelfCount(role)
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
   const [payload, setPayload] = useState(/** @type {Awaited<ReturnType<typeof getWorkspaceStorageProducts>>|null} */ (null))
@@ -858,6 +862,7 @@ export function StockStorageDetailWorkspace({
         <StockStorageDetailActionBar
           storage={storage}
           canManage={canManage}
+          allowShelfCount={allowShelfCount}
           isLaunchingFastCount={isLaunchingFastCount}
           countDisabled={status === 'loading' || status === 'error'}
           onCountShelf={() => {
@@ -1052,7 +1057,7 @@ export function StockStorageDetailWorkspace({
         </div>
       ) : null}
 
-      {shelfCountOpen && !canManage && storage?.isSupply !== true ? (
+      {shelfCountOpen && allowShelfCount && !canManage && storage?.isSupply !== true ? (
         <StaffShelfCountSheet
           workspaceId={workspaceId}
           storage={storage}

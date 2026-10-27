@@ -141,8 +141,8 @@ describe('host station responsive routing', () => {
     it('hides the global sidebar for host-capable reservations shell roles', () => {
       expect(appSource).toContain('shouldUseReservationsHostDedicatedShell')
       expect(appSource).toContain('hideGlobalAppSidebar')
-      expect(appSource).toContain('useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell')
-      expect(appSource).toContain('onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}')
+      expect(appSource).toContain('const useHostStationShell = isHostAccount && activeView === \'reservations\' && (!useMobileExperience || mobileReservationsHostMode)')
+      expect(appSource).toContain('onExitHostMode={isHostMobileRole(role) ? handleHostLeaveStation : handleMobileExitReservationsHostMode}')
       expect(appSource).toContain('resolveExitReservationsHostDestination')
       expect(appSource).toContain('preReservationsHostViewRef.current || \'today\'')
       expect(appSource).toContain('handleActiveViewChange(destination)')
