@@ -9937,6 +9937,7 @@ function FloorPlanView({
   const isManualFloorZoomRef = useRef(false)
   const [floorZoom, setFloorZoom] = useState(1)
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
+  const [floorLayoutEpoch, setFloorLayoutEpoch] = useState(0)
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
   const [scheduleCardTableId, setScheduleCardTableId] = useState(null)
   const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
@@ -10362,19 +10363,67 @@ function FloorPlanView({
     if (!isCompact) return undefined
 
     const viewport = viewportRef.current
-    if (!viewport) return undefined
+    if (!viewport || typeof ResizeObserver === 'undefined') return undefined
 
-    const handleResize = () => {
-      if (isManualFloorZoomRef.current) return
-      applyHostFloorAutoFit()
+    let frame = 0
+    let cancelled = false
+    const timers = []
+    const lastSize = { width: 0, height: 0 }
+
+    const measure = () => {
+      if (cancelled) return false
+      const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
+      const width = Math.round(layoutSpace?.clientWidth || viewport.clientWidth || 0)
+      const height = Math.round(layoutSpace?.clientHeight || viewport.clientHeight || 0)
+      if (width < 2 || height < 2) return false
+
+      const changed = Math.abs(width - lastSize.width) > 1 || Math.abs(height - lastSize.height) > 1
+      if (!changed) return true
+
+      const jumped = lastSize.width < 2
+        || lastSize.height < 2
+        || Math.abs(width - lastSize.width) / Math.max(lastSize.width, 1) > 0.2
+        || Math.abs(height - lastSize.height) / Math.max(lastSize.height, 1) > 0.2
+      lastSize.width = width
+      lastSize.height = height
+      if (jumped) isManualFloorZoomRef.current = false
+      if (!isManualFloorZoomRef.current) applyHostFloorAutoFit()
+      setFloorLayoutEpoch((epoch) => epoch + 1)
+      return true
     }
 
-    const observer = new ResizeObserver(() => {
-      window.requestAnimationFrame(handleResize)
-    })
+    const schedule = (withRetry) => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const ready = measure()
+        if (!withRetry || ready) return
+        ;[80, 240, 600].forEach((delay) => {
+          timers.push(window.setTimeout(measure, delay))
+        })
+      })
+    }
 
+    const onViewportChange = () => schedule(true)
+    const observer = new ResizeObserver(() => schedule(false))
     observer.observe(viewport)
-    return () => observer.disconnect()
+    const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
+    if (layoutSpace) observer.observe(layoutSpace)
+    window.addEventListener('resize', onViewportChange)
+    window.addEventListener('orientationchange', onViewportChange)
+    window.visualViewport?.addEventListener('resize', onViewportChange)
+    window.visualViewport?.addEventListener('scroll', onViewportChange)
+    schedule(true)
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(frame)
+      timers.forEach((timer) => window.clearTimeout(timer))
+      observer.disconnect()
+      window.removeEventListener('resize', onViewportChange)
+      window.removeEventListener('orientationchange', onViewportChange)
+      window.visualViewport?.removeEventListener('resize', onViewportChange)
+      window.visualViewport?.removeEventListener('scroll', onViewportChange)
+    }
   }, [applyHostFloorAutoFit, isCompact])
 
   const hostFloorZoomTier = floorZoom < 0.65 ? 'minimal' : floorZoom < 0.82 ? 'compact' : 'normal'
@@ -11206,25 +11255,50 @@ function FloorPlanView({
           {!isCompact ? <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
           {isCompact && !isHeatmap ? (
             <div className="floor-plan-toolbar-actions-group">
-              {canEditFloorPlan ? (
+              <div className="floor-plan-toolbar-primary">
+                {canEditFloorPlan ? (
+                  <button
+                    type="button"
+                    className="floor-plan-mode-btn"
+                    onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+                  >
+                    Edit layout
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  className="floor-plan-mode-btn"
-                  onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+                  className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
+                  onClick={() => setShowDiningTimers((current) => !current)}
+                  aria-pressed={showDiningTimers}
+                  aria-label="Dining timers"
+                  data-testid="host-floor-dining-timers-toggle"
                 >
-                  Edit layout
+                  ⏱ Timers
                 </button>
-              ) : null}
-              <button
-                type="button"
-                className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
-                onClick={() => setShowDiningTimers((current) => !current)}
-                aria-pressed={showDiningTimers}
-                aria-label="Dining timers"
-                data-testid="host-floor-dining-timers-toggle"
-              >
-                ⏱ Timers
-              </button>
+              </div>
+              <details className="floor-plan-toolbar-more">
+                <summary className="floor-plan-toolbar-more-summary">More</summary>
+                <div className="floor-plan-toolbar-more-menu">
+                  {canEditFloorPlan ? (
+                    <button
+                      type="button"
+                      className="floor-plan-mode-btn"
+                      onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+                    >
+                      Edit layout
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
+                    onClick={() => setShowDiningTimers((current) => !current)}
+                    aria-pressed={showDiningTimers}
+                    aria-label="Dining timers"
+                  >
+                    ⏱ Timers
+                  </button>
+                </div>
+              </details>
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <div className="floor-plan-zoom-controls-group">
                 <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
@@ -11345,6 +11419,7 @@ function FloorPlanView({
           >
             <div
               className={`floor-plan-layout-space${isCompact ? ' is-published-layout' : ''}`}
+              data-floor-layout-epoch={isCompact ? floorLayoutEpoch : undefined}
               style={isCompact && activeZone ? getFloorLayoutSpaceStyle(activeZone) : undefined}
             >
         {!isHeatmap && activeZone ? (

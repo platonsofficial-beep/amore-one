@@ -153,12 +153,16 @@ export function readLiveViewportBox(win = globalThis.window) {
   const visual = win.visualViewport
   const visualWidth = Number(visual?.width) || 0
   const visualHeight = Number(visual?.height) || 0
-  let landscape = innerWidth > innerHeight
+  // Dimensions win when they already show a wide canvas. The orientation
+  // media query can lag a resize (or disagree in device emulation) and must
+  // not keep a landscape phone in the portrait measurement. A landscape
+  // query still wins when innerWidth is the stale pre-rotation size.
+  let landscape = innerWidth > innerHeight || visualWidth > visualHeight
   try {
     const query = win.matchMedia?.('(orientation: landscape)')
-    if (query && typeof query.matches === 'boolean') landscape = query.matches
+    if (query?.matches) landscape = true
   } catch {
-    landscape = innerWidth > innerHeight
+    landscape = innerWidth > innerHeight || visualWidth > visualHeight
   }
 
   const width = landscape

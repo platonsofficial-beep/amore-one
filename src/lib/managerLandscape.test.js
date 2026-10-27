@@ -117,7 +117,7 @@ describe('manager landscape decision', () => {
       expect(readCoarsePointer()).toBe(false)
     })
 
-    it('prefers the orientation media query, then falls back to dimensions', () => {
+    it('trusts a landscape viewport when the orientation media query is stale', () => {
       vi.stubGlobal('window', {
         matchMedia: (query) => ({
           matches: query === '(orientation: portrait)',
@@ -125,7 +125,7 @@ describe('manager landscape decision', () => {
         innerWidth: 844,
         innerHeight: 390,
       })
-      expect(readPortraitOrientation()).toBe(true)
+      expect(readPortraitOrientation()).toBe(false)
 
       vi.stubGlobal('window', {
         matchMedia: () => {

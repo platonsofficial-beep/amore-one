@@ -86,8 +86,12 @@ export function isHostStationDesktopViewport() {
 export function isMobileHostLandscapeViewport() {
   if (typeof window === 'undefined') return false
   const box = readLiveViewportBox()
-  return window.matchMedia?.('(orientation: landscape)')?.matches
-    ?? box.width > box.height
+  if (box.width > box.height && box.height > 0) return true
+  try {
+    return window.matchMedia?.('(orientation: landscape)')?.matches ?? false
+  } catch {
+    return false
+  }
 }
 
 export function isMobileHostTabletViewport() {
