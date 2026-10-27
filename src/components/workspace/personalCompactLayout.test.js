@@ -48,6 +48,7 @@ describe('personal compact layout', () => {
     expect(compact).toContain('.app-shell.is-personal-view:not(.is-mobile-shell) .topbar .profile-chip')
     expect(compact).toContain('min-height: 44px')
     expect(compact).toContain('.app-shell.is-chat-view:not(.is-mobile-shell) .topbar')
+    expect(compact).toContain('.app-shell.is-chat-view.is-chat-thread:not(.is-mobile-shell) .topbar')
     expect(compact).toContain('.app-shell.is-chat-view:not(.is-mobile-shell) .topbar .welcome-subtitle')
     expect(compact).toContain('max-height: 56px')
     expect(compact).toContain('.app-shell.is-personal-view .mobile-availability .mobile-screen-eyebrow')
@@ -63,6 +64,7 @@ describe('personal compact layout', () => {
       for (const block of mediaBlocks(appCss, query)) {
         expect(block).not.toContain('is-personal-view')
         expect(block).not.toContain('is-chat-view')
+        expect(block).not.toContain('is-chat-thread')
         expect(block).not.toContain('is-settings-view')
       }
     }

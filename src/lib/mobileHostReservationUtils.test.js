@@ -121,6 +121,7 @@ describe('resolveHostInitialLanding', () => {
 
   it('uses the portrait landing helper from the host landing effect', () => {
     expect(appSource).toContain('resolveHostInitialLanding({ useMobileExperience })')
+    expect(appSource).toContain('if (hadPersistedNavigationRef.current) return')
     expect(appSource).toContain('setMobileReservationsHostMode(landing.openHostMode)')
   })
 })

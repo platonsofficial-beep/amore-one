@@ -3,6 +3,8 @@
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+
+const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 import { describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -41,6 +43,39 @@ function navLabels(container) {
 }
 
 describe('MobileStaffApp host shell', () => {
+  it('renders Shifts and My week for the short-landscape rail', () => {
+    const { container, unmount } = renderHostApp({
+      embeddedSchedule: true,
+      activeTab: 'schedule',
+    })
+
+    expect(container.querySelector('.mobile-app-embedded-schedule')).toBeTruthy()
+    expect(container.querySelector('.mobile-bottom-nav')).toBeNull()
+    const tabs = Array.from(container.querySelectorAll('[role="tab"]')).map((node) => node.textContent)
+    expect(tabs).toEqual(['Shifts', 'My week'])
+
+    const week = container.querySelector('[role="tab"][aria-selected="false"]')
+    act(() => {
+      week.click()
+    })
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('My week')
+    unmount()
+
+    const staff = renderHostApp({
+      embeddedSchedule: true,
+      activeTab: 'schedule',
+      shellVariant: 'staff',
+    })
+    expect(Array.from(staff.container.querySelectorAll('[role="tab"]')).map((node) => node.textContent)).toEqual(['Shifts', 'My week'])
+    staff.unmount()
+    expect(appCss).toMatch(/\.app-shell:not\(\.is-mobile-shell\) \.mobile-app\.mobile-app-embedded-schedule\s*\{[^}]*display:\s*flex/)
+    expect(appCss).toMatch(/\.mobile-app\.mobile-app-embedded-schedule\s*\{[^}]*height:\s*auto/)
+    expect(appCss).toMatch(/\.mobile-app\.mobile-app-embedded-schedule\s*\{[^}]*flex:\s*1 1 auto/)
+    expect(appCss).not.toMatch(/\.mobile-app\.mobile-app-embedded-schedule\s*\{[^}]*height:\s*100%/)
+    expect(appCss).toContain('.app-shell.is-mobile-shell .mobile-schedule-segments')
+    expect(appCss).toContain('padding-right: 52px')
+  })
+
   it('shows staff tabs plus reservations and keeps the host station on that tab', () => {
     const { container, unmount } = renderHostApp()
 

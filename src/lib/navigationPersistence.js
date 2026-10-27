@@ -120,6 +120,16 @@ function applyLegacyMigration(stored) {
   }
 }
 
+/** True when a previous session already stored a route (PWA refresh keeps it). */
+export function hasPersistedNavigation() {
+  if (typeof window === 'undefined') return false
+  try {
+    return Boolean(window.localStorage.getItem(NAVIGATION_STORAGE_KEY))
+  } catch {
+    return false
+  }
+}
+
 export function readPersistedNavigation() {
   const stored = readStoredNavigationRaw()
   if (!stored) {

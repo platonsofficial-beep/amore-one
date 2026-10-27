@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolvePermittedActiveView } from './permissions'
 import {
+  hasPersistedNavigation,
   normalizeActiveView,
   persistNavigation,
   readPersistedNavigation,
@@ -11,6 +12,21 @@ describe('navigationPersistence', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.resetModules()
+  })
+
+  it('reports whether a route was already stored', () => {
+    const store = new Map()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key) => store.get(key) ?? null,
+        setItem: (key, value) => store.set(key, value),
+        removeItem: (key) => store.delete(key),
+      },
+    })
+    expect(hasPersistedNavigation()).toBe(false)
+    persistNavigation({ activeView: 'chat', teamSection: 'schedule' })
+    expect(hasPersistedNavigation()).toBe(true)
+    expect(readPersistedNavigation().activeView).toBe('chat')
   })
 
   it('normalizes invalid persisted views to today', () => {
