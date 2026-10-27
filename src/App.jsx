@@ -23840,6 +23840,7 @@ function App() {
             senderName={supplierOrderSenderName}
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
+            searchTerm={searchTerm}
             canManage={canManageStockRole}
             isSaving={isSavingStockOrder}
             isWorkspaceReady={isStockWorkspaceReady}
@@ -23868,6 +23869,7 @@ function App() {
             inventoryItems={inventoryItems}
             isLoading={isSuppliersLoading || isStockItemsLoading || isStockOrdersLoading}
             noticeMessage={suppliersNotice}
+            searchTerm={searchTerm}
             canManage={canManageStockRole}
             isSaving={isSavingSupplier}
             onCreateSupplier={handleStockCreateSupplier}

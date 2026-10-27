@@ -578,7 +578,7 @@ export function StockMovementModal({
                 enterKeyHint="done"
                 value={quantity}
                 onChange={handleAdjustmentQuantityChange}
-                placeholder="0"
+                placeholder="Qty"
                 required
                 disabled={isBusy}
                 aria-label="Adjustment quantity"
@@ -593,7 +593,7 @@ export function StockMovementModal({
                 onChange={(event) => setQuantity(event.target.value)}
                 placeholder={isStockCount
                   ? `${pickerMode ? (effectiveBalanceQuantity ?? 0) : (item.currentQuantity ?? 0)}`
-                  : '0'}
+                  : 'Qty'}
                 required
                 disabled={isBusy}
               />

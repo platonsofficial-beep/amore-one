@@ -191,7 +191,6 @@ export function StockOrdersView({
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('newest')
-  const [localSearchTerm, setLocalSearchTerm] = useState('')
 
   useEffect(() => {
     if (!initialStatusFilter) return
@@ -199,7 +198,7 @@ export function StockOrdersView({
     onStatusFilterApplied?.()
   }, [initialStatusFilter, onStatusFilterApplied])
 
-  const effectiveSearchTerm = `${searchTerm || localSearchTerm}`.trim()
+  const effectiveSearchTerm = `${searchTerm}`.trim()
 
   const filteredOrders = useMemo(() => {
     return filterStockOrders(orders, {
@@ -246,10 +245,13 @@ export function StockOrdersView({
     <section className="stock-orders-page" aria-label="Stock orders">
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
 
-      <div className="stock-orders-toolbar">
-        <p className="stock-orders-toolbar-copy">
-          Track supplier orders from draft through receiving.
-        </p>
+      <header className="stock-orders-header">
+        <div className="stock-orders-header-copy">
+          <h2 className="stock-orders-title">Orders</h2>
+          <p className="stock-orders-toolbar-copy">
+            Track supplier orders from draft through receiving.
+          </p>
+        </div>
         {canManage ? (
           <div className="stock-orders-toolbar-actions">
             <div className="stock-orders-overflow">
@@ -300,7 +302,7 @@ export function StockOrdersView({
             </button>
           </div>
         ) : null}
-      </div>
+      </header>
 
       <div className="stock-orders-browse">
         <div className="stock-filter-group stock-filter-group-status">
@@ -325,17 +327,6 @@ export function StockOrdersView({
         </div>
 
         <div className="stock-orders-browse-tools">
-          <label className="stock-orders-search">
-            <span className="sr-only">Search orders</span>
-            <input
-              type="search"
-              className="stock-orders-search-input"
-              value={localSearchTerm}
-              onChange={(event) => setLocalSearchTerm(event.target.value)}
-              placeholder="Search orders"
-            />
-          </label>
-
           <div className="stock-browse-control stock-browse-sort">
             <span className="stock-browse-control-label">Sort</span>
             <StockOrderSortDropdown

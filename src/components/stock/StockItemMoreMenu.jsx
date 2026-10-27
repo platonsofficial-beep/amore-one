@@ -18,6 +18,7 @@ const MENU_ITEMS = [
   { id: 'history', label: 'History & details', group: 'management' },
   { id: 'label-status', type: 'label', label: 'Status' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
+  { id: 'sep-delete', type: 'separator' },
   { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
 ]
 
@@ -39,9 +40,17 @@ function groupMenuSections(items) {
   return sections
 }
 
+function filterBarBottom() {
+  if (typeof document === 'undefined') return 0
+  const bar = document.querySelector('[data-stock-compact-browse-toolbar="true"]')
+  if (!bar?.getBoundingClientRect) return 0
+  return bar.getBoundingClientRect().bottom
+}
+
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
+  const minTop = Math.max(MENU_MARGIN, filterBarBottom() + MENU_MARGIN)
 
   let left = anchorRect.right - menuWidth
   let top = anchorRect.bottom + MENU_MARGIN
@@ -50,11 +59,14 @@ function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   left = Math.max(MENU_MARGIN, Math.min(left, viewportWidth - menuWidth - MENU_MARGIN))
 
   if (top + menuHeight > viewportHeight - MENU_MARGIN) {
-    top = anchorRect.top - menuHeight - MENU_MARGIN
-    placement = 'above'
+    const above = anchorRect.top - menuHeight - MENU_MARGIN
+    if (above >= minTop) {
+      top = above
+      placement = 'above'
+    }
   }
 
-  top = Math.max(MENU_MARGIN, top)
+  if (top < minTop) top = minTop
 
   return { top, left, placement }
 }

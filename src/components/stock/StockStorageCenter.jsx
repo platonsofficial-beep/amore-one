@@ -734,9 +734,15 @@ export function StockStorageCenter({
                 aria-label={group.name}
               >
                 <div className="stock-department-group-header">
-                  <h3 className="stock-storage-center-section-title">
-                    {group.active ? group.name : `${group.name} · archived`}
-                  </h3>
+                  {group.storages.length === 1
+                    && `${group.storages[0]?.name || group.storages[0]?.locationKey || ''}`.trim().toLowerCase()
+                      === `${group.name || ''}`.trim().toLowerCase() ? (
+                      <span className="sr-only">{group.name}</span>
+                    ) : (
+                      <h3 className="stock-storage-center-section-title">
+                        {group.active ? group.name : `${group.name} · archived`}
+                      </h3>
+                    )}
                   {canManage && !group.isUnassigned ? (
                     <div className="stock-department-group-actions">
                       <button
