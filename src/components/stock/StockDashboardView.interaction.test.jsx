@@ -755,7 +755,7 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
   it('shows inactive items beside the active total and opens detail from the row', () => {
     const { container, cleanup } = mount()
     expect(container.querySelector('.stock-calm-title')?.textContent).toContain('1')
-    expect(container.querySelector('.stock-calm-title')?.textContent).toContain('items')
+    expect(container.querySelector('.stock-calm-title')?.textContent).toContain('active item')
     expect(container.querySelector('.stock-calm-inactive-note')?.textContent).toBe('+1 inactive')
 
     setLayoutMode(container, 'List')

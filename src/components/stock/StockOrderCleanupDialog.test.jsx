@@ -133,7 +133,7 @@ describe('StockOrdersView cleanup entry point', () => {
       workspaceId: 'ws-1',
     }))
     expect(managed.container.textContent).not.toContain('Delete orders')
-    const more = Array.from(managed.container.querySelectorAll('button')).find((node) => node.textContent === 'More')
+    const more = Array.from(managed.container.querySelectorAll('button')).find((node) => node.textContent === 'Order actions')
     expect(more).toBeTruthy()
     act(() => {
       more.dispatchEvent(new MouseEvent('click', { bubbles: true }))

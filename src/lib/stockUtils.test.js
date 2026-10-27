@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
 import {
   buildStockDashboardSummary,
+  formatStockActiveCountWord,
+  formatStockBrowseResultCount,
   formatStockInactiveNote,
   formatStockTotalItemsLabel,
   buildStockManagerDailySnapshot,
@@ -75,6 +77,11 @@ describe('stockUtils', () => {
     expect(formatStockTotalItemsLabel(172)).toBe('172')
     expect(formatStockInactiveNote(8)).toBe('+8 inactive')
     expect(formatStockInactiveNote(0)).toBe('')
+    expect(formatStockActiveCountWord(174)).toBe('active items')
+    expect(formatStockActiveCountWord(1)).toBe('active item')
+    expect(formatStockBrowseResultCount(182, 182, 'all')).toBe('Showing 182 of 182 active and inactive products')
+    expect(formatStockBrowseResultCount(174, 174, 'active')).toBe('Showing 174 of 174 active products')
+    expect(formatStockBrowseResultCount(8, 8, 'inactive')).toBe('Showing 8 of 8 inactive products')
     expect(summary.outOfStock).toBe(1)
     expect(summary.lowStock).toBe(1)
     expect(summary.toOrder).toBe(3)

@@ -765,7 +765,7 @@ export function StockStorageCenter({
                           name: group.name,
                         })}
                       >
-                        Rename
+                        Rename department
                       </button>
                       {group.active ? (
                         pendingArchiveId === group.id ? (
@@ -802,7 +802,7 @@ export function StockStorageCenter({
                             disabled={departmentBusy}
                             onClick={() => setPendingArchiveId(group.id)}
                           >
-                            Archive
+                            Archive department
                           </button>
                         )
                       ) : (
@@ -819,7 +819,7 @@ export function StockStorageCenter({
                             )).catch(() => {})
                           }}
                         >
-                          Restore
+                          Restore department
                         </button>
                       )}
                     </div>

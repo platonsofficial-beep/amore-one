@@ -38,6 +38,8 @@ import { StockUsageCostReport } from './StockUsageCostReport'
 import {
   buildStockDashboardSummary,
   buildTodayStockActivitySummary,
+  formatStockActiveCountWord,
+  formatStockBrowseResultCount,
   formatStockInactiveNote,
   formatStockInventoryValue,
   formatStockMovementRelativeTime,
@@ -170,6 +172,20 @@ function stockLevelPercent(item) {
   return Math.max(0, Math.min(100, Math.round((safeQty / goal) * 100)))
 }
 
+function StockMetaSegments({ text, className = '' }) {
+  const parts = `${text ?? ''}`.split(' · ').map((part) => part.trim()).filter(Boolean)
+  return (
+    <p className={`stock-meta-segments${className ? ` ${className}` : ''}`}>
+      {parts.map((part, index) => (
+        <span key={`${index}-${part}`}>
+          {index > 0 ? ' · ' : ''}
+          {part}
+        </span>
+      ))}
+    </p>
+  )
+}
+
 function StockItemCard({
   item,
   canManage,
@@ -191,7 +207,7 @@ function StockItemCard({
   const sizeDetail = formatProductSizeDetail(item)
   const needsDelivery = item.status === 'out' || item.status === 'low'
   const level = stockLevelPercent(item)
-  const metaLine = [supplierLabel || 'No supplier', location].filter(Boolean).join(' · ')
+  const metaLine = [supplierLabel || 'No supplier', location, staleCount?.label].filter(Boolean).join(' · ')
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -236,10 +252,7 @@ function StockItemCard({
         </div>
       </header>
 
-      <p className="stock-item-quiet-meta">
-        {metaLine}
-        {staleCount ? ` · ${staleCount.label}` : ''}
-      </p>
+      <StockMetaSegments className="stock-item-quiet-meta" text={metaLine} />
 
       <p className={`stock-item-qty-figure tone-${item.status}`}>
         <span className="stock-item-qty-number">{formatInventoryQuantityNumber(item.currentQuantity)}</span>
@@ -803,7 +816,10 @@ function StockTodayActivitySection({ activityLine }) {
     >
       <header className="stock-today-activity-header">
         <h3 className="stock-today-activity-title">What changed today</h3>
-        <p className="stock-today-activity-line">{isEmpty ? 'Nothing moved today' : activityLine}</p>
+        <StockMetaSegments
+          className="stock-today-activity-line"
+          text={isEmpty ? 'Nothing moved today' : activityLine}
+        />
       </header>
     </section>
   )
@@ -1620,7 +1636,7 @@ export function StockDashboardView({
 
           {!isLoading && browseMatchCount > 0 ? (
             <p className="stock-browse-result-count" aria-live="polite">
-              Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
+              {formatStockBrowseResultCount(visibleItems.length, browseMatchCount, effectiveVisibilityFilter)}
             </p>
           ) : null}
         </div>
@@ -1758,7 +1774,7 @@ export function StockDashboardView({
           <p className="stock-calm-kicker">Inventory</p>
           <h2 className="stock-calm-title">
             {isLoading ? '—' : summary.totalItems}
-            <span> items</span>
+            <span>{isLoading ? ' items' : ` ${formatStockActiveCountWord(summary.totalItems)}`}</span>
           </h2>
           {!isLoading && inactiveNote ? (
             <p className="stock-calm-inactive-note">{inactiveNote}</p>
@@ -1803,10 +1819,9 @@ export function StockDashboardView({
           <article className="stock-today-card" aria-label="To order">
             <header className="stock-today-card-header">
               <h3>To order</h3>
-              <p>
-                {formatToOrderBreakdown(activeCatalogItems, summary)}
-                {toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}
-              </p>
+              <StockMetaSegments
+                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
+              />
             </header>
             {visibleOrderGroups.length > 0 ? (
               <ul className="stock-today-groups">
@@ -1845,11 +1860,11 @@ export function StockDashboardView({
           <article className="stock-today-card" aria-label="To count">
             <header className="stock-today-card-header">
               <h3>To count</h3>
-              <p>
-                {toCountTotal === 0
+              <StockMetaSegments
+                text={toCountTotal === 0
                   ? 'Nothing waiting'
                   : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
-              </p>
+              />
             </header>
             {visibleCountGroups.length > 0 ? (
               <ul className="stock-today-groups">
