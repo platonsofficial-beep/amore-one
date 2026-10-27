@@ -163,7 +163,7 @@ describe('stored member permissions', () => {
 })
 
 describe('member access screen logic', () => {
-  it('lists the nine areas in plain language, with the salary toggle and clock-in note', () => {
+  it('lists the nine areas in plain language, with the salary toggle and live clock-in levels', () => {
     expect(MEMBER_ACCESS_AREAS.map((area) => area.module)).toEqual(WORKSPACE_PERMISSION_MODULES)
     expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'private_data')).toMatchObject({
       label: 'Salaries & personal data',
@@ -171,8 +171,9 @@ describe('member access screen logic', () => {
     })
     expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'attendance')).toMatchObject({
       label: 'Clock in/out',
-      note: 'Coming soon',
+      control: 'level',
     })
+    expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'attendance').note).toBeUndefined()
     expect(MEMBER_ACCESS_AREAS.filter((area) => area.control === 'level')).toHaveLength(8)
   })
 

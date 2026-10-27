@@ -75,7 +75,6 @@ export const MEMBER_ACCESS_AREAS = [
     hint: 'Timesheets and exceptions.',
     icon: '⏱',
     control: 'level',
-    note: 'Coming soon',
   },
   {
     module: 'private_data',

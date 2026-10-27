@@ -137,6 +137,7 @@ export function getModuleTitle(activeView, {
   }
   if (activeView === 'insights') return 'Insights'
   if (activeView === 'settings') return 'Settings'
+  if (activeView === 'attendance') return 'Attendance'
   return getModuleLabel(activeView)
 }
 
@@ -169,6 +170,7 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
   if (activeView === 'settings') return 'Venue and account configuration.'
+  if (activeView === 'attendance') return "Who is in, late arrivals, and this week's hours."
   return ''
 }
 
@@ -196,6 +198,7 @@ export function shouldShowModuleSearch(activeView, teamSection, stockSection = '
   if (isTeamScheduleView(activeView, teamSection)) return false
   if (activeView === 'team' && teamSection === 'today') return false
   if (activeView === 'settings') return false
+  if (activeView === 'attendance') return false
   if (activeView === 'stock') return Boolean(stockSection)
   return true
 }

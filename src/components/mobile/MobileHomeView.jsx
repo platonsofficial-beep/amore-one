@@ -12,6 +12,7 @@ export function MobileHomeView({
   announcementEmployeeDepartment = '',
   isAnnouncementsSaving = false,
   onMarkAnnouncementSeen,
+  clockCard = null,
 }) {
   const {
     active = 0,
@@ -32,6 +33,8 @@ export function MobileHomeView({
         <h1 className="mobile-screen-title">{greeting || 'Welcome'}</h1>
         {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
       </header>
+
+      {clockCard}
 
       <section className={`mobile-card mobile-shift-card tone-${shiftSummary.tone ?? 'neutral'}`} aria-label="Today shift status">
         <p className="mobile-card-label">Today shift</p>

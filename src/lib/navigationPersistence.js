@@ -16,6 +16,7 @@ const VALID_ACTIVE_VIEWS = new Set([
   'operations',
   'insights',
   'settings',
+  'attendance',
   'floor-plan-builder',
 ])
 

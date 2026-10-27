@@ -127,6 +127,7 @@ export function MobileManagerHomeView({
   onAttentionItemClick,
   onCompleteAttentionItem,
   attentionPermissions = {},
+  clockCard = null,
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
 
@@ -158,6 +159,8 @@ export function MobileManagerHomeView({
           ) : null}
         </p>
       </header>
+
+      {clockCard}
 
       <section className="mobile-manager-command-primary" aria-label="Today overview and quick actions">
         <div className="mobile-manager-command-block">

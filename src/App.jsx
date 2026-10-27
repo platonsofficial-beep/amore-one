@@ -542,6 +542,9 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { AttendanceBoard } from './components/attendance/AttendanceBoard'
+import { AttendanceClockScreen } from './components/attendance/AttendanceClockScreen'
+import { VenueClockSettings } from './components/attendance/VenueClockSettings'
 import { createDefaultSeatingForm } from './components/workspace/WorkspaceReservationSeatingsSection'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
@@ -630,7 +633,9 @@ import {
   shouldUseReservationsHostDedicatedShell,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
+  canManageAttendance,
 } from './lib/permissions'
+import { isOwnerRole } from './lib/membershipRoles'
 import {
   EMPTY_WORKSPACE_PROFILE,
   getWorkspaceProfile,
@@ -1115,6 +1120,7 @@ function TodayCollapsiblePanel({
 }
 
 function CommandCenterView({
+  clockCard = null,
   statusSummary,
   timelineEvents,
   teamTodayGroups,
@@ -1154,6 +1160,7 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label="Today">
+      {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
       <TodayAnnouncementsPanel
         announcements={announcements}
         role={announcementRole}
@@ -14980,10 +14987,18 @@ function App() {
     return USER_WORKSPACE_LOADING_MESSAGE
   }, [isOperationsWorkspaceReady, isAuthLoading, isAuthBootstrapping, visibleWorkspaceLoadError])
 
-  const visibleNavItems = useMemo(
-    () => filterNavItemsByRole(NAV_ITEMS, permissionAccess),
-    [permissionAccess],
-  )
+  const visibleNavItems = useMemo(() => {
+    const items = filterNavItemsByRole(NAV_ITEMS, permissionAccess)
+    if (!canManageAttendance(permissionAccess)) return items
+    const attendanceItem = { id: 'attendance', label: 'Attendance', icon: '⏱' }
+    const settingsIndex = items.findIndex((item) => item.id === 'settings')
+    if (settingsIndex < 0) return [...items, attendanceItem]
+    return [
+      ...items.slice(0, settingsIndex),
+      attendanceItem,
+      ...items.slice(settingsIndex),
+    ]
+  }, [permissionAccess])
 
   const visibleTeamSections = useMemo(
     () => TEAM_SECTIONS.filter((section) => canAccessTeamSection(permissionAccess, section.id)),
@@ -15002,6 +15017,11 @@ function App() {
 
   const canOpenWorkspaceProfile = useMemo(
     () => canAccessModule(permissionAccess, 'settings'),
+    [permissionAccess],
+  )
+
+  const canManageAttendanceRole = useMemo(
+    () => canManageAttendance(permissionAccess),
     [permissionAccess],
   )
 
@@ -15036,6 +15056,7 @@ function App() {
 
   const isActiveViewAllowed = !isAuthLoading && (
     (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
+    || (activeView === 'attendance' && canManageAttendanceRole)
     || canAccessModule(permissionAccess, activeView)
   )
   const shouldRenderReservationsHostView = useMemo(
@@ -23160,6 +23181,12 @@ function App() {
     setMobileExpandedView('full-schedule')
   }
 
+  const handleOpenAttendance = () => {
+    if (!canManageAttendance(permissionAccess)) return
+    handleActiveViewChange('attendance')
+    if (useMobileExperience) setMobileExpandedView('workspace')
+  }
+
   const handleMobileNavigateModule = (moduleId) => {
     if (!canAccessMobileExpandedModule(permissionAccess, moduleId)) return
 
@@ -23506,6 +23533,15 @@ function App() {
 
       <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
         {(() => {
+          const attendanceClockCard = activeWorkspaceId ? (
+            <AttendanceClockScreen
+              workspaceId={activeWorkspaceId}
+              memberId={membership?.id ?? ''}
+              employeeId={membership?.employeeId ?? ''}
+              employeeName={mobileLinkedEmployee?.name ?? ''}
+              timeZone={workspaceTimeZone}
+            />
+          ) : null
           const workspaceModules = (
             <>
         {isAuthLoading ? (
@@ -23595,6 +23631,7 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'today' ? (
           <CommandCenterView
+            clockCard={attendanceClockCard}
             statusSummary={todayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={enrichedTeamTodayGroups}
@@ -24108,6 +24145,16 @@ function App() {
           />
         ) : null}
 
+        {isActiveViewAllowed && activeView === 'attendance' ? (
+          <AttendanceBoard
+            workspaceId={activeWorkspaceId}
+            actorMemberId={membership?.id ?? ''}
+            isOwner={isOwnerRole(role)}
+            timeZone={workspaceTimeZone}
+            employees={employees}
+          />
+        ) : null}
+
         {isActiveViewAllowed && activeView === 'settings' ? (
           <WorkspaceView
             activeSection={settingsSection}
@@ -24140,7 +24187,15 @@ function App() {
               onMovePosition: handleMovePosition,
               getUsageCount: getPositionUsageCount,
             }}
-            venueSetupProps={workspaceVenueSetupProps}
+            venueSetupProps={{
+              ...workspaceVenueSetupProps,
+              clockLocation: isOwnerRole(role) ? (
+                <VenueClockSettings
+                  workspaceId={activeWorkspaceId}
+                  timeZone={workspaceTimeZone}
+                />
+              ) : null,
+            }}
             reservationSeatingsProps={canConfigureReservationSeatingsRole ? {
               seatings: reservationSeatings,
               isLoading: isReservationSeatingsLoading,
@@ -24251,6 +24306,7 @@ function App() {
                       onAttentionItemClick: handleTodayAttentionItemClick,
                       onCompleteAttentionItem: handleCompleteStaleSeatedReservation,
                       attentionPermissions: todayAttentionPermissions,
+                      clockCard: attendanceClockCard,
                     }
                     : {
                       venueName: workspaceProfile.businessName,
@@ -24264,6 +24320,7 @@ function App() {
                       announcementEmployeeDepartment: currentEmployeeDepartment,
                       isAnnouncementsSaving: isSavingOperations,
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
+                      clockCard: attendanceClockCard,
                     }
 
                   const sharedMenuProps = {
@@ -24296,6 +24353,7 @@ function App() {
                     onNavigateModule: handleMobileNavigateModule,
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
                     onOpenSettings: handleMobileOpenSettings,
+                    onOpenAttendance: canManageAttendanceRole ? handleOpenAttendance : undefined,
                     onSignOut: handleMobileSignOut,
                     menuVariant: isManagerMobileShell ? 'manager' : isHostMobileShellLocal ? 'host' : 'staff',
                   }
