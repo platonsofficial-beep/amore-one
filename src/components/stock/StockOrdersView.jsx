@@ -102,7 +102,9 @@ function StockOrderCard({ order, stockItems = [], onOpen, showCost = true, timeZ
           <span className="stock-order-card-number">
             {formatStockOrderNumber(order.orderNumber)}
           </span>
-          <strong className="stock-order-card-supplier">{order.supplier || '—'}</strong>
+          <strong className="stock-order-card-supplier" title={order.supplier || undefined}>
+            {order.supplier || '—'}
+          </strong>
         </div>
         <div className="stock-order-card-badges">
           {showPartialBadge ? (

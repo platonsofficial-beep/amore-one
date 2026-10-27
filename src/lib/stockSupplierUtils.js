@@ -294,19 +294,24 @@ export function formatSupplierMetricDate(value) {
   return formatStockOrderDate(value)
 }
 
+export function describeReceivedValue(amount, receivedCount) {
+  if (!(Number(receivedCount) > 0)) return { value: '—', caption: '' }
+  if (!(Number(amount) > 0)) return { value: '—', caption: 'No costs yet' }
+  return { value: formatStockPurchasePrice(amount), caption: '' }
+}
+
 export function formatReceivedValueLabel(amount, receivedCount) {
-  if (!(Number(receivedCount) > 0)) return '—'
-  if (!(Number(amount) > 0)) return 'No cost on received orders'
-  return formatStockPurchasePrice(amount)
+  return describeReceivedValue(amount, receivedCount).value
 }
 
 export function formatSupplierProductLine(item) {
+  const cost = Number(item?.costPrice ?? item?.cost_price)
   return {
     id: item.id,
     name: resolveListedProductName(item, item) || 'Unnamed product',
     categoryType: formatStockCategoryTypeLine(item.category, item.itemType),
     currentStock: formatStockQuantity(item.currentQuantity, item.unit),
-    lastPurchasePrice: formatStockPurchasePrice(item.costPrice),
+    lastPurchasePrice: cost > 0 ? formatStockPurchasePrice(cost) : 'No cost',
   }
 }
 

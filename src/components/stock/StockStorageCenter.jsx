@@ -160,7 +160,12 @@ function StorageSummaryCard({
       </div>
       {canAssign || canRename ? (
         <details className="stock-storage-edit">
-          <summary>Edit</summary>
+          <summary>
+            <svg className="stock-action-icon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.4 3.1 12.9 6.6M2.8 13.2l.7-3.1L10.2 3.4l2.4 2.4-6.7 6.7z" />
+            </svg>
+            Edit
+          </summary>
         <div className="stock-storage-center-card-actions">
           {canAssign ? (
           <>

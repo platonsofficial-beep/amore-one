@@ -539,6 +539,33 @@ describe('StockMovementModal — dashboard storage picker', () => {
     }))
   })
 
+  it('shows only the storage name and keeps Save muted until usage quantity is positive', async () => {
+    renderPicker({ movementType: 'usage' })
+    expect(container.querySelector('[data-testid="stock-movement-storage-row"]')?.textContent)
+      .toBe('Main Bar')
+    const submitButton = container.querySelector('[data-testid="stock-movement-submit"]')
+    expect(submitButton?.disabled).toBe(true)
+    expect(submitButton?.textContent).toBe('Save')
+    await setNumber('0')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(true)
+    await setNumber('1')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(false)
+  })
+
+  it('shows only the storage name and keeps Log waste muted until quantity and reason are set', async () => {
+    renderPicker({ movementType: 'waste' })
+    expect(container.querySelector('[data-testid="stock-movement-storage-row"]')?.textContent)
+      .toBe('Main Bar')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.textContent).toBe('Log waste')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(true)
+    await setNumber('1')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(true)
+    await act(async () => {
+      container.querySelector('[data-waste-reason="spilled"]').click()
+    })
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(false)
+  })
+
   it('blocks usage when the chosen storage has no balance row', async () => {
     const { onSubmit } = renderPicker({
       movementType: 'usage',

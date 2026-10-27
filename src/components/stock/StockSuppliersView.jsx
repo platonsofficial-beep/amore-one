@@ -10,7 +10,7 @@ import {
 import {
   buildSupplierMetrics,
   buildSuppliersDashboardSummary,
-  formatReceivedValueLabel,
+  describeReceivedValue,
   formatSupplierMetricDate,
   formatSupplierStatusLabel,
   getSupplierInitials,
@@ -81,6 +81,7 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
 function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
   const statusTone = getSupplierStatusTone(supplier)
   const hasOrderHistory = Boolean(metrics.lastOrderDate) || Number(metrics.totalSpend) > 0
+  const receivedValue = describeReceivedValue(metrics.totalSpend, metrics.receivedOrders?.length)
 
   return (
     <button
@@ -131,8 +132,11 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
           <div className="stock-supplier-card-stat">
             <span className="stock-supplier-card-stat-label">Received value</span>
             <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">
-              {formatReceivedValueLabel(metrics.totalSpend, metrics.receivedOrders?.length)}
+              {receivedValue.value}
             </span>
+            {receivedValue.caption ? (
+              <span className="stock-received-value-caption">{receivedValue.caption}</span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -245,6 +249,10 @@ export function StockSuppliersView({
   const dashboardSummary = useMemo(
     () => buildSuppliersDashboardSummary(suppliers, stockItems, stockOrders),
     [suppliers, stockItems, stockOrders],
+  )
+  const receivedKpi = describeReceivedValue(
+    dashboardSummary.totalPurchaseValue,
+    dashboardSummary.receivedOrders,
   )
 
   const filteredSuppliers = useMemo(() => {
@@ -360,14 +368,10 @@ export function StockSuppliersView({
         {canManage ? (
           <article className="stock-summary-card">
             <p className="stock-summary-label">Received value</p>
-            <p className="stock-summary-value">
-              {isLoading
-                ? '—'
-                : formatReceivedValueLabel(
-                  dashboardSummary.totalPurchaseValue,
-                  dashboardSummary.receivedOrders,
-                )}
-            </p>
+            <p className="stock-summary-value">{isLoading ? '—' : receivedKpi.value}</p>
+            {!isLoading && receivedKpi.caption ? (
+              <p className="stock-summary-caption">{receivedKpi.caption}</p>
+            ) : null}
           </article>
         ) : null}
         <article className="stock-summary-card tone-warning">
