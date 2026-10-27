@@ -252,7 +252,27 @@ export function resolvePermittedActiveView(role, requestedView) {
   const fallbackModule = resolveDefaultModuleForRole(role)
   const normalizedView = normalizeModuleId(requestedView) || fallbackModule
   if (normalizedView === 'settings' && canConfigureReservationSeatings(role)) return 'settings'
+  if (normalizedView === 'attendance') {
+    return canManageAttendance(role) ? 'attendance' : fallbackModule
+  }
   return canAccessModule(role, normalizedView) ? normalizedView : fallbackModule
+}
+
+// Attendance manager view. Owner always. Host never, even with a stored override.
+// Everyone else follows the attendance module (manage), or the role preset when
+// no custom level is stored. Clocking in stays open to every member.
+export function canManageAttendance(access) {
+  const roleName = roleOf(access)
+  const normalized = normalizeWorkspaceRole(roleName, '')
+  if (normalized === 'owner') return true
+  if (normalized === 'host') return false
+
+  const { perms } = readAccess(access, '')
+  if (Object.hasOwn(perms, 'attendance')) {
+    return hasPermission(perms, 'attendance', 'manage')
+  }
+
+  return normalized === 'general_manager' || normalized === 'manager'
 }
 
 export function isManagerRole(role) {

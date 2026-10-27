@@ -61,6 +61,7 @@ export function MobileStaffApp({
   const isHostShell = shellVariant === 'host'
   const usesInternalTabs = isStaffShell || isHostShell
   const [staffTab, setStaffTab] = useState(activeTab)
+  const [clockOpen, setClockOpen] = useState(false)
   const [pendingTab, setPendingTab] = useState(null)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [availabilityContext, setAvailabilityContext] = useState({
@@ -127,6 +128,7 @@ export function MobileStaffApp({
   }, [staffTab, loadAvailabilityContext])
 
   const applyTabChange = useCallback((tab) => {
+    setClockOpen(false)
     if (tab === 'availability') {
       setStaffTab('availability')
       return
@@ -245,7 +247,14 @@ export function MobileStaffApp({
           </div>
         </div>
       ) : null}
-      {showHostStation ? (
+      {clockOpen ? (
+        <div className="mobile-app-content attendance-clock-screen">
+          <button type="button" className="mobile-back-btn" onClick={() => setClockOpen(false)}>
+            ‹ Back
+          </button>
+          {homeProps?.clockCard}
+        </div>
+      ) : showHostStation ? (
         <div className="mobile-host-mode-screen">
           {hostStationContent ? (
             <div className="mobile-workspace-module is-host-mode-module">
@@ -265,6 +274,7 @@ export function MobileStaffApp({
           ) : (
             <MobileMenuView
               {...menuProps}
+              onOpenClock={homeProps?.clockCard ? () => setClockOpen(true) : undefined}
               onOpenAvailability={isHostShell ? () => handleTabChange('availability') : undefined}
             />
           )

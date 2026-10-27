@@ -64,6 +64,8 @@ export function MobileMenuView({
   onOpenRequestLeave,
   onOpenLeaveInbox,
   onOpenAvailability,
+  onOpenClock,
+  onOpenAttendance,
   onSignOut,
 }) {
   const visibleModules = menuVariant === 'manager'
@@ -111,6 +113,11 @@ export function MobileMenuView({
             {onOpenAvailability ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
                 My Availability
+              </button>
+            ) : null}
+            {onOpenClock ? (
+              <button type="button" className="mobile-menu-btn" onClick={onOpenClock}>
+                ⏱ Clock in/out
               </button>
             ) : null}
             <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
@@ -165,6 +172,14 @@ export function MobileMenuView({
                   title="Leave inbox"
                   subtitle="Pending leave requests"
                   onClick={onOpenLeaveInbox}
+                />
+              ) : null}
+              {onOpenAttendance ? (
+                <ManagerNavCard
+                  icon="⏱"
+                  title="Attendance"
+                  subtitle="Who is in, late, and hours"
+                  onClick={onOpenAttendance}
                 />
               ) : null}
               {managerWorkspaceItems.map((item) => (
@@ -237,6 +252,11 @@ export function MobileMenuView({
                 Settings
               </button>
             ) : null}
+            {onOpenAttendance ? (
+              <button type="button" className="mobile-menu-btn" onClick={onOpenAttendance}>
+                ⏱ Attendance
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -257,6 +277,11 @@ export function MobileMenuView({
           {onOpenAvailability ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
               My Availability
+            </button>
+          ) : null}
+          {onOpenClock ? (
+            <button type="button" className="mobile-menu-btn" onClick={onOpenClock}>
+              ⏱ Clock in/out
             </button>
           ) : null}
           <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>

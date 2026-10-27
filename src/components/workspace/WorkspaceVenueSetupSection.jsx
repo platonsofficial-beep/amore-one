@@ -27,6 +27,7 @@ export function WorkspaceVenueSetupSection({
   scheduleAreas = [],
   reservationAreas = [],
   taskBoards = [],
+  clockLocation = null,
 }) {
   return (
     <>
@@ -42,6 +43,8 @@ export function WorkspaceVenueSetupSection({
           </p>
         </div>
       </div>
+
+      {clockLocation}
 
       <div className="workspace-venue-grid">
         <WorkspaceVenueCard
