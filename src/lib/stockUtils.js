@@ -262,6 +262,28 @@ export function formatStockInactiveNote(inactiveItems = 0) {
   return `+${inactive} inactive`
 }
 
+/** Header total is active products only. */
+export function formatStockActiveCountWord(totalItems) {
+  const count = Number(totalItems) || 0
+  return count === 1 ? 'active item' : 'active items'
+}
+
+/**
+ * Browse count follows the visibility filter, so All can be higher than the
+ * active header total. Name that scope so the two numbers are not read as a bug.
+ */
+export function formatStockBrowseResultCount(visibleCount, matchCount, visibilityFilter = 'active') {
+  const visible = Math.max(0, Number(visibleCount) || 0)
+  const total = Math.max(0, Number(matchCount) || 0)
+  const products = total === 1 ? 'product' : 'products'
+  const scope = visibilityFilter === 'inactive'
+    ? 'inactive'
+    : visibilityFilter === 'all'
+      ? 'active and inactive'
+      : 'active'
+  return `Showing ${visible} of ${total} ${scope} ${products}`
+}
+
 export function getStockCategoryFilters(items = []) {
   const categories = new Set()
 

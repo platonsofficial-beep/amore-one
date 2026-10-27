@@ -261,10 +261,11 @@ export function StockOrdersView({
                 className="ghost-btn"
                 aria-expanded={ordersMenuOpen}
                 aria-haspopup="menu"
+                aria-label="Order actions"
                 onClick={() => setOrdersMenuOpen((open) => !open)}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                More
+                Order actions
               </button>
               {ordersMenuOpen ? (
                 <div className="stock-orders-more-menu" role="menu">

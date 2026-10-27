@@ -435,8 +435,8 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).not.toContain('Mark as supply storage')
     expect(container.querySelectorAll('[data-testid="supply-storage-pill"]')).toHaveLength(2)
     expect(container.querySelector('[data-action="new-department"]')).toBeTruthy()
-    expect(container.querySelector('[data-department-group="d-bar"] [data-action="rename-department"]')).toBeTruthy()
-    expect(container.querySelector('[data-department-group="d-bar"] [data-action="archive-department"]')).toBeTruthy()
+    expect(container.querySelector('[data-department-group="d-bar"] [data-action="rename-department"]')?.textContent).toBe('Rename department')
+    expect(container.querySelector('[data-department-group="d-bar"] [data-action="archive-department"]')?.textContent).toBe('Archive department')
     expect(container.querySelector('[data-department-group="unassigned"] [data-action="archive-department"]')).toBeNull()
 
     const backCard = container.querySelector('[data-storage-card="back"]')
