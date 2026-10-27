@@ -40,6 +40,10 @@ export const MODULE_LABELS = {
   attendance: 'Time clock',
   'time-clock': 'Time clock',
   'floor-plan-builder': 'Floor Plan Builder',
+  'my-week': 'My week',
+  account: 'Profile',
+  clock: 'Clock in/out',
+  notifications: 'Notifications',
 }
 
 const LEGACY_ACTIVE_VIEW_MAP = {
@@ -140,6 +144,10 @@ export function getModuleTitle(activeView, {
   }
   if (activeView === 'insights') return 'Insights'
   if (activeView === 'settings') return 'Settings'
+  if (activeView === 'my-week') return 'My week'
+  if (activeView === 'account') return 'Profile'
+  if (activeView === 'clock') return 'Clock in/out'
+  if (activeView === 'notifications') return 'Notifications'
   if (activeView === 'time-clock' || activeView === 'attendance') return 'Time clock'
   return getModuleLabel(activeView)
 }
@@ -173,6 +181,10 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
   if (activeView === 'settings') return 'Venue and account configuration.'
+  if (activeView === 'my-week') return 'Weekly availability.'
+  if (activeView === 'account') return 'Personal details and account.'
+  if (activeView === 'clock') return 'Clock in or out for this shift.'
+  if (activeView === 'notifications') return 'Reminders, quiet hours and this device.'
   if (activeView === 'time-clock' || activeView === 'attendance') return "Who is in, late arrivals, and this week's hours."
   return ''
 }

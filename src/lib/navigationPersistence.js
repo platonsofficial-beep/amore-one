@@ -18,6 +18,10 @@ const VALID_ACTIVE_VIEWS = new Set([
   'settings',
   'time-clock',
   'floor-plan-builder',
+  'my-week',
+  'account',
+  'clock',
+  'notifications',
 ])
 
 const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])

@@ -557,6 +557,8 @@ import { useNotificationCenter } from './components/notifications/useNotificatio
 import { planNotificationOpen, resolveNotificationTarget } from './lib/pushNotifications'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
+import { MobileProfileView } from './components/mobile/MobileProfileView'
+import { StaffWeekScreen } from './components/mobile/StaffWeekScreen'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
 import { MobileReservationQuickCreateSheet } from './components/mobile/reservations/MobileReservationQuickCreateSheet'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
@@ -633,6 +635,7 @@ import {
   resolveHostMobileTabChange,
   resolveMobileShellVariant,
   resolvePermittedActiveView,
+  resolveDefaultModuleForRole,
   resolveExitReservationsHostDestination,
   shouldShowReservationsHostView,
   shouldUseReservationsHostDedicatedShell,
@@ -694,6 +697,14 @@ import {
   readPersistedMobileWeekStart,
 } from './lib/mobileNavigationPersistence'
 import { resolveHostInitialLanding } from './lib/mobileHostReservationUtils'
+import {
+  canOpenStaffHostPersonalView,
+  isStaffHostPersonalView,
+  isStaffOrHostRole,
+  mobileStateForPersonalView,
+  staffHostAvatarActions,
+  withStaffHostRailItems,
+} from './lib/staffHostPersonalNav'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
 
@@ -14735,6 +14746,7 @@ function App() {
   const previousActiveViewRef = useRef(activeView)
   const preReservationsHostViewRef = useRef('today')
   const hostMobileLandedRef = useRef(false)
+  const personalReturnRef = useRef('today')
   const scheduleEntryRef = useRef({ view: 'today', teamSection: 'today' })
   const templateGenerationKeyRef = useRef('')
   const closeReservationModalRef = useRef(() => {})
@@ -14998,15 +15010,19 @@ function App() {
 
   const visibleNavItems = useMemo(() => {
     const items = filterNavItemsByRole(NAV_ITEMS, permissionAccess)
-    if (!canManageAttendance(permissionAccess)) return items
-    const attendanceItem = { id: 'time-clock', label: 'Time clock', icon: '⏱' }
-    const settingsIndex = items.findIndex((item) => item.id === 'settings')
-    if (settingsIndex < 0) return [...items, attendanceItem]
-    return [
-      ...items.slice(0, settingsIndex),
-      attendanceItem,
-      ...items.slice(settingsIndex),
-    ]
+    const withAttendance = !canManageAttendance(permissionAccess)
+      ? items
+      : (() => {
+        const attendanceItem = { id: 'time-clock', label: 'Time clock', icon: '⏱' }
+        const settingsIndex = items.findIndex((item) => item.id === 'settings')
+        if (settingsIndex < 0) return [...items, attendanceItem]
+        return [
+          ...items.slice(0, settingsIndex),
+          attendanceItem,
+          ...items.slice(settingsIndex),
+        ]
+      })()
+    return withStaffHostRailItems(withAttendance, permissionAccess)
   }, [permissionAccess])
 
   const visibleTeamSections = useMemo(
@@ -15064,7 +15080,8 @@ function App() {
   }, [])
 
   const isActiveViewAllowed = !isAuthLoading && (
-    (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
+    canOpenStaffHostPersonalView(permissionAccess, activeView)
+    || (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
     || (activeView === 'time-clock' && canManageAttendanceRole)
     || canAccessModule(permissionAccess, activeView)
   )
@@ -16021,7 +16038,8 @@ function App() {
     const allowedTabs = getMobileBottomTabs(permissionAccess, variant)
     if (allowedTabs.length === 0) return
 
-    const isActiveTabAllowed = allowedTabs.some((tab) => tab.id === activeMobileTab)
+    const isPersonalTab = activeMobileTab === 'availability' && (variant === 'staff' || variant === 'host')
+    const isActiveTabAllowed = isPersonalTab || allowedTabs.some((tab) => tab.id === activeMobileTab)
     if (isActiveTabAllowed) return
 
     const fallbackTab = allowedTabs[0].id
@@ -16041,6 +16059,17 @@ function App() {
     permissionAccess,
     activeMobileTab,
   ])
+
+  useEffect(() => {
+    if (!useDedicatedShell || isAuthLoading || !isStaffOrHostRole(role)) return
+    const mobile = mobileStateForPersonalView(activeView)
+    if (!mobile) return
+    setMobileExpandedView(null)
+    setMobileReservationsHostMode(false)
+    setMobileStaffTab(mobile.tab)
+    persistMobileTab(mobile.tab, isHostMobileRole(role) ? 'host' : 'staff')
+    setMobileMenuScreen(mobile.menuScreen)
+  }, [useDedicatedShell, isAuthLoading, role, activeView])
 
   useEffect(() => {
     if (isAuthLoading || !isHostAccount) return
@@ -23227,13 +23256,44 @@ function App() {
     setMobileExpandedView(null)
   }
 
+  const openStaffHostPersonalView = useCallback((view) => {
+    if (!canOpenStaffHostPersonalView(role, view)) return
+    if (!isStaffHostPersonalView(activeView) && activeView) {
+      personalReturnRef.current = activeView
+    }
+    const mobile = mobileStateForPersonalView(view)
+    setMobileExpandedView(null)
+    setMobileReservationsHostMode(false)
+    if (mobile) {
+      setMobileStaffTab(mobile.tab)
+      persistMobileTab(mobile.tab, isHostMobileRole(role) ? 'host' : 'staff')
+      setMobileMenuScreen(mobile.menuScreen)
+    }
+    handleActiveViewChange(view)
+  }, [activeView, handleActiveViewChange, role])
+
+  const leavePersonalView = useCallback(() => {
+    const destination = personalReturnRef.current
+    const next = destination && !isStaffHostPersonalView(destination)
+      ? destination
+      : resolveDefaultModuleForRole(role)
+    setMobileMenuScreen('main')
+    setMobileExpandedView(null)
+    handleActiveViewChange(next)
+  }, [handleActiveViewChange, role])
+
   const handleMobileTabChange = useCallback((tab) => {
     setMobileExpandedView(null)
-    setMobileMenuScreen('main')
+    if (tab !== 'availability') setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
       setMobileReservationsHostMode(false)
       setMobileManagerTab(tab)
       persistManagerMobileTab(tab)
+      return
+    }
+
+    if (tab === 'availability') {
+      openStaffHostPersonalView('my-week')
       return
     }
 
@@ -23251,7 +23311,15 @@ function App() {
     setMobileStaffTab(tab)
     persistMobileTab(tab, 'staff')
     setMobileReservationsHostMode(false)
-  }, [role, handleActiveViewChange])
+    if (isStaffHostPersonalView(activeView)) {
+      const staffView = tab === 'schedule'
+        ? 'team'
+        : tab === 'tasks'
+          ? 'operations'
+          : resolveDefaultModuleForRole(role)
+      handleActiveViewChange(staffView)
+    }
+  }, [activeView, openStaffHostPersonalView, role, handleActiveViewChange])
 
   const handleMobileOpenFullSchedule = () => {
     if (!canOpenMobileFullSchedule(permissionAccess)) return
@@ -23530,10 +23598,18 @@ function App() {
   }
 
   const handleMobileOpenProfile = () => {
+    if (isStaffOrHostRole(role)) {
+      openStaffHostPersonalView('account')
+      return
+    }
     setMobileMenuScreen('profile')
   }
 
   const handleMobileBackFromProfile = () => {
+    if (activeView === 'account') {
+      leavePersonalView()
+      return
+    }
     setMobileMenuScreen('main')
   }
 
@@ -23598,7 +23674,11 @@ function App() {
     if (plan.action === 'staff-clock') {
       setMobileExpandedView(null)
       setMobileReservationsHostMode(false)
-      handleMobileTabChange('home')
+      if (isStaffOrHostRole(role)) {
+        openStaffHostPersonalView('clock')
+      } else {
+        handleMobileTabChange('home')
+      }
       setClockOpenToken((value) => value + 1)
       return
     }
@@ -23664,6 +23744,11 @@ function App() {
       return
     }
 
+    if (isStaffOrHostRole(role)) {
+      openStaffHostPersonalView('notifications')
+      return
+    }
+
     if (useMobileExperience) {
       setNotificationSettingsOpen(false)
       setMobileExpandedView(null)
@@ -23674,6 +23759,20 @@ function App() {
 
     setNotificationSettingsOpen(true)
   }
+
+  const staffHostAccountActions = isStaffOrHostRole(role)
+    ? staffHostAvatarActions({ canRequestLeave: canRequestOwnLeave })
+    : []
+  const handleStaffHostAccountAction = (actionId) => {
+    if (actionId === 'leave') {
+      setIsRequestLeaveModalOpen(true)
+      return
+    }
+    openStaffHostPersonalView(actionId)
+  }
+  const avatarNotifications = (showNotificationShortcut || isStaffOrHostRole(role))
+    ? openNotificationSettings
+    : undefined
 
   const {
     bell: notificationBell,
@@ -23726,7 +23825,13 @@ function App() {
               key={item.id}
               type="button"
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
-              onClick={() => handleActiveViewChange(item.id)}
+              onClick={() => {
+                if (isStaffHostPersonalView(item.id)) {
+                  openStaffHostPersonalView(item.id)
+                  return
+                }
+                handleActiveViewChange(item.id)
+              }}
             >
               <span className="nav-icon">{item.icon}</span>
               <span>{item.label}</span>
@@ -23747,6 +23852,18 @@ function App() {
               timeZone={workspaceTimeZone}
             />
           ) : null
+          const accountProfileProps = {
+            displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+            email: `${membership?.email ?? user?.email ?? ''}`.trim(),
+            phone: mobileProfilePhone,
+            roleLabel,
+            venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+            linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
+            canEditPhone: Boolean(membership?.employeeId),
+            isSaving: isSavingMobileProfile,
+            errorMessage: mobileProfileError,
+            onSave: handleMobileProfileSave,
+          }
           const workspaceModules = (
             <>
         {isAuthLoading ? (
@@ -23832,6 +23949,29 @@ function App() {
             roleLabel={roleLabel}
             onGoDashboard={() => handleActiveViewChange('today')}
           />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'my-week' ? (
+          <StaffWeekScreen
+            employeeId={mobileEmployeeId ?? ''}
+            needsEmployeeLink={mobileNeedsEmployeeLink}
+          />
+        ) : null}
+        {isActiveViewAllowed && activeView === 'account' ? (
+          <div className="staff-host-personal-page">
+            <MobileProfileView {...accountProfileProps} onBack={leavePersonalView} />
+          </div>
+        ) : null}
+        {isActiveViewAllowed && activeView === 'clock' ? (
+          <div className="staff-host-personal-page">
+            <button type="button" className="mobile-back-btn" onClick={leavePersonalView}>‹ Back</button>
+            {attendanceClockCard}
+          </div>
+        ) : null}
+        {isActiveViewAllowed && activeView === 'notifications' ? (
+          <div className="staff-host-personal-page">
+            {notificationSettingsPanel}
+          </div>
         ) : null}
 
         {isActiveViewAllowed && activeView === 'today' ? (
@@ -24564,7 +24704,13 @@ function App() {
                     onOpenSettings: handleMobileOpenSettings,
                     onOpenAttendance: canManageAttendanceRole ? handleOpenAttendance : undefined,
                     onOpenNotifications: showNotificationShortcut ? openNotificationSettings : undefined,
-                    onBackFromNotifications: () => setMobileMenuScreen('main'),
+                    onBackFromNotifications: () => {
+                      if (activeView === 'notifications') {
+                        leavePersonalView()
+                        return
+                      }
+                      setMobileMenuScreen('main')
+                    },
                     notificationSettings: notificationSettingsPanel,
                     onSignOut: handleMobileSignOut,
                     menuVariant: isManagerMobileShell ? 'manager' : isHostMobileShellLocal ? 'host' : 'staff',
@@ -24713,6 +24859,9 @@ function App() {
                         bottomTabs={mobileBottomTabs}
                         notificationBell={notificationBell}
                         clockOpenToken={clockOpenToken}
+                        personalDestination={isStaffHostPersonalView(activeView) ? activeView : ''}
+                        onPersonalDestination={openStaffHostPersonalView}
+                        onLeavePersonal={leavePersonalView}
                       />
                     )
                   }
@@ -24763,6 +24912,9 @@ function App() {
                       bottomTabs={mobileBottomTabs}
                       notificationBell={notificationBell}
                       clockOpenToken={clockOpenToken}
+                      personalDestination={isStaffHostPersonalView(activeView) ? activeView : ''}
+                      onPersonalDestination={openStaffHostPersonalView}
+                      onLeavePersonal={leavePersonalView}
                     />
                   )
                 })()
@@ -24786,7 +24938,9 @@ function App() {
                     onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                     canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                     notificationBell={notificationBell}
-                    onOpenNotifications={showNotificationShortcut ? openNotificationSettings : undefined}
+                    onOpenNotifications={avatarNotifications}
+                    accountActions={staffHostAccountActions}
+                    onAccountAction={handleStaffHostAccountAction}
                   />
                   ) : (
                   <header className="topbar">
@@ -24815,7 +24969,9 @@ function App() {
                         employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                         canOpenWorkspaceProfile={canOpenWorkspaceProfile}
-                        onOpenNotifications={showNotificationShortcut ? openNotificationSettings : undefined}
+                        onOpenNotifications={avatarNotifications}
+                        accountActions={staffHostAccountActions}
+                        onAccountAction={handleStaffHostAccountAction}
                       />
                     </div>
                   </header>

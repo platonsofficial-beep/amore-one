@@ -1,4 +1,5 @@
 import { isHostRole, normalizeWorkspaceRole } from './membershipRoles'
+import { canOpenStaffHostPersonalView } from './staffHostPersonalNav'
 
 export const APP_MODULES = [
   'today',
@@ -251,6 +252,7 @@ export function filterNavItemsByRole(navItems, role) {
 export function resolvePermittedActiveView(role, requestedView) {
   const fallbackModule = resolveDefaultModuleForRole(role)
   const normalizedView = normalizeModuleId(requestedView) || fallbackModule
+  if (canOpenStaffHostPersonalView(role, normalizedView)) return normalizedView
   if (normalizedView === 'settings' && canConfigureReservationSeatings(role)) return 'settings'
   if (normalizedView === 'attendance' || normalizedView === 'time-clock') {
     return canManageAttendance(role) ? 'time-clock' : fallbackModule
