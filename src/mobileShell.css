@@ -5191,7 +5191,8 @@
 }
 
 .mobile-host-layout-btn,
-.mobile-host-mode-exit-btn {
+.mobile-host-mode-exit-btn,
+.mobile-host-services-btn {
   flex-shrink: 0;
   min-height: 44px;
   min-width: 44px;

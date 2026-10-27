@@ -81,6 +81,11 @@ describe('MemberAccessPanel', () => {
     expect(view.container.textContent).toContain('None')
     expect(view.container.textContent).toContain('View')
     expect(view.container.textContent).toContain('Manage')
+    const buttonLabels = (label) => [...view.container.querySelectorAll('.member-access-row')]
+      .find((row) => row.textContent.includes(label))
+      .querySelectorAll('button')
+    expect([...buttonLabels('Stock')].map((button) => button.textContent)).toEqual(['None', 'View & count', 'Manage'])
+    expect([...buttonLabels('Schedule')].map((button) => button.textContent)).toEqual(['None', 'View', 'Manage'])
     expect(view.container.textContent).toContain('Reset to role default')
     view.unmount()
   })
@@ -113,6 +118,7 @@ describe('MemberAccessPanel', () => {
     })
     await view.flush()
 
+    expect(view.container.querySelector('[role="status"]')?.textContent).toBe('Access saved')
     expect(savePermissionRows).toHaveBeenCalledTimes(1)
     expect(savePermissionRows.mock.calls[0][0]).toMatchObject({
       workspaceId: 'ws-1',
@@ -127,6 +133,17 @@ describe('MemberAccessPanel', () => {
     })
     await view.flush()
     expect(savePermissionRows.mock.calls[1][0].levels).toEqual(presetLevelsForRole('manager'))
+    expect(view.container.querySelector('[role="status"]')?.textContent).toBe('Access reset to the role default.')
+
+    savePermissionRows.mockRejectedValueOnce(new Error('Network down'))
+    await act(async () => {
+      stockNone.click()
+    })
+    await act(async () => {
+      save.click()
+    })
+    await view.flush()
+    expect(view.container.querySelector('[role="alert"]')?.textContent).toBe('Network down')
     view.unmount()
   })
 

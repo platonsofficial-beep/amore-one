@@ -10,9 +10,9 @@ describe('floor table seating dialog render state', () => {
 })
 
 describe('reservation seating permissions', () => {
-  it('allows hosts to manage reservations but not configure seatings', () => {
+  it('allows hosts who can manage reservations to configure seatings', () => {
     expect(canManageReservations('host')).toBe(true)
-    expect(canConfigureReservationSeatings('host')).toBe(false)
+    expect(canConfigureReservationSeatings('host')).toBe(true)
     expect(canConfigureReservationSeatings('manager')).toBe(true)
     expect(canConfigureReservationSeatings('owner')).toBe(true)
   })

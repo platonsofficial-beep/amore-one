@@ -161,7 +161,7 @@
     "canManageAnnouncements": false,
     "canEditSchedule": false,
     "canEditFloorPlan": true,
-    "canConfigureReservationSeatings": false,
+    "canConfigureReservationSeatings": true,
     "canManageReservations": true,
     "canOpenReservationsHostMode": true,
     "canManageEmployeeInvites": false,

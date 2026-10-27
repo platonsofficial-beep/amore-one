@@ -242,12 +242,16 @@ export function getAccessibleModules(role) {
 }
 
 export function filterNavItemsByRole(navItems, role) {
-  return navItems.filter((item) => canAccessModule(role, item.id))
+  return navItems.filter((item) => {
+    if (item.id === 'settings' && canConfigureReservationSeatings(role)) return true
+    return canAccessModule(role, item.id)
+  })
 }
 
 export function resolvePermittedActiveView(role, requestedView) {
   const fallbackModule = resolveDefaultModuleForRole(role)
   const normalizedView = normalizeModuleId(requestedView) || fallbackModule
+  if (normalizedView === 'settings' && canConfigureReservationSeatings(role)) return 'settings'
   return canAccessModule(role, normalizedView) ? normalizedView : fallbackModule
 }
 
@@ -289,7 +293,7 @@ export function canEditFloorPlan(role) {
 }
 
 export function canConfigureReservationSeatings(role) {
-  return hasPermission(readAccess(role).perms, 'seatings', 'manage')
+  return hasPermission(readAccess(role).perms, 'reservations', 'manage')
 }
 
 export function canManageReservations(role) {

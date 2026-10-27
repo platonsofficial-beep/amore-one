@@ -99,6 +99,20 @@ describe('MobileReservationsHostView header actions', () => {
     unmount()
   })
 
+  it('opens reservation services from the header when seating management is available', () => {
+    const onOpenReservationServices = vi.fn()
+    const { container, unmount } = renderHostView({ onOpenReservationServices })
+
+    const servicesButton = container.querySelector('.mobile-host-services-btn')
+    expect(servicesButton?.textContent).toBe('Services')
+    act(() => {
+      servicesButton.click()
+    })
+    expect(onOpenReservationServices).toHaveBeenCalledTimes(1)
+
+    unmount()
+  })
+
   it('shows Settings in the header when host settings are available', () => {
     const { container, unmount } = renderHostView({
       hasLayout: true,
