@@ -22,6 +22,35 @@ function normalizeTimeInputValue(value) {
   return raw.slice(0, 5)
 }
 
+function AvailabilityTimeField({
+  label,
+  placeholder,
+  value,
+  disabled,
+  onChange,
+}) {
+  const empty = !`${value ?? ''}`.trim()
+
+  return (
+    <label className="mobile-availability-field">
+      <span className="mobile-availability-field-label">{label}</span>
+      <span className={`mobile-availability-time${empty ? ' is-empty' : ''}`}>
+        <input
+          type="time"
+          className="mobile-availability-input"
+          value={value ?? ''}
+          placeholder={placeholder}
+          onChange={onChange}
+          disabled={disabled}
+        />
+        {empty ? (
+          <span className="mobile-availability-time-placeholder" aria-hidden="true">{placeholder}</span>
+        ) : null}
+      </span>
+    </label>
+  )
+}
+
 export function MobileAvailabilityView({
   workspaceId = '',
   employeeId = '',
@@ -125,7 +154,7 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My availability</p>
+          <p className="mobile-screen-eyebrow">My week</p>
           <h1 className="mobile-screen-title">Weekly availability</h1>
         </header>
         <section className="mobile-card tone-neutral">
@@ -139,7 +168,7 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My availability</p>
+          <p className="mobile-screen-eyebrow">My week</p>
           <h1 className="mobile-screen-title">Weekly availability</h1>
         </header>
         <section className="mobile-card tone-neutral" aria-live="polite">
@@ -153,7 +182,7 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My availability</p>
+          <p className="mobile-screen-eyebrow">My week</p>
           <h1 className="mobile-screen-title">Weekly availability</h1>
         </header>
         <section className="mobile-availability-banner mobile-availability-banner-error" role="alert">
@@ -171,7 +200,7 @@ export function MobileAvailabilityView({
   return (
     <div className="mobile-screen mobile-availability">
       <header className="mobile-screen-header">
-        <p className="mobile-screen-eyebrow">My availability</p>
+        <p className="mobile-screen-eyebrow">My week</p>
         <h1 className="mobile-screen-title">Weekly availability</h1>
         {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
       </header>
@@ -231,31 +260,24 @@ export function MobileAvailabilityView({
               </label>
 
               <div className="mobile-availability-time-grid">
-                <label className="mobile-availability-field">
-                  <span className="mobile-availability-field-label">Start time (optional)</span>
-                  <input
-                    type="time"
-                    className="mobile-availability-input"
-                    value={entry.startTime ?? ''}
-                    onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
-                      startTime: normalizeTimeInputValue(event.target.value),
-                    })}
-                    disabled={isSaving}
-                  />
-                </label>
-
-                <label className="mobile-availability-field">
-                  <span className="mobile-availability-field-label">End time (optional)</span>
-                  <input
-                    type="time"
-                    className="mobile-availability-input"
-                    value={entry.endTime ?? ''}
-                    onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
-                      endTime: normalizeTimeInputValue(event.target.value),
-                    })}
-                    disabled={isSaving}
-                  />
-                </label>
+                <AvailabilityTimeField
+                  label="Start time (optional)"
+                  placeholder="--:--"
+                  value={entry.startTime}
+                  disabled={isSaving}
+                  onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
+                    startTime: normalizeTimeInputValue(event.target.value),
+                  })}
+                />
+                <AvailabilityTimeField
+                  label="End time (optional)"
+                  placeholder="--:--"
+                  value={entry.endTime}
+                  disabled={isSaving}
+                  onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
+                    endTime: normalizeTimeInputValue(event.target.value),
+                  })}
+                />
               </div>
 
               <label className="mobile-availability-field">

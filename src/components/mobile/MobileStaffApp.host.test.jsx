@@ -104,11 +104,11 @@ describe('MobileStaffApp host shell', () => {
     expect(navLabels(container)).toEqual([
       'Home',
       'Schedule',
-      'Avail',
+      'My week',
       'Tasks',
       'Profile',
     ])
-    expect(container.querySelector('.mobile-bottom-nav-item[aria-label="My Availability"]')).toBeTruthy()
+    expect(container.querySelector('.mobile-bottom-nav-item[aria-label="My week"]')).toBeTruthy()
     unmount()
   })
 })
