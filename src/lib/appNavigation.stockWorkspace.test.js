@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isStockWorkspaceView,
   resolveExitStockDestination,
+  resolveSidebarWorkspaceExit,
   shouldHideStandardTopbar,
   shouldShowModuleSearch,
 } from './appNavigation'
@@ -40,5 +41,32 @@ describe('Stock full-screen workspace navigation helpers', () => {
     expect(resolveExitStockDestination('stock')).toBe('today')
     expect(resolveExitStockDestination('')).toBe('today')
     expect(resolveExitStockDestination(null)).toBe('today')
+  })
+
+  it('returns Exit from Schedule or Stock to the last sidebar page, or Today', () => {
+    expect(resolveSidebarWorkspaceExit({ view: 'today', teamSection: 'today' })).toEqual({
+      view: 'today',
+      teamSection: 'today',
+    })
+    expect(resolveSidebarWorkspaceExit({ view: 'team', teamSection: 'members' })).toEqual({
+      view: 'team',
+      teamSection: 'members',
+    })
+    expect(resolveSidebarWorkspaceExit({ view: 'operations', teamSection: 'tasks' })).toEqual({
+      view: 'operations',
+      teamSection: 'tasks',
+    })
+    expect(resolveSidebarWorkspaceExit({ view: 'stock', teamSection: 'dashboard' })).toEqual({
+      view: 'today',
+      teamSection: 'today',
+    })
+    expect(resolveSidebarWorkspaceExit({ view: 'team', teamSection: 'schedule' })).toEqual({
+      view: 'today',
+      teamSection: 'today',
+    })
+    expect(resolveSidebarWorkspaceExit(null)).toEqual({
+      view: 'today',
+      teamSection: 'today',
+    })
   })
 })

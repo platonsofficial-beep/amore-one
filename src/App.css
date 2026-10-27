@@ -51575,19 +51575,89 @@ summary:focus-visible {
 }
 
 @media (max-width: 900px) {
-  /* portrait-week-names: short day labels and unwrapped shift names on a phone. */
+  /* portrait-week-names: full shift names wrap on word boundaries. */
   .schedule-shift-instance-name,
   .schedule-shift-instance-dept {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    overflow-wrap: normal;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: break-word;
     word-break: normal;
+    font-size: 0.68rem;
+    line-height: 1.15;
   }
 
   .blend-grid-header-day-name {
     font-size: 0.68rem;
     letter-spacing: 0.02em;
   }
+}
+
+@media (max-height: 430px) {
+  /* portrait-week-header: short landscape keeps the week grid on screen. */
+  .app-shell.schedule-focus-mode .main-panel.main-panel-schedule {
+    padding: 4px 8px 6px;
+    gap: 4px;
+  }
+
+  .app-shell.schedule-focus-mode .main-panel-schedule .module-section-tabs {
+    display: none;
+  }
+
+  .schedule-focus-workspace {
+    gap: 4px;
+  }
+
+  .schedule-focus-workspace .schedule-header {
+    gap: 4px 8px;
+    padding: 4px 8px;
+  }
+
+  .schedule-focus-workspace .schedule-header-eyebrow {
+    display: none;
+  }
+
+  .schedule-focus-workspace .schedule-header-copy {
+    gap: 0;
+  }
+
+  .schedule-focus-workspace .schedule-header-title {
+    font-size: 0.92rem;
+    line-height: 1.1;
+  }
+
+  .schedule-focus-workspace .schedule-header-actions,
+  .schedule-focus-workspace .schedule-header-nav,
+  .schedule-focus-workspace .schedule-header-controls {
+    gap: 4px;
+  }
+
+  .schedule-focus-workspace .schedule-workspace-banner {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  .schedule-focus-workspace .schedule-staff-availability-summary {
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+
+  .schedule-focus-workspace .schedule-workspace-layout,
+  .schedule-focus-workspace .schedule-workspace-main {
+    gap: 4px;
+    margin: 0;
+  }
+
+  .schedule-focus-workspace .schedule-grid-section {
+    margin: 0;
+  }
+}
+
+.app-shell.is-chat-view .notification-settings,
+.app-shell.is-chat-view .notification-quiet-times,
+.mobile-app .mobile-app-content:has(.chat-screen) .notification-settings,
+.mobile-app .mobile-app-content:has(.chat-screen) .notification-quiet-times {
+  display: none;
 }
 
