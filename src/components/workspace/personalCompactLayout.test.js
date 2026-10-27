@@ -71,6 +71,20 @@ describe('personal compact layout', () => {
     expect(appCss).toContain('overscroll-behavior: contain')
   })
 
+  it('shows Profile once, gives Clock back its own row, and slims Save Availability', () => {
+    const compact = mediaBlocks(appCss, '@media (max-width: 900px) and (max-height: 500px)')
+      .find((block) => block.includes('is-personal-view'))
+
+    expect(compact).toMatch(/\.mobile-profile-header h1\s*\{[^}]*display:\s*none/)
+    expect(compact).toMatch(/\.staff-host-clock-page\s*\{[^}]*flex-direction:\s*column/)
+    expect(compact).toMatch(/\.staff-host-clock-page > \.mobile-back-btn\s*\{[^}]*position:\s*static/)
+    expect(compact).toContain('.app-shell.is-personal-view .mobile-availability .mobile-availability-actions')
+    expect(compact).toContain('justify-content: flex-end')
+    expect(compact).toContain('height: 48px')
+    expect(compact).toContain('.app-shell.is-personal-view .mobile-availability .mobile-availability-save-btn')
+    expect(compact).not.toContain('padding-left: 88px')
+  })
+
   it('compacts the phone-landscape personal headers without dropping actions', () => {
     const compact = mediaBlocks(mobileShellCss, '@media (max-width: 900px) and (max-height: 500px)')
       .find((block) => block.includes('mobile-availability'))
@@ -78,5 +92,8 @@ describe('personal compact layout', () => {
     expect(compact).toContain('.mobile-profile-header')
     expect(compact).toContain('.attendance-clock-screen .attendance-clock-kicker')
     expect(compact).toContain('min-height: 44px')
+    expect(compact).toContain('.mobile-availability .mobile-availability-actions')
+    expect(compact).toContain('justify-content: flex-end')
+    expect(compact).toContain('height: 48px')
   })
 })
