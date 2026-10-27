@@ -14,7 +14,15 @@ const VALID_HOST_MOBILE_TABS = new Set([
   'reservations',
   'menu',
 ])
-const VALID_MANAGER_MOBILE_TABS = new Set(['today', 'stock', 'tasks', 'chat', 'menu'])
+const VALID_MANAGER_MOBILE_TABS = new Set([
+  'today',
+  'reservations',
+  'chat',
+  'tasks',
+  'more',
+  'stock',
+  'menu',
+])
 
 export function normalizeMobileTab(value, { variant = 'staff' } = {}) {
   const normalized = `${value ?? ''}`.trim().toLowerCase()
@@ -55,7 +63,9 @@ export function persistMobileTab(tab, variant = 'staff') {
 
 export function normalizeManagerMobileTab(value) {
   const normalized = `${value ?? ''}`.trim().toLowerCase()
-  return VALID_MANAGER_MOBILE_TABS.has(normalized) ? normalized : DEFAULT_MANAGER_MOBILE_TAB
+  if (normalized === 'menu') return 'more'
+  if (!VALID_MANAGER_MOBILE_TABS.has(normalized)) return DEFAULT_MANAGER_MOBILE_TAB
+  return normalized === 'stock' ? 'more' : normalized
 }
 
 export function readPersistedManagerMobileTab() {

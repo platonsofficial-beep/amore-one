@@ -88,8 +88,18 @@ export function shouldUseMobileShell() {
 
   const width = window.innerWidth || 0
   const height = window.innerHeight || 0
+  let mediaNarrow = false
+  try {
+    mediaNarrow = Boolean(
+      window.matchMedia?.(`(max-width: ${MOBILE_SHELL_MAX_WIDTH}px)`)?.matches,
+    )
+  } catch {
+    mediaNarrow = false
+  }
 
-  if (isDesktopClassViewport(width)) {
+  // Trust the layout media query when the reported window width is still the
+  // previous desktop size (responsive mode can update matchMedia first).
+  if (!mediaNarrow && isDesktopClassViewport(width)) {
     return false
   }
 
@@ -105,7 +115,8 @@ export function shouldUseMobileShell() {
     window.matchMedia?.('(pointer: coarse)')?.matches ?? false
 
   return (
-    width <= MOBILE_SHELL_MAX_WIDTH
+    mediaNarrow
+    || width <= MOBILE_SHELL_MAX_WIDTH
     || (
       isCoarsePointer
       && Math.min(width, height) <= 480

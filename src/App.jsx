@@ -569,6 +569,12 @@ import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { shouldUseMobileShell } from './lib/viewportUtils'
 import {
+  buildManagerPortraitMoreItems,
+  resolveManagerPortraitScreen,
+  resolveManagerPortraitTab,
+  shouldUseManagerPhoneShell,
+} from './lib/managerPortrait'
+import {
   getScheduleGridDayColumnWidth,
   getScheduleGridTableMinWidth,
   getScheduleShiftTimeSeparator,
@@ -14789,13 +14795,22 @@ function App() {
   } = useAuth()
 
   const [isMobileViewport, setIsMobileViewport] = useState(() => shouldUseMobileShell())
+  const [managerPhoneShell, setManagerPhoneShell] = useState(() => (
+    typeof window !== 'undefined' && shouldUseManagerPhoneShell()
+  ))
   const forceMobileDevice =
     typeof navigator !== 'undefined'
     && /iPhone|iPod/i.test(navigator.userAgent)
-  const useMobileExperience = forceMobileDevice || isMobileViewport
+  const deviceMobileExperience = forceMobileDevice || isMobileViewport
+  const useMobileExperience = isManagementMobileRole(role)
+    ? managerPhoneShell
+    : deviceMobileExperience
   const [mobileStaffTab, setMobileStaffTab] = useState(() => readPersistedMobileTab())
   const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
+  const [managerMoreOpen, setManagerMoreOpen] = useState(false)
+  const [portraitReservationDate, setPortraitReservationDate] = useState('')
+  const [portraitScheduleDate, setPortraitScheduleDate] = useState('')
   const [mobileProfilePhone, setMobileProfilePhone] = useState('')
   const [mobileProfileError, setMobileProfileError] = useState('')
   const [mobileNotice, setMobileNotice] = useState('')
@@ -14814,6 +14829,7 @@ function App() {
       window.cancelAnimationFrame(frameId)
       frameId = window.requestAnimationFrame(() => {
         setIsMobileViewport(shouldUseMobileShell())
+        setManagerPhoneShell(shouldUseManagerPhoneShell())
       })
     }
 
@@ -14830,7 +14846,11 @@ function App() {
     window.visualViewport?.addEventListener('resize', updateMobileViewport)
 
     const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
+    const narrowQuery = window.matchMedia('(max-width: 760px)')
+    const portraitQuery = window.matchMedia('(orientation: portrait)')
     coarsePointerQuery.addEventListener('change', updateMobileViewport)
+    narrowQuery.addEventListener('change', updateMobileViewport)
+    portraitQuery.addEventListener('change', updateMobileViewport)
 
     return () => {
       window.cancelAnimationFrame(frameId)
@@ -14839,6 +14859,8 @@ function App() {
       window.removeEventListener('orientationchange', handleOrientationChange)
       window.visualViewport?.removeEventListener('resize', updateMobileViewport)
       coarsePointerQuery.removeEventListener('change', updateMobileViewport)
+      narrowQuery.removeEventListener('change', updateMobileViewport)
+      portraitQuery.removeEventListener('change', updateMobileViewport)
     }
   }, [])
 
@@ -23319,16 +23341,38 @@ function App() {
   }, [handleActiveViewChange, role])
 
   const handleMobileTabChange = useCallback((tab) => {
-    setMobileExpandedView(null)
-    if (tab !== 'availability') setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
+      if (tab === 'more') {
+        setManagerMoreOpen((open) => !open)
+        return
+      }
+      setManagerMoreOpen(false)
       setMobileReservationsHostMode(false)
+      if (tab === 'menu') {
+        setMobileMenuScreen('main')
+        return
+      }
+      setMobileExpandedView(null)
+      setMobileMenuScreen('main')
       setMobileManagerTab(tab)
       persistManagerMobileTab(tab)
-      if (tab === 'chat') handleActiveViewChange('chat')
-      else if (activeView === 'chat') handleActiveViewChange(resolveDefaultModuleForRole(role))
+      if (tab === 'today') handleActiveViewChange('today')
+      else if (tab === 'reservations') handleActiveViewChange('reservations')
+      else if (tab === 'chat') handleActiveViewChange('chat')
+      else if (tab === 'tasks') {
+        handleActiveViewChange('operations')
+        handleOperationsSectionChange('tasks')
+      } else if (tab === 'stock') {
+        handleActiveViewChange('stock')
+        handleStockSectionChange('dashboard')
+      } else if (activeView === 'chat') {
+        handleActiveViewChange(resolveDefaultModuleForRole(role))
+      }
       return
     }
+
+    setMobileExpandedView(null)
+    if (tab !== 'availability') setMobileMenuScreen('main')
 
     if (tab === 'chat') {
       setMobileStaffTab('chat')
@@ -23365,19 +23409,36 @@ function App() {
           : resolveDefaultModuleForRole(role)
       handleActiveViewChange(staffView)
     }
-  }, [activeView, openStaffHostPersonalView, role, handleActiveViewChange])
+  }, [
+    activeView,
+    openStaffHostPersonalView,
+    role,
+    handleActiveViewChange,
+    handleOperationsSectionChange,
+    handleStockSectionChange,
+  ])
 
   const handleMobileOpenFullSchedule = () => {
     if (!canOpenMobileFullSchedule(permissionAccess)) return
 
     handleActiveViewChange('team')
     handleTeamSectionChange('schedule')
+    if (isManagementMobileRole(role) && useMobileExperience) {
+      setMobileMenuScreen('main')
+      setMobileExpandedView(null)
+      return
+    }
     setMobileExpandedView('full-schedule')
   }
 
   const handleOpenAttendance = () => {
     if (!canManageAttendance(permissionAccess)) return
     handleActiveViewChange('time-clock')
+    setMobileMenuScreen('main')
+    if (useMobileExperience && isManagementMobileRole(role)) {
+      setMobileExpandedView(null)
+      return
+    }
     if (useMobileExperience) setMobileExpandedView('workspace')
   }
 
@@ -23386,7 +23447,9 @@ function App() {
 
     handleActiveViewChange(moduleId)
     if (moduleId === 'team') {
-      handleTeamSectionChange('schedule')
+      handleTeamSectionChange(
+        isManagementMobileRole(role) && useMobileExperience ? 'members' : 'schedule',
+      )
     } else if (moduleId === 'stock') {
       handleStockSectionChange('dashboard')
     } else if (moduleId === 'operations') {
@@ -23394,14 +23457,26 @@ function App() {
     } else if (moduleId === 'settings') {
       handleSettingsSectionChange('profile')
     }
+    setMobileMenuScreen('main')
+    if (isManagementMobileRole(role) && useMobileExperience) {
+      setMobileExpandedView(null)
+      return
+    }
     setMobileExpandedView('workspace')
   }
 
   const handleMobileOpenSettings = () => {
-    if (!canAccessMobileExpandedModule(permissionAccess, 'settings')) return
+    const canOpenSettings = canAccessMobileExpandedModule(permissionAccess, 'settings')
+      || canConfigureReservationSeatings(permissionAccess)
+    if (!canOpenSettings) return
 
     handleActiveViewChange('settings')
     handleSettingsSectionChange('profile')
+    setMobileMenuScreen('main')
+    if (isManagementMobileRole(role) && useMobileExperience) {
+      setMobileExpandedView(null)
+      return
+    }
     setMobileExpandedView('workspace')
   }
 
@@ -23418,8 +23493,9 @@ function App() {
 
     handleActiveViewChange('stock')
     handleStockSectionChange('dashboard')
-    setMobileExpandedView('workspace')
-  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange])
+    setMobileMenuScreen('main')
+    setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
+  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange, role, useMobileExperience])
 
   const handleMobileManagerReceiveDeliveries = useCallback(() => {
     if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
@@ -23442,41 +23518,47 @@ function App() {
     if (!canAccessMobileExpandedModule(permissionAccess, 'operations')) return
 
     handleActiveViewChange('operations')
-    handleOperationsSectionChange('dashboard')
-    setMobileExpandedView('workspace')
-  }, [permissionAccess, handleActiveViewChange, handleOperationsSectionChange])
+    handleOperationsSectionChange('tasks')
+    setMobileMenuScreen('main')
+    setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
+  }, [permissionAccess, handleActiveViewChange, handleOperationsSectionChange, role, useMobileExperience])
 
   const handleMobileManagerOpenTeamToday = useCallback(() => {
     if (!canAccessMobileExpandedModule(permissionAccess, 'team')) return
 
     handleActiveViewChange('team')
     handleTeamSectionChange('today')
-    setMobileExpandedView('workspace')
-  }, [permissionAccess, handleActiveViewChange, handleTeamSectionChange])
+    setMobileMenuScreen('main')
+    setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
+  }, [permissionAccess, handleActiveViewChange, handleTeamSectionChange, role, useMobileExperience])
 
   const handleMobileManagerOpenReservations = useCallback(() => {
     if (!canAccessMobileExpandedModule(permissionAccess, 'reservations')) return
 
     setMobileReservationsHostMode(false)
+    setMobileMenuScreen('main')
     handleActiveViewChange('reservations')
-    setMobileExpandedView('workspace')
+    setMobileExpandedView(null)
   }, [permissionAccess, handleActiveViewChange])
 
   const handleMobileOpenReservationsHostMode = useCallback(() => {
     if (!canOpenReservationsHostMode(permissionAccess)) return
 
     handleActiveViewChange('reservations')
+
+    if (useMobileExperience && isManagementMobileRole(role)) {
+      setMobileReservationsHostMode(false)
+      setMobileExpandedView(null)
+      setMobileMenuScreen('main')
+      return
+    }
+
     setMobileReservationsHostMode(true)
 
     if (isHostMobileRole(role)) {
       setMobileExpandedView(null)
       setMobileStaffTab('reservations')
       persistMobileTab('reservations', 'host')
-      return
-    }
-
-    if (useMobileExperience && isManagementMobileRole(role)) {
-      setMobileExpandedView('workspace')
     }
   }, [permissionAccess, role, useMobileExperience, handleActiveViewChange])
 
@@ -23643,6 +23725,53 @@ function App() {
     }
   }
 
+  const openManagerPortraitItem = (itemId) => {
+    setManagerMoreOpen(false)
+    setMobileReservationsHostMode(false)
+    if (itemId === 'sign-out') {
+      handleMobileSignOut()
+      return
+    }
+    if (itemId === 'profile') {
+      setMobileExpandedView(null)
+      setMobileMenuScreen('profile')
+      return
+    }
+    if (itemId === 'leave-inbox') {
+      setMobileExpandedView(null)
+      setMobileMenuScreen('leave-inbox')
+      return
+    }
+    if (itemId === 'notifications') {
+      setMobileExpandedView(null)
+      setMobileMenuScreen('notifications')
+      return
+    }
+    if (itemId === 'schedule') {
+      handleMobileOpenFullSchedule()
+      return
+    }
+    if (itemId === 'stock') {
+      handleMobileManagerOpenStock()
+      return
+    }
+    if (itemId === 'team') {
+      handleMobileNavigateModule('team')
+      return
+    }
+    if (itemId === 'time-clock') {
+      handleOpenAttendance()
+      return
+    }
+    if (itemId === 'settings') {
+      handleMobileOpenSettings()
+      return
+    }
+    if (itemId === 'insights') {
+      handleMobileNavigateModule('insights')
+    }
+  }
+
   const handleMobileOpenProfile = () => {
     if (isStaffOrHostRole(role)) {
       openStaffHostPersonalView('account')
@@ -23792,7 +23921,12 @@ function App() {
 
   const openNotificationSettings = () => {
     if (canOpenNotificationSettings) {
-      if (useMobileExperience) setMobileExpandedView('workspace')
+      if (useMobileExperience && isManagementMobileRole(role)) {
+        setMobileExpandedView(null)
+        setMobileMenuScreen('main')
+      } else if (useMobileExperience) {
+        setMobileExpandedView('workspace')
+      }
       handleActiveViewChange('settings')
       handleSettingsSectionChange('notifications')
       return
@@ -24837,9 +24971,22 @@ function App() {
                   )
 
                   if (isManagerMobileShell) {
+                    const managerPortraitScreen = resolveManagerPortraitScreen({
+                      activeView,
+                      teamSection,
+                      menuScreen: mobileMenuScreen,
+                    })
+                    const managerPortraitTab = managerMoreOpen
+                      ? 'more'
+                      : resolveManagerPortraitTab(managerPortraitScreen)
+                    const scheduleWeekKeys = getWeekDateKeys(scheduleWeekStart)
+                    const schedulePortraitDate = scheduleWeekKeys.includes(portraitScheduleDate)
+                      ? portraitScheduleDate
+                      : (scheduleWeekKeys.includes(currentDateKey) ? currentDateKey : scheduleWeekStart)
+                    const portraitModuleScreens = new Set(['team', 'settings', 'time-clock', 'insights'])
                     return (
                       <MobileManagerApp
-                        activeTab={activeMobileTab}
+                        activeTab={managerPortraitTab}
                         onTabChange={handleMobileTabChange}
                         noticeMessage={mobileNotice}
                         onDismissNotice={() => setMobileNotice('')}
@@ -24881,10 +25028,51 @@ function App() {
                         expandedTitle={mobileExpandedTitle}
                         onBackFromExpanded={handleMobileBack}
                         expandedModuleContent={mobileExpandedView ? workspaceModules : null}
-                        isReservationsHostMode={shouldRenderReservationsHostView && activeView === 'reservations'}
+                        isReservationsHostMode={false}
                         bottomTabs={mobileBottomTabs}
                         notificationBell={notificationBell}
                         chatContent={chatScreen}
+                        portraitScreen={managerPortraitScreen}
+                        moreOpen={managerMoreOpen}
+                        moreItems={buildManagerPortraitMoreItems(permissionAccess, {
+                          canViewLeaveInbox: canViewLeaveQueueRole,
+                          showNotifications: true,
+                        })}
+                        onCloseMore={() => setManagerMoreOpen(false)}
+                        onSelectMore={openManagerPortraitItem}
+                        reservationsProps={{
+                          reservations,
+                          todayKey: currentDateKey,
+                          dateKey: portraitReservationDate || currentDateKey,
+                          nowMinutes: hostNowMinutes,
+                          isLoading: isReservationsLoading,
+                          isSaving: isSavingReservation,
+                          noticeMessage: reservationNotice,
+                          canManage: canManageReservationsRole,
+                          seatings: reservationSeatings,
+                          onDateChange: setPortraitReservationDate,
+                          onCreateReservation: handleMobileHostReservationCreate,
+                          onEditReservation: handleHostEditSave,
+                        }}
+                        scheduleProps={{
+                          shifts,
+                          employees,
+                          dateKey: schedulePortraitDate,
+                          todayKey: currentDateKey,
+                          isLoading: isScheduleLoading,
+                          isSaving: isSavingShift,
+                          canEdit: canEditScheduleRole,
+                          noticeMessage: scheduleNotice,
+                          onDateChange: (nextDate) => {
+                            setPortraitScheduleDate(nextDate)
+                            const nextWeek = getWeekStartDate(nextDate)
+                            if (nextWeek && nextWeek !== scheduleWeekStart) {
+                              setScheduleWeekStart(nextWeek)
+                            }
+                          },
+                          onUpdateShiftTimes: handleUpdateAssignmentTime,
+                        }}
+                        portraitModule={portraitModuleScreens.has(managerPortraitScreen) ? workspaceModules : null}
                       />
                     )
                   }

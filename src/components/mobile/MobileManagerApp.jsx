@@ -1,10 +1,21 @@
+import { ManagerMoreSheet } from './ManagerMoreSheet'
+import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 import { MobileBottomNav } from './MobileBottomNav'
 import { MobileManagerHomeView } from './MobileManagerHomeView'
 import { MobileManagerLeaveInboxView } from './MobileManagerLeaveInboxView'
+import { MobileManagerReservationsView } from './MobileManagerReservationsView'
+import { MobileManagerScheduleDayView } from './MobileManagerScheduleDayView'
 import { MobileManagerStockView } from './MobileManagerStockView'
 import { MobileManagerTasksView } from './MobileManagerTasksView'
 import { MobileMenuView } from './MobileMenuView'
 import { MobileProfileView } from './MobileProfileView'
+
+const PORTRAIT_MODULE_TITLES = {
+  team: 'Team',
+  settings: 'Settings',
+  'time-clock': 'Time clock',
+  insights: 'Insights',
+}
 
 export function MobileManagerApp({
   activeTab,
@@ -23,6 +34,14 @@ export function MobileManagerApp({
   bottomTabs,
   notificationBell = null,
   chatContent = null,
+  portraitScreen = 'today',
+  moreOpen = false,
+  moreItems = [],
+  onCloseMore,
+  onSelectMore,
+  reservationsProps = null,
+  scheduleProps = null,
+  portraitModule = null,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -34,6 +53,20 @@ export function MobileManagerApp({
       ) : null}
     </div>
   ) : null
+
+  const navTabs = (bottomTabs ?? []).map((tab) => (
+    tab.id === 'chat' && Number(menuProps?.chatUnread) > 0
+      ? { ...tab, badge: menuProps.chatUnread }
+      : tab
+  ))
+  const moreSheet = (
+    <ManagerMoreSheet
+      isOpen={moreOpen}
+      items={moreItems}
+      onClose={onCloseMore}
+      onSelect={onSelectMore}
+    />
+  )
 
   if (expandedView && isReservationsHostMode) {
     return (
@@ -69,21 +102,53 @@ export function MobileManagerApp({
             </div>
           ) : null}
         </div>
-        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" tabs={bottomTabs} />
+        <MobileBottomNav
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          variant="manager"
+          tabs={navTabs}
+          moreExpanded={moreOpen}
+        />
+        {moreSheet}
       </div>
     )
   }
+
+  const menuOverride = ['leave-inbox', 'profile', 'notifications'].includes(menuProps?.screen)
+    ? menuProps.screen
+    : ''
+  const screen = menuOverride || portraitScreen
+  const moduleTitle = PORTRAIT_MODULE_TITLES[screen] || ''
 
   return (
     <div className="mobile-app mobile-manager-app">
       {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
       {noticeBanner}
       <div className="mobile-app-content">
-        {activeTab === 'today' ? <MobileManagerHomeView {...homeProps} /> : null}
-        {activeTab === 'chat' ? chatContent : null}
-        {activeTab === 'stock' ? <MobileManagerStockView {...stockProps} /> : null}
-        {activeTab === 'tasks' ? <MobileManagerTasksView {...managerTasksProps} /> : null}
-        {activeTab === 'menu' ? (
+        {screen === 'today' ? <MobileManagerHomeView {...homeProps} /> : null}
+        {screen === 'reservations' && reservationsProps ? (
+          <MobileManagerReservationsView {...reservationsProps} />
+        ) : null}
+        {screen === 'chat' ? chatContent : null}
+        {screen === 'tasks' ? <MobileManagerTasksView {...managerTasksProps} /> : null}
+        {screen === 'stock' ? (
+          <div className="manager-portrait-stock">
+            <ManagerPortraitBanner area="stock" />
+            <MobileManagerStockView {...stockProps} />
+          </div>
+        ) : null}
+        {screen === 'schedule' && scheduleProps ? (
+          <MobileManagerScheduleDayView {...scheduleProps} />
+        ) : null}
+        {moduleTitle && portraitModule ? (
+          <div className="manager-portrait-module">
+            <header className="manager-portrait-module-header">
+              <h1>{moduleTitle}</h1>
+            </header>
+            {portraitModule}
+          </div>
+        ) : null}
+        {screen === 'profile' || screen === 'leave-inbox' || screen === 'notifications' || screen === 'menu' ? (
           menuProps?.screen === 'leave-inbox' ? (
             <MobileManagerLeaveInboxView
               {...(menuProps.leaveInboxProps ?? {})}
@@ -103,7 +168,14 @@ export function MobileManagerApp({
           )
         ) : null}
       </div>
-      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" tabs={bottomTabs} />
+      <MobileBottomNav
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        variant="manager"
+        tabs={navTabs}
+        moreExpanded={moreOpen}
+      />
+      {moreSheet}
     </div>
   )
 }

@@ -315,5 +315,12 @@ describe('buildTodayCommandCenterAttentionItems', () => {
       isManagerMobileShell: true,
       mobileManagerTab: 'today',
     })).toBe(true)
+    expect(shouldLoadOperationalStockSnapshot({
+      canAccessStock: true,
+      activeView: 'today',
+      useMobileExperience: true,
+      isManagerMobileShell: true,
+      mobileManagerTab: 'more',
+    })).toBe(true)
   })
 })

@@ -1,11 +1,9 @@
 import { isManagerRole } from './permissions'
 
 /**
- * Landscape on phones and tablets is required for the workspace management
- * roles: owner, general manager, and manager.
- *
- * That is the same set as `isManagerRole` / `isManagementMobileRole`.
- * Host and staff keep the existing portrait experience.
+ * Management roles (owner, general manager, manager).
+ * Portrait phones use the manager phone shell. Nothing is blocked.
+ * Host and staff keep their own shells.
  */
 export function isLandscapeRequiredRole(role) {
   return isManagerRole(role)
@@ -30,34 +28,20 @@ export function isWorkspaceRoleReady({
 }
 
 /**
- * Show the full-screen rotate prompt.
- * Fine-pointer desktops, including narrow windows, are never blocked.
+ * The full-screen rotate gate is retired.
+ * Managers use the phone shell in portrait and the full workspace when the
+ * phone is sideways. Tablets and desktops stay on the workspace shell.
  */
-export function shouldRequireManagerLandscape({
-  role = '',
-  roleKnown = false,
-  coarsePointer = false,
-  isPortrait = false,
-} = {}) {
-  if (!roleKnown) return false
-  if (!coarsePointer) return false
-  if (!isPortrait) return false
-  return isLandscapeRequiredRole(role)
+export function shouldRequireManagerLandscape() {
+  return false
 }
 
 /**
- * Try `screen.orientation.lock('landscape')` for the same audience.
- * Independent of the current orientation so a supported device stays landscape.
- * Callers must ignore failure — iOS cannot lock orientation.
+ * Do not lock orientation. A manager must be able to rotate into the full
+ * workspace and back without a reload.
  */
-export function shouldLockManagerLandscape({
-  role = '',
-  roleKnown = false,
-  coarsePointer = false,
-} = {}) {
-  if (!roleKnown) return false
-  if (!coarsePointer) return false
-  return isLandscapeRequiredRole(role)
+export function shouldLockManagerLandscape() {
+  return false
 }
 
 export function readCoarsePointer(win = globalThis.window) {

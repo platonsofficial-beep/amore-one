@@ -309,13 +309,34 @@ describe('permissions', () => {
       expect(tabIds(getMobileBottomTabs('host', 'host'))).not.toContain('stock')
     })
 
-    it('includes stock and tasks for manager roles with module access', () => {
-      expect(tabIds(getMobileBottomTabs('manager', 'manager'))).toEqual(['today', 'stock', 'tasks', 'menu'])
-      expect(tabIds(getMobileBottomTabs('owner', 'manager'))).toEqual(['today', 'stock', 'tasks', 'menu'])
+    it('gives managers Today, Reservations, Chat, Tasks and More', () => {
+      expect(tabIds(getMobileBottomTabs('manager', 'manager'))).toEqual([
+        'today',
+        'reservations',
+        'chat',
+        'tasks',
+        'more',
+      ])
+      expect(tabIds(getMobileBottomTabs('owner', 'manager'))).toEqual([
+        'today',
+        'reservations',
+        'chat',
+        'tasks',
+        'more',
+      ])
     })
 
-    it('filters manager stock/tasks tabs when modules are unavailable', () => {
-      expect(tabIds(getMobileBottomTabs('', 'manager'))).toEqual(['today', 'menu'])
+    it('filters manager tabs the member cannot open', () => {
+      expect(tabIds(getMobileBottomTabs('', 'manager'))).toEqual(['today', 'more'])
+      expect(tabIds(getMobileBottomTabs({
+        role: 'manager',
+        permissions: {
+          today: 'view',
+          chat: 'none',
+          reservations: 'none',
+          operations: 'none',
+        },
+      }, 'manager'))).toEqual(['today', 'more'])
     })
   })
 

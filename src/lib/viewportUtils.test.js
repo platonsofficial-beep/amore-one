@@ -66,6 +66,17 @@ describe('viewportUtils', () => {
     expect(shouldUseMobileShell()).toBe(true)
   })
 
+  it('follows a narrow layout query when innerWidth is still desktop-sized', async () => {
+    mockViewport({ width: 1280, height: 800 })
+    window.matchMedia = vi.fn((query) => ({
+      matches: query === '(max-width: 760px)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }))
+    const { shouldUseMobileShell } = await import('./viewportUtils')
+    expect(shouldUseMobileShell()).toBe(true)
+  })
+
   it('keeps mobile shell for iPhone user agents even in wide landscape', async () => {
     mockViewport({
       width: 932,

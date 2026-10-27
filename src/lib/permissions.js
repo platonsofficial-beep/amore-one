@@ -202,9 +202,10 @@ export const MOBILE_HOST_BOTTOM_TABS = [
 
 export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'today', label: 'Today', icon: '◈' },
-  { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'reservations', label: 'Reservations', icon: '▣' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
+  { id: 'more', label: 'More', icon: '≡' },
 ]
 
 const OPERATIONS_SECTION_IDS = new Set(['dashboard', 'tasks', 'checklists'])
@@ -493,7 +494,7 @@ export function filterMobileMenuNavItems(navItems, role) {
   })
 }
 
-const MANAGER_MOBILE_TAB_MODULE_IDS = new Set(['today', 'stock', 'tasks'])
+const MANAGER_MOBILE_TAB_MODULE_IDS = new Set(['today', 'reservations', 'chat', 'operations'])
 
 export function filterManagerMobileMenuNavItems(navItems, role) {
   return (navItems ?? []).filter((item) => {
@@ -596,7 +597,8 @@ export function getMobileBottomTabs(role, variant = 'staff') {
 
   if (variant === 'manager') {
     return MOBILE_MANAGER_BOTTOM_TABS.filter((tab) => {
-      if (tab.id === 'stock') return canAccessModule(role, 'stock')
+      if (tab.id === 'reservations') return canAccessModule(role, 'reservations')
+      if (tab.id === 'chat') return canUseChat(role)
       if (tab.id === 'tasks') return canAccessModule(role, 'operations')
       return true
     })

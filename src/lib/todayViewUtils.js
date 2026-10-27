@@ -544,10 +544,13 @@ export function shouldLoadOperationalStockSnapshot({
   mobileManagerTab = '',
 } = {}) {
   if (!canAccessStock) return false
-  if (!useMobileExperience && activeView === 'today') return true
+  const expanded = Boolean(`${mobileExpandedView ?? ''}`.trim())
+  if (activeView === 'today' && !expanded) {
+    if (!useMobileExperience || isManagerMobileShell) return true
+  }
   return Boolean(
     isManagerMobileShell
-    && !`${mobileExpandedView ?? ''}`.trim()
+    && !expanded
     && mobileManagerTab === 'today',
   )
 }
