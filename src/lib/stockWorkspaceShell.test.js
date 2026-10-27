@@ -26,7 +26,7 @@ describe('Stock full-screen workspace shell wiring', () => {
     expect(appSource).toContain('aria-label="Exit Stock"')
     expect(appSource).toContain('← Exit Stock')
     expect(appSource).toContain('handleExitStockFocusMode')
-    expect(appSource).toContain('resolveExitStockDestination(preStockViewRef.current)')
+    expect(appSource).toContain('resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)')
     expect(appSource).toContain('className="stock-focus-header"')
     expect(appSource).toContain('stock-focus-search')
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'dashboard'")

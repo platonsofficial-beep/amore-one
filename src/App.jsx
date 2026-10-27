@@ -608,7 +608,7 @@ import {
   resolveInsightsModuleLink,
   isStockWorkspaceView,
   isTeamScheduleView,
-  resolveExitStockDestination,
+  resolveSidebarWorkspaceExit,
   shouldHideStandardTopbar,
   shouldShowModuleSearch,
   shouldUseCommandTopbar,
@@ -14773,6 +14773,7 @@ function App() {
   const [chatThreadOpen, setChatThreadOpen] = useState(false)
   const personalReturnRef = useRef('today')
   const scheduleEntryRef = useRef({ view: 'today', teamSection: 'today' })
+  const sidebarWorkspaceRef = useRef({ view: 'today', teamSection: 'today' })
   const templateGenerationKeyRef = useRef('')
   const closeReservationModalRef = useRef(() => {})
   const [reservationAttentionFocus, setReservationAttentionFocus] = useState(null)
@@ -16858,6 +16859,21 @@ function App() {
     if (activeView !== 'stock') {
       preStockViewRef.current = activeView
     }
+  }, [activeView])
+
+  useEffect(() => {
+    if (activeView === 'stock') return
+    if (activeView === 'team' && teamSection === 'schedule') return
+    sidebarWorkspaceRef.current = {
+      view: activeView || 'today',
+      teamSection: teamSection || 'today',
+    }
+  }, [activeView, teamSection])
+
+  useEffect(() => {
+    if (activeView !== 'chat') return
+    setNotificationSettingsOpen(false)
+    setMobileMenuScreen((screen) => (screen === 'notifications' ? 'main' : screen))
   }, [activeView])
 
   useEffect(() => {
@@ -23602,19 +23618,21 @@ function App() {
     }
   }, [permissionAccess, teamSection, handleActiveViewChange, handleTeamSectionChange])
 
-  const handleExitScheduleFocusMode = useCallback(() => {
-    const entry = scheduleEntryRef.current ?? { view: 'today', teamSection: 'today' }
-    if (entry.view && entry.view !== 'team') {
-      handleActiveViewChange(entry.view)
-      return
+  const exitToSidebarWorkspace = useCallback(() => {
+    const destination = resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)
+    handleActiveViewChange(destination.view)
+    if (destination.view === 'team') {
+      handleTeamSectionChange(destination.teamSection === 'schedule' ? 'today' : destination.teamSection)
     }
-    handleActiveViewChange('team')
-    handleTeamSectionChange(entry.teamSection && entry.teamSection !== 'schedule' ? entry.teamSection : 'today')
   }, [handleActiveViewChange, handleTeamSectionChange])
 
+  const handleExitScheduleFocusMode = useCallback(() => {
+    exitToSidebarWorkspace()
+  }, [exitToSidebarWorkspace])
+
   const handleExitStockFocusMode = useCallback(() => {
-    handleActiveViewChange(resolveExitStockDestination(preStockViewRef.current))
-  }, [handleActiveViewChange])
+    exitToSidebarWorkspace()
+  }, [exitToSidebarWorkspace])
 
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false
@@ -24016,7 +24034,7 @@ function App() {
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && !useDedicatedShell && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
-      {notificationSettingsOpen && !useDedicatedShell ? (
+      {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
         <div className="notification-settings-overlay" role="presentation">
           <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
             <button
@@ -24970,7 +24988,7 @@ function App() {
                       }
                       setMobileMenuScreen('main')
                     },
-                    notificationSettings: notificationSettingsPanel,
+                    notificationSettings: activeView === 'chat' ? null : notificationSettingsPanel,
                     onSignOut: handleMobileSignOut,
                     menuVariant: isManagerMobileShell ? 'manager' : isHostMobileShellLocal ? 'host' : 'staff',
                   }

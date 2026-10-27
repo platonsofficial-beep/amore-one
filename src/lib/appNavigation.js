@@ -115,6 +115,20 @@ export function resolveExitStockDestination(previousView) {
   return 'today'
 }
 
+export function isStandaloneFocusView(view, teamSection = '') {
+  if (view === 'stock') return true
+  return view === 'team' && teamSection === 'schedule'
+}
+
+export function resolveSidebarWorkspaceExit(saved) {
+  const view = `${saved?.view ?? ''}`.trim()
+  const teamSection = `${saved?.teamSection ?? ''}`.trim() || 'today'
+  if (!view || isStandaloneFocusView(view, teamSection)) {
+    return { view: 'today', teamSection: 'today' }
+  }
+  return { view, teamSection }
+}
+
 export function shouldUseCommandTopbar(activeView) {
   return isTodayView(activeView)
 }
