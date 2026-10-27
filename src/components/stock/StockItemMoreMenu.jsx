@@ -6,18 +6,18 @@ const MENU_MARGIN = 8
 const MOBILE_SHEET_QUERY = '(max-width: 900px), (max-height: 520px)'
 
 const MENU_ITEMS = [
+  { id: 'label-stock', type: 'label', label: 'Stock' },
   { id: 'receive', label: 'Receive delivery', group: 'operations' },
   { id: 'count', label: 'Count', group: 'operations' },
   { id: 'usage', label: 'Usage', group: 'operations' },
   { id: 'waste', label: 'Waste', group: 'operations' },
   { id: 'adjust', label: 'Adjust', group: 'operations' },
-  { id: 'sep-operations', type: 'separator' },
+  { id: 'label-product', type: 'label', label: 'Product' },
   { id: 'edit', label: 'Edit', group: 'management' },
   { id: 'duplicate', label: 'Duplicate', group: 'management' },
   { id: 'history', label: 'History & details', group: 'management' },
-  { id: 'sep-management', type: 'separator' },
+  { id: 'label-status', type: 'label', label: 'Status' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
-  { id: 'sep-lifecycle', type: 'separator' },
   { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
 ]
 
@@ -208,11 +208,18 @@ export function StockItemMoreMenu({
 
         <div className="stock-item-more-menu-list">
           {MENU_ITEMS.map((entry) => {
+            if (entry.type === 'label') {
+              return (
+                <p key={entry.id} className="stock-item-more-menu-label">
+                  {entry.label}
+                </p>
+              )
+            }
             if (entry.type === 'separator') {
               return (
                 <div
                   key={entry.id}
-                  className={`stock-item-more-menu-separator${entry.id === 'sep-lifecycle' ? ' is-destructive' : ''}`}
+                  className="stock-item-more-menu-separator"
                   role="separator"
                 />
               )

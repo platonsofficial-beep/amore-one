@@ -1,6 +1,6 @@
 import { resolveStockStorageLocation, selectItemsToOrder, computeSuggestedOrder } from './stockCatalog'
 import { filterStockDashboardItems } from './stockDashboardBrowse'
-import { resolveStockItemQuantityStatus } from './stockUtils'
+import { buildStockDashboardSummary, resolveStockItemQuantityStatus } from './stockUtils'
 
 const STALE_COUNT_DAYS = 14
 
@@ -94,14 +94,7 @@ function quantityStatus(item) {
  */
 export function summarizeToOrderBreakdown(items = []) {
   const list = Array.isArray(items) ? items : []
-  const active = list.filter((item) => item && item.active !== false)
-  let out = 0
-  let low = 0
-  active.forEach((item) => {
-    const status = resolveStockItemQuantityStatus(item)
-    if (status === 'out') out += 1
-    else if (status === 'low') low += 1
-  })
+  const summary = buildStockDashboardSummary(list)
   const selected = selectItemsToOrder(list)
   let underTarget = 0
   selected.forEach((item) => {
@@ -110,17 +103,19 @@ export function summarizeToOrderBreakdown(items = []) {
   })
   return {
     total: selected.length,
-    out,
-    low,
+    out: summary.outOfStock,
+    low: summary.lowStock,
     underTarget,
   }
 }
 
 /** "131 items · 16 out · 24 low · 91 under target" */
-export function formatToOrderBreakdown(items = []) {
-  const { total, out, low, underTarget } = summarizeToOrderBreakdown(items)
-  const itemsLabel = total === 1 ? '1 item' : `${total} items`
-  return `${itemsLabel} · ${out} out · ${low} low · ${underTarget} under target`
+export function formatToOrderBreakdown(items = [], summary = null) {
+  const breakdown = summarizeToOrderBreakdown(items)
+  const out = summary && summary.outOfStock != null ? summary.outOfStock : breakdown.out
+  const low = summary && summary.lowStock != null ? summary.lowStock : breakdown.low
+  const itemsLabel = breakdown.total === 1 ? '1 item' : `${breakdown.total} items`
+  return `${itemsLabel} · ${out} out · ${low} low · ${breakdown.underTarget} under target`
 }
 
 export function buildToOrderSupplierGroups(items = []) {

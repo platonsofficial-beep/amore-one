@@ -47,7 +47,7 @@ export function resolveStockUsageCeiling({
 }
 
 export function resolveStockItemStatus(item) {
-  if (!item?.active) return 'inactive'
+  if (!item || item.active === false) return 'inactive'
   return resolveStockItemQuantityStatus(item)
 }
 

@@ -138,6 +138,30 @@ describe('to order agreement', () => {
     expect(summary.outOfStock).toBe(2)
     expect(selectItemsToOrder(withZeroParOut).map((item) => item.id)).toEqual(['out', 'between', 'low'])
     expect(breakdown).toBe('3 items · 2 out · 1 low · 1 under target')
+    expect(formatToOrderBreakdown(withZeroParOut, summary)).toBe(breakdown)
+    const outInBreakdown = Number(breakdown.match(/(\d+) out/)?.[1])
+    expect(outInBreakdown).toBe(summary.outOfStock)
+  })
+
+  it('prints the same out and low counts as the dashboard summary on first render', () => {
+    const firstLoad = [
+      ...catalog.map((item) => ({ ...item, status: item.id === 'healthy' ? 'out' : 'ok' })),
+      {
+        id: 'unset-active-out',
+        name: 'Garnish',
+        currentQuantity: 0,
+        minimumQuantity: 0,
+        targetQuantity: 0,
+        costPrice: 1,
+        unit: 'btl',
+        status: 'ok',
+      },
+    ]
+    const summary = buildStockDashboardSummary(firstLoad)
+    const breakdown = formatToOrderBreakdown(firstLoad, summary)
+    expect(summary.outOfStock).toBe(2)
+    expect(breakdown).toContain(`${summary.outOfStock} out`)
+    expect(breakdown).toContain(`${summary.lowStock} low`)
   })
 
   it('keeps shelf below-par totals equal to the sum of each storage list', () => {

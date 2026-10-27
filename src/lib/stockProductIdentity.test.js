@@ -9,6 +9,7 @@ import {
   PRODUCT_IDENTITY_FIELDS,
   buildProductDisplayName,
   buildProductDisplayNameFromItem,
+  resolveListedProductName,
   buildProductIdentityKey,
   formatProductSizeDetail,
   normalizeProductIdentityComponent,
@@ -126,6 +127,22 @@ describe('formatProductSizeDetail', () => {
     expect(buildProductDisplayNameFromItem(item)).toBe('Espresso beans 1 kg')
     expect(formatProductSizeDetail(item)).toBe('')
     expect(formatProductSizeDetail(item, 'Espresso beans 1 kg')).toBe('')
+  })
+
+  it('uses catalog brand, name, and size for listed products', () => {
+    expect(resolveListedProductName(
+      { itemName: 'Vodka' },
+      { brand: 'Ketel One', name: 'Vodka', size: '70 cl' },
+    )).toBe('Ketel One Vodka 70 cl')
+    expect(resolveListedProductName(
+      { itemName: '12 Year Old', brand: 'Chivas', size: '70 cl' },
+      null,
+    )).toBe('Chivas 12 Year Old 70 cl')
+    expect(resolveListedProductName({ itemName: 'House soda' }, null)).toBe('House soda')
+    expect(resolveListedProductName(
+      { name: '0.0', brand: 'Heineken', size: '330 ml' },
+      { name: '0.0', brand: 'Heineken', size: '330 ml' },
+    )).toBe('Heineken 0.0 330 ml')
   })
 
   it('keeps the chip when the shown name does not include the size', () => {
@@ -262,6 +279,10 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/stock/StaffShelfCountSheet.jsx'),
       resolve(process.cwd(), 'src/components/mobile/MobileManagerStockView.jsx'),
       resolve(process.cwd(), 'src/lib/inventoryCountItemName.js'),
+      resolve(process.cwd(), 'src/lib/stockOrderUtils.js'),
+      resolve(process.cwd(), 'src/lib/stockSupplierUtils.js'),
+      resolve(process.cwd(), 'src/components/stock/StockOrderDetailDrawer.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockOrderReceiveConfirmModal.jsx'),
     ])
 
     const root = resolve(process.cwd(), 'src')

@@ -1921,7 +1921,7 @@ export function InventoryCountSessionWorkspace({
                           className="staff-status-banner inventory-count-finish-preview-banner is-skipped"
                           role="status"
                         >
-                          Skipped: {line.itemName}
+                          Skipped: {formatInventoryCountItemLabel(line)}
                           {line.storageLocation ? ` · ${line.storageLocation}` : ''}
                           . {line.warning}
                         </div>
@@ -1958,7 +1958,7 @@ export function InventoryCountSessionWorkspace({
                               <tr key={line.sessionItemId}>
                                 <td className="inventory-count-session-item-name">
                                   <span className="inventory-count-finish-preview-item-name">
-                                    {line.itemName}
+                                    {formatInventoryCountItemLabel(line)}
                                   </span>
                                   {line.unit ? (
                                     <span className="inventory-count-finish-preview-item-unit">

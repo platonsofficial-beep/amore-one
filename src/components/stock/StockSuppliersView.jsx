@@ -10,13 +10,13 @@ import {
 import {
   buildSupplierMetrics,
   buildSuppliersDashboardSummary,
+  formatReceivedValueLabel,
   formatSupplierMetricDate,
   formatSupplierStatusLabel,
   getSupplierInitials,
   getSupplierStatusTone,
   supplierHasHistory,
 } from '../../lib/stockSupplierUtils'
-import { formatStockPurchasePrice } from '../../lib/stockUtils'
 import { StockSupplierDetailDrawer } from './StockSupplierDetailDrawer'
 import { StockSupplierFormModal } from './StockSupplierFormModal'
 
@@ -129,9 +129,9 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
         ) : null}
         {showSpend && hasOrderHistory ? (
           <div className="stock-supplier-card-stat">
-            <span className="stock-supplier-card-stat-label">Total spend</span>
+            <span className="stock-supplier-card-stat-label">Received value</span>
             <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">
-              {formatStockPurchasePrice(metrics.totalSpend)}
+              {formatReceivedValueLabel(metrics.totalSpend, metrics.receivedOrders?.length)}
             </span>
           </div>
         ) : null}
@@ -324,12 +324,14 @@ export function StockSuppliersView({
   return (
     <section className="stock-suppliers-page" aria-label="Stock suppliers">
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading suppliers…</div> : null}
 
-      <div className="stock-suppliers-toolbar">
-        <p className="stock-suppliers-toolbar-copy">
-          Manage supplier contacts, linked products, and purchase history.
-        </p>
+      <header className="stock-suppliers-header">
+        <div className="stock-suppliers-header-copy">
+          <h2 className="stock-suppliers-title">Suppliers</h2>
+          <p className="stock-suppliers-subtitle">
+            Manage supplier contacts, linked products, and purchase history.
+          </p>
+        </div>
         {canManage ? (
           <button
             type="button"
@@ -340,36 +342,37 @@ export function StockSuppliersView({
             Add supplier
           </button>
         ) : null}
-      </div>
+      </header>
 
       <div className="stock-summary-grid stock-summary-grid-five">
         <article className="stock-summary-card">
           <p className="stock-summary-label">Total suppliers</p>
-          <p className="stock-summary-value">{dashboardSummary.totalSuppliers}</p>
+          <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.totalSuppliers}</p>
         </article>
         <article className="stock-summary-card tone-gold">
           <p className="stock-summary-label">Active suppliers</p>
-          <p className="stock-summary-value">{dashboardSummary.activeSuppliers}</p>
+          <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.activeSuppliers}</p>
         </article>
         <article className="stock-summary-card">
           <p className="stock-summary-label">Products supplied</p>
-          <p className="stock-summary-value">{dashboardSummary.totalProductsSupplied}</p>
+          <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.totalProductsSupplied}</p>
         </article>
         {canManage ? (
           <article className="stock-summary-card">
             <p className="stock-summary-label">Received value</p>
             <p className="stock-summary-value">
-              {dashboardSummary.receivedOrders > 0
-                ? (dashboardSummary.totalPurchaseValue > 0
-                  ? formatStockPurchasePrice(dashboardSummary.totalPurchaseValue)
-                  : 'No cost on received orders')
-                : 'No completed deliveries'}
+              {isLoading
+                ? '—'
+                : formatReceivedValueLabel(
+                  dashboardSummary.totalPurchaseValue,
+                  dashboardSummary.receivedOrders,
+                )}
             </p>
           </article>
         ) : null}
         <article className="stock-summary-card tone-warning">
           <p className="stock-summary-label">Pending orders</p>
-          <p className="stock-summary-value">{dashboardSummary.pendingOrders}</p>
+          <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.pendingOrders}</p>
         </article>
       </div>
 
@@ -421,7 +424,17 @@ export function StockSuppliersView({
         ) : null}
       </div>
 
-      {!isLoading && visibleSuppliers.length === 0 ? (
+      {isLoading ? (
+        <div className="stock-supplier-card-grid" aria-busy="true" aria-label="Loading suppliers">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="stock-list-skeleton-card panel staff-panel">
+              <span className="stock-loading-skeleton-bar" />
+              <span className="stock-loading-skeleton-bar is-short" />
+              <span className="stock-loading-skeleton-bar" />
+            </div>
+          ))}
+        </div>
+      ) : visibleSuppliers.length === 0 ? (
         <div className="stock-product-history-empty panel staff-panel stock-suppliers-empty">
           <h4>{emptyState.title}</h4>
           <p>{emptyState.description}</p>

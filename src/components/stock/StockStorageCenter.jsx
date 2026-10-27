@@ -217,6 +217,16 @@ function StorageSummaryCard({
               Rename
             </button>
           ) : null}
+          <button
+            type="button"
+            className="stock-storage-edit-cancel"
+            onClick={(event) => {
+              const details = event.currentTarget.closest('details')
+              if (details) details.open = false
+            }}
+          >
+            Cancel
+          </button>
         </div>
         </details>
       ) : null}

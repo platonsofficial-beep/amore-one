@@ -187,9 +187,8 @@ describe('InventoryCountWizard foundation', () => {
     await flushAsync()
 
     const continueBtn = getButtonByText(container, 'Continue')
-    const backBtn = getButtonByText(container, 'Back')
     expect(continueBtn?.disabled).toBe(true)
-    expect(backBtn?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Back')).toBeUndefined()
 
     const cards = container.querySelectorAll('[role="radio"]')
     expect(cards).toHaveLength(5)

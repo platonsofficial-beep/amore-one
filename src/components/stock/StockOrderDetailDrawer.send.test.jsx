@@ -129,9 +129,9 @@ describe('StockOrderDetailDrawer send draft', () => {
     }))
 
     act(() => { buttonNamed(container, 'Send').click() })
-    expect(buttonNamed(container, 'Email').disabled).toBe(true)
-    expect(buttonNamed(container, 'WhatsApp').disabled).toBe(true)
-    expect(buttonNamed(container, 'Viber').disabled).toBe(true)
+    expect(buttonNamed(container, 'Email')).toBeUndefined()
+    expect(buttonNamed(container, 'WhatsApp')).toBeUndefined()
+    expect(buttonNamed(container, 'Viber')).toBeUndefined()
     expect(buttonNamed(container, 'Print').disabled).toBe(false)
     expect(container.textContent).toContain('Add an email or phone on this supplier')
 

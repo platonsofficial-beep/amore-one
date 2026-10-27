@@ -314,7 +314,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
       onClick={handleClose}
     >
       <div
-        className={`inventory-count-wizard${step === 1 ? ' is-type-step' : ''}`}
+        className="inventory-count-wizard"
         role="dialog"
         aria-modal="true"
         aria-labelledby="inventory-count-wizard-title"
@@ -451,6 +451,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 role="group"
                 aria-label="Scope / Locations"
               >
+                <p className="inventory-count-wizard-location-note">
+                  Only storages that already have products are listed. Empty storages are not part of a count.
+                </p>
                 {availableLocations.map((location) => {
                   const isSelected = selectedLocations.includes(location)
                   return (
@@ -747,15 +750,17 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         ) : null}
 
         <footer className="inventory-count-wizard-footer">
-          <button
-            type="button"
-            className="ghost-btn inventory-count-wizard-nav-btn"
-            disabled={step === 1 || isStartingSession}
-            aria-disabled={step === 1 || isStartingSession}
-            onClick={handleBack}
-          >
-            Back
-          </button>
+          {step > 1 ? (
+            <button
+              type="button"
+              className="ghost-btn inventory-count-wizard-nav-btn"
+              disabled={isStartingSession}
+              aria-disabled={isStartingSession}
+              onClick={handleBack}
+            >
+              Back
+            </button>
+          ) : null}
           <div className="inventory-count-wizard-footer-end">
             <button
               type="button"

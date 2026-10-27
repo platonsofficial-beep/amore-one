@@ -444,19 +444,23 @@ export function StockMovementModal({
 
           {pickerMode ? (
             <>
-              <button
-                type="button"
-                className="stock-movement-storage-row"
-                data-testid="stock-movement-storage-row"
-                disabled={isBusy || storagesLoading}
-                aria-haspopup="dialog"
-                aria-expanded={pickerOpen}
-                onClick={() => setPickerOpen(true)}
-              >
-                {storagesLoading
-                  ? 'Loading storages…'
-                  : stockMovementStorageActionLabel(movementType, destinationLabel)}
-              </button>
+              <div className="stock-movement-storage-field">
+                <span className="stock-movement-storage-field-label" id="stock-movement-storage-label">Storage</span>
+                <button
+                  type="button"
+                  className="stock-movement-storage-row"
+                  data-testid="stock-movement-storage-row"
+                  disabled={isBusy || storagesLoading}
+                  aria-haspopup="dialog"
+                  aria-expanded={pickerOpen}
+                  aria-labelledby="stock-movement-storage-label"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  {storagesLoading
+                    ? 'Loading storages…'
+                    : stockMovementStorageActionLabel(movementType, destinationLabel)}
+                </button>
+              </div>
               {storagesError ? (
                 <p className="stock-movement-storage-gap" role="alert">
                   {storagesError}
