@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   deniedNotificationHelp,
   deviceLabelFromAgent,
   formatNotificationTimeAgo,
   isGroupPushEnabled,
+  normalizeClockTime,
   notificationIcon,
   readQuietHours,
   visibleNotificationGroups,
@@ -38,8 +40,54 @@ export function NotificationBell({
     if (!item.read_at) onMarkRead?.([item.id])
   }
 
+  const sheet = open ? (
+    <>
+      <button
+        type="button"
+        className="notification-drawer-backdrop"
+        aria-label="Close notifications"
+        onClick={() => setOpen(false)}
+      />
+      <section className="notification-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <header className="notification-drawer-header">
+          <h2 id={titleId}>Notifications</h2>
+          <button
+            type="button"
+            className="notification-text-btn"
+            onClick={() => onMarkAll?.()}
+            disabled={unreadCount === 0}
+          >
+            Mark all read
+          </button>
+        </header>
+        {items.length === 0 ? (
+          <p className="notification-drawer-empty">You're all caught up.</p>
+        ) : (
+          <ul className="notification-list">
+            {items.map((item) => (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  className={`notification-list-item${item.read_at ? '' : ' is-unread'}`}
+                  onClick={() => handleOpenItem(item)}
+                >
+                  <span className="notification-list-icon" aria-hidden="true">{notificationIcon(item.type)}</span>
+                  <span className="notification-list-copy">
+                    <strong>{item.title || 'Notification'}</strong>
+                    {item.body ? <span>{item.body}</span> : null}
+                    <time dateTime={item.created_at}>{formatNotificationTimeAgo(item.created_at)}</time>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
+  ) : null
+
   return (
-    <div className="notification-bell">
+    <div className={`notification-bell${open ? ' is-open' : ''}`}>
       <button
         type="button"
         className="icon-btn notification-bell-btn"
@@ -53,52 +101,31 @@ export function NotificationBell({
           <span className="notification-bell-badge">{unreadCount > 9 ? '9+' : unreadCount}</span>
         ) : null}
       </button>
-      {open ? (
-        <>
-          <button
-            type="button"
-            className="notification-drawer-backdrop"
-            aria-label="Close notifications"
-            onClick={() => setOpen(false)}
-          />
-          <section className="notification-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-            <header className="notification-drawer-header">
-              <h2 id={titleId}>Notifications</h2>
-              <button
-                type="button"
-                className="notification-text-btn"
-                onClick={() => onMarkAll?.()}
-                disabled={unreadCount === 0}
-              >
-                Mark all read
-              </button>
-            </header>
-            {items.length === 0 ? (
-              <p className="notification-drawer-empty">You're all caught up.</p>
-            ) : (
-              <ul className="notification-list">
-                {items.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className={`notification-list-item${item.read_at ? '' : ' is-unread'}`}
-                      onClick={() => handleOpenItem(item)}
-                    >
-                      <span className="notification-list-icon" aria-hidden="true">{notificationIcon(item.type)}</span>
-                      <span className="notification-list-copy">
-                        <strong>{item.title || 'Notification'}</strong>
-                        {item.body ? <span>{item.body}</span> : null}
-                        <time dateTime={item.created_at}>{formatNotificationTimeAgo(item.created_at)}</time>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      ) : null}
+      {sheet && typeof document !== 'undefined' ? createPortal(sheet, document.body) : null}
     </div>
+  )
+}
+
+function QuietTimeField({ label, value, disabled, onChange }) {
+  const shown = normalizeClockTime(value)
+  return (
+    <label className="notification-quiet-time">
+      <span>{label}</span>
+      <span className="notification-quiet-time-box">
+        <input
+          type="time"
+          lang="en-GB"
+          step="60"
+          value={shown}
+          disabled={disabled}
+          onChange={(event) => {
+            const next = normalizeClockTime(event.target.value)
+            if (next) onChange(next)
+          }}
+        />
+        <span className="notification-quiet-time-face" aria-hidden="true">{shown || '--:--'}</span>
+      </span>
+    </label>
   )
 }
 
@@ -181,24 +208,18 @@ export function NotificationSettingsPanel({
           onChange={(enabled) => onQuietChange?.({ ...quiet, quietEnabled: enabled })}
         />
         <div className="notification-quiet-times">
-          <label>
-            <span>From</span>
-            <input
-              type="time"
-              value={quiet.quietStart}
-              disabled={busy || !quiet.quietEnabled}
-              onChange={(event) => onQuietChange?.({ ...quiet, quietStart: event.target.value })}
-            />
-          </label>
-          <label>
-            <span>Until</span>
-            <input
-              type="time"
-              value={quiet.quietEnd}
-              disabled={busy || !quiet.quietEnabled}
-              onChange={(event) => onQuietChange?.({ ...quiet, quietEnd: event.target.value })}
-            />
-          </label>
+          <QuietTimeField
+            label="From"
+            value={quiet.quietStart}
+            disabled={busy || !quiet.quietEnabled}
+            onChange={(quietStart) => onQuietChange?.({ ...quiet, quietStart })}
+          />
+          <QuietTimeField
+            label="Until"
+            value={quiet.quietEnd}
+            disabled={busy || !quiet.quietEnabled}
+            onChange={(quietEnd) => onQuietChange?.({ ...quiet, quietEnd })}
+          />
         </div>
       </section>
 
