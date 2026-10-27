@@ -108,10 +108,11 @@ export function NotificationBell({
 
 function QuietTimeField({ label, value, disabled, onChange }) {
   const shown = normalizeClockTime(value)
+  const empty = !shown
   return (
     <label className="notification-quiet-time">
       <span>{label}</span>
-      <span className="notification-quiet-time-box">
+      <span className={`notification-quiet-time-box${empty ? ' is-empty' : ''}`}>
         <input
           type="time"
           lang="en-GB"
@@ -123,7 +124,9 @@ function QuietTimeField({ label, value, disabled, onChange }) {
             if (next) onChange(next)
           }}
         />
-        <span className="notification-quiet-time-face" aria-hidden="true">{shown || '--:--'}</span>
+        {empty ? (
+          <span className="notification-quiet-time-face" aria-hidden="true">--:--</span>
+        ) : null}
       </span>
     </label>
   )
