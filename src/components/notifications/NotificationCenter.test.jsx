@@ -25,11 +25,10 @@ function render(node) {
   }
 }
 
-function setInputValue(input, value) {
-  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
-  setter?.call(input, value)
-  input.dispatchEvent(new Event('input', { bubbles: true }))
-  input.dispatchEvent(new Event('change', { bubbles: true }))
+function setSelectValue(select, value) {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')?.set
+  setter?.call(select, value)
+  select.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
 const items = [
@@ -89,18 +88,28 @@ describe('quiet hours', () => {
       onQuietChange,
     }))
 
-    expect(container.querySelectorAll('.notification-quiet-time-face')).toHaveLength(0)
-    expect(container.querySelectorAll('.notification-quiet-time-box.is-empty')).toHaveLength(0)
+    expect(container.querySelector('input[type="time"]')).toBeNull()
+    expect(container.querySelector('.notification-quiet-time-face')).toBeNull()
 
-    const inputs = Array.from(container.querySelectorAll('input[type="time"]'))
-    expect(inputs.map((input) => input.value)).toEqual(['23:00', '08:00'])
-    expect(inputs[0].getAttribute('lang')).toBe('en-GB')
-    inputs.forEach((input) => {
-      expect(input.parentElement?.querySelector('.notification-quiet-time-face')).toBeNull()
-    })
+    const fields = Array.from(container.querySelectorAll('.hour-minute-field'))
+    expect(fields).toHaveLength(2)
+    const from = fields[0].querySelectorAll('select')
+    const until = fields[1].querySelectorAll('select')
+    expect(from[0].value).toBe('23')
+    expect(from[1].value).toBe('00')
+    expect(until[0].value).toBe('08')
+    expect(until[1].value).toBe('00')
+    expect(from[0].selectedOptions[0].textContent).toBe('23')
+    expect(from[1].selectedOptions[0].textContent).toBe('00')
+    expect(fields[0].textContent).not.toMatch(/AM|PM/)
+    expect(fields[0].querySelectorAll('.hour-minute-sep')).toHaveLength(1)
 
     act(() => {
-      setInputValue(inputs[0], '07:30:00')
+      setSelectValue(from[0], '07')
+    })
+    const fromMinute = fields[0].querySelectorAll('select')[1]
+    act(() => {
+      setSelectValue(fromMinute, '30')
     })
     expect(onQuietChange).toHaveBeenCalledWith(expect.objectContaining({
       quietStart: '07:30',
@@ -114,14 +123,12 @@ describe('quiet hours', () => {
     const css = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
     expect(css).toMatch(/\.notification-quiet-times \{[^}]*grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\);/s)
     expect(css).toMatch(/\.notification-quiet-times \{[^}]*width: 100%;/s)
-    expect(css).toContain(".notification-quiet-time-box input[type='time']")
-    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*-webkit-appearance: none;/s)
-    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*min-height: 44px;/s)
-    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*width: 100%;/s)
-    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*color: #f7efe1;/s)
-    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*-webkit-text-fill-color: #f7efe1;/s)
-    expect(css).toContain('.notification-quiet-time-box.is-empty input[type=\'time\']')
-    expect(css).toMatch(/\.notification-quiet-time-box\.is-empty input\[type='time'\][\s\S]*-webkit-text-fill-color: transparent;/)
-    expect(css).toContain('.notification-quiet-time-face')
+    expect(css).toMatch(/\.hour-minute-field \{[^}]*min-height: 44px;/s)
+    expect(css).toMatch(/\.hour-minute-field select \{[^}]*-webkit-appearance: none;/s)
+    expect(css).toMatch(/\.hour-minute-field select \{[^}]*min-height: 44px;/s)
+    expect(css).toMatch(/\.hour-minute-field \{[^}]*color: #f7efe1;/s)
+    expect(css).toMatch(/\.hour-minute-field select \{[^}]*-webkit-text-fill-color: currentColor;/s)
+    expect(css).not.toContain('.notification-quiet-time-face')
+    expect(css).not.toContain(".notification-quiet-time-box input[type='time']")
   })
 })

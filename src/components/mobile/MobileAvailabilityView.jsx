@@ -15,38 +15,24 @@ import {
   getEmployeeAvailabilityWeek,
   saveEmployeeAvailabilityWeek,
 } from '../../services/availabilityService'
-
-function normalizeTimeInputValue(value) {
-  const raw = `${value ?? ''}`.trim()
-  if (!raw) return null
-  return raw.slice(0, 5)
-}
+import { HourMinuteField } from '../HourMinuteField'
 
 function AvailabilityTimeField({
   label,
-  placeholder,
   value,
   disabled,
   onChange,
 }) {
-  const empty = !`${value ?? ''}`.trim()
-
   return (
     <label className="mobile-availability-field">
       <span className="mobile-availability-field-label">{label}</span>
-      <span className={`mobile-availability-time${empty ? ' is-empty' : ''}`}>
-        <input
-          type="time"
-          className="mobile-availability-input"
-          value={value ?? ''}
-          placeholder={placeholder}
-          onChange={onChange}
-          disabled={disabled}
-        />
-        {empty ? (
-          <span className="mobile-availability-time-placeholder" aria-hidden="true">{placeholder}</span>
-        ) : null}
-      </span>
+      <HourMinuteField
+        className="mobile-availability-hour-minute"
+        value={value ?? ''}
+        ariaLabel={label}
+        disabled={disabled}
+        onChange={onChange}
+      />
     </label>
   )
 }
@@ -262,20 +248,18 @@ export function MobileAvailabilityView({
               <div className="mobile-availability-time-grid">
                 <AvailabilityTimeField
                   label="Start time (optional)"
-                  placeholder="--:--"
                   value={entry.startTime}
                   disabled={isSaving}
-                  onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
-                    startTime: normalizeTimeInputValue(event.target.value),
+                  onChange={(next) => handleDayFieldChange(entry.dayOfWeek, {
+                    startTime: next || null,
                   })}
                 />
                 <AvailabilityTimeField
                   label="End time (optional)"
-                  placeholder="--:--"
                   value={entry.endTime}
                   disabled={isSaving}
-                  onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
-                    endTime: normalizeTimeInputValue(event.target.value),
+                  onChange={(next) => handleDayFieldChange(entry.dayOfWeek, {
+                    endTime: next || null,
                   })}
                 />
               </div>

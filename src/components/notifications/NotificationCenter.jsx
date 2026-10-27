@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { HourMinuteField } from '../HourMinuteField'
 import {
   deniedNotificationHelp,
   deviceLabelFromAgent,
@@ -107,27 +108,18 @@ export function NotificationBell({
 }
 
 function QuietTimeField({ label, value, disabled, onChange }) {
-  const shown = normalizeClockTime(value)
-  const empty = !shown
   return (
     <label className="notification-quiet-time">
       <span>{label}</span>
-      <span className={`notification-quiet-time-box${empty ? ' is-empty' : ''}`}>
-        <input
-          type="time"
-          lang="en-GB"
-          step="60"
-          value={shown}
-          disabled={disabled}
-          onChange={(event) => {
-            const next = normalizeClockTime(event.target.value)
-            if (next) onChange(next)
-          }}
-        />
-        {empty ? (
-          <span className="notification-quiet-time-face" aria-hidden="true">--:--</span>
-        ) : null}
-      </span>
+      <HourMinuteField
+        value={normalizeClockTime(value)}
+        ariaLabel={label}
+        disabled={disabled}
+        allowEmpty={false}
+        onChange={(next) => {
+          if (next) onChange(next)
+        }}
+      />
     </label>
   )
 }
