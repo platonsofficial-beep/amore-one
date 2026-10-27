@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { StockDashboardView } from './StockDashboardView'
-import { StockItemMoreMenu } from './StockItemMoreMenu'
+import { computeMenuPosition, StockItemMoreMenu } from './StockItemMoreMenu'
 
 const APP_CSS = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
@@ -173,5 +173,49 @@ describe('short landscape stock dashboard', () => {
     expect(menu?.className).toContain('is-popover')
     expect(Number.parseFloat(menu.style.top)).toBeGreaterThanOrEqual(168)
     cleanup()
+  })
+
+  it('flips the desktop product menu upward when the card is near the bottom', () => {
+    const previousHeight = window.innerHeight
+    const previousWidth = window.innerWidth
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 640 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1280 })
+
+    const fitted = computeMenuPosition(
+      { top: 560, bottom: 600, left: 656, right: 700, width: 44, height: 40 },
+      340,
+      280,
+    )
+    expect(fitted.placement).toBe('above')
+    expect(fitted.top).toBe(272)
+    expect(fitted.top + 280).toBeLessThanOrEqual(632)
+    expect(fitted.maxHeight).toBeNull()
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 400 })
+    const constrained = computeMenuPosition(
+      { top: 220, bottom: 260, left: 356, right: 400, width: 44, height: 40 },
+      340,
+      500,
+    )
+    expect(constrained.placement).toBe('above')
+    expect(constrained.maxHeight).toBeGreaterThan(0)
+    expect(constrained.top).toBeGreaterThanOrEqual(0)
+    expect(constrained.top + constrained.maxHeight).toBeLessThanOrEqual(392)
+
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: previousHeight })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: previousWidth })
+  })
+})
+
+describe('supplier cards and recent counts layout', () => {
+  it('pins supplier stats, clamps names, and lets recent counts fill the row', () => {
+    expect(APP_CSS).toMatch(/\.stock-supplier-card-stats\s*\{[^}]*margin-top:\s*auto/)
+    expect(APP_CSS).toMatch(/\.stock-supplier-card-heading strong\s*\{[^}]*-webkit-line-clamp:\s*2/)
+    expect(APP_CSS).toMatch(/\.stock-supplier-card-contact-grid\s*\{[^}]*height:\s*calc\(1\.25em \* 2 \+ 4px\)/)
+    expect(APP_CSS).toMatch(/\.inventory-count-foundation-grid\.is-recent-only \.inventory-count-session-list\s*\{[^}]*repeat\(auto-fit,\s*minmax\(260px,\s*1fr\)\)/)
+
+    const block = shortLandscapeBlock()
+    expect(block).toMatch(/\.stock-supplier-card-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/)
+    expect(block).toMatch(/stock-item-more-menu-section-stack\s*\{[^}]*padding-inline:\s*8px/)
   })
 })

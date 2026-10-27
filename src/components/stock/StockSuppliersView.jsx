@@ -106,11 +106,14 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
       </div>
 
       <div className="stock-supplier-card-contact-grid">
-        {supplier.phone ? <span>{supplier.phone}</span> : null}
-        {supplier.email ? <span>{supplier.email}</span> : null}
-        {!supplier.phone && !supplier.email ? (
-          <span className="is-muted">{supplier.contactPerson ? '—' : 'No contact'}</span>
-        ) : null}
+        {supplier.phone || supplier.email ? (
+          <>
+            <span>{supplier.phone || '\u00a0'}</span>
+            <span>{supplier.email || '\u00a0'}</span>
+          </>
+        ) : (
+          <span className="is-muted">No contact</span>
+        )}
       </div>
 
       <div className="stock-supplier-card-stats">
@@ -134,9 +137,7 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
             <span className={`stock-supplier-card-stat-value stock-supplier-card-stat-value-gold${receivedValue.value === '—' ? ' is-muted' : ''}`}>
               {receivedValue.value}
             </span>
-            {receivedValue.caption ? (
-              <span className="stock-received-value-caption">{receivedValue.caption}</span>
-            ) : null}
+            <span className="stock-received-value-caption">{receivedValue.caption || '\u00a0'}</span>
           </div>
         ) : null}
       </div>
