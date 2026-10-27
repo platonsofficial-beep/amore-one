@@ -103,16 +103,26 @@ export function MobileReservationsHostView({
   const [rowMenu, setRowMenu] = useState(null)
 
   useEffect(() => {
+    let orientationTimerId = 0
     const updateOrientation = () => {
       setIsSplitLayout(
         !shouldShowHostStationPortraitFallback() && isMobileHostSplitViewport(),
       )
     }
+    const handleOrientationChange = () => {
+      updateOrientation()
+      window.clearTimeout(orientationTimerId)
+      orientationTimerId = window.setTimeout(updateOrientation, 350)
+    }
+    updateOrientation()
     window.addEventListener('resize', updateOrientation)
-    window.addEventListener('orientationchange', updateOrientation)
+    window.addEventListener('orientationchange', handleOrientationChange)
+    window.visualViewport?.addEventListener('resize', updateOrientation)
     return () => {
+      window.clearTimeout(orientationTimerId)
       window.removeEventListener('resize', updateOrientation)
-      window.removeEventListener('orientationchange', updateOrientation)
+      window.removeEventListener('orientationchange', handleOrientationChange)
+      window.visualViewport?.removeEventListener('resize', updateOrientation)
     }
   }, [])
 

@@ -38,6 +38,10 @@ import {
   withTakeSource,
 } from '../../lib/stockSupplyRefill'
 import { getWorkspaceStorageProducts } from '../../services/stockStorageCenterService'
+
+function compactSourceLabel(source) {
+  return formatSourceStockLabel(source).replace(/ Storage(?=:)/g, '')
+}
 import { loadSupplyRefillCatalog, takeRefillLines } from '../../services/stockSupplyRefillService'
 import { transferStockBetweenLocations } from '../../services/stockMutationService'
 
@@ -252,7 +256,10 @@ export function StockSupplyRefillSheet({
       >
         <div className="drawer-header">
           <div>
-            <h3 id="supply-refill-title">{TAKE_FROM_SUPPLY_LABEL}</h3>
+            <h3 id="supply-refill-title">
+              <span className="stock-supply-refill-title-full">{TAKE_FROM_SUPPLY_LABEL}</span>
+              <span className="stock-supply-refill-title-short">Take from supply</span>
+            </h3>
             <p className="stock-modal-subtitle">
               Into {destinationName}
             </p>
@@ -331,7 +338,7 @@ export function StockSupplyRefillSheet({
                     {visibleRows.map((row) => (
                       <li
                         key={row.stockItemId}
-                        className="stock-take-row"
+                        className={`stock-take-row${Number(row.quantity) > 0 ? ' is-active' : ''}`}
                         data-testid="supply-take-row"
                         data-stock-item-id={row.stockItemId}
                         data-on-shelf={row.onShelf ? 'true' : 'false'}
@@ -355,6 +362,7 @@ export function StockSupplyRefillSheet({
                                 data-storage-id={source.storageId}
                                 aria-pressed={row.sourceStorageId === source.storageId}
                                 aria-label={`${row.name} from ${source.storageName}`}
+                                data-compact-label={compactSourceLabel(source)}
                                 disabled={busy}
                                 onClick={() => {
                                   patchTakeRow(row.stockItemId, (entry) => withTakeSource(entry, source.storageId))

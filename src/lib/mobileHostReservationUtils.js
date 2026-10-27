@@ -1,5 +1,11 @@
 import { getHostListGroupId } from './reservationHostStatus'
 import { normalizeReservationTimeValue } from './timeFormatUtils'
+import { readLiveViewportBox } from './viewportUtils'
+
+function readHostViewportWidth() {
+  if (typeof window === 'undefined') return 0
+  return readLiveViewportBox().width || Number(window.innerWidth) || 0
+}
 
 export const MOBILE_HOST_TABS = [
   { id: 'upcoming', label: 'Upcoming' },
@@ -74,19 +80,20 @@ export const HOST_STATION_DESKTOP_MIN_WIDTH = 721
 
 export function isHostStationDesktopViewport() {
   if (typeof window === 'undefined') return false
-  return window.innerWidth >= HOST_STATION_DESKTOP_MIN_WIDTH
+  return readHostViewportWidth() >= HOST_STATION_DESKTOP_MIN_WIDTH
 }
 
 export function isMobileHostLandscapeViewport() {
   if (typeof window === 'undefined') return false
+  const box = readLiveViewportBox()
   return window.matchMedia?.('(orientation: landscape)')?.matches
-    ?? window.innerWidth > window.innerHeight
+    ?? box.width > box.height
 }
 
 export function isMobileHostTabletViewport() {
   if (typeof window === 'undefined') return false
   return window.matchMedia?.('(min-width: 700px)')?.matches
-    ?? window.innerWidth >= 700
+    ?? readHostViewportWidth() >= 700
 }
 
 export function isHostTabletPanelViewport() {
@@ -97,14 +104,16 @@ export function isMobileHostSplitViewport() {
   if (typeof window === 'undefined') return false
   if (isHostStationDesktopViewport()) return true
   if (isMobileHostLandscapeViewport()) return true
-  return isMobileHostTabletViewport() && window.innerWidth > window.innerHeight
+  const box = readLiveViewportBox()
+  return isMobileHostTabletViewport() && box.width > box.height
 }
 
 export function shouldShowHostStationPortraitFallback() {
   if (typeof window === 'undefined') return false
   if (isHostStationDesktopViewport()) return false
-  const width = window.innerWidth || 0
-  const height = window.innerHeight || 0
+  const box = readLiveViewportBox()
+  const width = box.width || 0
+  const height = box.height || 0
   return width < 700 && height > width
 }
 

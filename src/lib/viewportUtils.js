@@ -134,12 +134,39 @@ export function isViewportDebugEnabled() {
 }
 
 export function getViewportDimensions() {
-  if (typeof window === 'undefined') {
+  return readLiveViewportBox()
+}
+
+/**
+ * Live viewport size for rotation.
+ * iOS standalone can leave innerWidth at the pre-rotation size while
+ * visualViewport or the orientation media query has already updated.
+ * Landscape uses the larger width so a stale portrait measurement cannot stick.
+ */
+export function readLiveViewportBox(win = globalThis.window) {
+  if (!win) {
     return { width: 0, height: 0 }
   }
 
-  return {
-    width: window.innerWidth || 0,
-    height: window.innerHeight || 0,
+  const innerWidth = Number(win.innerWidth) || 0
+  const innerHeight = Number(win.innerHeight) || 0
+  const visual = win.visualViewport
+  const visualWidth = Number(visual?.width) || 0
+  const visualHeight = Number(visual?.height) || 0
+  let landscape = innerWidth > innerHeight
+  try {
+    const query = win.matchMedia?.('(orientation: landscape)')
+    if (query && typeof query.matches === 'boolean') landscape = query.matches
+  } catch {
+    landscape = innerWidth > innerHeight
   }
+
+  const width = landscape
+    ? Math.max(innerWidth, visualWidth)
+    : (visualWidth || innerWidth)
+  const height = landscape
+    ? (visualHeight && innerHeight ? Math.min(visualHeight, innerHeight) : (visualHeight || innerHeight))
+    : Math.max(innerHeight, visualHeight)
+
+  return { width, height }
 }

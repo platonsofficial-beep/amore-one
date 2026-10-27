@@ -1,4 +1,5 @@
 import { getReservationsForFloorTable } from './floorAssignmentMapping'
+import { readLiveViewportBox } from './viewportUtils'
 import { resolveFloorTableOperationalState } from './floorTableOperationalState'
 import {
   canAccessModule,
@@ -26,6 +27,8 @@ export function shouldUseManagerPhoneShell(source) {
 
   if (usableLandscape) return false
   if (shortSide >= 600 && !isNarrow) return false
+  // Orientation media can update before innerWidth on iOS standalone.
+  if (!isPortrait && !isNarrow && width > 0) return false
   if (isPortrait && (isNarrow || width <= MANAGER_PHONE_MAX_WIDTH || (shortSide > 0 && shortSide <= 500))) {
     return true
   }
@@ -54,8 +57,9 @@ function resolveManagerViewportBox(source) {
     return { width: 0, height: 0, portrait: false, narrow: false }
   }
 
-  const width = Number(win.innerWidth) || 0
-  const height = Number(win.innerHeight) || 0
+  const live = readLiveViewportBox(win)
+  const width = live.width || Number(win.innerWidth) || 0
+  const height = live.height || Number(win.innerHeight) || 0
   let portrait = null
   let narrow = null
   try {

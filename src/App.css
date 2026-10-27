@@ -361,6 +361,23 @@
   grid-template-columns: 1fr;
 }
 
+/* Reservations fullscreen hides the sidebar. A leftover 240px column
+   squeezes the host station into a sliver after a desktop open or an
+   iPhone portrait-to-landscape rotation. Fill the viewport in CSS. */
+.app-shell.is-reservations-dedicated-shell {
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
+}
+
+.app-shell.is-reservations-dedicated-shell .main-panel,
+.app-shell.is-reservations-dedicated-shell .main-panel-reservations,
+.app-shell.is-reservations-dedicated-shell .mobile-host-reservations {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .app-shell.stock-focus-mode .main-panel-stock {
   padding:
     max(8px, env(safe-area-inset-top, 0px))
@@ -51575,9 +51592,8 @@ summary:focus-visible {
 }
 
 @media (max-width: 900px) {
-  /* portrait-week-names: full shift names wrap on word boundaries. */
-  .schedule-shift-instance-name,
-  .schedule-shift-instance-dept {
+  /* portrait-week-names: shift names wrap on word boundaries. */
+  .schedule-shift-instance-name {
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
@@ -51585,6 +51601,19 @@ summary:focus-visible {
     word-break: normal;
     font-size: 0.68rem;
     line-height: 1.15;
+  }
+
+  /* Department labels never break mid-word (SERVICE stays one token). */
+  .schedule-shift-instance-dept {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+    word-break: normal;
+    font-size: 0.46rem;
+    letter-spacing: 0.02em;
+    line-height: 1.15;
+    max-width: 100%;
   }
 
   .blend-grid-header-day-name {
@@ -51609,8 +51638,48 @@ summary:focus-visible {
   }
 
   .schedule-focus-workspace .schedule-header {
-    gap: 4px 8px;
-    padding: 4px 8px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 6px;
+    min-height: 0;
+  }
+
+  .schedule-focus-workspace .schedule-header-copy {
+    flex: 0 1 34%;
+    min-width: 0;
+    max-width: 34%;
+  }
+
+  .schedule-focus-workspace .schedule-header-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .schedule-focus-workspace .schedule-header-actions {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    width: auto;
+    min-width: 0;
+    overflow-x: auto;
+    justify-content: flex-end;
+  }
+
+  .schedule-focus-workspace .schedule-header-nav,
+  .schedule-focus-workspace .schedule-header-controls {
+    flex-wrap: nowrap;
+    width: auto;
+  }
+
+  .schedule-focus-workspace .schedule-header .ghost-btn,
+  .schedule-focus-workspace .schedule-header .primary-btn,
+  .schedule-focus-workspace .schedule-header .schedule-status-badge {
+    min-height: 32px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 0.72rem;
   }
 
   .schedule-focus-workspace .schedule-header-eyebrow {
@@ -51622,8 +51691,11 @@ summary:focus-visible {
   }
 
   .schedule-focus-workspace .schedule-header-title {
-    font-size: 0.92rem;
+    font-size: 0.78rem;
     line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .schedule-focus-workspace .schedule-header-actions,
@@ -51632,15 +51704,46 @@ summary:focus-visible {
     gap: 4px;
   }
 
+  .schedule-focus-workspace {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+  }
+
+  .schedule-focus-workspace > .schedule-header,
+  .schedule-focus-workspace > .schedule-workspace-layout {
+    flex: 1 0 100%;
+    min-width: 0;
+  }
+
   .schedule-focus-workspace .schedule-workspace-banner {
-    padding: 2px 8px;
-    font-size: 0.75rem;
-    line-height: 1.25;
+    align-self: center;
+    flex: 0 1 auto;
+    width: auto;
+    max-width: min(100%, 240px);
+    min-height: 0;
+    max-height: 22px;
+    margin: 0;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    line-height: 22px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .schedule-focus-workspace .schedule-issue-banner {
+    max-width: min(100%, 220px);
   }
 
   .schedule-focus-workspace .schedule-staff-availability-summary {
-    min-height: 44px;
-    padding: 4px 8px;
+    min-height: 28px;
+    height: 28px;
+    padding: 0 8px;
+    font-size: 0.72rem;
   }
 
   .schedule-focus-workspace .schedule-workspace-layout,
@@ -51659,5 +51762,408 @@ summary:focus-visible {
 .mobile-app .mobile-app-content:has(.chat-screen) .notification-settings,
 .mobile-app .mobile-app-content:has(.chat-screen) .notification-quiet-times {
   display: none;
+}
+
+.stock-storage-center-overview-label-short,
+.stock-supply-refill-title-short {
+  display: none;
+}
+
+/* Phone portrait only. Tablet and desktop keep the existing cards and sheets. */
+@media (max-width: 600px) {
+  .stock-storage-center-page {
+    gap: 8px;
+  }
+
+  .stock-storage-center-title {
+    font-size: 1.05rem;
+  }
+
+  .stock-storage-center-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  .stock-storage-center-overview-label-full {
+    display: none;
+  }
+
+  .stock-storage-center-overview-label-short {
+    display: block;
+  }
+
+  .stock-storage-center-overview {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    padding: 8px 4px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(11, 15, 23, 0.55);
+  }
+
+  .stock-storage-center-overview-stat {
+    align-items: center;
+    text-align: center;
+    gap: 2px;
+    min-height: 0;
+    padding: 2px 4px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    font-size: 0.68rem;
+    line-height: 1.15;
+  }
+
+  .stock-storage-center-overview-stat strong {
+    order: -1;
+    font-size: 1.05rem;
+    line-height: 1.1;
+  }
+
+  .stock-summary-grid,
+  .stock-summary-grid-five,
+  .stock-summary-grid-six,
+  .stock-today-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .stock-summary-card,
+  .stock-today-kpis .stock-summary-card {
+    align-items: center;
+    text-align: center;
+    min-height: 0;
+    padding: 8px 6px;
+    border-radius: 12px;
+    gap: 2px;
+  }
+
+  .stock-summary-card .stock-summary-value,
+  .stock-summary-card.layout-value-first .stock-summary-value {
+    order: -1;
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.1;
+  }
+
+  .stock-summary-card .stock-summary-label,
+  .stock-summary-card.layout-value-first .stock-summary-label {
+    font-size: 0.66rem;
+    line-height: 1.15;
+  }
+
+  .stock-department-group-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stock-department-group-actions,
+  .stock-storage-center-card-actions {
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  .stock-department-group-actions .stock-department-toolbar-btn,
+  .stock-storage-center-card-actions .stock-department-toolbar-btn {
+    flex: 0 0 auto;
+    width: auto;
+  }
+
+  .stock-storage-center-card {
+    min-height: 0;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .stock-storage-center-card-top {
+    min-height: 0;
+  }
+
+  .employee-modal-backdrop:has(.stock-supply-refill-sheet),
+  .employee-modal-backdrop:has(.stock-movement-modal),
+  .employee-modal-backdrop:has(.stock-transfer-modal),
+  .employee-modal-backdrop:has(.stock-create-order-modal),
+  .employee-modal-backdrop.staff-shelf-count-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+    background: #070b12;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .employee-modal.stock-supply-refill-sheet.task-form-modal.is-responsive-sheet,
+  .employee-modal.stock-movement-modal.task-form-modal.is-responsive-sheet,
+  .employee-modal.stock-transfer-modal.task-form-modal.is-responsive-sheet,
+  .employee-modal.stock-create-order-modal.task-form-modal.is-responsive-sheet,
+  .employee-modal.staff-shelf-count-sheet {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .employee-modal.stock-supply-refill-sheet.task-form-modal.is-responsive-sheet {
+    overflow: hidden;
+  }
+
+  .stock-supply-refill-title-full {
+    display: none;
+  }
+
+  .stock-supply-refill-title-short {
+    display: block;
+    font-size: 1.05rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .stock-supply-refill-sheet .drawer-header,
+  .stock-supply-refill-tabs,
+  .stock-take-search,
+  .stock-movement-modal .drawer-header,
+  .stock-transfer-modal .drawer-header,
+  .stock-create-order-modal .stock-create-order-header,
+  .staff-shelf-count-sheet .drawer-header {
+    flex: 0 0 auto;
+  }
+
+  #supply-take-panel,
+  #supply-suggested-panel,
+  .stock-create-order-body,
+  .staff-shelf-count-sheet .staff-shelf-count-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  #supply-take-panel,
+  #supply-suggested-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .stock-take-list,
+  .stock-supply-refill-list,
+  .stock-create-order-body,
+  .staff-shelf-count-list {
+    overflow: auto;
+    min-height: 0;
+  }
+
+  .stock-take-summary,
+  .stock-supply-refill-actions,
+  .stock-create-order-footer,
+  .staff-shelf-count-actions {
+    flex: 0 0 auto;
+    margin-top: 0;
+    background: #12141c;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+  }
+
+  .stock-take-summary {
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .stock-take-summary h4,
+  .stock-take-summary p,
+  .stock-take-summary li {
+    font-size: 0.75rem;
+  }
+
+  .stock-take-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .stock-take-row.is-active {
+    border-color: rgba(244, 211, 145, 0.8);
+    background: rgba(244, 211, 145, 0.14);
+  }
+
+  .stock-take-list,
+  .stock-supply-refill-list {
+    flex: 1 1 auto;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .stock-take-identity {
+    flex: 0 1 auto;
+    flex-direction: row;
+    align-items: baseline;
+    min-width: 0;
+    max-width: 46%;
+    gap: 4px;
+    order: 1;
+  }
+
+  .stock-take-identity strong {
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stock-take-identity span {
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+  }
+
+  .stock-take-sources {
+    flex: 0 1 auto;
+    order: 2;
+    gap: 4px;
+  }
+
+  .stock-take-source {
+    min-height: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: rgba(255, 247, 232, 0.62);
+    font-size: 0;
+    line-height: 0;
+    font-weight: 500;
+  }
+
+  .stock-take-source::after {
+    content: attr(data-compact-label);
+    font-size: 0.68rem;
+    line-height: 1.2;
+    font-weight: 500;
+  }
+
+  .stock-take-source[aria-pressed='true'] {
+    border: 0;
+    background: transparent;
+    color: rgba(255, 247, 232, 0.78);
+  }
+
+  .stock-take-remaining {
+    grid-column: auto;
+    order: 3;
+    flex: 0 0 auto;
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  .stock-take-stepper {
+    order: 4;
+    width: auto;
+    flex: 0 0 auto;
+    gap: 2px;
+    margin-left: auto;
+  }
+
+  .stock-take-stepper button {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 0;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .stock-take-stepper input {
+    flex: 0 0 40px;
+    width: 40px;
+    min-height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .stock-take-warning,
+  .stock-take-row .stock-supply-refill-line-error,
+  .stock-take-row .stock-supply-refill-order {
+    order: 5;
+    flex: 1 1 100%;
+    font-size: 0.72rem;
+  }
+
+  .stock-supply-refill-line {
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: 4px 8px;
+    padding: 6px 8px;
+  }
+
+  .stock-supply-refill-check {
+    width: 32px;
+    height: 32px;
+  }
+
+  .staff-shelf-count-row,
+  .stock-create-order-item {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+
+  .staff-shelf-count-identity,
+  .stock-create-order-item-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .staff-shelf-count-qty,
+  .stock-create-order-qty-input {
+    width: 72px;
+    min-height: 32px;
+    flex: 0 0 72px;
+  }
+
+  /* The mobile shell reserves bottom-nav space on every dialog. These
+     stock sheets hide that nav, so on a phone they fill the screen. */
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-supply-refill-sheet),
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-movement-modal),
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-transfer-modal),
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-create-order-modal),
+  .app-shell.is-mobile-shell .employee-modal-backdrop.staff-shelf-count-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+    background: #070b12;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .app-shell.is-mobile-shell .employee-modal.stock-supply-refill-sheet.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.stock-movement-modal.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.stock-transfer-modal.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.stock-create-order-modal.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.staff-shelf-count-sheet {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-sizing: border-box;
+    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    background: #12141c;
+  }
 }
 

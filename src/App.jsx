@@ -567,7 +567,7 @@ import { MobileReservationQuickCreateSheet } from './components/mobile/reservati
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
-import { shouldUseMobileShell } from './lib/viewportUtils'
+import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
 import {
   buildManagerPortraitMoreItems,
   resolveManagerPortraitScreen,
@@ -608,6 +608,7 @@ import {
   resolveInsightsModuleLink,
   isStockWorkspaceView,
   isTeamScheduleView,
+  isStandaloneFocusView,
   resolveSidebarWorkspaceExit,
   shouldHideStandardTopbar,
   shouldShowModuleSearch,
@@ -645,7 +646,6 @@ import {
   resolveMobileShellVariant,
   resolvePermittedActiveView,
   resolveDefaultModuleForRole,
-  resolveExitReservationsHostDestination,
   shouldShowReservationsHostView,
   shouldUseReservationsHostDedicatedShell,
   resolvePermittedOperationsSection,
@@ -3020,24 +3020,32 @@ function ScheduleView({
       const wasCompact = wasScheduleCompactLandscapeRef.current
       wasScheduleCompactLandscapeRef.current = compact
       setIsScheduleCompactLandscape(compact)
-      setScheduleViewportWidth(window.innerWidth)
+      setScheduleViewportWidth(readLiveViewportBox().width || window.innerWidth)
       if (compact && !wasCompact) {
         setIsShiftTemplatesOpen(false)
       }
     }
 
+    let orientationTimerId = 0
+    const handleScheduleOrientation = () => {
+      updateScheduleViewport()
+      window.clearTimeout(orientationTimerId)
+      orientationTimerId = window.setTimeout(updateScheduleViewport, 350)
+    }
+
     updateScheduleViewport()
 
     window.addEventListener('resize', updateScheduleViewport)
-    window.addEventListener('orientationchange', updateScheduleViewport)
+    window.addEventListener('orientationchange', handleScheduleOrientation)
     window.visualViewport?.addEventListener('resize', updateScheduleViewport)
 
     const landscapeQuery = window.matchMedia?.('(orientation: landscape)')
     landscapeQuery?.addEventListener?.('change', updateScheduleViewport)
 
     return () => {
+      window.clearTimeout(orientationTimerId)
       window.removeEventListener('resize', updateScheduleViewport)
-      window.removeEventListener('orientationchange', updateScheduleViewport)
+      window.removeEventListener('orientationchange', handleScheduleOrientation)
       window.visualViewport?.removeEventListener('resize', updateScheduleViewport)
       landscapeQuery?.removeEventListener?.('change', updateScheduleViewport)
     }
@@ -14850,7 +14858,10 @@ function App() {
     const handleOrientationChange = () => {
       window.clearTimeout(orientationTimerId)
       updateMobileViewport()
-      orientationTimerId = window.setTimeout(updateMobileViewport, 320)
+      orientationTimerId = window.setTimeout(() => {
+        updateMobileViewport()
+        orientationTimerId = window.setTimeout(updateMobileViewport, 380)
+      }, 320)
     }
 
     updateMobileViewport()
@@ -16862,8 +16873,7 @@ function App() {
   }, [activeView])
 
   useEffect(() => {
-    if (activeView === 'stock') return
-    if (activeView === 'team' && teamSection === 'schedule') return
+    if (isStandaloneFocusView(activeView, teamSection)) return
     sidebarWorkspaceRef.current = {
       view: activeView || 'today',
       teamSection: teamSection || 'today',
@@ -23608,15 +23618,12 @@ function App() {
   const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
-    const destination = resolveExitReservationsHostDestination(
-      preReservationsHostViewRef.current || 'today',
-      permissionAccess,
-    )
-    handleActiveViewChange(destination)
-    if (destination === 'team' && teamSection === 'members' && preReservationsHostViewRef.current === 'today') {
-      handleTeamSectionChange('today')
+    const destination = resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)
+    handleActiveViewChange(destination.view)
+    if (destination.view === 'team') {
+      handleTeamSectionChange(destination.teamSection === 'schedule' ? 'today' : destination.teamSection)
     }
-  }, [permissionAccess, teamSection, handleActiveViewChange, handleTeamSectionChange])
+  }, [handleActiveViewChange, handleTeamSectionChange])
 
   const exitToSidebarWorkspace = useCallback(() => {
     const destination = resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)
@@ -24032,7 +24039,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && !useDedicatedShell && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && !useDedicatedShell && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
         <div className="notification-settings-overlay" role="presentation">
