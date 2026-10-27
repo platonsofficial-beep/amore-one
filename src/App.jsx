@@ -93,8 +93,10 @@ import {
   buildReservationLinkGroups,
   buildReservationLinkTableMeta,
   computeHostFloorFit,
+  computeHostFloorReadableBox,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
+  readHostFloorAspect,
 } from './lib/hostFloorPlanViewport'
 import {
   advanceHostFloorPointerInteraction,
@@ -232,6 +234,7 @@ import {
   buildSeatingsById,
   formatSeatingChipLabel,
   getActiveSeatingsForDate,
+  seatingsForAuthBypassPreview,
   matchReservationTimeToSeating,
   resolveHostStationInitialSeatingId,
   resolveReservationSeatingId,
@@ -10302,12 +10305,38 @@ function FloorPlanView({
 
     const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
     const tables = visibleTableStatesRef.current.map((tableState) => tableState.table)
-    const fit = computeHostFloorFit({
+    const aspect = readHostFloorAspect(layoutSpace)
+    const box = computeHostFloorReadableBox({
       tables,
-      viewportWidth: layoutSpace?.clientWidth || viewport.clientWidth,
-      viewportHeight: layoutSpace?.clientHeight || viewport.clientHeight,
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
+      aspectWidth: aspect.aspectWidth,
+      aspectHeight: aspect.aspectHeight,
     })
 
+    if (layoutSpace && box.width > 0 && box.height > 0) {
+      layoutSpace.style.width = `${box.width}px`
+      layoutSpace.style.height = `${box.height}px`
+      layoutSpace.style.maxWidth = 'none'
+      layoutSpace.style.maxHeight = 'none'
+      const tableNodes = [...layoutSpace.querySelectorAll('.floor-table-node')]
+      const firstTable = tableNodes.reduce((nearest, node) => {
+        if (!nearest) return node
+        return node.getBoundingClientRect().top < nearest.getBoundingClientRect().top ? node : nearest
+      }, null)
+      if (firstTable) {
+        const viewportTop = viewport.getBoundingClientRect().top
+        const tableTop = firstTable.getBoundingClientRect().top
+        const delta = tableTop - viewportTop
+        if (delta > 12) viewport.scrollTop += delta - 8
+      }
+    }
+
+    const fit = computeHostFloorFit({
+      tables,
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
+    })
     setFloorZoom(fit.zoom)
     setFloorPan(fit.pan)
     isManualFloorZoomRef.current = false
@@ -17218,11 +17247,16 @@ function App() {
       try {
         const remoteSeatings = await getReservationSeatings(activeWorkspaceId, { includeInactive: true })
         if (!isMounted) return
-        setReservationSeatings(remoteSeatings)
+        setReservationSeatings(seatingsForAuthBypassPreview(remoteSeatings))
       } catch (error) {
         if (!isMounted) return
-        setReservationSeatings([])
-        setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
+        const preview = seatingsForAuthBypassPreview([])
+        setReservationSeatings(preview)
+        if (preview.length > 0) {
+          setReservationSeatingsNotice('')
+        } else {
+          setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
+        }
       } finally {
         if (isMounted) {
           setIsReservationSeatingsLoading(false)

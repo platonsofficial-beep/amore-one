@@ -61,12 +61,25 @@ export function FloorSeatingSelector({
           })}
         </div>
         {legendItems?.length ? (
-          <FloorPlanLegend
-            items={legendItems}
-            variant="compact"
-            className="floor-seating-selector-legend"
-            ariaLabel="Floor plan table colors"
-          />
+          <div className="floor-seating-legend-slot">
+            <FloorPlanLegend
+              items={legendItems}
+              variant="compact"
+              className="floor-seating-selector-legend"
+              ariaLabel="Floor plan table colors"
+            />
+            <details className="floor-seating-legend-disclosure">
+              <summary className="floor-seating-legend-disclosure-btn" aria-label="Table colors">
+                i
+              </summary>
+              <FloorPlanLegend
+                items={legendItems}
+                variant="compact"
+                className="floor-seating-legend-popover"
+                ariaLabel="Floor plan table colors"
+              />
+            </details>
+          </div>
         ) : null}
       </div>
     </section>

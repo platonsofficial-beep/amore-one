@@ -6411,8 +6411,10 @@
 
 .mobile-host-reservations.is-landscape .floor-plan-toolbar {
   flex: 0 0 auto;
-  max-height: 3rem;
-  overflow: hidden;
+  max-height: none;
+  overflow: visible;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .mobile-host-reservations.is-landscape .floor-seating-selector-label {
@@ -6611,14 +6613,14 @@
 }
 
 .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
-  flex: 1 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   min-width: 0;
   width: 100%;
   max-width: 100%;
   height: auto;
   max-height: none;
-  overflow: hidden;
+  overflow: auto;
   touch-action: manipulation;
   display: flex;
   flex-direction: column;
@@ -6638,40 +6640,34 @@
 }
 
 .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-canvas-stage,
-.mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-canvas {
-  flex: 1 1 auto;
+.mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-canvas,
+.mobile-host-floor-stage .host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-viewport.is-host-viewport .floor-plan-canvas,
+.mobile-host-floor-stage .host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-viewport.is-host-viewport .floor-plan-canvas-stage {
+  flex: 0 0 auto;
   width: 100%;
-  height: 100%;
-  min-width: 0;
+  min-width: 100%;
+  height: max-content;
   min-height: 0;
+  max-height: none;
+  overflow: visible;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
 }
 
 .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-layout-space.is-published-layout {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   width: 100%;
-  height: 100%;
-  min-width: 0;
-  min-height: 0;
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: auto;
+  min-width: 100%;
+  height: auto;
+  max-width: none;
+  max-height: none;
+  aspect-ratio: var(--floor-aspect-ratio, 2200 / 1400);
   margin: 0;
 }
 
 .mobile-host-reservations.is-landscape .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
-  flex: 1 1 auto;
-  min-height: 34%;
-}
-
-.mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-layout-space.is-published-layout {
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  aspect-ratio: auto;
-  margin: 0;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .mobile-host-floor-stage .floor-plan-canvas-stage,
@@ -9955,5 +9951,153 @@ body:not(:has(.inventory-count-session)) :is(
     box-sizing: border-box;
     height: 44px;
     min-height: 44px;
+  }
+}
+
+/* Short phone landscape: one seating row, a scrollable readable floor,
+   and queue labels that fit the left pane. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    padding: 2px 8px;
+    gap: 6px;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-title {
+    flex: 0 1 auto;
+    font-size: 0.9rem;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-date-nav {
+    margin-top: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions-group,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls-group {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-primary {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-more {
+    display: block;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
+    flex: 0 0 auto;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-toolbar {
+    flex-wrap: nowrap;
+    align-items: center;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-scroll {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 6px;
+    width: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-legend-slot {
+    flex: 0 0 auto;
+    margin-left: 0;
+    max-width: 44px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    overflow: visible;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    padding: 0 0.6rem;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip-name {
+    flex: 0 0 auto;
+    min-width: max-content;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip-time {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip-count {
+    flex: 0 0 auto;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-legend {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure {
+    display: block;
+    flex: 0 0 auto;
+  }
+
+  .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport > .floor-plan-canvas-area-title {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-toolbar.host-queue-search-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-label {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-label-short {
+    display: inline;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-btn {
+    flex: 0 1 auto;
+    min-width: 0;
   }
 }

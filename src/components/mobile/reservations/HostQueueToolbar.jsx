@@ -27,6 +27,7 @@ function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
 
 function HostQueueToolbarMenu({
   label,
+  compactLabel = '',
   ariaLabel,
   options = [],
   sections = null,
@@ -154,7 +155,10 @@ function HostQueueToolbarMenu({
         aria-haspopup="dialog"
         onClick={handleOpen}
       >
-        {label}
+        <span className="host-queue-toolbar-label">{label}</span>
+        {compactLabel ? (
+          <span className="host-queue-toolbar-label-short">{compactLabel}</span>
+        ) : null}
         <span aria-hidden="true"> ▾</span>
       </button>
       {menu}
@@ -181,13 +185,15 @@ export function HostQueueToolbar({
     <div className="host-queue-toolbar" role="toolbar" aria-label="Host queue filters">
       <HostQueueToolbarMenu
         label={`Area · ${selectedArea?.label ?? 'All areas'}`}
-        ariaLabel="Area filter"
+        compactLabel="Area"
+        ariaLabel={`Area filter, ${selectedArea?.label ?? 'All areas'}`}
         options={areaOptions}
         selectedId={areaFilterId}
         onSelect={onAreaFilterChange}
       />
       <HostQueueToolbarMenu
         label={activeFilterCount > 0 ? `Filter · ${activeFilterCount}` : 'Filter'}
+        compactLabel="Filter"
         ariaLabel="Operational filters"
         sections={HOST_QUEUE_FILTER_MENU_SECTIONS}
         selectedIds={activeFilterIds}
@@ -196,7 +202,8 @@ export function HostQueueToolbar({
       />
       <HostQueueToolbarMenu
         label={`Sort · ${selectedSort?.label ?? 'Time'}`}
-        ariaLabel="Sort reservations"
+        compactLabel="Sort"
+        ariaLabel={`Sort reservations, ${selectedSort?.label ?? 'Time'}`}
         options={sortOptions}
         selectedId={sortId}
         onSelect={onSortChange}

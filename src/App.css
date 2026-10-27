@@ -7925,14 +7925,39 @@
 
 .floor-plan-area-switcher {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
   max-width: 100%;
 }
 
+.floor-plan-workspace.is-host-floor .floor-plan-toolbar > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.floor-plan-workspace.is-host-floor .floor-plan-area-switcher {
+  width: 100%;
+}
+
+.floor-plan-workspace.is-host-floor .floor-plan-area-nav-btn {
+  flex: 0 0 44px;
+}
+
+.floor-plan-workspace.is-host-floor .floor-plan-area-select {
+  flex: 1 1 auto;
+  min-width: min(100%, 9.5rem);
+  width: auto;
+}
+
+.floor-plan-workspace.is-host-floor .floor-plan-area-current {
+  display: none;
+}
+
 .floor-plan-area-nav-btn {
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -13994,6 +14019,63 @@
 
 .floor-seating-selector-legend {
   margin-left: auto;
+}
+
+.floor-seating-legend-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin-left: auto;
+}
+
+.floor-seating-legend-disclosure {
+  display: none;
+  position: relative;
+}
+
+.floor-seating-legend-disclosure-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(232, 215, 168, 0.92);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-style: italic;
+  cursor: pointer;
+  list-style: none;
+}
+
+.floor-seating-legend-disclosure-btn::-webkit-details-marker {
+  display: none;
+}
+
+.floor-seating-legend-disclosure:not([open]) .floor-seating-legend-popover {
+  display: none;
+}
+
+.floor-seating-legend-popover {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 4px);
+  right: 0;
+  width: max-content;
+  max-width: min(18rem, 70vw);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 16, 24, 0.98);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.host-queue-toolbar-label-short {
+  display: none;
 }
 
 @media (max-width: 820px) {

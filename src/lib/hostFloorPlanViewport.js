@@ -7,6 +7,48 @@ const FIT_BOUNDS_INSET_Y_TOP = 2.5
 const FIT_BOUNDS_INSET_Y_BOTTOM = 4
 export const HOST_FLOOR_MIN_ZOOM = 0.65
 export const HOST_FLOOR_MAX_ZOOM = 2.4
+export const HOST_FLOOR_MIN_TABLE_PX = 44
+
+export function readHostFloorAspect(layoutSpace) {
+  const raw = `${layoutSpace?.style?.getPropertyValue?.('--floor-aspect-ratio') ?? ''}`.trim()
+  const match = raw.match(/([\d.]+)\s*\/\s*([\d.]+)/)
+  if (!match) return { aspectWidth: 2200, aspectHeight: 1400 }
+  const aspectWidth = Number(match[1])
+  const aspectHeight = Number(match[2])
+  if (!Number.isFinite(aspectWidth) || !Number.isFinite(aspectHeight) || aspectWidth <= 0 || aspectHeight <= 0) {
+    return { aspectWidth: 2200, aspectHeight: 1400 }
+  }
+  return { aspectWidth, aspectHeight }
+}
+
+/**
+ * Size the published floor so it fills the viewport on at least one axis
+ * and every table stays at least `minTablePx` wide. A short viewport scrolls
+ * instead of squashing the plan.
+ */
+export function computeHostFloorReadableBox({
+  tables = [],
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+  minTablePx = HOST_FLOOR_MIN_TABLE_PX,
+} = {}) {
+  const safeAspectHeight = aspectHeight > 0 ? aspectHeight : 1400
+  const aspect = (aspectWidth > 0 ? aspectWidth : 2200) / safeAspectHeight
+  const percents = tables
+    .map((table) => Number(table?.widthPercent))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const minPercent = percents.length ? Math.min(...percents) : 12
+  const minWidthForTables = Math.ceil(minTablePx / (minPercent / 100))
+  const widthFromHeight = viewportHeight > 0 ? viewportHeight * aspect : 0
+  const widthFromWidth = viewportWidth > 0 ? viewportWidth : 0
+  const width = Math.max(minWidthForTables, widthFromWidth, widthFromHeight, 1)
+  return {
+    width: Math.round(width),
+    height: Math.max(1, Math.round(width / aspect)),
+  }
+}
 
 export const RESERVATION_LINK_STROKE = 'rgba(232, 196, 110, 0.88)'
 

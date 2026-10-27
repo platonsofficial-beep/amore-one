@@ -220,11 +220,19 @@ const MEASURE_SOURCE = `(() => {
   const sizedTables = [...document.querySelectorAll('.floor-table-node')].flatMap((el) => {
     const rect = el.getBoundingClientRect()
     if (rect.width <= 1 || rect.height <= 1) return []
+    const label = el.querySelector('.floor-table-number')
+    const labelClipped = Boolean(
+      label
+      && label.clientWidth > 0
+      && label.scrollWidth > label.clientWidth + 1,
+    )
     return [{
       width: Math.round(rect.width),
       height: Math.round(rect.height),
       left: Math.round(rect.left),
       top: Math.round(rect.top),
+      labelClipped,
+      label: label ? label.textContent.trim() : '',
     }]
   })
   const tables = sizedTables.slice(0, 4)
@@ -252,10 +260,21 @@ const MEASURE_SOURCE = `(() => {
   const seatingChipRect = seatingChip ? seatingChip.getBoundingClientRect() : null
   const title = document.querySelector('.floor-plan-canvas-area-title')
   const titleRect = title ? title.getBoundingClientRect() : null
+  const seatingNames = [...document.querySelectorAll('.floor-seating-selector-chip-name')].map((el) => ({
+    text: el.textContent.trim(),
+    clipped: el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 1,
+  }))
+  const nextArea = document.querySelector('.floor-plan-area-nav-btn[aria-label="Next area"]')
+  const nextAreaRect = nextArea ? nextArea.getBoundingClientRect() : null
   const titleOverlapsTable = Boolean(titleRect && titleRect.width > 1 && sizedTables.some((table) => {
     const overlapW = Math.min(table.left + table.width, titleRect.right) - Math.max(table.left, titleRect.left)
     const overlapH = Math.min(table.top + table.height, titleRect.bottom) - Math.max(table.top, titleRect.top)
     return overlapW > 2 && overlapH > 2
+  }))
+  const tablesOverlap = sizedTables.some((table, index) => sizedTables.slice(index + 1).some((other) => {
+    const overlapW = Math.min(table.left + table.width, other.left + other.width) - Math.max(table.left, other.left)
+    const overlapH = Math.min(table.top + table.height, other.top + other.height) - Math.max(table.top, other.top)
+    return overlapW > 4 && overlapH > 4
   }))
   const boxOf = (selector) => {
     const el = document.querySelector(selector)
@@ -293,6 +312,36 @@ const MEASURE_SOURCE = `(() => {
     searchLeft: edgeLeft('.mobile-host-reservations-search input'),
     areaFilterLeft: edgeLeft('.host-queue-toolbar-btn'),
     searchPlaceholder: search ? search.getAttribute('placeholder') : '',
+    searchPlaceholderClipped: (() => {
+      if (!search) return false
+      const style = getComputedStyle(search)
+      const probe = document.createElement('span')
+      probe.textContent = search.getAttribute('placeholder') || ''
+      probe.style.font = style.font
+      probe.style.position = 'absolute'
+      probe.style.visibility = 'hidden'
+      probe.style.whiteSpace = 'nowrap'
+      document.body.appendChild(probe)
+      const pad = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0)
+      const clipped = probe.offsetWidth > search.clientWidth - pad + 1
+      probe.remove()
+      return clipped
+    })(),
+    sortVisibleLabel: (() => {
+      const button = [...document.querySelectorAll('.host-queue-toolbar-btn')].find((el) => (
+        (el.getAttribute('aria-label') || '').startsWith('Sort')
+      ))
+      if (!button) return ''
+      const visible = [...button.querySelectorAll('.host-queue-toolbar-label, .host-queue-toolbar-label-short')]
+        .find((el) => getComputedStyle(el).display !== 'none')
+      return visible ? visible.textContent.trim() : ''
+    })(),
+    sortButtonClipped: (() => {
+      const button = [...document.querySelectorAll('.host-queue-toolbar-btn')].find((el) => (
+        (el.getAttribute('aria-label') || '').startsWith('Sort')
+      ))
+      return Boolean(button && button.clientWidth > 0 && button.scrollWidth > button.clientWidth + 2)
+    })(),
     areaSelectClipped: Boolean(areaSelect && areaSelect.offsetWidth > 0 && areaSelect.scrollWidth > areaSelect.clientWidth + 2),
     seatingCountClipped: Boolean(
       seatingCountRect
@@ -305,6 +354,16 @@ const MEASURE_SOURCE = `(() => {
       ),
     ),
     titleOverlapsTable,
+    seatingNames,
+    tableTooSmall: sizedTables.some((table) => table.width < 36 || table.height < 36),
+    tableLabelClipped: sizedTables.some((table) => table.labelClipped),
+    tablesOverlap,
+    nextArea: nextAreaRect && nextAreaRect.width > 1 ? {
+      left: Math.round(nextAreaRect.left),
+      right: Math.round(nextAreaRect.right),
+      width: Math.round(nextAreaRect.width),
+      height: Math.round(nextAreaRect.height),
+    } : null,
     clipped,
     tableCount: sizedTables.length,
     visibleTableCount,
@@ -443,6 +502,32 @@ function assertMeasurement(page, width, height, measurement) {
   if (page.requiresFloorInWorkspace && workspaceFloorExpected(width, height)) {
     if (!floorVisible) failures.push('floor plan did not render')
     if (visibleTableCount < 1) failures.push('floor plan has no tables inside the viewport')
+    if (measurement.tableTooSmall) failures.push('floor table is smaller than 36px')
+    if (measurement.tableLabelClipped) failures.push('floor table label is clipped')
+    if (measurement.tablesOverlap) failures.push('floor tables overlap')
+    const floorBox = measurement.floor
+    const rowInView = (measurement.tables || []).some((table) => {
+      const center = table.top + table.height / 2
+      return center >= floorBox.top && center <= floorBox.top + floorBox.height
+    })
+    if (floorBox && !rowInView) failures.push('floor tables sit outside the visible plan')
+    const seatingNames = measurement.seatingNames || []
+    for (const name of ['Brunch', 'Lunch', 'Dinner 1', 'Dinner 2']) {
+      if (!seatingNames.some((entry) => entry.text === name)) {
+        failures.push(`seating chip missing full name ${name}`)
+      }
+    }
+    if (seatingNames.some((entry) => entry.clipped)) failures.push('seating name is clipped')
+    if (!measurement.nextArea || measurement.nextArea.width < 36 || measurement.nextArea.right > width + 1) {
+      failures.push('next area arrow is missing or clipped')
+    }
+    if (height <= 520) {
+      if (measurement.searchPlaceholderClipped) failures.push('search placeholder is clipped')
+      if (measurement.sortVisibleLabel !== 'Sort') {
+        failures.push(`sort control shows "${measurement.sortVisibleLabel}"`)
+      }
+      if (measurement.sortButtonClipped) failures.push('sort control is clipped')
+    }
   } else if (floorVisible && visibleTableCount < 1) {
     failures.push('floor plan is visible but its tables are outside the viewport')
   }

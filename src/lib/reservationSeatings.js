@@ -125,6 +125,27 @@ export function normalizeReservationSeating(record) {
   }
 }
 
+export const AUTH_BYPASS_PREVIEW_SEATINGS = [
+  ['preview-brunch', 'Brunch', '10:00', 0],
+  ['preview-lunch', 'Lunch', '12:30', 1],
+  ['preview-dinner-1', 'Dinner 1', '18:00', 2],
+  ['preview-dinner-2', 'Dinner 2', '21:00', 3],
+].map(([id, name, startTime, sortOrder]) => normalizeReservationSeating({
+  id,
+  name,
+  startTime,
+  durationMinutes: 120,
+  daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+  sortOrder,
+  isActive: true,
+}))
+
+export function seatingsForAuthBypassPreview(seatings = []) {
+  if (import.meta.env.VITE_AUTH_DISABLED !== 'true') return seatings
+  if (Array.isArray(seatings) && seatings.length > 0) return seatings
+  return AUTH_BYPASS_PREVIEW_SEATINGS
+}
+
 export function sortReservationSeatings(seatings = []) {
   return [...seatings]
     .map((entry) => normalizeReservationSeating(entry))
