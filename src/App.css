@@ -34226,6 +34226,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-color: transparent;
 }
 
+.stock-department-group-actions .stock-department-toolbar-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+  font-weight: 650;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .stock-storage-supply-toggle[aria-pressed="true"],
 .stock-storage-buying-toggle[aria-pressed="true"] {
   border-color: rgba(212, 175, 55, 0.55);
@@ -39747,6 +39756,35 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .stock-migration-ownership-card.is-primary {
     padding: 24px 26px 22px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .stock-migration-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    column-gap: 16px;
+    align-items: stretch;
+  }
+
+  .stock-migration-header {
+    grid-column: 1 / -1;
+  }
+
+  .stock-migration-ownership {
+    max-width: none;
+  }
+
+  .stock-migration-ownership-card.is-primary {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .stock-migration-ownership-card-action {
+    flex: 0 0 auto;
+    align-items: flex-end;
   }
 }
 
@@ -49339,6 +49377,17 @@ summary:focus-visible {
   color: rgba(255, 247, 232, 0.62);
   font-size: 0.92rem;
   line-height: 1.35;
+}
+
+.stock-meta-segments {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.stock-meta-segments > span {
+  max-width: 100%;
+  white-space: nowrap;
 }
 
 .stock-item-qty-figure {
