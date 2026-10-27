@@ -9034,3 +9034,72 @@ body:not(:has(.inventory-count-session)) :is(
     padding-bottom: 0;
   }
 }
+
+@media (max-width: 900px) and (max-height: 500px) {
+  .mobile-app-content:has(.mobile-availability),
+  .mobile-app-content:has(.mobile-profile),
+  .mobile-app-content.attendance-clock-screen {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .mobile-availability.mobile-screen,
+  .mobile-profile.mobile-screen {
+    gap: 8px;
+  }
+
+  .mobile-availability .mobile-screen-header {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .mobile-availability .mobile-screen-eyebrow {
+    display: none;
+  }
+
+  .mobile-availability .mobile-screen-title,
+  .mobile-profile-header h1 {
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .mobile-availability .mobile-screen-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .mobile-profile-header {
+    margin: 0;
+    gap: 8px;
+  }
+
+  .mobile-profile .mobile-back-btn,
+  .attendance-clock-screen .mobile-back-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .attendance-clock-screen .attendance-clock {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .attendance-clock-screen .attendance-clock-header {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  .attendance-clock-screen .attendance-clock-kicker {
+    display: none;
+  }
+
+  .attendance-clock-screen .attendance-action {
+    min-height: 44px;
+  }
+}
