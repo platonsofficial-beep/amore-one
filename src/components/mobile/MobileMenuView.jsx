@@ -133,6 +133,7 @@ export function MobileMenuView({
   }
 
   const showWorkspaceSection = showFullSchedule
+    || Boolean(onOpenAttendance)
     || (menuVariant === 'manager'
       ? managerWorkspaceItems.length > 0 || canViewLeaveInbox
       : visibleModules.length > 0 || showSettings)
@@ -177,7 +178,7 @@ export function MobileMenuView({
               {onOpenAttendance ? (
                 <ManagerNavCard
                   icon="⏱"
-                  title="Attendance"
+                  title="Time clock"
                   subtitle="Who is in, late, and hours"
                   onClick={onOpenAttendance}
                 />
@@ -254,7 +255,7 @@ export function MobileMenuView({
             ) : null}
             {onOpenAttendance ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenAttendance}>
-                ⏱ Attendance
+                ⏱ Time clock
               </button>
             ) : null}
           </div>

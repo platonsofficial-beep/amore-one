@@ -232,7 +232,7 @@ export function AttendanceBoard({
   }
 
   return (
-    <section className="attendance-board" aria-label="Attendance">
+    <section className="attendance-board" aria-label="Time clock">
       {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
       {notice ? <p className="attendance-clock-message" role="status">{notice}</p> : null}
 

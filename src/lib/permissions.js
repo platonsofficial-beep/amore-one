@@ -252,8 +252,8 @@ export function resolvePermittedActiveView(role, requestedView) {
   const fallbackModule = resolveDefaultModuleForRole(role)
   const normalizedView = normalizeModuleId(requestedView) || fallbackModule
   if (normalizedView === 'settings' && canConfigureReservationSeatings(role)) return 'settings'
-  if (normalizedView === 'attendance') {
-    return canManageAttendance(role) ? 'attendance' : fallbackModule
+  if (normalizedView === 'attendance' || normalizedView === 'time-clock') {
+    return canManageAttendance(role) ? 'time-clock' : fallbackModule
   }
   return canAccessModule(role, normalizedView) ? normalizedView : fallbackModule
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { getModuleLabel, getModuleTitle } from './appNavigation'
 import { resolveMemberAccess } from './memberAccess'
+import { normalizeActiveView } from './navigationPersistence'
 import { canManageAttendance, resolvePermittedActiveView } from './permissions'
 import {
   LOCATION_OFF_MESSAGE,
@@ -210,7 +212,8 @@ describe('attendance permission gate', () => {
     expect(canManageAttendance('manager')).toBe(true)
     expect(canManageAttendance('host')).toBe(false)
     expect(canManageAttendance('staff')).toBe(false)
-    expect(resolvePermittedActiveView('manager', 'attendance')).toBe('attendance')
+    expect(resolvePermittedActiveView('manager', 'attendance')).toBe('time-clock')
+    expect(resolvePermittedActiveView('manager', 'time-clock')).toBe('time-clock')
     expect(resolvePermittedActiveView('host', 'attendance')).toBe('reservations')
     expect(resolvePermittedActiveView('staff', 'attendance')).toBe('today')
   })
@@ -221,10 +224,20 @@ describe('attendance permission gate', () => {
     const hostManage = resolveMemberAccess('host', [{ module: 'attendance', level: 2 }])
 
     expect(canManageAttendance(staffManage)).toBe(true)
-    expect(resolvePermittedActiveView(staffManage, 'attendance')).toBe('attendance')
+    expect(resolvePermittedActiveView(staffManage, 'time-clock')).toBe('time-clock')
     expect(canManageAttendance(managerView)).toBe(false)
     expect(canManageAttendance(hostManage)).toBe(false)
     expect(resolvePermittedActiveView(hostManage, 'attendance')).toBe('reservations')
+  })
+
+  it('shows Time clock to people and still opens a saved Attendance view', () => {
+    expect(getModuleTitle('time-clock')).toBe('Time clock')
+    expect(getModuleTitle('attendance')).toBe('Time clock')
+    expect(getModuleLabel('attendance')).toBe('Time clock')
+    expect(getModuleLabel('time-clock')).toBe('Time clock')
+    expect(normalizeActiveView('attendance')).toBe('time-clock')
+    expect(normalizeActiveView('time-clock')).toBe('time-clock')
+    expect(resolvePermittedActiveView('owner', 'attendance')).toBe('time-clock')
   })
 
   it('blocks a manager from deciding or fixing their own entry', () => {

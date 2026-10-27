@@ -14990,7 +14990,7 @@ function App() {
   const visibleNavItems = useMemo(() => {
     const items = filterNavItemsByRole(NAV_ITEMS, permissionAccess)
     if (!canManageAttendance(permissionAccess)) return items
-    const attendanceItem = { id: 'attendance', label: 'Attendance', icon: '⏱' }
+    const attendanceItem = { id: 'time-clock', label: 'Time clock', icon: '⏱' }
     const settingsIndex = items.findIndex((item) => item.id === 'settings')
     if (settingsIndex < 0) return [...items, attendanceItem]
     return [
@@ -15056,7 +15056,7 @@ function App() {
 
   const isActiveViewAllowed = !isAuthLoading && (
     (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
-    || (activeView === 'attendance' && canManageAttendanceRole)
+    || (activeView === 'time-clock' && canManageAttendanceRole)
     || canAccessModule(permissionAccess, activeView)
   )
   const shouldRenderReservationsHostView = useMemo(
@@ -23183,7 +23183,7 @@ function App() {
 
   const handleOpenAttendance = () => {
     if (!canManageAttendance(permissionAccess)) return
-    handleActiveViewChange('attendance')
+    handleActiveViewChange('time-clock')
     if (useMobileExperience) setMobileExpandedView('workspace')
   }
 
@@ -23499,7 +23499,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'attendance' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
@@ -24145,7 +24145,7 @@ function App() {
           />
         ) : null}
 
-        {isActiveViewAllowed && activeView === 'attendance' ? (
+        {isActiveViewAllowed && activeView === 'time-clock' ? (
           <AttendanceBoard
             workspaceId={activeWorkspaceId}
             actorMemberId={membership?.id ?? ''}

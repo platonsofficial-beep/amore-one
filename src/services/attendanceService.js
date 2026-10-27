@@ -21,7 +21,7 @@ function requireClient() {
 
 function unwrap(result) {
   if (result?.error) {
-    const error = new Error(result.error.message || 'Attendance request failed.')
+    const error = new Error(result.error.message || 'Time clock request failed.')
     error.code = result.error.code
     throw error
   }
