@@ -11,6 +11,8 @@ export function buildTaskForm(task = null, defaultDepartment = 'service') {
     dueTime: task?.dueTime ?? '',
     recurrence: task?.recurrence ?? 'none',
     notes: task?.notes ?? '',
+    category: task?.category ?? '',
+    repeatRule: task?.repeatRule ?? '',
   }
 }
 

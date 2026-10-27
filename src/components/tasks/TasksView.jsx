@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { buildCustomDepartmentBoardKey, loadCustomDepartmentIcons, persistCustomDepartmentIcons, TASK_PRESET_DEPARTMENTS, UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from '../../lib/taskDepartments'
-import { canStaffCompleteTask } from '../../lib/operationsUtils'
+import { buildCustomDepartmentBoardKey, getTaskDepartmentBoardKey, loadCustomDepartmentIcons, persistCustomDepartmentIcons, TASK_PRESET_DEPARTMENTS, UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from '../../lib/taskDepartments'
+import { canStaffCompleteTask, getOperationsCategoryLabel } from '../../lib/operationsUtils'
 import {
   buildTaskAlerts,
   buildVisibleDepartmentBoards,
@@ -110,15 +110,28 @@ export default function TasksView({
     return Array.from(merged).sort((left, right) => left.localeCompare(right))
   }, [savedCustomDepartments, tasks, taskTemplates])
 
-  const departmentBoards = useMemo(
-    () => buildVisibleDepartmentBoards(
+  const departmentBoards = useMemo(() => {
+    const boards = buildVisibleDepartmentBoards(
       tasks,
       taskTemplates,
       savedCustomDepartments,
       customDepartmentIcons,
-    ),
-    [tasks, taskTemplates, savedCustomDepartments, customDepartmentIcons],
-  )
+    )
+    const known = new Set(boards.map((board) => board.boardKey))
+    ;(tasks ?? []).forEach((task) => {
+      if (task?.taskSource !== 'operations') return
+      const boardKey = getTaskDepartmentBoardKey(task)
+      if (!boardKey || known.has(boardKey)) return
+      boards.push({
+        boardKey,
+        label: getOperationsCategoryLabel(boardKey),
+        icon: '📋',
+        isCustomBoard: false,
+      })
+      known.add(boardKey)
+    })
+    return boards
+  }, [tasks, taskTemplates, savedCustomDepartments, customDepartmentIcons])
 
   const persistCustomDepartments = (names) => {
     setSavedCustomDepartments(names)
