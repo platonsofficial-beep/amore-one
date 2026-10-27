@@ -128,6 +128,7 @@ export function MobileManagerHomeView({
   onCompleteAttentionItem,
   attentionPermissions = {},
   clockCard = null,
+  reminderCard = null,
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
 
@@ -159,6 +160,8 @@ export function MobileManagerHomeView({
           ) : null}
         </p>
       </header>
+
+      {reminderCard}
 
       {clockCard}
 

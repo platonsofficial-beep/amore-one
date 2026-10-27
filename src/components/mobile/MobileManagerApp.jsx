@@ -21,6 +21,7 @@ export function MobileManagerApp({
   expandedModuleContent = null,
   isReservationsHostMode = false,
   bottomTabs,
+  notificationBell = null,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -36,6 +37,7 @@ export function MobileManagerApp({
   if (expandedView && isReservationsHostMode) {
     return (
       <div className="mobile-app mobile-app-host-mode mobile-manager-app is-reservations-host-mode">
+        {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
         {noticeBanner}
         <div className="mobile-host-mode-screen">
           {expandedModuleContent ? (
@@ -51,6 +53,7 @@ export function MobileManagerApp({
   if (expandedView) {
     return (
       <div className="mobile-app mobile-app-expanded mobile-manager-app">
+        {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
         {noticeBanner}
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
@@ -72,6 +75,7 @@ export function MobileManagerApp({
 
   return (
     <div className="mobile-app mobile-manager-app">
+      {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
       {noticeBanner}
       <div className="mobile-app-content">
         {activeTab === 'today' ? <MobileManagerHomeView {...homeProps} /> : null}
@@ -85,6 +89,13 @@ export function MobileManagerApp({
             />
           ) : menuProps?.screen === 'profile' ? (
             <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />
+          ) : menuProps?.screen === 'notifications' ? (
+            <div className="mobile-screen mobile-notification-settings">
+              <button type="button" className="mobile-back-btn" onClick={menuProps.onBackFromNotifications}>
+                ‹ Back
+              </button>
+              {menuProps.notificationSettings}
+            </div>
           ) : (
             <MobileMenuView {...menuProps} />
           )

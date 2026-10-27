@@ -9,6 +9,7 @@ export function UserMenu({
   employees = [],
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
+  onOpenNotifications,
   variant = 'default',
 }) {
   const {
@@ -119,6 +120,19 @@ export function UserMenu({
               onClick={handleOpenWorkspaceProfile}
             >
               Open Workspace Profile
+            </button>
+          ) : null}
+          {onOpenNotifications ? (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false)
+                onOpenNotifications()
+              }}
+            >
+              Notifications
             </button>
           ) : null}
           {!isAuthDisabled ? (

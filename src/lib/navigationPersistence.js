@@ -29,6 +29,7 @@ const VALID_SETTINGS_SECTIONS = new Set([
   'positions',
   'venue',
   'team',
+  'notifications',
   'system',
 ])
 

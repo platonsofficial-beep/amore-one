@@ -11,6 +11,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'venue', label: 'Venue Setup', icon: '📍' },
   { id: 'reservations', label: 'Reservations', icon: '🍽️' },
   { id: 'team', label: 'Team', icon: '👥' },
+  { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'system', label: 'System', icon: '⚙️' },
 ]
 
@@ -24,6 +25,7 @@ export function WorkspaceView({
   reservationSeatingsProps,
   teamProps,
   systemProps,
+  notificationSettings = null,
   visibleSectionIds = null,
 }) {
   const sections = Array.isArray(visibleSectionIds)
@@ -69,6 +71,7 @@ export function WorkspaceView({
           {resolvedSection === 'team' ? (
             <WorkspaceTeamSection {...teamProps} workspace={workspace} />
           ) : null}
+          {resolvedSection === 'notifications' ? notificationSettings : null}
           {resolvedSection === 'system' ? (
             <WorkspaceSystemSection {...systemProps} />
           ) : null}

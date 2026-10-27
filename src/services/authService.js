@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { unregisterCurrentDevice } from './pushNotificationService'
 
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession()
@@ -48,6 +49,7 @@ export async function signUp(email, password) {
 }
 
 export async function signOut() {
+  await unregisterCurrentDevice()
   const { error } = await supabase.auth.signOut()
 
   if (error) {

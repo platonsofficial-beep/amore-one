@@ -550,6 +550,8 @@ import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { StockSectionNav } from './components/shell/StockSectionNav'
 import { UserMenu } from './components/auth/UserMenu'
+import { useNotificationCenter } from './components/notifications/useNotificationCenter'
+import { planNotificationOpen, resolveNotificationTarget } from './lib/pushNotifications'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
@@ -1121,6 +1123,7 @@ function TodayCollapsiblePanel({
 
 function CommandCenterView({
   clockCard = null,
+  reminderCard = null,
   statusSummary,
   timelineEvents,
   teamTodayGroups,
@@ -1160,6 +1163,7 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label="Today">
+      {reminderCard}
       {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
       <TodayAnnouncementsPanel
         announcements={announcements}
@@ -14843,6 +14847,8 @@ function App() {
   }, [])
 
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
+  const [clockOpenToken, setClockOpenToken] = useState(0)
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false)
   const [mobileReservationsHostMode, setMobileReservationsHostMode] = useState(false)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -15293,7 +15299,9 @@ function App() {
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
     const seatingSettingsOnly = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
-    const permittedSection = seatingSettingsOnly ? 'reservations' : nextSection
+    const permittedSection = seatingSettingsOnly && nextSection !== 'notifications'
+      ? 'reservations'
+      : nextSection
     setSettingsSection(permittedSection)
     persistNavigation({
       activeView,
@@ -15314,7 +15322,7 @@ function App() {
   useEffect(() => {
     if (activeView !== 'settings') return
     if (!canConfigureReservationSeatingsRole || canOpenWorkspaceProfile) return
-    if (settingsSection === 'reservations') return
+    if (settingsSection === 'reservations' || settingsSection === 'notifications') return
     handleSettingsSectionChange('reservations')
   }, [
     activeView,
@@ -23497,10 +23505,135 @@ function App() {
     }
   }, [activeWorkspaceId, isMobileViewport, membership?.employeeId, refreshMembership, user?.id])
 
+  const canOpenNotificationSettings = canOpenWorkspaceProfile || canConfigureReservationSeatingsRole
+  const showNotificationShortcut = useMobileExperience
+    ? !canAccessMobileExpandedModule(permissionAccess, 'settings')
+    : !canOpenWorkspaceProfile && !canConfigureReservationSeatingsRole
+
+  const openNotification = (row) => {
+    const target = resolveNotificationTarget(row)
+    const plan = planNotificationOpen(target, {
+      useMobileExperience,
+      isManagerMobile: isManagementMobileRole(role),
+    })
+    const weekStartDate = plan.weekStartDate ? getWeekStartDate(plan.weekStartDate) : ''
+    if (weekStartDate) {
+      handleScheduleWeekStartChange(weekStartDate)
+      setMobileWeekStart(weekStartDate)
+      persistMobileWeekStart(weekStartDate)
+    }
+
+    if (plan.action === 'staff-clock') {
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      handleMobileTabChange('home')
+      setClockOpenToken((value) => value + 1)
+      return
+    }
+    if (plan.action === 'manager-home') {
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      handleMobileTabChange('today')
+      return
+    }
+    if (plan.action === 'staff-home') {
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      handleMobileTabChange('home')
+      return
+    }
+    if (plan.action === 'today') {
+      handleActiveViewChange('today')
+      return
+    }
+    if (plan.action === 'attendance') {
+      handleOpenAttendance()
+      return
+    }
+    if (plan.action === 'staff-schedule') {
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      handleMobileTabChange('schedule')
+      return
+    }
+    if (plan.action === 'workspace-schedule') {
+      handleActiveViewChange('team')
+      handleTeamSectionChange('schedule')
+      if (useMobileExperience) setMobileExpandedView('workspace')
+      return
+    }
+    if (plan.action === 'staff-tasks') {
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      handleMobileTabChange('tasks')
+      return
+    }
+    if (plan.action === 'manager-tasks') {
+      if (plan.taskId) {
+        handleMobileManagerOpenChecklist({ taskId: plan.taskId })
+        return
+      }
+      setMobileExpandedView(null)
+      handleMobileTabChange('tasks')
+      return
+    }
+
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('dashboard')
+    if (useMobileExperience) setMobileExpandedView('workspace')
+    if (plan.taskId) openTaskChecklist(plan.taskId)
+  }
+
+  const openNotificationSettings = () => {
+    if (canOpenNotificationSettings) {
+      if (useMobileExperience) setMobileExpandedView('workspace')
+      handleActiveViewChange('settings')
+      handleSettingsSectionChange('notifications')
+      return
+    }
+
+    if (useMobileExperience) {
+      setNotificationSettingsOpen(false)
+      setMobileExpandedView(null)
+      handleMobileTabChange('menu')
+      setMobileMenuScreen('notifications')
+      return
+    }
+
+    setNotificationSettingsOpen(true)
+  }
+
+  const {
+    bell: notificationBell,
+    reminderCard: shiftReminderCard,
+    settingsPanel: notificationSettingsPanel,
+  } = useNotificationCenter({
+    userId: user?.id ?? '',
+    workspaceId: activeWorkspaceId,
+    canManageAttendance: canManageAttendanceRole,
+    timeZone: workspaceTimeZone,
+    onOpen: openNotification,
+  })
+
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      {notificationSettingsOpen && !useDedicatedShell ? (
+        <div className="notification-settings-overlay" role="presentation">
+          <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
+            <button
+              type="button"
+              className="icon-btn notification-settings-close"
+              aria-label="Close notification settings"
+              onClick={() => setNotificationSettingsOpen(false)}
+            >
+              ✕
+            </button>
+            {notificationSettingsPanel}
+          </div>
+        </div>
+      ) : null}
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
         <div className="brand-block">
@@ -23632,6 +23765,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'today' ? (
           <CommandCenterView
             clockCard={attendanceClockCard}
+            reminderCard={shiftReminderCard}
             statusSummary={todayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={enrichedTeamTodayGroups}
@@ -24159,7 +24293,7 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
-            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations']}
+            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications']}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
@@ -24246,6 +24380,7 @@ function App() {
             systemProps={{
               moduleConnections: workspaceModuleConnections,
             }}
+            notificationSettings={notificationSettingsPanel}
           />
         ) : null}
             </>
@@ -24307,6 +24442,7 @@ function App() {
                       onCompleteAttentionItem: handleCompleteStaleSeatedReservation,
                       attentionPermissions: todayAttentionPermissions,
                       clockCard: attendanceClockCard,
+                      reminderCard: shiftReminderCard,
                     }
                     : {
                       venueName: workspaceProfile.businessName,
@@ -24321,6 +24457,7 @@ function App() {
                       isAnnouncementsSaving: isSavingOperations,
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
                       clockCard: attendanceClockCard,
+                      reminderCard: shiftReminderCard,
                     }
 
                   const sharedMenuProps = {
@@ -24354,6 +24491,9 @@ function App() {
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
                     onOpenSettings: handleMobileOpenSettings,
                     onOpenAttendance: canManageAttendanceRole ? handleOpenAttendance : undefined,
+                    onOpenNotifications: showNotificationShortcut ? openNotificationSettings : undefined,
+                    onBackFromNotifications: () => setMobileMenuScreen('main'),
+                    notificationSettings: notificationSettingsPanel,
                     onSignOut: handleMobileSignOut,
                     menuVariant: isManagerMobileShell ? 'manager' : isHostMobileShellLocal ? 'host' : 'staff',
                   }
@@ -24446,6 +24586,7 @@ function App() {
                         expandedModuleContent={mobileExpandedView ? workspaceModules : null}
                         isReservationsHostMode={shouldRenderReservationsHostView && activeView === 'reservations'}
                         bottomTabs={mobileBottomTabs}
+                        notificationBell={notificationBell}
                       />
                     )
                   }
@@ -24498,6 +24639,8 @@ function App() {
                         onBackFromExpanded={handleMobileBack}
                         expandedModuleContent={mobileExpandedView ? workspaceModules : null}
                         bottomTabs={mobileBottomTabs}
+                        notificationBell={notificationBell}
+                        clockOpenToken={clockOpenToken}
                       />
                     )
                   }
@@ -24546,6 +24689,8 @@ function App() {
                       onBackFromExpanded={handleMobileBack}
                       expandedModuleContent={mobileExpandedView ? workspaceModules : null}
                       bottomTabs={mobileBottomTabs}
+                      notificationBell={notificationBell}
+                      clockOpenToken={clockOpenToken}
                     />
                   )
                 })()
@@ -24568,6 +24713,8 @@ function App() {
                     onQuickAction={handleDashboardQuickAction}
                     onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                     canOpenWorkspaceProfile={canOpenWorkspaceProfile}
+                    notificationBell={notificationBell}
+                    onOpenNotifications={showNotificationShortcut ? openNotificationSettings : undefined}
                   />
                   ) : (
                   <header className="topbar">
@@ -24589,13 +24736,14 @@ function App() {
                         />
                       </label>
                       ) : null}
-                      <button type="button" className="icon-btn" aria-label="Notifications">🔔</button>
+                      {notificationBell}
                       <div className="date-pill">{currentDateLabel}</div>
                       <UserMenu
                         profileChipDisplay={profileChipDisplay}
                         employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                         canOpenWorkspaceProfile={canOpenWorkspaceProfile}
+                        onOpenNotifications={showNotificationShortcut ? openNotificationSettings : undefined}
                       />
                     </div>
                   </header>
