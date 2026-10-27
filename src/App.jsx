@@ -289,7 +289,6 @@ import {
 } from './services/operationsChecklistService'
 import {
   completeTask,
-  createTask,
   deleteTask,
   getTasks,
   reopenTask,
@@ -303,6 +302,10 @@ import {
   updateTaskTemplate,
 } from './services/taskTemplateService'
 import { selectTemplatesDueForDate } from './lib/taskTemplateRecurrence'
+import {
+  mapTaskFormToOperationsTask,
+  presentOperationsTaskForTaskBoard,
+} from './lib/taskFormOperations'
 import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getChecklistItemsForTasks,
@@ -15532,6 +15535,13 @@ function App() {
     [tasks, operationsAnnouncements],
   )
 
+  const taskBoardTasks = useMemo(() => {
+    const operationsRows = (operationsTasks ?? [])
+      .map(presentOperationsTaskForTaskBoard)
+      .filter(Boolean)
+    return [...todayActionableTasks, ...operationsRows]
+  }, [todayActionableTasks, operationsTasks])
+
   const sharedOperationalTasks = useMemo(
     () => combineOperationalTasks(
       todayActionableTasks,
@@ -22895,13 +22905,34 @@ function App() {
     }
   }
 
+  const findOperationsTaskById = (taskId) => (
+    (operationsTasks ?? []).find((task) => `${task?.id ?? ''}` === `${taskId ?? ''}`) ?? null
+  )
+
+  const refreshOperationsTaskSurfaces = async () => {
+    await Promise.all([
+      refreshOperationsTasks(),
+      refreshMobileOperationsTasks(),
+    ])
+  }
+
   const handleCreateTask = async (payload) => {
+    if (!activeWorkspaceId) {
+      const error = new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create tasks.')
+      setTasksNotice(error.message)
+      throw error
+    }
+
     setIsSavingTask(true)
     setTasksNotice('')
 
     try {
-      await createTask({ ...payload, workspaceId: activeWorkspaceId })
-      await refreshTasks()
+      await createOperationsTask(
+        activeWorkspaceId,
+        mapTaskFormToOperationsTask(payload),
+        user?.id ?? null,
+      )
+      await refreshOperationsTaskSurfaces()
       setTasksNotice('Task created successfully.')
     } catch (error) {
       setTasksNotice(error?.message || 'Unable to create task right now.')
@@ -22916,8 +22947,21 @@ function App() {
     setTasksNotice('')
 
     try {
-      await updateTask(taskId, payload)
-      await refreshTasks()
+      const operationsTask = findOperationsTaskById(taskId)
+      if (operationsTask) {
+        if (!activeWorkspaceId) {
+          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update tasks.')
+        }
+        await updateOperationsTask(
+          activeWorkspaceId,
+          taskId,
+          mapTaskFormToOperationsTask(payload),
+        )
+        await refreshOperationsTaskSurfaces()
+      } else {
+        await updateTask(taskId, payload)
+        await refreshTasks()
+      }
       setTasksNotice('Task updated successfully.')
     } catch (error) {
       setTasksNotice(error?.message || 'Unable to update task right now.')
@@ -22932,8 +22976,16 @@ function App() {
     setTasksNotice('')
 
     try {
-      await deleteTask(taskId)
-      await refreshTasks()
+      if (findOperationsTaskById(taskId)) {
+        if (!activeWorkspaceId) {
+          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to delete tasks.')
+        }
+        await deleteOperationsTask(activeWorkspaceId, taskId)
+        await refreshOperationsTaskSurfaces()
+      } else {
+        await deleteTask(taskId)
+        await refreshTasks()
+      }
       setTasksNotice('Task deleted.')
     } catch (error) {
       setTasksNotice(error?.message || 'Unable to delete task right now.')
@@ -22947,8 +22999,19 @@ function App() {
     setTasksNotice('')
 
     try {
-      await completeTask(taskId)
-      await refreshTasks()
+      const operationsTask = findOperationsTaskById(taskId)
+      if (operationsTask) {
+        if (!activeWorkspaceId) {
+          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to complete tasks.')
+        }
+        await completeOperationalWorkItem(activeWorkspaceId, operationsTask, {
+          completedBy: user?.id ?? null,
+        })
+        await refreshOperationsTaskSurfaces()
+      } else {
+        await completeTask(taskId)
+        await refreshTasks()
+      }
       setTasksNotice('Task marked complete.')
     } catch (error) {
       setTasksNotice(error?.message || 'Unable to complete this task right now.')
@@ -22962,8 +23025,17 @@ function App() {
     setTasksNotice('')
 
     try {
-      await reopenTask(taskId)
-      await refreshTasks()
+      const operationsTask = findOperationsTaskById(taskId)
+      if (operationsTask) {
+        if (!activeWorkspaceId) {
+          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to reopen tasks.')
+        }
+        await reopenOperationalWorkItem(activeWorkspaceId, operationsTask)
+        await refreshOperationsTaskSurfaces()
+      } else {
+        await reopenTask(taskId)
+        await refreshTasks()
+      }
       setTasksNotice('Task reopened.')
     } catch (error) {
       setTasksNotice(error?.message || 'Unable to reopen this task right now.')
@@ -24244,7 +24316,7 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'tasks' ? (
           <TasksView
-            tasks={todayActionableTasks}
+            tasks={taskBoardTasks}
             taskTemplates={taskTemplates}
             templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
             checklistItemsByTaskId={checklistItemsByTaskId}

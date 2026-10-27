@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   CUSTOM_DEPARTMENT_NEW_OPTION,
+  CUSTOM_DEPARTMENT_OPTION_PREFIX,
   CUSTOM_DEPARTMENT_TYPE,
   TASK_PRESET_DEPARTMENTS,
   buildCustomDepartmentOptionValue,
@@ -8,6 +9,7 @@ import {
   parseCustomDepartmentOptionValue,
   resolveDepartmentFormSelectValue,
 } from '../../lib/taskDepartments'
+import { getOperationsCategoryLabel } from '../../lib/operationsUtils'
 
 export default function TaskDepartmentFields({
   department,
@@ -66,6 +68,13 @@ export default function TaskDepartmentFields({
               {preset.label}
             </option>
           ))}
+
+          {selectValue
+            && !selectValue.startsWith(CUSTOM_DEPARTMENT_OPTION_PREFIX)
+            && selectValue !== CUSTOM_DEPARTMENT_NEW_OPTION
+            && !TASK_PRESET_DEPARTMENTS.some((preset) => preset.key === selectValue) ? (
+              <option value={selectValue}>{getOperationsCategoryLabel(selectValue)}</option>
+            ) : null}
 
           {customDepartments.length > 0 ? (
             <optgroup label="Custom departments">
