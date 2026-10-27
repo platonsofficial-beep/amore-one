@@ -296,7 +296,15 @@ describe('StockItemMoreMenu permanent delete entry', () => {
     const menuText = document.querySelector('[role="menu"]')?.textContent ?? ''
     expect(menuText.indexOf('Status')).toBeGreaterThan(-1)
     expect(menuText.indexOf('Status')).toBeLessThan(menuText.indexOf('Delete product'))
-    expect(document.querySelector('[role="separator"]')).toBeNull()
+    const separator = document.querySelector('[role="separator"]')
+    const deactivate = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'Deactivate')
+    const deleteProduct = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'Delete product')
+    expect(separator).toBeTruthy()
+    expect(deactivate.compareDocumentPosition(separator) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(separator.compareDocumentPosition(deleteProduct) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(deleteProduct.className).toContain('is-danger')
 
     act(() => {
       Array.from(document.querySelectorAll('[role="menuitem"]'))

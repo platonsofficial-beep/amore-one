@@ -326,7 +326,16 @@ describe('StockDashboardView visibility UI', () => {
       'Reactivate',
       'Delete product',
     ])
-    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(0)
+    const separator = document.querySelector('[role="separator"]')
+    const reactivate = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'Reactivate')
+    const deleteProduct = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'Delete product')
+    expect(separator).toBeTruthy()
+    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(1)
+    expect(reactivate.compareDocumentPosition(separator) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(separator.compareDocumentPosition(deleteProduct) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(deleteProduct.className).toContain('is-danger')
     const menuText = document.querySelector('[role="menu"]')?.textContent ?? ''
     expect(menuText).toContain('Status')
     expect(menuText.indexOf('Status')).toBeLessThan(menuText.indexOf('Delete product'))

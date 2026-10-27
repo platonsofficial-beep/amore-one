@@ -196,8 +196,7 @@ export function shouldShowModuleSearch(activeView, teamSection, stockSection = '
   if (isTeamScheduleView(activeView, teamSection)) return false
   if (activeView === 'team' && teamSection === 'today') return false
   if (activeView === 'settings') return false
-  if (activeView === 'stock' && stockSection === 'migration') return false
-  if (activeView === 'stock' && (stockSection === 'orders' || stockSection === 'suppliers')) return false
+  if (activeView === 'stock') return Boolean(stockSection)
   return true
 }
 

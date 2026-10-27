@@ -32,7 +32,7 @@ describe('Retired Legacy Inventory navigation', () => {
     const subtitle = getModuleSubtitle('stock', 'Friday', { stockSection: 'migration' })
     expect(subtitle).toContain('spreadsheet')
     expect(subtitle).not.toContain('legacy')
-    expect(shouldShowModuleSearch('stock', 'today', 'migration')).toBe(false)
+    expect(shouldShowModuleSearch('stock', 'today', 'migration')).toBe(true)
     expect(shouldShowModuleSearch('stock', 'today', 'dashboard')).toBe(true)
   })
 

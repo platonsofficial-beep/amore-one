@@ -80,7 +80,6 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
 
 function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
   const statusTone = getSupplierStatusTone(supplier)
-  const hasOrderHistory = Boolean(metrics.lastOrderDate) || Number(metrics.totalSpend) > 0
   const receivedValue = describeReceivedValue(metrics.totalSpend, metrics.receivedOrders?.length)
 
   return (
@@ -96,9 +95,9 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
           </span>
           <div className="stock-supplier-card-heading">
             <strong>{supplier.companyName || 'Unnamed supplier'}</strong>
-            {supplier.contactPerson ? (
-              <span className="stock-supplier-card-contact">{supplier.contactPerson}</span>
-            ) : null}
+            <span className={`stock-supplier-card-contact${supplier.contactPerson ? '' : ' is-muted'}`}>
+              {supplier.contactPerson || '\u00a0'}
+            </span>
           </div>
         </div>
         <span className={`stock-order-status-badge tone-${statusTone}`}>
@@ -109,6 +108,9 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
       <div className="stock-supplier-card-contact-grid">
         {supplier.phone ? <span>{supplier.phone}</span> : null}
         {supplier.email ? <span>{supplier.email}</span> : null}
+        {!supplier.phone && !supplier.email ? (
+          <span className="is-muted">{supplier.contactPerson ? '—' : 'No contact'}</span>
+        ) : null}
       </div>
 
       <div className="stock-supplier-card-stats">
@@ -120,18 +122,16 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
           <span className="stock-supplier-card-stat-label">Open orders</span>
           <span className="stock-supplier-card-stat-value">{metrics.openOrdersCount}</span>
         </div>
-        {hasOrderHistory ? (
-          <div className="stock-supplier-card-stat">
-            <span className="stock-supplier-card-stat-label">Last order</span>
-            <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-compact">
-              {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
-            </span>
-          </div>
-        ) : null}
-        {showSpend && hasOrderHistory ? (
+        <div className="stock-supplier-card-stat">
+          <span className="stock-supplier-card-stat-label">Last order</span>
+          <span className={`stock-supplier-card-stat-value stock-supplier-card-stat-value-compact${metrics.lastOrderDate ? '' : ' is-muted'}`}>
+            {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
+          </span>
+        </div>
+        {showSpend ? (
           <div className="stock-supplier-card-stat">
             <span className="stock-supplier-card-stat-label">Received value</span>
-            <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">
+            <span className={`stock-supplier-card-stat-value stock-supplier-card-stat-value-gold${receivedValue.value === '—' ? ' is-muted' : ''}`}>
               {receivedValue.value}
             </span>
             {receivedValue.caption ? (
@@ -238,13 +238,12 @@ export function StockSuppliersView({
 }) {
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('name-az')
-  const [localSearchTerm, setLocalSearchTerm] = useState('')
   const [selectedSupplier, setSelectedSupplier] = useState(null)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [pendingDeleteSupplier, setPendingDeleteSupplier] = useState(null)
 
-  const effectiveSearchTerm = `${searchTerm || localSearchTerm}`.trim()
+  const effectiveSearchTerm = `${searchTerm}`.trim()
 
   const dashboardSummary = useMemo(
     () => buildSuppliersDashboardSummary(suppliers, stockItems, stockOrders),
@@ -400,17 +399,6 @@ export function StockSuppliersView({
         </div>
 
         <div className="stock-suppliers-browse-tools">
-          <label className="stock-suppliers-search">
-            <span className="sr-only">Search suppliers</span>
-            <input
-              type="search"
-              className="stock-suppliers-search-input"
-              value={localSearchTerm}
-              onChange={(event) => setLocalSearchTerm(event.target.value)}
-              placeholder="Search supplier, product, contact…"
-            />
-          </label>
-
           <div className="stock-browse-control stock-browse-sort">
             <span className="stock-browse-control-label">Sort</span>
             <StockSupplierSortDropdown

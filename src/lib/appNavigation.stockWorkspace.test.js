@@ -28,8 +28,9 @@ describe('Stock full-screen workspace navigation helpers', () => {
   it('keeps Stock module search enabled for workspace chrome', () => {
     expect(shouldShowModuleSearch('stock', 'dashboard')).toBe(true)
     expect(shouldShowModuleSearch('stock', 'dashboard', 'storages')).toBe(true)
-    expect(shouldShowModuleSearch('stock', 'dashboard', 'orders')).toBe(false)
-    expect(shouldShowModuleSearch('stock', 'dashboard', 'suppliers')).toBe(false)
+    expect(shouldShowModuleSearch('stock', 'dashboard', 'orders')).toBe(true)
+    expect(shouldShowModuleSearch('stock', 'dashboard', 'suppliers')).toBe(true)
+    expect(shouldShowModuleSearch('stock', 'dashboard', 'migration')).toBe(true)
   })
 
   it('resolves Exit Stock to the previous normal-shell destination with Today fallback', () => {
