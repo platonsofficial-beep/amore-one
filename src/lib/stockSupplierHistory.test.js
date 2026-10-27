@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildSupplierMetrics,
+  describeReceivedValue,
+  formatSupplierProductLine,
   getStockItemsForSupplier,
   getStockOrdersForSupplier,
   stockRecordMatchesSupplier,
@@ -112,5 +114,31 @@ describe('FK history / metrics / delete guard', () => {
       [{ id: 'o1', supplierId: null, supplier: 'Wine House' }],
       'Wine House',
     )).toHaveLength(1)
+  })
+})
+
+describe('supplier cost display', () => {
+  it('uses a short received-value figure and a one-line caption when costs are missing', () => {
+    expect(describeReceivedValue(0, 0)).toEqual({ value: '—', caption: '' })
+    expect(describeReceivedValue(0, 3)).toEqual({ value: '—', caption: 'No costs yet' })
+    expect(describeReceivedValue(12.5, 2).value).toContain('12.50')
+    expect(describeReceivedValue(12.5, 2).caption).toBe('')
+  })
+
+  it('shows No cost on a supplier product when the catalog cost is zero', () => {
+    expect(formatSupplierProductLine({
+      id: 'cola',
+      name: 'TEST GrokBot Cola',
+      costPrice: 0,
+      currentQuantity: 4,
+      unit: 'btl',
+    }).lastPurchasePrice).toBe('No cost')
+    expect(formatSupplierProductLine({
+      id: 'cola',
+      name: 'TEST GrokBot Cola',
+      costPrice: 2.4,
+      currentQuantity: 4,
+      unit: 'btl',
+    }).lastPurchasePrice).toContain('2.40')
   })
 })

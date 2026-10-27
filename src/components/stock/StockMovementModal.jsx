@@ -209,9 +209,25 @@ export function StockMovementModal({
   const missingLocationBalance = Boolean(
     pickerMode && selectedStorage && effectiveVersion == null && !createsAbsentBalance,
   )
+  const movementQuantity = Number(`${quantity ?? ''}`.trim())
+  const hasPositiveMovementQuantity = Number.isFinite(movementQuantity) && movementQuantity > 0
+  const usageOrWasteCeiling = movementType === 'usage' || isWaste
+    ? resolveStockUsageCeiling({
+      destinationStorage: pickerMode ? selectedStorage : destinationStorage,
+      balanceQuantity: pickerMode ? effectiveBalanceQuantity : balanceQuantity,
+      currentQuantity: pickerMode ? null : item?.currentQuantity,
+    })
+    : null
+  const wasteOrUsageInvalid = (movementType === 'usage' || isWaste) && (
+    !hasPositiveMovementQuantity
+    || (isWaste && !wasteReasonId)
+    || usageOrWasteCeiling == null
+    || movementQuantity > usageOrWasteCeiling
+  )
   const saveBlocked = isBusy
     || storagesLoading
     || (isAdjustment && !canSubmitAdjustment)
+    || wasteOrUsageInvalid
     || (pickerMode && (!selectedStorage || (effectiveVersion == null && !createsAbsentBalance)))
 
   useEffect(() => {
@@ -458,7 +474,9 @@ export function StockMovementModal({
                 >
                   {storagesLoading
                     ? 'Loading storages…'
-                    : stockMovementStorageActionLabel(movementType, destinationLabel)}
+                    : (movementType === 'adjustment' || movementType === 'usage' || isWaste
+                      ? (destinationLabel || 'Choose a storage')
+                      : stockMovementStorageActionLabel(movementType, destinationLabel))}
                 </button>
               </div>
               {storagesError ? (

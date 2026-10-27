@@ -223,7 +223,9 @@ function DraftOrderItem({
         <span className="stock-order-detail-line-cost">
           {costLabel === 'No cost' ? 'No cost' : `x ${costLabel}`}
         </span>
-        <span className="stock-order-detail-line-total">{totalLabel}</span>
+        {costLabel === 'No cost' && totalLabel === 'No cost' ? null : (
+          <span className="stock-order-detail-line-total">{totalLabel}</span>
+        )}
         <button
           type="button"
           className="icon-btn stock-create-order-remove-item"
@@ -369,7 +371,9 @@ function ReceivedOrderItem({ item, presentation, showCost = true }) {
         </div>
       </dl>
 
-      {showCost ? <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span> : null}
+      {showCost && !(presentation?.totalLabel === 'No cost' && `${presentation?.headline || ''}`.includes('No cost')) ? (
+        <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span>
+      ) : null}
     </article>
   )
 }
@@ -414,7 +418,9 @@ function CompletedOrderItem({ item, presentation, showCost = true }) {
         </p>
       ) : null}
 
-      {showCost ? <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span> : null}
+      {showCost && !(presentation?.totalLabel === 'No cost' && `${presentation?.headline || ''}`.includes('No cost')) ? (
+        <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span>
+      ) : null}
     </article>
   )
 }

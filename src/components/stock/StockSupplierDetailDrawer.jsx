@@ -8,7 +8,7 @@ import {
 } from '../../lib/stockOrderUtils'
 import {
   buildSupplierMetrics,
-  formatReceivedValueLabel,
+  describeReceivedValue,
   formatSupplierMetricDate,
   formatSupplierProductLine,
   formatSupplierStatusLabel,
@@ -56,6 +56,8 @@ export function StockSupplierDetailDrawer({
   )
 
   const statusTone = getSupplierStatusTone(supplier)
+  const receivedValue = describeReceivedValue(metrics.totalSpend, metrics.receivedOrders?.length)
+  const averageReceived = describeReceivedValue(metrics.averageOrderValue, metrics.receivedOrders?.length)
 
   useEscapeToClose(onClose)
 
@@ -185,13 +187,23 @@ export function StockSupplierDetailDrawer({
               {canManage ? (
                 <div className="stock-product-history-overview-row">
                   <dt>Received value</dt>
-                  <dd>{formatReceivedValueLabel(metrics.totalSpend, metrics.receivedOrders?.length)}</dd>
+                  <dd>
+                    <span className="stock-received-value">{receivedValue.value}</span>
+                    {receivedValue.caption ? (
+                      <span className="stock-received-value-caption">{receivedValue.caption}</span>
+                    ) : null}
+                  </dd>
                 </div>
               ) : null}
               {canManage ? (
                 <div className="stock-product-history-overview-row">
                   <dt>Average received</dt>
-                  <dd>{formatReceivedValueLabel(metrics.averageOrderValue, metrics.receivedOrders?.length)}</dd>
+                  <dd>
+                    <span className="stock-received-value">{averageReceived.value}</span>
+                    {averageReceived.caption ? (
+                      <span className="stock-received-value-caption">{averageReceived.caption}</span>
+                    ) : null}
+                  </dd>
                 </div>
               ) : null}
               <div className="stock-product-history-overview-row">

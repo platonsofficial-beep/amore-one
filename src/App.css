@@ -367,6 +367,10 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.stock-focus-chrome {
+  display: contents;
+}
+
 .stock-focus-header {
   display: flex;
   flex-wrap: wrap;
@@ -28386,6 +28390,23 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1.55rem;
   font-weight: 600;
   line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.stock-summary-caption,
+.stock-received-value-caption {
+  display: block;
+  margin: 2px 0 0;
+  color: rgba(255, 247, 232, 0.56);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.stock-suppliers-page .stock-summary-card {
+  min-height: 104px;
 }
 
 .stock-dashboard-toolbar {
@@ -30125,6 +30146,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 4px;
 }
 
+.stock-item-more-menu-section,
+.stock-item-more-menu-section-stack {
+  display: contents;
+}
+
 .stock-item-more-menu-panel.is-sheet {
   position: fixed;
   left: 0;
@@ -31815,6 +31841,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
+  height: 100%;
   min-height: 44px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -31911,10 +31939,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-order-card-supplier {
+  display: block;
   margin: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   color: #fff7e8;
   font-size: 1.02rem;
   line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .stock-order-card-badges {
@@ -33310,14 +33344,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .stock-storage-center-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: 100%;
+  height: auto;
   min-height: 132px;
   padding: 14px;
   border-radius: 16px;
@@ -33565,6 +33599,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-storage-supply-toggle,
 .stock-storage-buying-toggle,
 .stock-storage-rename-btn,
+.stock-storage-edit-cancel,
 .stock-storage-department-select,
 .stock-department-dialog .primary-btn,
 .stock-department-dialog .ghost-btn,
@@ -36817,7 +36852,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-wizard-body-locations {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  align-items: start;
 }
 
 .inventory-count-wizard-body-visibility {
@@ -37004,7 +37040,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-location-card {
+  height: auto;
   min-height: 104px;
+  overflow: hidden;
+}
+
+.inventory-count-location-card .inventory-count-type-card-title,
+.inventory-count-location-card .inventory-count-type-card-description {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .inventory-count-location-checkbox {
@@ -41565,6 +41612,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #fff7e8;
   font-size: 0.92rem;
   font-weight: 600;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stock-supplier-card-stat-value-compact {
@@ -48416,12 +48467,22 @@ summary:focus-visible {
 .stock-storage-edit > summary {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
+  width: fit-content;
   min-height: 44px;
   min-width: 44px;
-  padding: 0 12px;
-  color: #f3e2b8;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff7e8;
   font-weight: 650;
+  list-style: none;
   cursor: pointer;
+}
+
+.stock-storage-edit > summary::-webkit-details-marker {
+  display: none;
 }
 
 .stock-orders-page .stock-orders-overflow {
@@ -48914,23 +48975,26 @@ summary:focus-visible {
   .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
+  .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) > .stock-focus-chrome,
   .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) > .stock-dashboard-page {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     min-height: 0;
     max-height: none;
   }
 
   .stock-dashboard-page {
     display: grid;
-    grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.25fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.25fr);
+    grid-template-rows: auto auto;
     gap: 8px 12px;
-    align-items: stretch;
+    align-items: start;
     min-height: 0;
-    max-height: calc(100dvh - 16px);
+    max-height: none;
+    overflow: visible;
   }
 
   .stock-dashboard-page > .staff-status-banner,
@@ -48965,7 +49029,8 @@ summary:focus-visible {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     min-height: 0;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
     align-content: start;
   }
 
@@ -49011,7 +49076,8 @@ summary:focus-visible {
     gap: 8px;
     min-width: 0;
     min-height: 0;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
   }
 
   .stock-item-grid {
@@ -49381,16 +49447,83 @@ summary:focus-visible {
     gap: 4px;
   }
 
+  .app-shell.stock-focus-mode .stock-focus-chrome {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    flex: 0 0 auto;
+  }
+
   .app-shell.stock-focus-mode .stock-focus-header {
+    display: contents;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-exit-btn {
+    order: 1;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-chrome > .module-section-tabs,
+  .app-shell.stock-focus-mode .stock-focus-chrome > .stock-section-nav,
+  .app-shell.stock-focus-mode .stock-focus-chrome .module-section-tabs {
+    order: 2;
+    display: flex;
+    flex: 1 1 auto;
     flex-wrap: nowrap;
-    gap: 8px;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin: 0;
     padding: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .app-shell.stock-focus-mode .stock-section-nav {
+    min-width: 0;
+  }
+
+  .app-shell.stock-focus-mode .module-section-tab,
+  .app-shell.stock-focus-mode .stock-section-more-btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 10px;
   }
 
   .app-shell.stock-focus-mode .stock-focus-search {
-    flex: 1 1 auto;
-    max-width: none;
+    order: 3;
+    flex: 0 0 44px;
+    width: 44px;
+    max-width: 44px;
     min-height: 44px;
+    margin-left: 0;
+    justify-content: center;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-search input {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    opacity: 0;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-search:focus-within,
+  .app-shell.stock-focus-mode .stock-focus-search:has(input:not(:placeholder-shown)) {
+    flex: 1 1 160px;
+    width: auto;
+    max-width: 220px;
+    padding: 0 10px;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-search:focus-within input,
+  .app-shell.stock-focus-mode .stock-focus-search:has(input:not(:placeholder-shown)) input {
+    width: 100%;
+    opacity: 1;
   }
 
   .app-shell.stock-focus-mode.is-mobile-shell.is-mobile-expanded .stock-section-nav {
@@ -49420,22 +49553,36 @@ summary:focus-visible {
 
   .stock-dashboard-page .stock-compact-browse-row.is-open {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
   }
 
-  .stock-product-history-backdrop:has(.stock-order-detail-drawer) {
+  .stock-dashboard-page .stock-compact-browse-row.is-open .stock-browse-control,
+  .stock-dashboard-page .stock-compact-browse-row.is-open .stock-browse-refine-cluster {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  .stock-product-history-backdrop:has(.stock-order-detail-drawer),
+  .stock-product-history-backdrop:has(.stock-supplier-detail-drawer) {
     align-items: stretch;
     justify-content: flex-end;
     padding: 0;
   }
 
-  .stock-product-history-drawer.stock-order-detail-drawer {
+  .stock-product-history-drawer.stock-order-detail-drawer,
+  .stock-product-history-drawer.stock-supplier-detail-drawer {
     width: min(720px, 100%);
     height: 100%;
     max-height: none;
     min-height: 0;
     align-self: stretch;
     border-radius: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(212, 175, 55, 0.24);
   }
 
   .stock-order-detail-footer.has-send-actions {
@@ -49464,13 +49611,16 @@ summary:focus-visible {
   }
 
   .inventory-count-wizard-body-locations {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    align-items: start;
   }
 
   .inventory-count-wizard .inventory-count-type-card,
   .inventory-count-wizard .inventory-count-location-card {
     min-height: 72px;
+    height: auto;
     padding: 10px 12px;
+    overflow: hidden;
   }
 
   .inventory-count-wizard-footer {
@@ -49493,7 +49643,26 @@ summary:focus-visible {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-content: start;
-    gap: 4px;
+    align-items: start;
+    gap: 4px 8px;
+    overflow: auto;
+  }
+
+  .stock-item-more-menu-panel.is-sheet .stock-item-more-menu-section,
+  .stock-item-more-menu-panel.is-sheet .stock-item-more-menu-section-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .stock-item-more-menu-panel.is-sheet .stock-item-more-menu-label {
+    grid-column: auto;
+    margin: 0 4px;
+  }
+
+  .stock-item-more-menu-panel.is-sheet .stock-item-more-menu-btn {
+    min-height: 44px;
   }
 
   .stock-item-more-menu-panel.is-sheet .stock-item-more-menu-separator {

@@ -21,6 +21,24 @@ const MENU_ITEMS = [
   { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
 ]
 
+function groupMenuSections(items) {
+  const sections = []
+  let current = null
+  for (const entry of items) {
+    if (entry.type === 'label') {
+      current = { id: entry.id, label: entry.label, items: [] }
+      sections.push(current)
+      continue
+    }
+    if (!current) {
+      current = { id: 'section-actions', label: '', items: [] }
+      sections.push(current)
+    }
+    current.items.push(entry)
+  }
+  return sections
+}
+
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
@@ -172,6 +190,45 @@ export function StockItemMoreMenu({
   }
 
   const deactivateLabel = item?.active === false ? 'Reactivate' : 'Deactivate'
+  const menuSections = groupMenuSections(MENU_ITEMS)
+  const [leadSection, ...followingSections] = menuSections
+
+  const renderEntry = (entry) => {
+    if (entry.type === 'separator') {
+      return (
+        <div
+          key={entry.id}
+          className="stock-item-more-menu-separator"
+          role="separator"
+        />
+      )
+    }
+    const label = entry.id === 'deactivate' ? deactivateLabel : entry.label
+    return (
+      <button
+        key={entry.id}
+        type="button"
+        className={`stock-item-more-menu-btn${entry.danger ? ' is-danger' : ''}`}
+        role="menuitem"
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          handleItemClick(entry.id)
+        }}
+      >
+        {label}
+      </button>
+    )
+  }
+
+  const renderSection = (section) => (
+    <div key={section.id} className="stock-item-more-menu-section">
+      {section.label ? (
+        <p className="stock-item-more-menu-label">{section.label}</p>
+      ) : null}
+      {section.items.map(renderEntry)}
+    </div>
+  )
 
   const isPopoverReady = isMobileSheet || isPositioned
 
@@ -207,41 +264,12 @@ export function StockItemMoreMenu({
         ) : null}
 
         <div className="stock-item-more-menu-list">
-          {MENU_ITEMS.map((entry) => {
-            if (entry.type === 'label') {
-              return (
-                <p key={entry.id} className="stock-item-more-menu-label">
-                  {entry.label}
-                </p>
-              )
-            }
-            if (entry.type === 'separator') {
-              return (
-                <div
-                  key={entry.id}
-                  className="stock-item-more-menu-separator"
-                  role="separator"
-                />
-              )
-            }
-
-            const label = entry.id === 'deactivate' ? deactivateLabel : entry.label
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                className={`stock-item-more-menu-btn${entry.danger ? ' is-danger' : ''}`}
-                role="menuitem"
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  handleItemClick(entry.id)
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
+          {leadSection ? renderSection(leadSection) : null}
+          {followingSections.length > 0 ? (
+            <div className="stock-item-more-menu-section-stack">
+              {followingSections.map(renderSection)}
+            </div>
+          ) : null}
         </div>
       </div>
     </>,

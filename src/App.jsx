@@ -23482,39 +23482,40 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'stock' && isActiveViewAllowed && isStockFocusMode ? (
-          <header className="stock-focus-header" aria-label="Stock workspace">
-            <button
-              type="button"
-              className="ghost-btn stock-focus-exit-btn"
-              onClick={handleExitStockFocusMode}
-              aria-label="Exit Stock"
-            >
-              ← Exit Stock
-            </button>
-            {showModuleSearch ? (
-              <label className="search-bar stock-focus-search" aria-label={`Search ${moduleTitle}`}>
-                <span>⌕</span>
-                <input
-                  type="search"
-                  placeholder={moduleSearchPlaceholder}
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  enterKeyHint="search"
-                  onKeyDown={dismissStockSearchKeyboardOnEnter}
-                />
-              </label>
-            ) : null}
-          </header>
-        ) : null}
-
         {activeView === 'stock' && isActiveViewAllowed ? (
-          <StockSectionNav
-            primary={stockSectionNav.primary}
-            overflow={stockSectionNav.overflow}
-            activeSection={stockSection}
-            onSectionChange={handleStockSectionChange}
-          />
+          <div className="stock-focus-chrome">
+            {isStockFocusMode ? (
+              <header className="stock-focus-header" aria-label="Stock workspace">
+                <button
+                  type="button"
+                  className="ghost-btn stock-focus-exit-btn"
+                  onClick={handleExitStockFocusMode}
+                  aria-label="Exit Stock"
+                >
+                  ← Exit Stock
+                </button>
+                {showModuleSearch ? (
+                  <label className="search-bar stock-focus-search" aria-label={`Search ${moduleTitle}`}>
+                    <span aria-hidden="true">⌕</span>
+                    <input
+                      type="search"
+                      placeholder={moduleSearchPlaceholder}
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                      enterKeyHint="search"
+                      onKeyDown={dismissStockSearchKeyboardOnEnter}
+                    />
+                  </label>
+                ) : null}
+              </header>
+            ) : null}
+            <StockSectionNav
+              primary={stockSectionNav.primary}
+              overflow={stockSectionNav.overflow}
+              activeSection={stockSection}
+              onSectionChange={handleStockSectionChange}
+            />
+          </div>
         ) : null}
 
         {activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience ? (
@@ -23839,7 +23840,6 @@ function App() {
             senderName={supplierOrderSenderName}
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
-            searchTerm={searchTerm}
             canManage={canManageStockRole}
             isSaving={isSavingStockOrder}
             isWorkspaceReady={isStockWorkspaceReady}
@@ -23868,7 +23868,6 @@ function App() {
             inventoryItems={inventoryItems}
             isLoading={isSuppliersLoading || isStockItemsLoading || isStockOrdersLoading}
             noticeMessage={suppliersNotice}
-            searchTerm={searchTerm}
             canManage={canManageStockRole}
             isSaving={isSavingSupplier}
             onCreateSupplier={handleStockCreateSupplier}
