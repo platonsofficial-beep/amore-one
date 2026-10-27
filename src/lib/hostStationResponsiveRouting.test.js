@@ -79,6 +79,15 @@ describe('host station responsive routing', () => {
       expect(isMobileHostSplitViewport()).toBe(true)
     })
 
+    it('keeps a short landscape phone split when the orientation query is still portrait', () => {
+      mockViewport({ width: 568, height: 320, orientation: 'portrait' })
+      expect(shouldShowHostStationPortraitFallback()).toBe(false)
+      expect(isMobileHostSplitViewport()).toBe(true)
+
+      mockViewport({ width: 640, height: 360, orientation: 'portrait' })
+      expect(isMobileHostSplitViewport()).toBe(true)
+    })
+
     it('shows portrait fallback on phone portrait instead of simplified host UI', () => {
       mockViewport({ width: 390, height: 844, orientation: 'portrait' })
       expect(shouldShowHostStationPortraitFallback()).toBe(true)
@@ -163,11 +172,11 @@ describe('host station responsive routing', () => {
     it('collapses the desktop sidebar grid when host station shell is active without mobile shell', () => {
       expect(mobileShellCss).toMatch(/\.app-shell\.is-host-station-shell\s*\{[\s\S]*?display:\s*block;/)
       expect(mobileShellCss).toContain('.app-shell.is-host-station-shell .main-panel-reservations')
-      expect(mobileShellCss).toMatch(/minmax\(280px, clamp\(320px, 34vw, 420px\)\) minmax\(0, 1fr\)/)
+      expect(mobileShellCss).toMatch(/minmax\(0, clamp\(12rem, 38%, 26rem\)\) minmax\(0, 1fr\)/)
     })
 
     it('bounds desktop left pane width while letting floor plan fill remaining space', () => {
-      expect(mobileShellCss).toMatch(/minmax\(280px, clamp\(320px, 34vw, 420px\)\) minmax\(0, 1fr\)/)
+      expect(mobileShellCss).toMatch(/minmax\(0, clamp\(12rem, 38%, 26rem\)\) minmax\(0, 1fr\)/)
       expect(appCss).toContain('.main-panel-reservations .mobile-host-reservations.is-host-mode')
     })
 

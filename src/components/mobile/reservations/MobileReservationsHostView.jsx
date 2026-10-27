@@ -118,11 +118,14 @@ export function MobileReservationsHostView({
     window.addEventListener('resize', updateOrientation)
     window.addEventListener('orientationchange', handleOrientationChange)
     window.visualViewport?.addEventListener('resize', updateOrientation)
+    const landscapeQuery = window.matchMedia?.('(orientation: landscape)')
+    landscapeQuery?.addEventListener?.('change', updateOrientation)
     return () => {
       window.clearTimeout(orientationTimerId)
       window.removeEventListener('resize', updateOrientation)
       window.removeEventListener('orientationchange', handleOrientationChange)
       window.visualViewport?.removeEventListener('resize', updateOrientation)
+      landscapeQuery?.removeEventListener?.('change', updateOrientation)
     }
   }, [])
 

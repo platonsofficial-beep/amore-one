@@ -12,9 +12,9 @@ export const MANAGER_PHONE_MAX_WIDTH = 760
 
 /**
  * Phone shell for owners and managers.
- * A sideways phone with a usable landscape canvas (including iPhone SE at
- * 667×375) uses the full workspace. A narrow or portrait phone uses the
- * bottom-nav shell. Tablets and desktops stay on the workspace shell.
+ * A sideways phone with a usable landscape canvas (including the first
+ * iPhone SE at 568×320) uses the full workspace. A narrow or portrait phone
+ * uses the bottom-nav shell. Tablets and desktops stay on the workspace shell.
  */
 export function shouldUseManagerPhoneShell(source) {
   const box = resolveManagerViewportBox(source)
@@ -23,7 +23,7 @@ export function shouldUseManagerPhoneShell(source) {
   const isPortrait = box.portrait
   const isNarrow = box.narrow
   const shortSide = Math.min(width, height)
-  const usableLandscape = !isPortrait && width >= 600 && height >= 320 && width > height
+  const usableLandscape = !isPortrait && height >= 320 && width > height
 
   if (usableLandscape) return false
   if (shortSide >= 600 && !isNarrow) return false
@@ -68,6 +68,10 @@ function resolveManagerViewportBox(source) {
   } catch {
     portrait = null
   }
+  const dimensionPortrait = height > 0 && height >= width
+  if (!dimensionPortrait) portrait = false
+  else if (portrait === false) portrait = false
+  else portrait = true
   try {
     const narrowQuery = win.matchMedia?.(`(max-width: ${MANAGER_PHONE_MAX_WIDTH}px)`)
     if (narrowQuery && typeof narrowQuery.matches === 'boolean') narrow = narrowQuery.matches

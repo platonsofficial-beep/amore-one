@@ -55,6 +55,14 @@ export function readCoarsePointer(win = globalThis.window) {
 
 export function readPortraitOrientation(win = globalThis.window) {
   if (!win) return false
+  const width = Number(win.innerWidth) || 0
+  const height = Number(win.innerHeight) || 0
+  const visual = win.visualViewport
+  const visualWidth = Number(visual?.width) || 0
+  const visualHeight = Number(visual?.height) || 0
+  const dimensionLandscape = (width > height && width > 0) || (visualWidth > visualHeight && visualWidth > 0)
+  if (dimensionLandscape) return false
+
   try {
     const portraitQuery = win.matchMedia?.('(orientation: portrait)')
     if (portraitQuery && typeof portraitQuery.matches === 'boolean') {
@@ -64,8 +72,6 @@ export function readPortraitOrientation(win = globalThis.window) {
     // Fall through to the viewport dimensions.
   }
 
-  const width = Number(win.innerWidth) || 0
-  const height = Number(win.innerHeight) || 0
   if (width <= 0 || height <= 0) return false
   return height >= width
 }

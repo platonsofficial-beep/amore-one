@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { normalizeManagerMobileTab } from './mobileNavigationPersistence'
 import {
   buildManagerPortraitMoreItems,
@@ -23,6 +23,21 @@ describe('manager portrait shell', () => {
   it('uses the full workspace when a phone is sideways', () => {
     expect(shouldUseManagerPhoneShell({ width: 844, height: 390, portrait: false, narrow: false })).toBe(false)
     expect(shouldUseManagerPhoneShell({ width: 667, height: 375, portrait: false, narrow: true })).toBe(false)
+    expect(shouldUseManagerPhoneShell({ width: 568, height: 320, portrait: false, narrow: true })).toBe(false)
+  })
+
+  it('uses the full workspace when landscape dimensions disagree with a portrait query', () => {
+    const previous = globalThis.window
+    vi.stubGlobal('window', {
+      innerWidth: 568,
+      innerHeight: 320,
+      matchMedia: (query) => ({
+        matches: query.includes('portrait') || query.includes('max-width'),
+      }),
+    })
+    expect(shouldUseManagerPhoneShell()).toBe(false)
+    if (previous) vi.stubGlobal('window', previous)
+    else vi.unstubAllGlobals()
   })
 
   it('leaves tablets and desktops on the workspace shell', () => {
