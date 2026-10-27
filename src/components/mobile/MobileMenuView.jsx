@@ -63,6 +63,7 @@ export function MobileMenuView({
   onOpenSettings,
   onOpenRequestLeave,
   onOpenLeaveInbox,
+  onOpenAvailability,
   onSignOut,
 }) {
   const visibleModules = menuVariant === 'manager'
@@ -107,6 +108,11 @@ export function MobileMenuView({
         <section className="mobile-menu-section" aria-label="Account">
           <h2 className="mobile-menu-section-title">Account</h2>
           <div className="mobile-menu-actions">
+            {onOpenAvailability ? (
+              <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
+                My Availability
+              </button>
+            ) : null}
             <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
               Profile
             </button>
@@ -246,6 +252,11 @@ export function MobileMenuView({
               aria-haspopup="dialog"
             >
               Request Leave
+            </button>
+          ) : null}
+          {onOpenAvailability ? (
+            <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
+              My Availability
             </button>
           ) : null}
           <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
