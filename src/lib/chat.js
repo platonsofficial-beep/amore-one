@@ -31,19 +31,55 @@ export function orderInbox(rows) {
   return [...team, ...rest]
 }
 
-export function conversationTitle(row, membersById = {}) {
+export function conversationTitle(row, membersById = {}, aliases = {}) {
   if (!row) return 'Chat'
   if (row.kind === 'team') return row.name || 'Team'
   if (row.kind === 'direct') {
     const other = membersById[row.other_member_id]
-    return other?.name || 'Direct message'
+    return other?.name
+      || aliases[row.other_member_id]
+      || aliases[row.conversation_id]
+      || 'Direct message'
   }
   return row.name || 'Group'
 }
 
 export function lastMessagePreview(row) {
   const body = `${row?.last_body ?? ''}`.trim()
-  return body || 'No messages yet'
+  if (body) return body
+  if (row?.last_message_at) return '📷 Photo'
+  return 'No messages yet'
+}
+
+export function lastMessageTimeLabel(iso, now = new Date()) {
+  const date = new Date(iso)
+  if (!iso || Number.isNaN(date.getTime())) return ''
+  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  if (date.toDateString() === now.toDateString()) return time
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+export function chatIdentityHints(rows) {
+  const byConversation = {}
+  const byMessage = {}
+  for (const row of rows ?? []) {
+    const type = `${row?.type ?? ''}`
+    const data = row?.data && typeof row.data === 'object' ? row.data : {}
+    const conversationId = `${data.conversation_id ?? ''}`.trim()
+    const messageId = `${data.message_id ?? ''}`.trim()
+    if (type === 'chat_direct') {
+      const name = `${row?.title ?? ''}`.trim()
+      if (conversationId && name && name !== 'Someone' && name !== 'Direct message') {
+        byConversation[conversationId] = name
+      }
+    }
+    if (type === 'chat_message') {
+      const match = `${row?.body ?? ''}`.match(/^([^:]{1,80}):\s/)
+      const name = `${match?.[1] ?? ''}`.trim()
+      if (messageId && name && name !== 'Someone') byMessage[messageId] = name
+    }
+  }
+  return { byConversation, byMessage }
 }
 
 export function canEditChatMessage(message, memberId, now = Date.now()) {
@@ -60,13 +96,28 @@ export function canDeleteChatMessage(message, memberId, canManage) {
   return `${message.author_member_id ?? ''}` === `${memberId ?? ''}`
 }
 
-export function seenByLabels(participants, message, membersById = {}) {
+function seenReaders(participants, message) {
   if (!message?.created_at) return []
   return (participants ?? [])
     .filter((participant) => !participant?.left_at)
     .filter((participant) => `${participant?.member_id ?? ''}` !== `${message.author_member_id ?? ''}`)
     .filter((participant) => participant?.last_read_at && participant.last_read_at >= message.created_at)
-    .map((participant) => membersById[participant.member_id]?.name || 'Someone')
+}
+
+export function seenByLabels(participants, message, membersById = {}, aliases = {}) {
+  return seenReaders(participants, message).map((participant) => (
+    membersById[participant.member_id]?.name || aliases[participant.member_id] || ''
+  )).filter((name) => name && name !== 'Someone')
+}
+
+export function seenByText(participants, message, membersById = {}, aliases = {}) {
+  const readers = seenReaders(participants, message)
+  if (readers.length === 0) return ''
+  const names = readers.map((participant) => (
+    membersById[participant.member_id]?.name || aliases[participant.member_id] || ''
+  )).filter((name) => name && name !== 'Someone')
+  if (names.length === readers.length && names.length <= 2) return `Seen by ${names.join(', ')}`
+  return `Seen by ${readers.length}`
 }
 
 export function groupReactions(rows, memberId) {

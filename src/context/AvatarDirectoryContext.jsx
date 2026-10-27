@@ -44,9 +44,17 @@ export function AvatarDirectoryProvider({ children }) {
     const timer = window.setInterval(() => {
       if (!cancelled) refresh().catch(() => {})
     }, REFRESH_INTERVAL_MS)
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'hidden') return
+      refresh().catch(() => {})
+    }
+    window.addEventListener('focus', refreshIfVisible)
+    document.addEventListener('visibilitychange', refreshIfVisible)
     return () => {
       cancelled = true
       window.clearInterval(timer)
+      window.removeEventListener('focus', refreshIfVisible)
+      document.removeEventListener('visibilitychange', refreshIfVisible)
     }
   }, [refresh])
 

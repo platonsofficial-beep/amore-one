@@ -64,10 +64,11 @@ export function MobileStaffApp({
   canUseChat = true,
   chatUnread = 0,
   chatContent = null,
+  embeddedSchedule = false,
 }) {
   const isStaffShell = shellVariant === 'staff'
   const isHostShell = shellVariant === 'host'
-  const usesInternalTabs = isStaffShell || isHostShell
+  const usesInternalTabs = isStaffShell || isHostShell || embeddedSchedule
   const [staffTab, setStaffTab] = useState(activeTab)
   const [clockOpen, setClockOpen] = useState(false)
   const [pendingTab, setPendingTab] = useState(null)
@@ -150,6 +151,10 @@ export function MobileStaffApp({
 
   const applyTabChange = useCallback((tab) => {
     setClockOpen(false)
+    if (embeddedSchedule && (tab === 'schedule' || tab === 'availability')) {
+      setStaffTab(tab)
+      return
+    }
     if (tab === 'availability') {
       setStaffTab('availability')
       onTabChange?.('availability')
@@ -158,7 +163,7 @@ export function MobileStaffApp({
 
     setStaffTab(tab)
     onTabChange?.(tab)
-  }, [onTabChange])
+  }, [embeddedSchedule, onTabChange])
 
   const handleTabChange = useCallback((tab) => {
     if (staffTab === 'availability' && tab !== 'availability' && availabilityDirtyRef.current) {
@@ -224,6 +229,59 @@ export function MobileStaffApp({
     loadAvailabilityContext,
     needsEmployeeLink,
   ])
+
+  const scheduleBody = (
+    <div className="mobile-schedule-shell">
+      <div className="mobile-segmented-control mobile-schedule-segments" role="tablist" aria-label="Schedule">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={resolvedActiveTab !== 'availability'}
+          className={`mobile-segmented-btn${resolvedActiveTab !== 'availability' ? ' is-active' : ''}`}
+          onClick={() => handleTabChange('schedule')}
+        >
+          Shifts
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={resolvedActiveTab === 'availability'}
+          className={`mobile-segmented-btn${resolvedActiveTab === 'availability' ? ' is-active' : ''}`}
+          onClick={() => handleTabChange('availability')}
+        >
+          My week
+        </button>
+      </div>
+      {resolvedActiveTab === 'availability' ? availabilityView : <MobileScheduleView {...scheduleProps} />}
+    </div>
+  )
+
+  if (embeddedSchedule) {
+    return (
+      <div className="mobile-app mobile-app-embedded-schedule">
+        {noticeBanner}
+        {showLeaveConfirm ? (
+          <div className="mobile-availability-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="mobile-availability-leave-title">
+            <div className="mobile-availability-leave-dialog-card">
+              <h2 id="mobile-availability-leave-title">Discard unsaved changes?</h2>
+              <p>Your availability changes have not been saved.</p>
+              <div className="mobile-availability-leave-dialog-actions">
+                <button type="button" className="mobile-secondary-btn" onClick={handleCancelLeave}>
+                  Keep editing
+                </button>
+                <button type="button" className="mobile-primary-btn" onClick={handleConfirmLeave}>
+                  Leave without saving
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+        <div className="mobile-app-content">
+          {scheduleBody}
+        </div>
+      </div>
+    )
+  }
 
   if (expandedView) {
     return (
@@ -297,31 +355,7 @@ export function MobileStaffApp({
       ) : (
       <div className="mobile-app-content">
         {resolvedActiveTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
-        {resolvedActiveTab === 'schedule' || resolvedActiveTab === 'availability' ? (
-          <div className="mobile-schedule-shell">
-            <div className="mobile-segmented-control mobile-schedule-segments" role="tablist" aria-label="Schedule">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={resolvedActiveTab !== 'availability'}
-                className={`mobile-segmented-btn${resolvedActiveTab !== 'availability' ? ' is-active' : ''}`}
-                onClick={() => handleTabChange('schedule')}
-              >
-                Shifts
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={resolvedActiveTab === 'availability'}
-                className={`mobile-segmented-btn${resolvedActiveTab === 'availability' ? ' is-active' : ''}`}
-                onClick={() => handleTabChange('availability')}
-              >
-                My week
-              </button>
-            </div>
-            {resolvedActiveTab === 'availability' ? availabilityView : <MobileScheduleView {...scheduleProps} />}
-          </div>
-        ) : null}
+        {resolvedActiveTab === 'schedule' || resolvedActiveTab === 'availability' ? scheduleBody : null}
         {resolvedActiveTab === 'chat' ? chatContent : null}
         {resolvedActiveTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
         {resolvedActiveTab === 'menu' ? (

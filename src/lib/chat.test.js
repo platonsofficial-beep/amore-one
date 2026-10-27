@@ -4,14 +4,18 @@ import {
   canDeleteChatMessage,
   canEditChatMessage,
   chatErrorMessage,
+  chatIdentityHints,
   conversationTitle,
   dayLabel,
   groupReactions,
   inboxUnreadTotal,
   isChatNotification,
+  lastMessagePreview,
+  lastMessageTimeLabel,
   muteUntilValue,
   orderInbox,
   seenByLabels,
+  seenByText,
 } from './chat'
 
 const inbox = [
@@ -52,6 +56,18 @@ describe('chat helpers', () => {
       { member_id: 'm4', last_read_at: '2026-10-27T12:00:00Z', left_at: '2026-10-27T12:30:00Z' },
     ]
     expect(seenByLabels(people, message, { m2: { name: 'Alex' } })).toEqual(['Alex'])
+    expect(seenByText(people, message, { m2: { name: 'Alex' } })).toBe('Seen by Alex')
+    expect(seenByText(people, message, {})).toBe('Seen by 1')
+    const many = [
+      { member_id: 'm2', last_read_at: '2026-10-27T11:00:00Z' },
+      { member_id: 'm3', last_read_at: '2026-10-27T11:00:00Z' },
+      { member_id: 'm5', last_read_at: '2026-10-27T11:00:00Z' },
+    ]
+    expect(seenByText(many, message, {
+      m2: { name: 'Alex' },
+      m3: { name: 'TEST GrokBot' },
+      m5: { name: 'Sam' },
+    })).toBe('Seen by 3')
     expect(groupReactions([
       { emoji: '👍', member_id: 'me' },
       { emoji: '👍', member_id: 'm2' },
@@ -69,5 +85,23 @@ describe('chat helpers', () => {
     expect(chatErrorMessage({ message: 'announcement_only' })).toBe('Only managers can post in this channel.')
     expect(isChatNotification({ type: 'chat_direct' })).toBe(true)
     expect(isChatNotification({ type: 'task_assigned' })).toBe(false)
+    expect(lastMessagePreview({ last_body: 'Got it' })).toBe('Got it')
+    expect(lastMessagePreview({ last_body: null, last_message_at: '2026-10-27T12:00:00Z' })).toBe('📷 Photo')
+    expect(lastMessagePreview({ last_body: '  ', last_message_at: null })).toBe('No messages yet')
+    expect(lastMessageTimeLabel('2026-10-27T12:05:00Z', new Date('2026-10-27T12:05:00Z'))).toMatch(/^\d{2}:\d{2}$/)
+    expect(lastMessageTimeLabel('2026-10-26T12:05:00Z', new Date('2026-10-27T12:05:00Z'))).toBe('26 Oct')
+    expect(conversationTitle(
+      { kind: 'direct', conversation_id: 'd1', other_member_id: 'm9' },
+      {},
+      { d1: 'TEST GrokBot' },
+    )).toBe('TEST GrokBot')
+    expect(chatIdentityHints([
+      { type: 'chat_direct', title: 'Platon', data: { conversation_id: 'd1' } },
+      { type: 'chat_message', body: 'Platon: 📷 Photo', data: { message_id: 'm1' } },
+      { type: 'chat_message', body: 'Someone: Hi', data: { message_id: 'm2' } },
+    ])).toEqual({
+      byConversation: { d1: 'Platon' },
+      byMessage: { m1: 'Platon' },
+    })
   })
 })
