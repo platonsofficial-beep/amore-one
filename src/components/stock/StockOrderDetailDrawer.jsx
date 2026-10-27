@@ -418,6 +418,8 @@ export function StockOrderDetailDrawer({
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
   const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
+  const [sendMenuOpen, setSendMenuOpen] = useState(false)
+  const [orderMoreOpen, setOrderMoreOpen] = useState(false)
 
   useEffect(() => {
     setDraftItems(order.items ?? [])
@@ -427,6 +429,8 @@ export function StockOrderDetailDrawer({
     setIsReceiveConfirmOpen(false)
     setReplacingItemId(null)
     setError('')
+    setSendMenuOpen(false)
+    setOrderMoreOpen(false)
   }, [order])
 
   useEffect(() => {
@@ -992,58 +996,102 @@ export function StockOrderDetailDrawer({
               ) : null}
               <footer className={`stock-product-history-footer stock-order-detail-footer${isEditable ? ' has-send-actions' : ''}`}>
               {isEditable ? (
-                <div className="stock-order-send-row" role="group" aria-label="Send order">
+                <div className="stock-order-action-bar" role="group" aria-label="Order actions">
+                  <div className="stock-order-action-menu">
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={sendMenuOpen}
+                      onClick={() => {
+                        setOrderMoreOpen(false)
+                        setSendMenuOpen((open) => !open)
+                      }}
+                      disabled={isSaving}
+                    >
+                      Send
+                    </button>
+                    {sendMenuOpen ? (
+                      <div className="stock-order-action-popover" role="menu" aria-label="Send order">
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={handleSendEmail}
+                          disabled={isSaving || !canEmailSupplier}
+                        >
+                          Email
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={handleSendWhatsApp}
+                          disabled={isSaving || !canMessageSupplier}
+                        >
+                          WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={handleSendViber}
+                          disabled={isSaving || !canMessageSupplier}
+                        >
+                          Viber
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={handlePrintOrder}
+                          disabled={isSaving}
+                        >
+                          Print
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="stock-order-action-menu">
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      aria-haspopup="menu"
+                      aria-expanded={orderMoreOpen}
+                      onClick={() => {
+                        setSendMenuOpen(false)
+                        setOrderMoreOpen((open) => !open)
+                      }}
+                      disabled={isSaving}
+                    >
+                      More
+                    </button>
+                    {orderMoreOpen ? (
+                      <div className="stock-order-action-popover" role="menu" aria-label="More order actions">
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={handleSaveDraft}
+                          disabled={isSaving}
+                        >
+                          {isSaving ? 'Saving…' : 'Save order'}
+                        </button>
+                        <button
+                          type="button"
+                          className="ghost-btn stock-product-history-action-btn"
+                          role="menuitem"
+                          onClick={() => handleStatusAction('cancel')}
+                          disabled={isSaving || !canCancelStockOrder(order)}
+                        >
+                          {isSaving ? 'Saving…' : 'Cancel order'}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                   <button
                     type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={handleSendEmail}
-                    disabled={isSaving || !canEmailSupplier}
-                  >
-                    Email
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={handleSendWhatsApp}
-                    disabled={isSaving || !canMessageSupplier}
-                  >
-                    WhatsApp
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={handleSendViber}
-                    disabled={isSaving || !canMessageSupplier}
-                  >
-                    Viber
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={handlePrintOrder}
-                    disabled={isSaving}
-                  >
-                    Print
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={() => handleStatusAction('cancel')}
-                    disabled={isSaving || !canCancelStockOrder(order)}
-                  >
-                    {isSaving ? 'Saving…' : 'Cancel order'}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost-btn stock-product-history-action-btn"
-                    onClick={handleSaveDraft}
-                    disabled={isSaving}
-                  >
-                    {isSaving ? 'Saving…' : 'Save order'}
-                  </button>
-                  <button
-                    type="button"
-                    className="primary-btn stock-product-history-action-btn"
+                    className="primary-btn stock-product-history-action-btn stock-order-primary-action"
                     onClick={() => handleStatusAction('sent')}
                     disabled={isSaving || !canMarkStockOrderSent(order) || displayItems.length === 0}
                   >

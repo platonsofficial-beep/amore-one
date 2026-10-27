@@ -11,6 +11,7 @@ import {
   formatStockOrderDeliveryDate,
   formatStockOrderNumber,
   getStockOrderNextAction,
+  resolveDisplayedOrderTotal,
   getStockOrderStatusLabel,
   getStockOrderStatusTone,
   isOrderPartiallyReceived,
@@ -79,11 +80,12 @@ function StockOrderSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockOrderCard({ order, onOpen, showCost = true, timeZone = '' }) {
+function StockOrderCard({ order, stockItems = [], onOpen, showCost = true, timeZone = '' }) {
   const status = normalizeStockOrderStatus(order.status)
   const statusTone = getStockOrderStatusTone(order.status)
   const nextAction = getStockOrderNextAction(order)
   const itemCount = order.items?.length ?? 0
+  const estimate = resolveDisplayedOrderTotal(order, stockItems)
   const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate, timeZone)
   const showPartialBadge = isOrderPartiallyReceived(order)
   const isActionable = status === 'draft' || status === 'sent'
@@ -127,8 +129,15 @@ function StockOrderCard({ order, onOpen, showCost = true, timeZone = '' }) {
           <div className="stock-order-card-stat">
             <span className="stock-order-card-stat-label">Est. total</span>
             <span className="stock-order-card-stat-value stock-order-card-stat-value-gold">
-              {formatStockPurchasePrice(order.totalCost)}
+              {estimate.total > 0
+                ? formatStockPurchasePrice(estimate.total)
+                : 'No cost on file'}
             </span>
+            {estimate.missingCostLines > 0 ? (
+              <span className="stock-order-card-stat-label">
+                {estimate.missingCostLines} line{estimate.missingCostLines === 1 ? '' : 's'} have no cost
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -253,18 +262,20 @@ export function StockOrdersView({
                 More
               </button>
               {ordersMenuOpen ? (
-                <button
-                  type="button"
-                  className="ghost-btn danger-text stock-order-cleanup-open-btn"
-                  role="menuitem"
-                  onClick={() => {
-                    setOrdersMenuOpen(false)
-                    setIsCleanupDialogOpen(true)
-                  }}
-                  disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
-                >
-                  Delete orders
-                </button>
+                <div className="stock-orders-more-menu" role="menu">
+                  <button
+                    type="button"
+                    className="ghost-btn danger-text stock-order-cleanup-open-btn"
+                    role="menuitem"
+                    onClick={() => {
+                      setOrdersMenuOpen(false)
+                      setIsCleanupDialogOpen(true)
+                    }}
+                    disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
+                  >
+                    Delete orders
+                  </button>
+                </div>
               ) : null}
             </div>
             {onPrepareDrafts ? (
@@ -373,6 +384,7 @@ export function StockOrdersView({
             <StockOrderCard
               key={order.id}
               order={order}
+              stockItems={stockItems}
               showCost={canManage}
               timeZone={timeZone}
               onOpen={setSelectedOrder}

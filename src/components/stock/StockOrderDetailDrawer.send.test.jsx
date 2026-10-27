@@ -91,6 +91,7 @@ describe('StockOrderDetailDrawer send draft', () => {
       onMarkSent,
     }))
 
+    act(() => { buttonNamed(container, 'Send').click() })
     expect(buttonNamed(container, 'Email').disabled).toBe(false)
     expect(buttonNamed(container, 'WhatsApp').disabled).toBe(false)
     expect(buttonNamed(container, 'Viber').disabled).toBe(false)
@@ -127,6 +128,7 @@ describe('StockOrderDetailDrawer send draft', () => {
       onClose: vi.fn(),
     }))
 
+    act(() => { buttonNamed(container, 'Send').click() })
     expect(buttonNamed(container, 'Email').disabled).toBe(true)
     expect(buttonNamed(container, 'WhatsApp').disabled).toBe(true)
     expect(buttonNamed(container, 'Viber').disabled).toBe(true)

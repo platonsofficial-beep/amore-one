@@ -108,6 +108,8 @@ describe('stock landscape overlays', () => {
     expect(drawer.parentElement.className).toContain('stock-product-history-backdrop')
     expect(drawer.parentElement.parentElement).toBe(document.body)
     expect(drawer.textContent).toContain('MEDITERRANEAN BEVERAGE PARTNERS')
+    const more = Array.from(drawer.querySelectorAll('button')).find((button) => button.textContent === 'More')
+    act(() => { more.click() })
     expect(drawer.textContent).toContain('Save order')
     expect(drawer.textContent).not.toContain('Save draft')
     cleanup()

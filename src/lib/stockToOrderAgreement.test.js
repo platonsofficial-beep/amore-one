@@ -116,6 +116,30 @@ describe('to order agreement', () => {
     expect(suggestGroups.some((group) => group.items.some((item) => item.stockItemId === 'healthy'))).toBe(false)
   })
 
+  it('counts an out item with no par in the KPI and the breakdown, not in To order', () => {
+    const withZeroParOut = [
+      ...catalog,
+      {
+        id: 'out-no-par',
+        name: 'Empty garnish',
+        active: true,
+        supplier: 'FreshServe Food Solutions',
+        currentQuantity: 0,
+        minimumQuantity: 0,
+        targetQuantity: 0,
+        costPrice: 1,
+        unit: 'btl',
+        status: 'ok',
+      },
+    ]
+    const summary = buildStockDashboardSummary(withZeroParOut)
+    const breakdown = formatToOrderBreakdown(withZeroParOut)
+
+    expect(summary.outOfStock).toBe(2)
+    expect(selectItemsToOrder(withZeroParOut).map((item) => item.id)).toEqual(['out', 'between', 'low'])
+    expect(breakdown).toBe('3 items · 2 out · 1 low · 1 under target')
+  })
+
   it('keeps shelf below-par totals equal to the sum of each storage list', () => {
     const balances = [
       { stock_item_id: 'a', workspace_storage_id: 'bar', quantity: 1 },

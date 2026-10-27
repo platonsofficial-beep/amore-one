@@ -56,9 +56,52 @@ export function computeOrderLineTotal(quantity, costPrice) {
 
 export function computeOrderTotalCost(items = []) {
   return (items ?? []).reduce((sum, item) => {
-    const lineTotal = item.totalPrice ?? computeOrderLineTotal(item.quantity, item.costPrice)
+    const lineTotal = item.totalPrice ?? item.total_price ?? computeOrderLineTotal(
+      item.quantity,
+      item.costPrice ?? item.cost_price,
+    )
     return sum + (Number(lineTotal) || 0)
   }, 0)
+}
+
+/**
+ * What to show as an order estimate.
+ * Stored line cost wins. When a saved draft has €0 because cost was dropped,
+ * use the catalog cost for that product. Lines with neither stay missing.
+ */
+export function resolveDisplayedOrderTotal(order, stockItems = []) {
+  const lines = Array.isArray(order?.items) ? order.items : []
+  if (lines.length === 0) {
+    return {
+      total: Number(order?.totalCost) || 0,
+      missingCostLines: 0,
+      usedCatalogFallback: false,
+    }
+  }
+
+  const catalog = Array.isArray(stockItems) ? stockItems : []
+  let total = 0
+  let missingCostLines = 0
+  let usedCatalogFallback = false
+
+  lines.forEach((line) => {
+    const quantity = Math.max(0, Number(line?.quantity) || 0)
+    const stored = Number(line?.costPrice ?? line?.cost_price) || 0
+    let cost = stored
+    if (!(cost > 0) && quantity > 0) {
+      const stockItemId = line?.stockItemId ?? line?.stock_item_id
+      const match = catalog.find((item) => item && `${item.id}` === `${stockItemId}`)
+      const catalogCost = Number(match?.costPrice ?? match?.cost_price) || 0
+      if (catalogCost > 0) {
+        cost = catalogCost
+        usedCatalogFallback = true
+      }
+    }
+    if (!(cost > 0) && quantity > 0) missingCostLines += 1
+    total += quantity * cost
+  })
+
+  return { total, missingCostLines, usedCatalogFallback }
 }
 
 export function buildSuggestedOrderLine(item) {
@@ -464,7 +507,7 @@ export function serializeDraftOrderItems(items = []) {
   return (items ?? [])
     .map((item) => {
       const quantity = Math.max(0, Number(item.quantity) || 0)
-      const costPrice = Math.max(0, Number(item.costPrice) || 0)
+      const costPrice = Math.max(0, Number(item.costPrice ?? item.cost_price) || 0)
 
       return {
         stock_item_id: item.stockItemId ?? item.stock_item_id ?? null,

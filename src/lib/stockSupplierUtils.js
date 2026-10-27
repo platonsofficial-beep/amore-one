@@ -1,5 +1,10 @@
 import { formatStockCategoryTypeLine } from './stockCatalog'
-import { computeOrderTotalCost, formatStockOrderDate, normalizeStockOrderStatus } from './stockOrderUtils'
+import {
+  computeOrderTotalCost,
+  formatStockOrderDate,
+  normalizeStockOrderStatus,
+  resolveDisplayedOrderTotal,
+} from './stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 
 export function normalizeSupplierName(name) {
@@ -197,7 +202,10 @@ export function buildSupplierMetrics(supplier, stockItems = [], stockOrders = []
     (order) => normalizeStockOrderStatus(order.status) === 'received',
   )
 
-  const totalSpend = receivedOrders.reduce((sum, order) => sum + getOrderTotalValue(order), 0)
+  const totalSpend = receivedOrders.reduce(
+    (sum, order) => sum + resolveDisplayedOrderTotal(order, stockItems).total,
+    0,
+  )
   const lastOrderDate = linkedOrders.reduce(
     (latest, order) => Math.max(latest, getOrderTimestamp(order, 'createdAt')),
     0,
@@ -247,13 +255,17 @@ export function buildSuppliersDashboardSummary(suppliers = [], stockItems = [], 
   )
   const pendingOrders = nonCancelledOrders.filter(isOpenStockOrder)
 
-  const totalPurchaseValue = receivedOrders.reduce((sum, order) => sum + getOrderTotalValue(order), 0)
+  const totalPurchaseValue = receivedOrders.reduce(
+    (sum, order) => sum + resolveDisplayedOrderTotal(order, stockItems).total,
+    0,
+  )
 
   return {
     totalSuppliers: suppliers.length,
     activeSuppliers,
     totalProductsSupplied: linkedProductIds.size,
     totalPurchaseValue,
+    receivedOrders: receivedOrders.length,
     pendingOrders: pendingOrders.length,
   }
 }

@@ -763,15 +763,6 @@ export function InventoryCountView({
         {!isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0 ? (
           <div className="inventory-count-quiet-empty">
             <p>No active counts.</p>
-            {canManage ? (
-              <button
-                type="button"
-                className="primary-btn inventory-count-start-btn"
-                onClick={() => setIsWizardOpen(true)}
-              >
-                Start count
-              </button>
-            ) : null}
           </div>
         ) : (
           <>

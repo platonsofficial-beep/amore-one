@@ -19,6 +19,7 @@ import {
   validateStockItemForm,
 } from '../../lib/stockCatalog'
 import { buildStockItemSupplierOptions, normalizeSupplierName } from '../../lib/stockSupplierUtils'
+import { buildProductDisplayName } from '../../lib/stockProductIdentity'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
 function StockFormSection({ title, children }) {
@@ -169,6 +170,12 @@ export function StockItemFormModal({
   }
 
   const resolvedUnit = resolveStockFormUnit(form)
+  const cardTitle = buildProductDisplayName({
+    brand: form.brand,
+    name: form.name,
+    size: form.size,
+  })
+  const storedProductName = `${form.name ?? ''}`.trim()
 
   return (
     <div className="employee-modal-backdrop" onClick={onClose}>
@@ -212,6 +219,9 @@ export function StockItemFormModal({
                   placeholder="e.g. Belvedere Vodka"
                   autoFocus
                 />
+                {cardTitle && cardTitle !== storedProductName ? (
+                  <p className="stock-item-form-shown-as">Shown on cards as {cardTitle}</p>
+                ) : null}
               </label>
 
               <label className="stock-form-field stock-form-field-full">
