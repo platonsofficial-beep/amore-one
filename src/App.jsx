@@ -23472,7 +23472,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">

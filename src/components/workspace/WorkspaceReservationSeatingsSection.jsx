@@ -292,6 +292,6 @@ export function WorkspaceReservationSeatingsSection({
   )
 }
 
-export function createDefaultSeatingForm() {
-  return buildSeatingFormDefaults()
+export function createDefaultSeatingForm(seating = null) {
+  return buildSeatingFormDefaults(seating)
 }
