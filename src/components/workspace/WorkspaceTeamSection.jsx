@@ -43,6 +43,7 @@ export function WorkspaceTeamSection({
     user,
     workspace: authWorkspace,
     refreshMembership,
+    permissionAccess,
   } = useAuth()
 
   const [workspaceProfile, setWorkspaceProfile] = useState(
@@ -128,7 +129,7 @@ export function WorkspaceTeamSection({
     workspaceName: resolvedWorkspace?.name,
     businessName: workspaceProfile?.businessName,
   })
-  const canLinkEmployee = canLinkMembershipEmployee(role)
+  const canLinkEmployee = canLinkMembershipEmployee(permissionAccess ?? role)
 
   const handleOpenLinkModal = () => {
     setSelectedEmployeeId(effectiveLinkedEmployeeId ? String(effectiveLinkedEmployeeId) : '')

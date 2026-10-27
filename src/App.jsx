@@ -14734,6 +14734,7 @@ function App() {
     isBootstrapping: isAuthBootstrapping,
     role,
     roleLabel,
+    permissionAccess,
     user,
     workspace,
     membership,
@@ -14909,8 +14910,8 @@ function App() {
   }, [isStockWorkspaceReady, isAuthLoading, isAuthBootstrapping, visibleWorkspaceLoadError])
 
   const canManageStockRole = useMemo(
-    () => canManageStock(role),
-    [role],
+    () => canManageStock(permissionAccess),
+    [permissionAccess],
   )
   const stockAccessReady = !isAuthLoading && !isAuthBootstrapping
   const stockSectionNav = useMemo(
@@ -14922,32 +14923,32 @@ function App() {
   )
 
   const canManageOperationsRole = useMemo(
-    () => canManageOperations(role),
-    [role],
+    () => canManageOperations(permissionAccess),
+    [permissionAccess],
   )
 
   const canManageAnnouncementsRole = useMemo(
-    () => canManageAnnouncements(role),
-    [role],
+    () => canManageAnnouncements(permissionAccess),
+    [permissionAccess],
   )
 
   const canEditScheduleRole = useMemo(
-    () => canEditSchedule(role),
-    [role],
+    () => canEditSchedule(permissionAccess),
+    [permissionAccess],
   )
 
   const canEditFloorPlanRole = useMemo(
-    () => canEditFloorPlan(role),
-    [role],
+    () => canEditFloorPlan(permissionAccess),
+    [permissionAccess],
   )
 
   const canManageReservationsRole = useMemo(
-    () => canManageReservations(role),
-    [role],
+    () => canManageReservations(permissionAccess),
+    [permissionAccess],
   )
   const canConfigureReservationSeatingsRole = useMemo(
-    () => canConfigureReservationSeatings(role),
-    [role],
+    () => canConfigureReservationSeatings(permissionAccess),
+    [permissionAccess],
   )
   const reservationSeatingsById = useMemo(
     () => buildSeatingsById(reservationSeatings),
@@ -14955,13 +14956,13 @@ function App() {
   )
 
   const canManageEmployeeInvitesRole = useMemo(
-    () => canManageEmployeeInvites(role),
-    [role],
+    () => canManageEmployeeInvites(permissionAccess),
+    [permissionAccess],
   )
 
   const canAssignManagerInviteRoleFlag = useMemo(
-    () => canAssignManagerInviteRole(role),
-    [role],
+    () => canAssignManagerInviteRole(permissionAccess),
+    [permissionAccess],
   )
 
   const isOperationsWorkspaceReady = Boolean(activeWorkspaceId) && !isAuthLoading && !isAuthBootstrapping
@@ -14976,33 +14977,33 @@ function App() {
   }, [isOperationsWorkspaceReady, isAuthLoading, isAuthBootstrapping, visibleWorkspaceLoadError])
 
   const visibleNavItems = useMemo(
-    () => filterNavItemsByRole(NAV_ITEMS, role),
-    [role],
+    () => filterNavItemsByRole(NAV_ITEMS, permissionAccess),
+    [permissionAccess],
   )
 
   const visibleTeamSections = useMemo(
-    () => TEAM_SECTIONS.filter((section) => canAccessTeamSection(role, section.id)),
-    [role],
+    () => TEAM_SECTIONS.filter((section) => canAccessTeamSection(permissionAccess, section.id)),
+    [permissionAccess],
   )
 
   const visibleOperationsSections = useMemo(
-    () => filterOperationsSections(OPERATIONS_SECTIONS, role),
-    [role],
+    () => filterOperationsSections(OPERATIONS_SECTIONS, permissionAccess),
+    [permissionAccess],
   )
 
   const permittedTodayQuickActions = useMemo(
-    () => getTodayQuickActions(role),
-    [role],
+    () => getTodayQuickActions(permissionAccess),
+    [permissionAccess],
   )
 
   const canOpenWorkspaceProfile = useMemo(
-    () => canAccessModule(role, 'settings'),
-    [role],
+    () => canAccessModule(permissionAccess, 'settings'),
+    [permissionAccess],
   )
 
   const mobileBottomTabs = useMemo(
-    () => getMobileBottomTabs(role, resolveMobileShellVariant(role)),
-    [role],
+    () => getMobileBottomTabs(permissionAccess, resolveMobileShellVariant(role)),
+    [permissionAccess, role],
   )
 
   const activeChecklistRunTemplate = useMemo(
@@ -15029,28 +15030,28 @@ function App() {
     setActiveChecklistTaskId(null)
   }, [])
 
-  const isActiveViewAllowed = !isAuthLoading && canAccessModule(role, activeView)
+  const isActiveViewAllowed = !isAuthLoading && canAccessModule(permissionAccess, activeView)
   const shouldRenderReservationsHostView = useMemo(
     () => shouldShowReservationsHostView({
-      role,
+      role: permissionAccess,
       useMobileExperience,
       mobileReservationsHostMode,
     }),
-    [role, useMobileExperience, mobileReservationsHostMode],
+    [permissionAccess, useMobileExperience, mobileReservationsHostMode],
   )
   const useReservationsHostDedicatedShell = useMemo(
     () => shouldUseReservationsHostDedicatedShell({
-      role,
+      role: permissionAccess,
       activeView,
       useMobileExperience,
       mobileReservationsHostMode,
     }),
-    [role, activeView, useMobileExperience, mobileReservationsHostMode],
+    [permissionAccess, activeView, useMobileExperience, mobileReservationsHostMode],
   )
   const isActiveViewPendingPermissionRedirect = useMemo(() => {
     if (isAuthLoading) return false
-    return resolvePermittedActiveView(role, activeView) !== activeView
-  }, [isAuthLoading, role, activeView])
+    return resolvePermittedActiveView(permissionAccess, activeView) !== activeView
+  }, [isAuthLoading, permissionAccess, activeView])
 
   const persistCurrentNavigation = useCallback((overrides = {}) => {
     persistNavigation({
@@ -15085,9 +15086,9 @@ function App() {
   useEffect(() => {
     if (isAuthLoading) return
 
-    const permittedView = resolvePermittedActiveView(role, activeView)
-    const permittedTeamSection = resolvePermittedTeamSection(role, teamSection)
-    const permittedOperationsSection = resolvePermittedOperationsSection(role, operationsSection)
+    const permittedView = resolvePermittedActiveView(permissionAccess, activeView)
+    const permittedTeamSection = resolvePermittedTeamSection(permissionAccess, teamSection)
+    const permittedOperationsSection = resolvePermittedOperationsSection(permissionAccess, operationsSection)
     const shouldUpdateView = permittedView !== activeView
     const shouldUpdateTeamSection = activeView === 'team' && permittedTeamSection !== teamSection
     const shouldUpdateOperationsSection = activeView === 'operations' && permittedOperationsSection !== operationsSection
@@ -15111,12 +15112,12 @@ function App() {
       stockSection,
       operationsSection: permittedOperationsSection,
     })
-  }, [isAuthLoading, role, activeView, teamSection, settingsSection, stockSection, operationsSection])
+  }, [isAuthLoading, permissionAccess, activeView, teamSection, settingsSection, stockSection, operationsSection])
 
   const handleActiveViewChange = useCallback((nextView) => {
-    const permittedView = resolvePermittedActiveView(role, nextView)
+    const permittedView = resolvePermittedActiveView(permissionAccess, nextView)
     const nextTeamSection = permittedView === 'team'
-      ? resolvePermittedTeamSection(role, teamSection || getDefaultTeamSection(role, canAccessTeamSection))
+      ? resolvePermittedTeamSection(permissionAccess, teamSection || getDefaultTeamSection(permissionAccess, canAccessTeamSection))
       : teamSection
 
     if (permittedView === 'reservations' && activeView !== 'reservations') {
@@ -15156,10 +15157,10 @@ function App() {
       stockSection,
       operationsSection,
     })
-  }, [role, activeView, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
+  }, [permissionAccess, activeView, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
 
   const handleTeamSectionChange = useCallback((nextSection) => {
-    const permittedSection = resolvePermittedTeamSection(role, nextSection)
+    const permittedSection = resolvePermittedTeamSection(permissionAccess, nextSection)
 
     if (isEmployeeModalOpen && activeView === 'team' && permittedSection !== 'members') {
       handleCloseEmployeeModal()
@@ -15176,7 +15177,7 @@ function App() {
       stockSection,
       operationsSection,
     })
-  }, [role, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
+  }, [permissionAccess, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
   const handleStockSectionChange = useCallback((nextSection) => {
     const permitted = stockAccessReady
@@ -15218,14 +15219,14 @@ function App() {
 
   const handleOpenStockLiveSection = useCallback((section, orderFilter = '') => {
     const allowed = useMobileExperience
-      ? canAccessMobileExpandedModule(role, 'stock')
-      : canAccessModule(role, 'stock')
+      ? canAccessMobileExpandedModule(permissionAccess, 'stock')
+      : canAccessModule(permissionAccess, 'stock')
     if (!allowed) return
     handleActiveViewChange('stock')
     if (orderFilter) setStockOrdersFilterHint(orderFilter)
     handleStockSectionChange(section)
     if (useMobileExperience) setMobileExpandedView('workspace')
-  }, [useMobileExperience, role, handleActiveViewChange, handleStockSectionChange])
+  }, [useMobileExperience, permissionAccess, handleActiveViewChange, handleStockSectionChange])
 
   const handleOpenStockCountWizard = useCallback(() => {
     handleOpenStockLiveSection('count')
@@ -15243,7 +15244,7 @@ function App() {
   }, [])
 
   const handleOperationsSectionChange = useCallback((nextSection) => {
-    const permittedSection = resolvePermittedOperationsSection(role, nextSection)
+    const permittedSection = resolvePermittedOperationsSection(permissionAccess, nextSection)
     setOperationsSection(permittedSection)
     persistNavigation({
       activeView,
@@ -15252,7 +15253,7 @@ function App() {
       stockSection,
       operationsSection: permittedSection,
     })
-  }, [role, activeView, settingsSection, teamSection, stockSection])
+  }, [permissionAccess, activeView, settingsSection, teamSection, stockSection])
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
     setSettingsSection(nextSection)
@@ -15527,8 +15528,8 @@ function App() {
   )
 
   const canViewLeaveQueueRole = useMemo(
-    () => canViewLeaveQueue(role),
-    [role],
+    () => canViewLeaveQueue(permissionAccess),
+    [permissionAccess],
   )
 
   const mobileLinkedEmployee = useMemo(() => {
@@ -15738,7 +15739,7 @@ function App() {
     [isReservationsModuleConnected, reservations, dashboardNowMinutes, currentDateKey, localNow],
   )
 
-  const canAccessStockModule = canAccessModule(role, 'stock')
+  const canAccessStockModule = canAccessModule(permissionAccess, 'stock')
 
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
@@ -15925,7 +15926,7 @@ function App() {
     if (!useDedicatedShell || isAuthLoading) return
 
     const variant = resolveMobileShellVariant(role)
-    const allowedTabs = getMobileBottomTabs(role, variant)
+    const allowedTabs = getMobileBottomTabs(permissionAccess, variant)
     if (allowedTabs.length === 0) return
 
     const isActiveTabAllowed = allowedTabs.some((tab) => tab.id === activeMobileTab)
@@ -15945,6 +15946,7 @@ function App() {
     isAuthLoading,
     isManagerMobileShell,
     role,
+    permissionAccess,
     activeMobileTab,
   ])
 
@@ -20990,7 +20992,7 @@ function App() {
 
   const handleDashboardQuickAction = (actionId) => {
     if (actionId === 'add-reservation') {
-      if (!canAccessModule(role, 'reservations')) return
+      if (!canAccessModule(permissionAccess, 'reservations')) return
       handleActiveViewChange('reservations')
       setIsDashboardReservationQuickCreateOpen(true)
       return
@@ -21019,25 +21021,25 @@ function App() {
   }
 
   const handleDashboardViewTasks = () => {
-    if (!canAccessModule(role, 'operations')) return
+    if (!canAccessModule(permissionAccess, 'operations')) return
     handleActiveViewChange('operations')
     handleOperationsSectionChange('tasks')
   }
 
   const handleDashboardViewStock = () => {
-    if (!canAccessModule(role, 'stock')) return
+    if (!canAccessModule(permissionAccess, 'stock')) return
     handleActiveViewChange('stock')
     handleStockSectionChange('dashboard')
   }
 
   const handleDashboardViewSchedule = () => {
-    if (!canAccessTeamSection(role, 'schedule')) return
+    if (!canAccessTeamSection(permissionAccess, 'schedule')) return
     handleActiveViewChange('team')
     handleTeamSectionChange('schedule')
   }
 
   const handleDashboardViewReservations = () => {
-    if (!canAccessModule(role, 'reservations')) return
+    if (!canAccessModule(permissionAccess, 'reservations')) return
     handleActiveViewChange('reservations')
   }
 
@@ -21047,7 +21049,7 @@ function App() {
       return
     }
     if (chipId === 'on-shift') {
-      if (!canAccessTeamSection(role, 'today')) return
+      if (!canAccessTeamSection(permissionAccess, 'today')) return
       handleActiveViewChange('team')
       handleTeamSectionChange('today')
       return
@@ -21073,16 +21075,16 @@ function App() {
 
   const todayAttentionPermissions = useMemo(() => ({
     canViewStock: useMobileExperience
-      ? canAccessMobileExpandedModule(role, 'stock')
-      : canAccessModule(role, 'stock'),
+      ? canAccessMobileExpandedModule(permissionAccess, 'stock')
+      : canAccessModule(permissionAccess, 'stock'),
     canViewTasks: useMobileExperience
-      ? canAccessMobileExpandedModule(role, 'operations')
-      : canAccessModule(role, 'operations'),
-    canViewSchedule: canAccessTeamSection(role, 'schedule'),
+      ? canAccessMobileExpandedModule(permissionAccess, 'operations')
+      : canAccessModule(permissionAccess, 'operations'),
+    canViewSchedule: canAccessTeamSection(permissionAccess, 'schedule'),
     canViewReservations: useMobileExperience
-      ? canAccessMobileExpandedModule(role, 'reservations')
-      : canAccessModule(role, 'reservations'),
-  }), [role, useMobileExperience])
+      ? canAccessMobileExpandedModule(permissionAccess, 'reservations')
+      : canAccessModule(permissionAccess, 'reservations'),
+  }), [permissionAccess, useMobileExperience])
 
   const handleTodayAttentionItemClick = useCallback((item) => {
     const destination = resolveTodayAttentionDestination(item, todayAttentionPermissions)
@@ -21156,16 +21158,16 @@ function App() {
 
   const handleInsightsViewModule = (moduleId) => {
     const route = resolveInsightsModuleLink(moduleId)
-    const permittedView = resolvePermittedActiveView(role, route.activeView)
+    const permittedView = resolvePermittedActiveView(permissionAccess, route.activeView)
     handleActiveViewChange(permittedView)
     if (route.teamSection && permittedView === 'team') {
-      handleTeamSectionChange(resolvePermittedTeamSection(role, route.teamSection))
+      handleTeamSectionChange(resolvePermittedTeamSection(permissionAccess, route.teamSection))
     }
     if (route.stockSection && permittedView === 'stock') {
       handleStockSectionChange(route.stockSection)
     }
     if (route.operationsSection && permittedView === 'operations') {
-      handleOperationsSectionChange(resolvePermittedOperationsSection(role, route.operationsSection))
+      handleOperationsSectionChange(resolvePermittedOperationsSection(permissionAccess, route.operationsSection))
     }
   }
 
@@ -23098,7 +23100,7 @@ function App() {
   }, [role, handleActiveViewChange])
 
   const handleMobileOpenFullSchedule = () => {
-    if (!canOpenMobileFullSchedule(role)) return
+    if (!canOpenMobileFullSchedule(permissionAccess)) return
 
     handleActiveViewChange('team')
     handleTeamSectionChange('schedule')
@@ -23106,7 +23108,7 @@ function App() {
   }
 
   const handleMobileNavigateModule = (moduleId) => {
-    if (!canAccessMobileExpandedModule(role, moduleId)) return
+    if (!canAccessMobileExpandedModule(permissionAccess, moduleId)) return
 
     handleActiveViewChange(moduleId)
     if (moduleId === 'team') {
@@ -23122,7 +23124,7 @@ function App() {
   }
 
   const handleMobileOpenSettings = () => {
-    if (!canAccessMobileExpandedModule(role, 'settings')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'settings')) return
 
     handleActiveViewChange('settings')
     handleSettingsSectionChange('profile')
@@ -23130,7 +23132,7 @@ function App() {
   }
 
   const handleMobileOpenTasksWorkspace = () => {
-    if (!canOpenMobileTasksWorkspace(role)) return
+    if (!canOpenMobileTasksWorkspace(permissionAccess)) return
 
     handleActiveViewChange('operations')
     handleOperationsSectionChange('dashboard')
@@ -23138,56 +23140,56 @@ function App() {
   }
 
   const handleMobileManagerOpenStock = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'stock')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
 
     handleActiveViewChange('stock')
     handleStockSectionChange('dashboard')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleStockSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange])
 
   const handleMobileManagerReceiveDeliveries = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'stock')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
 
     handleActiveViewChange('stock')
     handleStockSectionChange('orders')
     setStockOrdersFilterHint('sent')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleStockSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange])
 
   const handleMobileManagerOpenStockOrders = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'stock')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
 
     handleActiveViewChange('stock')
     handleStockSectionChange('orders')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleStockSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange])
 
   const handleMobileManagerOpenTasks = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'operations')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'operations')) return
 
     handleActiveViewChange('operations')
     handleOperationsSectionChange('dashboard')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleOperationsSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleOperationsSectionChange])
 
   const handleMobileManagerOpenTeamToday = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'team')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'team')) return
 
     handleActiveViewChange('team')
     handleTeamSectionChange('today')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleTeamSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleTeamSectionChange])
 
   const handleMobileManagerOpenReservations = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'reservations')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'reservations')) return
 
     setMobileReservationsHostMode(false)
     handleActiveViewChange('reservations')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange])
+  }, [permissionAccess, handleActiveViewChange])
 
   const handleMobileOpenReservationsHostMode = useCallback(() => {
-    if (!canOpenReservationsHostMode(role)) return
+    if (!canOpenReservationsHostMode(permissionAccess)) return
 
     handleActiveViewChange('reservations')
     setMobileReservationsHostMode(true)
@@ -23202,7 +23204,7 @@ function App() {
     if (useMobileExperience && isManagementMobileRole(role)) {
       setMobileExpandedView('workspace')
     }
-  }, [role, useMobileExperience, handleActiveViewChange])
+  }, [permissionAccess, role, useMobileExperience, handleActiveViewChange])
 
   const handleHostLeaveStation = useCallback(() => {
     setMobileReservationsHostMode(false)
@@ -23219,13 +23221,13 @@ function App() {
     setMobileExpandedView(null)
     const destination = resolveExitReservationsHostDestination(
       preReservationsHostViewRef.current || 'today',
-      role,
+      permissionAccess,
     )
     handleActiveViewChange(destination)
     if (destination === 'team' && teamSection === 'members' && preReservationsHostViewRef.current === 'today') {
       handleTeamSectionChange('today')
     }
-  }, [role, teamSection, handleActiveViewChange, handleTeamSectionChange])
+  }, [permissionAccess, teamSection, handleActiveViewChange, handleTeamSectionChange])
 
   const handleExitScheduleFocusMode = useCallback(() => {
     const entry = scheduleEntryRef.current ?? { view: 'today', teamSection: 'today' }
@@ -23299,15 +23301,15 @@ function App() {
   }
 
   const handleMobileManagerCountStock = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'stock')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
 
     handleActiveViewChange('stock')
     handleStockSectionChange('count')
     setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleStockSectionChange])
+  }, [permissionAccess, handleActiveViewChange, handleStockSectionChange])
 
   const handleMobileManagerOpenChecklist = useCallback((row) => {
-    if (!canAccessMobileExpandedModule(role, 'operations')) return
+    if (!canAccessMobileExpandedModule(permissionAccess, 'operations')) return
 
     handleActiveViewChange('operations')
     handleOperationsSectionChange('dashboard')
@@ -23323,7 +23325,7 @@ function App() {
       openChecklistTemplate(templateId)
     }
   }, [
-    role,
+    permissionAccess,
     handleActiveViewChange,
     handleOperationsSectionChange,
     openChecklistTemplate,
@@ -23553,16 +23555,16 @@ function App() {
             now={localNow}
             timeZone={workspaceTimeZone}
             todayKey={currentDateKey}
-            onViewStock={canAccessModule(role, 'stock') ? handleDashboardViewStock : undefined}
-            onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
-            onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
-            onViewReservations={canAccessModule(role, 'reservations') ? handleDashboardViewReservations : undefined}
+            onViewStock={canAccessModule(permissionAccess, 'stock') ? handleDashboardViewStock : undefined}
+            onViewSchedule={canAccessTeamSection(permissionAccess, 'schedule') ? handleDashboardViewSchedule : undefined}
+            onViewTasks={canAccessModule(permissionAccess, 'operations') ? handleDashboardViewTasks : undefined}
+            onViewReservations={canAccessModule(permissionAccess, 'reservations') ? handleDashboardViewReservations : undefined}
             onAttentionItemClick={handleTodayAttentionItemClick}
             onCompleteAttentionItem={handleCompleteStaleSeatedReservation}
             attentionPermissions={todayAttentionPermissions}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
-            stockLive={canAccessModule(role, 'stock') ? {
+            stockLive={canAccessModule(permissionAccess, 'stock') ? {
               stockSummary: managerMobileStockSummary,
               belowParCount: stockLiveSnapshot.belowParCount,
               parsReady: stockLiveSnapshot.parsReady,
@@ -23611,6 +23613,9 @@ function App() {
             canManageInvites={canManageEmployeeInvitesRole}
             canAssignManagerInviteRole={canAssignManagerInviteRoleFlag}
             canViewSalary={canAssignManagerInviteRoleFlag}
+            actorRole={role}
+            actorMemberId={membership?.id ?? ''}
+            actorUserId={user?.id ?? ''}
             autoOpenInvite={Boolean(
               selectedEmployee?.id
               && autoOpenInviteEmployeeId
@@ -23739,7 +23744,7 @@ function App() {
               isSaving={isSavingReservation}
               reservationSeatings={reservationSeatings}
               onOpenHostMode={
-                !isHostMobileRole(role) && useMobileExperience && canOpenReservationsHostMode(role)
+                !isHostMobileRole(role) && useMobileExperience && canOpenReservationsHostMode(permissionAccess)
                   ? handleMobileOpenReservationsHostMode
                   : undefined
               }
@@ -23818,7 +23823,7 @@ function App() {
           <StockStorageCenter
             workspaceId={activeWorkspaceId}
             searchTerm={searchTerm}
-            role={role}
+            role={permissionAccess}
             canManage={canManageStockRole}
             onOpenActiveCountSession={handleOpenInventoryCountSession}
             onRecordReceive={handleRecordStockMovement}
@@ -24162,11 +24167,11 @@ function App() {
                       hasStockModuleData: stockItems.length > 0,
                       isReservationsConnected: isReservationsModuleConnected,
                       isTasksConnected: isTasksModuleConnected,
-                      canOpenStock: canAccessMobileExpandedModule(role, 'stock'),
-                      canReceiveDeliveries: canAccessMobileExpandedModule(role, 'stock'),
-                      canOpenTasks: canAccessMobileExpandedModule(role, 'operations'),
-                      canOpenTeam: canAccessMobileExpandedModule(role, 'team'),
-                      canOpenReservations: canAccessMobileExpandedModule(role, 'reservations'),
+                      canOpenStock: canAccessMobileExpandedModule(permissionAccess, 'stock'),
+                      canReceiveDeliveries: canAccessMobileExpandedModule(permissionAccess, 'stock'),
+                      canOpenTasks: canAccessMobileExpandedModule(permissionAccess, 'operations'),
+                      canOpenTeam: canAccessMobileExpandedModule(permissionAccess, 'team'),
+                      canOpenReservations: canAccessMobileExpandedModule(permissionAccess, 'reservations'),
                       announcements: operationsAnnouncements,
                       announcementRole: role,
                       announcementEmployeeDepartment: currentEmployeeDepartment,
@@ -24203,7 +24208,7 @@ function App() {
                     }
 
                   const sharedMenuProps = {
-                    role,
+                    role: permissionAccess,
                     roleLabel,
                     profileName: resolvedUserDisplayName,
                     venueName: workspaceProfile.businessName,
@@ -24308,7 +24313,7 @@ function App() {
                           isSaving: isSavingOperations,
                           onCreateTask: canManageOperationsRole ? handleCreateOperationsTask : undefined,
                           onCompleteTask: canManageOperationsRole ? handleCompleteOperationsTask : undefined,
-                          onOpenChecklist: canAccessMobileExpandedModule(role, 'operations')
+                          onOpenChecklist: canAccessMobileExpandedModule(permissionAccess, 'operations')
                             ? handleMobileManagerOpenChecklist
                             : undefined,
                         }}
@@ -24341,7 +24346,7 @@ function App() {
                           isWeekPublished: mobileScheduleDisplay.isWeekPublished,
                           isWeekUpdating: isMobileWeekLoading,
                           isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
-                          canOpenFullSchedule: canOpenMobileFullSchedule(role),
+                          canOpenFullSchedule: canOpenMobileFullSchedule(permissionAccess),
                           onOpenFullSchedule: handleMobileOpenFullSchedule,
                           onPreviousWeek: handleMobilePreviousWeek,
                           onGoToCurrentWeek: handleMobileGoToCurrentWeek,
@@ -24356,7 +24361,7 @@ function App() {
                           isLoading: isMobileOperationsTasksLoading,
                           isSaving: isSavingOperations,
                           onCompleteTask: handleCompleteOperationsTask,
-                          onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
+                          onOpenTasksWorkspace: canOpenMobileTasksWorkspace(permissionAccess)
                             ? handleMobileOpenTasksWorkspace
                             : undefined,
                         }}
@@ -24390,7 +24395,7 @@ function App() {
                         isWeekPublished: mobileScheduleDisplay.isWeekPublished,
                         isWeekUpdating: isMobileWeekLoading,
                         isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
-                        canOpenFullSchedule: canOpenMobileFullSchedule(role),
+                        canOpenFullSchedule: canOpenMobileFullSchedule(permissionAccess),
                         onOpenFullSchedule: handleMobileOpenFullSchedule,
                         onPreviousWeek: handleMobilePreviousWeek,
                         onGoToCurrentWeek: handleMobileGoToCurrentWeek,
@@ -24405,7 +24410,7 @@ function App() {
                         isLoading: isMobileOperationsTasksLoading,
                         isSaving: isSavingOperations,
                         onCompleteTask: handleCompleteOperationsTask,
-                        onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
+                        onOpenTasksWorkspace: canOpenMobileTasksWorkspace(permissionAccess)
                           ? handleMobileOpenTasksWorkspace
                           : undefined,
                       }}

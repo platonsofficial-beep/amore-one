@@ -14,7 +14,9 @@ import {
   getCurrentMembershipContext,
   getCurrentMembershipContextWithRetry,
 } from '../services/membershipService'
+import { resolveMemberAccess } from '../lib/memberAccess'
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
+import { fetchMemberPermissionRows } from '../services/memberPermissionService'
 import { markSessionEnded } from '../lib/authMessageUtils'
 import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
 import {
@@ -105,6 +107,7 @@ export function AuthProvider({ children }) {
   const [workspace, setWorkspace] = useState(isAuthDisabled ? DEV_MOCK_WORKSPACE : null)
   const [membership, setMembership] = useState(isAuthDisabled ? buildDevMembership() : null)
   const [membershipLoadError, setMembershipLoadError] = useState(null)
+  const [storedPermissionRows, setStoredPermissionRows] = useState(null)
   const [workspaceLoadError, setWorkspaceLoadError] = useState(null)
   const [isJoiningWorkspace, setIsJoiningWorkspace] = useState(false)
   const [devProfileDisplayName, setDevProfileDisplayName] = useState('')
@@ -139,6 +142,7 @@ export function AuthProvider({ children }) {
     setMembership(null)
     setMembershipLoadError(null)
     setWorkspaceLoadError(null)
+    setStoredPermissionRows(null)
   }, [])
 
   const loadWorkspaceContext = useCallback(async (nextUser) => {
@@ -458,6 +462,37 @@ export function AuthProvider({ children }) {
     return resetPasswordForEmail(email)
   }, [])
 
+  useEffect(() => {
+    if (isAuthDisabled) {
+      setStoredPermissionRows(null)
+      return undefined
+    }
+
+    const memberId = `${membership?.id ?? ''}`.trim()
+    const workspaceId = `${membership?.workspaceId ?? ''}`.trim()
+    if (!memberId || !workspaceId || isOwnerRole(membership?.role)) {
+      setStoredPermissionRows(null)
+      return undefined
+    }
+
+    let cancelled = false
+    setStoredPermissionRows(null)
+    fetchMemberPermissionRows(workspaceId, memberId)
+      .then((rows) => {
+        if (cancelled) return
+        setStoredPermissionRows(Array.isArray(rows) && rows.length > 0 ? rows : null)
+      })
+      .catch((error) => {
+        console.error('[AuthContext] member permission load error:', error)
+        if (cancelled) return
+        setStoredPermissionRows(null)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthDisabled, membership?.id, membership?.workspaceId, membership?.role])
+
   const role = useMemo(() => {
     if (membership?.role) {
       return normalizeWorkspaceRole(membership.role, membership.role)
@@ -486,6 +521,11 @@ export function AuthProvider({ children }) {
     [role],
   )
 
+  const permissionAccess = useMemo(
+    () => resolveMemberAccess(role, storedPermissionRows),
+    [role, storedPermissionRows],
+  )
+
   const value = useMemo(() => ({
     user,
     session,
@@ -494,6 +534,7 @@ export function AuthProvider({ children }) {
     role,
     roleLabel,
     isOwner,
+    permissionAccess,
     isLoading,
     isBootstrapping,
     isAuthDisabled,
@@ -514,6 +555,7 @@ export function AuthProvider({ children }) {
     role,
     roleLabel,
     isOwner,
+    permissionAccess,
     isLoading,
     isBootstrapping,
     isAuthDisabled,

@@ -14,9 +14,168 @@ export const APP_MODULES = [
 export const DEFAULT_FALLBACK_MODULE = 'today'
 export const HOST_FALLBACK_MODULE = 'reservations'
 
-const FULL_ACCESS_ROLES = new Set(['owner', 'general_manager'])
-
 const MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
+
+export const PERMISSION_LEVELS = ['none', 'view', 'manage']
+
+const PERMISSION_LEVEL_RANK = {
+  none: 0,
+  view: 1,
+  manage: 2,
+}
+
+export const PERMISSION_MODULES = [
+  'today',
+  'reservations',
+  'seatings',
+  'team',
+  'stock',
+  'shelf_count',
+  'operations',
+  'insights',
+  'settings',
+  'floor_plan',
+  'floor_plan_edit',
+  'announcements',
+  'private_data',
+  'access',
+  'mobile_tasks',
+]
+
+const APP_MODULE_PERMISSION = {
+  today: 'today',
+  reservations: 'reservations',
+  team: 'team',
+  stock: 'stock',
+  operations: 'operations',
+  insights: 'insights',
+  settings: 'settings',
+  'floor-plan-builder': 'floor_plan',
+}
+
+function defineRolePreset(overrides = {}) {
+  const preset = {}
+  for (const module of PERMISSION_MODULES) {
+    preset[module] = 'none'
+  }
+  preset.today = 'view'
+  return Object.freeze({ ...preset, ...overrides })
+}
+
+// Presets match today's role behaviour. private_data stays with Owner and GM.
+// access is owner-only and is not read by a helper yet. shelf_count stays on Staff.
+// team:manage is what sends invites.
+export const ROLE_PERMISSION_PRESETS = {
+  owner: defineRolePreset({
+    today: 'manage',
+    reservations: 'manage',
+    seatings: 'manage',
+    team: 'manage',
+    stock: 'manage',
+    operations: 'manage',
+    insights: 'manage',
+    settings: 'manage',
+    floor_plan: 'manage',
+    floor_plan_edit: 'manage',
+    announcements: 'manage',
+    private_data: 'manage',
+    access: 'manage',
+  }),
+  general_manager: defineRolePreset({
+    today: 'manage',
+    reservations: 'manage',
+    seatings: 'manage',
+    team: 'manage',
+    stock: 'manage',
+    operations: 'manage',
+    insights: 'manage',
+    settings: 'manage',
+    floor_plan: 'manage',
+    floor_plan_edit: 'manage',
+    announcements: 'manage',
+    private_data: 'manage',
+  }),
+  manager: defineRolePreset({
+    today: 'manage',
+    reservations: 'manage',
+    seatings: 'manage',
+    team: 'manage',
+    stock: 'manage',
+    operations: 'manage',
+    insights: 'manage',
+    floor_plan: 'manage',
+    floor_plan_edit: 'manage',
+    announcements: 'manage',
+  }),
+  host: defineRolePreset({
+    reservations: 'manage',
+    team: 'view',
+    operations: 'view',
+    floor_plan_edit: 'manage',
+    mobile_tasks: 'view',
+  }),
+  staff: defineRolePreset({
+    team: 'view',
+    stock: 'view',
+    shelf_count: 'manage',
+    operations: 'view',
+    mobile_tasks: 'view',
+  }),
+}
+
+export function hasPermission(perms, module, level) {
+  const required = PERMISSION_LEVEL_RANK[level]
+  if (required == null) return false
+  const current = PERMISSION_LEVEL_RANK[perms?.[module]] ?? PERMISSION_LEVEL_RANK.none
+  return current >= required
+}
+
+export function getRolePreset(role, fallback = '') {
+  const normalized = normalizeWorkspaceRole(role, fallback)
+  const preset = ROLE_PERMISSION_PRESETS[normalized]
+  if (!preset) return { ...defineRolePreset() }
+  return { ...preset }
+}
+
+export function resolvePermissions(role, memberPermissions = null, { fallback = '' } = {}) {
+  const resolved = getRolePreset(role, fallback)
+  if (!memberPermissions || typeof memberPermissions !== 'object' || Array.isArray(memberPermissions)) {
+    return resolved
+  }
+
+  for (const [module, level] of Object.entries(memberPermissions)) {
+    if (!Object.hasOwn(resolved, module)) continue
+    if (!Object.hasOwn(PERMISSION_LEVEL_RANK, level)) continue
+    resolved[module] = level
+  }
+
+  return resolved
+}
+
+function rolePermissions(role, fallback = '') {
+  return resolvePermissions(role, null, { fallback })
+}
+
+function roleOf(access) {
+  if (access && typeof access === 'object') return `${access.role ?? ''}`.trim()
+  return access
+}
+
+function readAccess(access, fallback = '') {
+  const role = roleOf(access)
+  if (access && typeof access === 'object' && access.permissions && typeof access.permissions === 'object') {
+    return {
+      role,
+      perms: access.permissions,
+      custom: access.customModules && typeof access.customModules === 'object' ? access.customModules : {},
+    }
+  }
+  return {
+    role,
+    perms: rolePermissions(role, fallback),
+    custom: {},
+  }
+}
 
 export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
@@ -40,73 +199,42 @@ export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'menu', label: 'Menu', icon: '≡' },
 ]
 
-const ROLE_MODULE_ACCESS = {
-  manager: [
-    'today',
-    'reservations',
-    'team',
-    'stock',
-    'operations',
-    'insights',
-    'floor-plan-builder',
-  ],
-  host: [
-    'today',
-    'team',
-    'operations',
-    'reservations',
-  ],
-  staff: [
-    'today',
-    'team',
-    'stock',
-    'operations',
-  ],
-}
-
-const TEAM_SECTION_ACCESS = {
-  owner: ['today', 'members', 'schedule'],
-  general_manager: ['today', 'members', 'schedule'],
-  manager: ['today', 'members', 'schedule'],
-  host: ['schedule'],
-  staff: ['schedule'],
-}
-
 const OPERATIONS_SECTION_IDS = new Set(['dashboard', 'tasks', 'checklists'])
+const TEAM_MANAGE_SECTIONS = new Set(['today', 'members'])
 
 function normalizeModuleId(moduleId) {
   return `${moduleId ?? ''}`.trim()
 }
 
-function getAllowedModulesForRole(role) {
-  const normalizedRole = normalizeWorkspaceRole(role, '')
-
-  if (!normalizedRole) {
-    return new Set([DEFAULT_FALLBACK_MODULE])
-  }
-
-  if (FULL_ACCESS_ROLES.has(normalizedRole)) {
-    return new Set(APP_MODULES)
-  }
-
-  return new Set(ROLE_MODULE_ACCESS[normalizedRole] ?? [DEFAULT_FALLBACK_MODULE])
-}
-
 export function resolveDefaultModuleForRole(role) {
-  return isHostRole(role) ? HOST_FALLBACK_MODULE : DEFAULT_FALLBACK_MODULE
+  return isHostRole(roleOf(role)) ? HOST_FALLBACK_MODULE : DEFAULT_FALLBACK_MODULE
 }
 
 export function canAccessModule(role, moduleId) {
   const normalizedModule = normalizeModuleId(moduleId)
-  if (!normalizedModule) return false
-  return getAllowedModulesForRole(role).has(normalizedModule)
+  const permissionModule = APP_MODULE_PERMISSION[normalizedModule]
+  if (!permissionModule) return false
+  return hasPermission(readAccess(role, '').perms, permissionModule, 'view')
 }
 
 export function canAccessTeamSection(role, sectionId) {
-  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
   const normalizedSection = `${sectionId ?? ''}`.trim()
-  const allowedSections = TEAM_SECTION_ACCESS[normalizedRole] ?? TEAM_SECTION_ACCESS.staff
-  return allowedSections.includes(normalizedSection)
+  const { role: resolvedRole, perms, custom } = readAccess(role, 'staff')
+  if (normalizedSection === 'schedule') {
+    if (custom.schedule && hasPermission(perms, 'schedule', 'view')) return true
+    if (custom.team) {
+      return hasPermission(rolePermissions(resolvedRole, 'staff'), 'team', 'view')
+        || hasPermission(perms, 'team', 'view')
+    }
+    if (hasPermission(perms, 'team', 'view')) return true
+    // Unknown roles keep the staff fallback this helper has always used.
+    if (!ROLE_PERMISSION_PRESETS[normalizeWorkspaceRole(resolvedRole, '')]) {
+      return hasPermission(rolePermissions(resolvedRole, 'staff'), 'team', 'view')
+    }
+    return false
+  }
+  if (TEAM_MANAGE_SECTIONS.has(normalizedSection)) return hasPermission(perms, 'team', 'manage')
+  return false
 }
 
 export function getAccessibleModules(role) {
@@ -124,11 +252,11 @@ export function resolvePermittedActiveView(role, requestedView) {
 }
 
 export function isManagerRole(role) {
-  return MANAGEMENT_ROLES.has(normalizeWorkspaceRole(role, 'staff'))
+  return MANAGEMENT_ROLES.has(normalizeWorkspaceRole(roleOf(role), 'staff'))
 }
 
 export function isHostMobileRole(role) {
-  return isHostRole(role)
+  return isHostRole(roleOf(role))
 }
 
 export function resolveMobileShellVariant(role) {
@@ -138,38 +266,40 @@ export function resolveMobileShellVariant(role) {
 }
 
 export function canManageStock(role) {
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'stock', 'manage')
 }
 
 export function canManageOperations(role) {
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'operations', 'manage')
 }
 
 export function canManageAnnouncements(role) {
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'announcements', 'manage')
 }
 
 export function canEditSchedule(role) {
-  return isManagerRole(role)
+  const { role: resolvedRole, perms, custom } = readAccess(role)
+  if (custom.schedule) return hasPermission(perms, 'schedule', 'manage')
+  if (custom.team) return hasPermission(rolePermissions(resolvedRole), 'team', 'manage')
+  return hasPermission(perms, 'team', 'manage')
 }
 
 export function canEditFloorPlan(role) {
-  if (isHostRole(role)) return true
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'floor_plan_edit', 'manage')
 }
 
 export function canConfigureReservationSeatings(role) {
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'seatings', 'manage')
 }
 
 export function canManageReservations(role) {
-  return canAccessModule(role, 'reservations')
+  const { perms, custom } = readAccess(role)
+  if (custom.reservations) return hasPermission(perms, 'reservations', 'manage')
+  return hasPermission(perms, 'reservations', 'view')
 }
 
 export function canOpenReservationsHostMode(role) {
-  if (!canAccessModule(role, 'reservations')) return false
-  if (isHostRole(role)) return true
-  return isManagerRole(role)
+  return hasPermission(readAccess(role).perms, 'reservations', 'view')
 }
 
 export function shouldShowReservationsHostView({
@@ -178,7 +308,7 @@ export function shouldShowReservationsHostView({
   mobileReservationsHostMode = false,
 } = {}) {
   if (!canAccessModule(role, 'reservations')) return false
-  if (isHostRole(role)) return true
+  if (isHostRole(roleOf(role))) return true
   if (canOpenReservationsHostMode(role)) return true
   return Boolean(useMobileExperience && mobileReservationsHostMode)
 }
@@ -214,7 +344,7 @@ const HOST_MOBILE_TAB_VIEWS = {
 }
 
 export function resolveHostMobileTabChange(tab, role) {
-  if (!isHostRole(role)) {
+  if (!isHostRole(roleOf(role))) {
     return {
       tab: `${tab ?? ''}`.trim(),
       openHostMode: false,
@@ -239,29 +369,27 @@ export function resolveHostMobileTabChange(tab, role) {
 }
 
 export function shouldUseHostMobileLanding(role, useMobileExperience = false) {
-  return isHostRole(role) && Boolean(useMobileExperience)
+  return isHostRole(roleOf(role)) && Boolean(useMobileExperience)
 }
 
 export function shouldUseHostStationShell(role) {
-  return isHostRole(role)
+  return isHostRole(roleOf(role))
 }
 
 export function shouldUseHostStationLanding(role) {
-  return isHostRole(role)
+  return isHostRole(roleOf(role))
 }
 
 export function canManageEmployeeInvites(role) {
-  return canEditSchedule(role)
+  return hasPermission(readAccess(role).perms, 'team', 'manage')
 }
 
 export function canAssignManagerInviteRole(role) {
-  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
-  return ['owner', 'general_manager'].includes(normalizedRole)
+  return hasPermission(readAccess(role).perms, 'private_data', 'manage')
 }
 
 export function canLinkMembershipEmployee(role) {
-  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
-  return ['owner', 'general_manager'].includes(normalizedRole)
+  return hasPermission(readAccess(role).perms, 'private_data', 'manage')
 }
 
 export function isManagementMobileRole(role) {
@@ -269,29 +397,49 @@ export function isManagementMobileRole(role) {
 }
 
 export function canSubmitStaffShelfCount(role) {
-  return normalizeWorkspaceRole(role, '') === 'staff'
+  return hasPermission(readAccess(role, '').perms, 'shelf_count', 'manage')
+}
+
+const MOBILE_EXPANDED_CUSTOM_SOURCES = {
+  reservations: ['reservations'],
+  team: ['team'],
+  stock: ['stock'],
+  operations: ['tasks'],
+  insights: ['insights'],
+  settings: [],
+  'floor-plan-builder': ['reservations'],
+  today: [],
 }
 
 export function canAccessMobileExpandedModule(role, moduleId) {
   const normalizedModuleId = `${moduleId ?? ''}`.trim()
+  const { role: resolvedRole, perms, custom } = readAccess(role, '')
+  const customSources = MOBILE_EXPANDED_CUSTOM_SOURCES[normalizedModuleId] ?? []
+  if (customSources.some((module) => custom[module])) {
+    const permissionModule = APP_MODULE_PERMISSION[normalizedModuleId]
+    if (!permissionModule) return false
+    return hasPermission(perms, permissionModule, 'view')
+  }
 
-  if (isHostRole(role)) {
+  if (isHostRole(resolvedRole)) {
     if (normalizedModuleId === 'stock') return false
     if (normalizedModuleId === 'reservations' || normalizedModuleId === 'operations') {
-      return canAccessModule(role, normalizedModuleId)
+      return hasPermission(perms, APP_MODULE_PERMISSION[normalizedModuleId], 'view')
     }
     return false
   }
 
-  if (normalizedModuleId === 'stock' && canAccessModule(role, 'stock')) {
+  if (normalizedModuleId === 'stock' && hasPermission(perms, 'stock', 'view')) {
     return true
   }
 
-  if (!isManagementMobileRole(role)) {
+  if (!isManagementMobileRole(resolvedRole)) {
     return false
   }
 
-  return canAccessModule(role, moduleId)
+  const permissionModule = APP_MODULE_PERMISSION[normalizedModuleId]
+  if (!permissionModule) return false
+  return hasPermission(perms, permissionModule, 'view')
 }
 
 export function filterMobileMenuNavItems(navItems, role) {
@@ -311,7 +459,10 @@ export function filterManagerMobileMenuNavItems(navItems, role) {
 }
 
 export function canOpenMobileFullSchedule(role) {
-  return canEditSchedule(role)
+  const { role: resolvedRole, perms, custom } = readAccess(role)
+  if (custom.schedule) return hasPermission(perms, 'schedule', 'manage')
+  if (custom.team) return hasPermission(rolePermissions(resolvedRole), 'team', 'manage')
+  return hasPermission(perms, 'team', 'manage')
 }
 
 export function canOpenMobileTasksWorkspace(role) {
@@ -319,8 +470,7 @@ export function canOpenMobileTasksWorkspace(role) {
 }
 
 export function canAccessHostMobileTasksTab(role) {
-  const normalizedRole = normalizeWorkspaceRole(role, '')
-  return normalizedRole === 'staff' || normalizedRole === 'host'
+  return hasPermission(readAccess(role, '').perms, 'mobile_tasks', 'view')
 }
 
 export function resolvePermittedTeamSection(role, requestedSection) {
@@ -336,9 +486,10 @@ export function resolvePermittedTeamSection(role, requestedSection) {
 
 export function canAccessOperationsSection(role, sectionId) {
   const normalizedSection = `${sectionId ?? ''}`.trim() || 'dashboard'
-  if (!canAccessModule(role, 'operations')) return false
+  const perms = readAccess(role, '').perms
+  if (!hasPermission(perms, 'operations', 'view')) return false
   if (!OPERATIONS_SECTION_IDS.has(normalizedSection)) return false
-  if (normalizedSection === 'checklists') return canManageOperations(role)
+  if (normalizedSection === 'checklists') return hasPermission(perms, 'operations', 'manage')
   return true
 }
 

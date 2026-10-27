@@ -1,0 +1,366 @@
+{
+  "owner": {
+    "canManageStock": true,
+    "canManageOperations": true,
+    "canManageAnnouncements": true,
+    "canEditSchedule": true,
+    "canEditFloorPlan": true,
+    "canConfigureReservationSeatings": true,
+    "canManageReservations": true,
+    "canOpenReservationsHostMode": true,
+    "canManageEmployeeInvites": true,
+    "canAssignManagerInviteRole": true,
+    "canLinkMembershipEmployee": true,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": true,
+    "canOpenMobileTasksWorkspace": true,
+    "canAccessHostMobileTasksTab": false,
+    "canAccessModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": true,
+      "floor-plan-builder": true,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": true,
+      "members": true,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": true,
+      "tasks": true,
+      "checklists": true,
+      "unknown": false,
+      "": true
+    },
+    "canAccessMobileExpandedModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": true,
+      "floor-plan-builder": true,
+      "unknown": false
+    }
+  },
+  "general_manager": {
+    "canManageStock": true,
+    "canManageOperations": true,
+    "canManageAnnouncements": true,
+    "canEditSchedule": true,
+    "canEditFloorPlan": true,
+    "canConfigureReservationSeatings": true,
+    "canManageReservations": true,
+    "canOpenReservationsHostMode": true,
+    "canManageEmployeeInvites": true,
+    "canAssignManagerInviteRole": true,
+    "canLinkMembershipEmployee": true,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": true,
+    "canOpenMobileTasksWorkspace": true,
+    "canAccessHostMobileTasksTab": false,
+    "canAccessModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": true,
+      "floor-plan-builder": true,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": true,
+      "members": true,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": true,
+      "tasks": true,
+      "checklists": true,
+      "unknown": false,
+      "": true
+    },
+    "canAccessMobileExpandedModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": true,
+      "floor-plan-builder": true,
+      "unknown": false
+    }
+  },
+  "manager": {
+    "canManageStock": true,
+    "canManageOperations": true,
+    "canManageAnnouncements": true,
+    "canEditSchedule": true,
+    "canEditFloorPlan": true,
+    "canConfigureReservationSeatings": true,
+    "canManageReservations": true,
+    "canOpenReservationsHostMode": true,
+    "canManageEmployeeInvites": true,
+    "canAssignManagerInviteRole": false,
+    "canLinkMembershipEmployee": false,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": true,
+    "canOpenMobileTasksWorkspace": true,
+    "canAccessHostMobileTasksTab": false,
+    "canAccessModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": false,
+      "floor-plan-builder": true,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": true,
+      "members": true,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": true,
+      "tasks": true,
+      "checklists": true,
+      "unknown": false,
+      "": true
+    },
+    "canAccessMobileExpandedModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": true,
+      "settings": false,
+      "floor-plan-builder": true,
+      "unknown": false
+    }
+  },
+  "host": {
+    "canManageStock": false,
+    "canManageOperations": false,
+    "canManageAnnouncements": false,
+    "canEditSchedule": false,
+    "canEditFloorPlan": true,
+    "canConfigureReservationSeatings": false,
+    "canManageReservations": true,
+    "canOpenReservationsHostMode": true,
+    "canManageEmployeeInvites": false,
+    "canAssignManagerInviteRole": false,
+    "canLinkMembershipEmployee": false,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": false,
+    "canOpenMobileTasksWorkspace": true,
+    "canAccessHostMobileTasksTab": true,
+    "canAccessModule": {
+      "today": true,
+      "reservations": true,
+      "team": true,
+      "stock": false,
+      "operations": true,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": false,
+      "members": false,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": true,
+      "tasks": true,
+      "checklists": false,
+      "unknown": false,
+      "": true
+    },
+    "canAccessMobileExpandedModule": {
+      "today": false,
+      "reservations": true,
+      "team": false,
+      "stock": false,
+      "operations": true,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    }
+  },
+  "staff": {
+    "canManageStock": false,
+    "canManageOperations": false,
+    "canManageAnnouncements": false,
+    "canEditSchedule": false,
+    "canEditFloorPlan": false,
+    "canConfigureReservationSeatings": false,
+    "canManageReservations": false,
+    "canOpenReservationsHostMode": false,
+    "canManageEmployeeInvites": false,
+    "canAssignManagerInviteRole": false,
+    "canLinkMembershipEmployee": false,
+    "canSubmitStaffShelfCount": true,
+    "canOpenMobileFullSchedule": false,
+    "canOpenMobileTasksWorkspace": false,
+    "canAccessHostMobileTasksTab": true,
+    "canAccessModule": {
+      "today": true,
+      "reservations": false,
+      "team": true,
+      "stock": true,
+      "operations": true,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": false,
+      "members": false,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": true,
+      "tasks": true,
+      "checklists": false,
+      "unknown": false,
+      "": true
+    },
+    "canAccessMobileExpandedModule": {
+      "today": false,
+      "reservations": false,
+      "team": false,
+      "stock": true,
+      "operations": false,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    }
+  },
+  "(blank)": {
+    "canManageStock": false,
+    "canManageOperations": false,
+    "canManageAnnouncements": false,
+    "canEditSchedule": false,
+    "canEditFloorPlan": false,
+    "canConfigureReservationSeatings": false,
+    "canManageReservations": false,
+    "canOpenReservationsHostMode": false,
+    "canManageEmployeeInvites": false,
+    "canAssignManagerInviteRole": false,
+    "canLinkMembershipEmployee": false,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": false,
+    "canOpenMobileTasksWorkspace": false,
+    "canAccessHostMobileTasksTab": false,
+    "canAccessModule": {
+      "today": true,
+      "reservations": false,
+      "team": false,
+      "stock": false,
+      "operations": false,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": false,
+      "members": false,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": false,
+      "tasks": false,
+      "checklists": false,
+      "unknown": false,
+      "": false
+    },
+    "canAccessMobileExpandedModule": {
+      "today": false,
+      "reservations": false,
+      "team": false,
+      "stock": false,
+      "operations": false,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    }
+  },
+  "chef": {
+    "canManageStock": false,
+    "canManageOperations": false,
+    "canManageAnnouncements": false,
+    "canEditSchedule": false,
+    "canEditFloorPlan": false,
+    "canConfigureReservationSeatings": false,
+    "canManageReservations": false,
+    "canOpenReservationsHostMode": false,
+    "canManageEmployeeInvites": false,
+    "canAssignManagerInviteRole": false,
+    "canLinkMembershipEmployee": false,
+    "canSubmitStaffShelfCount": false,
+    "canOpenMobileFullSchedule": false,
+    "canOpenMobileTasksWorkspace": false,
+    "canAccessHostMobileTasksTab": false,
+    "canAccessModule": {
+      "today": true,
+      "reservations": false,
+      "team": false,
+      "stock": false,
+      "operations": false,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    },
+    "canAccessTeamSection": {
+      "today": false,
+      "members": false,
+      "schedule": true,
+      "unknown": false
+    },
+    "canAccessOperationsSection": {
+      "dashboard": false,
+      "tasks": false,
+      "checklists": false,
+      "unknown": false,
+      "": false
+    },
+    "canAccessMobileExpandedModule": {
+      "today": false,
+      "reservations": false,
+      "team": false,
+      "stock": false,
+      "operations": false,
+      "insights": false,
+      "settings": false,
+      "floor-plan-builder": false,
+      "unknown": false
+    }
+  }
+}

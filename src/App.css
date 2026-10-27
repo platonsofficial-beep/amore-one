@@ -15453,6 +15453,128 @@
   text-transform: uppercase;
 }
 
+.member-access-preset,
+.member-access-status,
+.member-access-hint,
+.member-access-note {
+  margin: 0;
+  color: var(--one-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.member-access-preset {
+  margin-bottom: 12px;
+  color: var(--one-text);
+}
+
+.member-access-locked {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.08);
+  color: #f6dca2;
+}
+
+.member-access-error {
+  margin: 8px 0 0;
+  color: #ffb4b4;
+}
+
+.member-access-notice {
+  margin: 8px 0 0;
+  color: #b8f0bc;
+}
+
+.member-access-list {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.member-access-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.member-access-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 600;
+}
+
+.member-access-icon {
+  width: 1.4rem;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.member-access-note {
+  color: #f6dca2;
+}
+
+.member-access-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.member-access-choice {
+  flex: 1 1 5.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.member-access-choice.is-selected {
+  border-color: rgba(212, 175, 55, 0.7);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f6dca2;
+}
+
+.member-access-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.member-access-action {
+  flex: 1 1 10rem;
+  min-height: 44px;
+}
+
+@media (min-width: 1180px) {
+  .member-access-row {
+    gap: 10px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .member-access-list {
+    gap: 10px;
+  }
+
+  .member-access-choice,
+  .member-access-action {
+    min-height: 44px;
+  }
+}
+
 .employee-profile-drawer-fields {
   margin: 0;
   display: flex;
