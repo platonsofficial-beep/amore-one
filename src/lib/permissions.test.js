@@ -7,6 +7,9 @@ import {
   canAccessHostMobileTasksTab,
   canAccessMobileExpandedModule,
   canAccessModule,
+  canAccessOperationsSection,
+  canAccessTeamSection,
+  canSubmitStaffShelfCount,
   canAssignManagerInviteRole,
   canEditFloorPlan,
   canEditSchedule,
@@ -37,6 +40,7 @@ import {
   shouldUseHostStationShell,
   shouldUseReservationsHostDedicatedShell,
 } from './permissions'
+import { canApproveLeave, canCreateLeave, canViewLeaveQueue } from './leave/leavePermissionUtils'
 
 const OPERATIONS_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -83,27 +87,44 @@ describe('permissions', () => {
       expect(canAccessMobileExpandedModule('staff', 'operations')).toBe(false)
     })
 
-    it('limits host to reservations-only reception station access', () => {
+    it('gives host staff parity without stock, shelf count, or approvals', () => {
       const modules = getAccessibleModules('host')
 
-      expect(modules).toEqual(['reservations'])
+      expect(modules).toEqual(['today', 'reservations', 'team', 'operations'])
+      expect(canAccessModule('host', 'reservations')).toBe(true)
+      expect(canAccessModule('host', 'today')).toBe(true)
+      expect(canAccessModule('host', 'team')).toBe(true)
+      expect(canAccessTeamSection('host', 'schedule')).toBe(true)
+      expect(canAccessTeamSection('host', 'members')).toBe(false)
+      expect(canAccessModule('host', 'operations')).toBe(true)
+      expect(canAccessOperationsSection('host', 'tasks')).toBe(true)
+      expect(canAccessOperationsSection('host', 'checklists')).toBe(false)
       expect(canAccessModule('host', 'stock')).toBe(false)
-      expect(canAccessModule('host', 'operations')).toBe(false)
-      expect(canAccessModule('host', 'today')).toBe(false)
       expect(canAccessModule('host', 'settings')).toBe(false)
       expect(canAccessModule('host', 'insights')).toBe(false)
-      expect(canAccessModule('host', 'team')).toBe(false)
-      expect(canAccessModule('host', 'reservations')).toBe(true)
       expect(canAccessMobileExpandedModule('host', 'reservations')).toBe(true)
+      expect(canAccessMobileExpandedModule('host', 'operations')).toBe(true)
       expect(canAccessMobileExpandedModule('host', 'stock')).toBe(false)
-      expect(canAccessMobileExpandedModule('host', 'operations')).toBe(false)
       expect(canAccessMobileExpandedModule('host', 'team')).toBe(false)
       expect(canOpenMobileFullSchedule('host')).toBe(false)
-      expect(canOpenMobileTasksWorkspace('host')).toBe(false)
-      expect(canAccessHostMobileTasksTab('host')).toBe(false)
+      expect(canOpenMobileTasksWorkspace('host')).toBe(true)
+      expect(canAccessHostMobileTasksTab('host')).toBe(true)
+      expect(canAccessHostMobileTasksTab('staff')).toBe(true)
+      expect(canSubmitStaffShelfCount('staff')).toBe(true)
+      expect(canSubmitStaffShelfCount('host')).toBe(false)
+      expect(canSubmitStaffShelfCount('manager')).toBe(false)
+      expect(canSubmitStaffShelfCount('')).toBe(false)
+      expect(canCreateLeave('host')).toBe(true)
+      expect(canApproveLeave('host')).toBe(false)
+      expect(canViewLeaveQueue('host')).toBe(false)
+      expect(canEditSchedule('host')).toBe(false)
+      expect(canManageOperations('host')).toBe(false)
+      expect(canManageStock('host')).toBe(false)
       expect(canEditFloorPlan('host')).toBe(true)
       expect(resolveDefaultModuleForRole('host')).toBe(HOST_FALLBACK_MODULE)
       expect(resolvePermittedActiveView('host', 'stock')).toBe(HOST_FALLBACK_MODULE)
+      expect(resolvePermittedActiveView('host', 'today')).toBe('today')
+      expect(resolvePermittedTeamSection('host', 'members')).toBe('schedule')
       expect(isHostMobileRole('host')).toBe(true)
       expect(resolveMobileShellVariant('host')).toBe('host')
     })
@@ -164,21 +185,31 @@ describe('permissions', () => {
       })).toBe(true)
     })
 
-    it('keeps host role locked in reservations host mode', () => {
+    it('opens the host station from the reservations tab and leaves it for staff tabs', () => {
+      expect(resolveHostMobileTabChange('reservations', 'host')).toEqual({
+        tab: 'reservations',
+        openHostMode: true,
+        activeView: 'reservations',
+      })
       expect(resolveHostMobileTabChange('host', 'host')).toEqual({
-        tab: 'host',
+        tab: 'reservations',
         openHostMode: true,
         activeView: 'reservations',
       })
       expect(resolveHostMobileTabChange('schedule', 'host')).toEqual({
-        tab: 'host',
-        openHostMode: true,
-        activeView: 'reservations',
+        tab: 'schedule',
+        openHostMode: false,
+        activeView: 'team',
+      })
+      expect(resolveHostMobileTabChange('tasks', 'host')).toEqual({
+        tab: 'tasks',
+        openHostMode: false,
+        activeView: 'operations',
       })
       expect(resolveHostMobileTabChange('menu', 'host')).toEqual({
-        tab: 'host',
-        openHostMode: true,
-        activeView: 'reservations',
+        tab: 'menu',
+        openHostMode: false,
+        activeView: 'today',
       })
     })
 
@@ -243,9 +274,16 @@ describe('permissions', () => {
       expect(tabIds(getMobileBottomTabs('staff', 'staff'))).toEqual(['home', 'schedule', 'tasks', 'menu'])
     })
 
-    it('returns no bottom tabs for the dedicated host station shell', () => {
+    it('gives host the staff tabs plus reservations', () => {
       expect(getMobileBottomTabs('host', 'host')).toEqual(MOBILE_HOST_BOTTOM_TABS)
-      expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual([])
+      expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual([
+        'home',
+        'schedule',
+        'tasks',
+        'reservations',
+        'menu',
+      ])
+      expect(tabIds(getMobileBottomTabs('host', 'host'))).not.toContain('stock')
     })
 
     it('includes stock and tasks for manager roles with module access', () => {
@@ -294,7 +332,7 @@ describe('permissions', () => {
       expect(filterOperationsSections(OPERATIONS_SECTIONS, 'manager').map((section) => section.id))
         .toEqual(['dashboard', 'checklists', 'tasks'])
       expect(filterOperationsSections(OPERATIONS_SECTIONS, 'host').map((section) => section.id))
-        .toEqual([])
+        .toEqual(['dashboard', 'tasks'])
     })
 
     it('resolves invalid sections to the first permitted section', () => {

@@ -345,6 +345,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
  * @param {{
  *   workspaceId?: string,
  *   searchTerm?: string,
+ *   role?: string,
  *   canManage?: boolean,
  *   onOpenActiveCountSession?: (sessionId: string) => void,
  *   onStartFastCount?: (storage: object) => void|Promise<void>,
@@ -368,6 +369,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
 export function StockStorageCenter({
   workspaceId = '',
   searchTerm = '',
+  role = '',
   canManage = false,
   onOpenActiveCountSession,
   onStartFastCount,
@@ -557,6 +559,7 @@ export function StockStorageCenter({
         workspaceId={workspaceId}
         storage={selectedStorage}
         searchTerm={searchTerm}
+        role={role}
         canManage={canManage}
         onRename={canManage ? openRename : undefined}
         onBack={() => {

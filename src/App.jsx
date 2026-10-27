@@ -628,7 +628,6 @@ import {
   resolveExitReservationsHostDestination,
   shouldShowReservationsHostView,
   shouldUseReservationsHostDedicatedShell,
-  shouldUseHostStationLanding,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
 } from './lib/permissions'
@@ -14715,6 +14714,7 @@ function App() {
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
   const previousActiveViewRef = useRef(activeView)
   const preReservationsHostViewRef = useRef('today')
+  const hostMobileLandedRef = useRef(false)
   const scheduleEntryRef = useRef({ view: 'today', teamSection: 'today' })
   const templateGenerationKeyRef = useRef('')
   const closeReservationModalRef = useRef(() => {})
@@ -15904,9 +15904,9 @@ function App() {
   )
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
-  const isHostMobileShell = !isAuthLoading && isHostMobileRole(role)
-  const useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell
-  const useDedicatedShell = useMobileExperience || isHostMobileShell
+  const isHostAccount = !isAuthLoading && isHostMobileRole(role)
+  const useHostStationShell = isHostAccount && activeView === 'reservations' && (!useMobileExperience || mobileReservationsHostMode)
+  const useDedicatedShell = useMobileExperience
   const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
   const isStockFocusMode = isStockWorkspaceView(activeView) && !useDedicatedShell
   const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell || isScheduleFocusMode || isStockFocusMode
@@ -15937,33 +15937,23 @@ function App() {
     useDedicatedShell,
     isAuthLoading,
     isManagerMobileShell,
-    isHostMobileShell,
     role,
     activeMobileTab,
   ])
 
   useEffect(() => {
-    if (isAuthLoading || !isHostMobileShell) return
-
-    if (activeView !== 'reservations') {
-      handleActiveViewChange('reservations')
-    }
-
-    if (!mobileReservationsHostMode) {
-      setMobileReservationsHostMode(true)
-    }
-
-    if (shouldUseHostStationLanding(role) && activeMobileTab !== 'host') {
-      setMobileStaffTab('host')
-      persistMobileTab('host', 'host')
-    }
+    if (isAuthLoading || !isHostAccount) return
+    if (hostMobileLandedRef.current) return
+    hostMobileLandedRef.current = true
+    handleActiveViewChange('reservations')
+    if (!useMobileExperience) return
+    setMobileStaffTab('reservations')
+    persistMobileTab('reservations', 'host')
+    setMobileReservationsHostMode(true)
   }, [
     isAuthLoading,
-    isHostMobileShell,
-    role,
-    activeView,
-    activeMobileTab,
-    mobileReservationsHostMode,
+    isHostAccount,
+    useMobileExperience,
     handleActiveViewChange,
   ])
 
@@ -23074,8 +23064,6 @@ function App() {
   }
 
   const handleMobileTabChange = useCallback((tab) => {
-    if (isHostMobileRole(role)) return
-
     setMobileExpandedView(null)
     setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
@@ -23085,13 +23073,20 @@ function App() {
       return
     }
 
-    const hostTabState = resolveHostMobileTabChange(tab, role)
-    setMobileStaffTab(hostTabState.tab)
-    persistMobileTab(hostTabState.tab, isHostMobileRole(role) ? 'host' : 'staff')
-    setMobileReservationsHostMode(hostTabState.openHostMode)
-    if (hostTabState.activeView) {
-      handleActiveViewChange(hostTabState.activeView)
+    if (isHostMobileRole(role)) {
+      const hostTabState = resolveHostMobileTabChange(tab, role)
+      setMobileStaffTab(hostTabState.tab)
+      persistMobileTab(hostTabState.tab, 'host')
+      setMobileReservationsHostMode(hostTabState.openHostMode)
+      if (hostTabState.activeView) {
+        handleActiveViewChange(hostTabState.activeView)
+      }
+      return
     }
+
+    setMobileStaffTab(tab)
+    persistMobileTab(tab, 'staff')
+    setMobileReservationsHostMode(false)
   }, [role, handleActiveViewChange])
 
   const handleMobileOpenFullSchedule = () => {
@@ -23191,8 +23186,8 @@ function App() {
 
     if (isHostMobileRole(role)) {
       setMobileExpandedView(null)
-      setMobileStaffTab('host')
-      persistMobileTab('host', 'host')
+      setMobileStaffTab('reservations')
+      persistMobileTab('reservations', 'host')
       return
     }
 
@@ -23200,6 +23195,16 @@ function App() {
       setMobileExpandedView('workspace')
     }
   }, [role, useMobileExperience, handleActiveViewChange])
+
+  const handleHostLeaveStation = useCallback(() => {
+    setMobileReservationsHostMode(false)
+    setMobileExpandedView(null)
+    if (useMobileExperience) {
+      setMobileStaffTab('home')
+      persistMobileTab('home', 'host')
+    }
+    handleActiveViewChange('today')
+  }, [useMobileExperience, handleActiveViewChange])
 
   const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
@@ -23404,7 +23409,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
@@ -23689,7 +23694,7 @@ function App() {
               onHostEditDelete={handleHostEditDelete}
               onReservationNotice={setReservationNotice}
               onCreateReservation={handleMobileHostReservationCreate}
-              onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}
+              onExitHostMode={isHostMobileRole(role) ? handleHostLeaveStation : handleMobileExitReservationsHostMode}
               onAssignReservationTables={handleAssignReservationTables}
               canEditFloorPlan={canEditFloorPlanRole}
               canManageAssignment={canManageReservationsRole}
@@ -23803,6 +23808,7 @@ function App() {
           <StockStorageCenter
             workspaceId={activeWorkspaceId}
             searchTerm={searchTerm}
+            role={role}
             canManage={canManageStockRole}
             onOpenActiveCountSession={handleOpenInventoryCountSession}
             onRecordReceive={handleRecordStockMovement}
@@ -24316,6 +24322,7 @@ function App() {
                         onTabChange={handleMobileTabChange}
                         noticeMessage={mobileNotice}
                         onDismissNotice={() => setMobileNotice('')}
+                        homeProps={mobileHomeProps}
                         scheduleProps={{
                           weekLabel: mobileScheduleWeekLabel,
                           employeeName: mobileScheduleDisplay.employeeName,
@@ -24339,9 +24346,16 @@ function App() {
                           isLoading: isMobileOperationsTasksLoading,
                           isSaving: isSavingOperations,
                           onCompleteTask: handleCompleteOperationsTask,
-                          onOpenTasksWorkspace: undefined,
+                          onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
+                            ? handleMobileOpenTasksWorkspace
+                            : undefined,
                         }}
-                        menuProps={sharedMenuProps}
+                        menuProps={{
+                          ...sharedMenuProps,
+                          menuVariant: 'staff',
+                          canRequestLeave: canRequestOwnLeave,
+                          onOpenRequestLeave: () => setIsRequestLeaveModalOpen(true),
+                        }}
                         expandedView={mobileExpandedView}
                         expandedTitle={mobileExpandedTitle}
                         onBackFromExpanded={handleMobileBack}
