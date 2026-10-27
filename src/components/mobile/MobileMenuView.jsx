@@ -66,6 +66,7 @@ export function MobileMenuView({
   onOpenAvailability,
   onOpenClock,
   onOpenAttendance,
+  onOpenNotifications,
   onSignOut,
 }) {
   const visibleModules = menuVariant === 'manager'
@@ -205,6 +206,14 @@ export function MobileMenuView({
               subtitle="Personal details and account"
               onClick={onOpenProfile}
             />
+            {onOpenNotifications ? (
+              <ManagerNavCard
+                icon="🔔"
+                title="Notifications"
+                subtitle="Reminders, quiet hours and this device"
+                onClick={onOpenNotifications}
+              />
+            ) : null}
           </div>
           <div className="mobile-manager-menu-signout-wrap">
             <button
@@ -288,6 +297,12 @@ export function MobileMenuView({
           <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
             Profile
           </button>
+          {onOpenNotifications ? (
+            <button type="button" className="mobile-menu-btn" onClick={onOpenNotifications}>
+              <span aria-hidden="true">🔔</span>
+              Notifications
+            </button>
+          ) : null}
           <button type="button" className="mobile-menu-btn is-danger" onClick={onSignOut}>
             Sign out
           </button>

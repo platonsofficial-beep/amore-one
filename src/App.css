@@ -50682,3 +50682,428 @@ summary:focus-visible {
     min-width: 44px;
   }
 }
+
+.today-command-header-aside {
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-bell {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.notification-bell-btn {
+  position: relative;
+  font-size: 1.05rem;
+}
+
+.notification-bell-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #c4564a;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.notification-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  border: 0;
+  padding: 0;
+  background: rgba(6, 10, 16, 0.45);
+  cursor: pointer;
+}
+
+.notification-drawer {
+  position: fixed;
+  z-index: 80;
+  top: 72px;
+  right: 16px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 14px 14px 10px;
+  border-radius: 20px;
+  background: #121c2b;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  color: #f7efe1;
+}
+
+.notification-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.notification-drawer-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.notification-text-btn,
+.shift-reminder-dismiss {
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  color: #f5dfb3;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.notification-text-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.notification-drawer-empty {
+  margin: 12px 0;
+  color: rgba(247, 239, 225, 0.72);
+}
+
+.notification-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.notification-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0 0 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-list-item.is-unread {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.notification-list-icon {
+  width: 28px;
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+
+.notification-list-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.notification-list-copy strong,
+.notification-list-copy span,
+.notification-list-copy time {
+  overflow-wrap: anywhere;
+}
+
+.notification-list-copy span,
+.notification-list-copy time {
+  color: rgba(247, 239, 225, 0.72);
+  font-size: 0.86rem;
+}
+
+.shift-reminder-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(28, 40, 58, 0.96), rgba(16, 24, 36, 0.96));
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  color: #f7efe1;
+}
+
+.shift-reminder-card h2 {
+  margin: 2px 0 6px;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.shift-reminder-card p,
+.shift-reminder-note {
+  margin: 0;
+  color: rgba(247, 239, 225, 0.78);
+}
+
+.shift-reminder-card-kicker {
+  margin: 0;
+  color: #f5dfb3;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.shift-reminder-steps {
+  margin: 8px 0 0;
+  padding-left: 1.2rem;
+}
+
+.shift-reminder-steps li {
+  margin: 4px 0;
+}
+
+.shift-reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.shift-reminder-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 16px;
+}
+
+.shift-reminder-btn-quiet {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: #f7efe1;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shift-reminder-message {
+  margin-top: 8px;
+  color: #f5dfb3;
+}
+
+.notification-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+}
+
+.notification-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.notification-toggle.is-disabled {
+  opacity: 0.55;
+}
+
+.notification-toggle-icon {
+  width: 28px;
+  flex: 0 0 auto;
+  text-align: center;
+}
+
+.notification-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.notification-toggle-copy span {
+  color: rgba(247, 239, 225, 0.7);
+  font-size: 0.86rem;
+}
+
+.notification-toggle input {
+  appearance: none;
+  width: 48px;
+  height: 28px;
+  margin: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  position: relative;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.notification-toggle input::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.notification-toggle input:checked {
+  background: #d4af37;
+}
+
+.notification-toggle input:checked::after {
+  transform: translateX(20px);
+}
+
+.notification-toggle input:disabled {
+  cursor: default;
+}
+
+.notification-quiet-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 4px 0 10px 40px;
+}
+
+.notification-quiet-times label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  color: rgba(247, 239, 225, 0.78);
+  font-size: 0.85rem;
+}
+
+.notification-quiet-times input {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
+}
+
+.notification-device-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 8px;
+}
+
+.notification-device-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.notification-blocked-note,
+.notification-settings-message {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #f7efe1;
+}
+
+.notification-settings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(6, 10, 16, 0.72);
+}
+
+.notification-settings-dialog {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: min(86vh, 760px);
+  overflow: auto;
+  padding: 48px 16px 16px;
+  border-radius: 20px;
+  background: #101820;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+}
+
+.notification-settings-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.app-shell.is-mobile-shell .mobile-shell-bell {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: 8px;
+  z-index: 40;
+}
+
+.app-shell.is-mobile-shell .mobile-shell-bell .icon-btn {
+  background: rgba(12, 18, 28, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.app-shell.is-mobile-shell .mobile-screen-header,
+.app-shell.is-mobile-shell .mobile-manager-command-header,
+.app-shell.is-mobile-shell .mobile-expanded-header {
+  padding-right: 56px;
+}
+
+@media (min-width: 901px) {
+  .notification-settings-overlay {
+    align-items: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .notification-drawer {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: min(70vh, 520px);
+    border-radius: 20px 20px 0 0;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .shift-reminder-card {
+    align-items: stretch;
+  }
+
+  .shift-reminder-actions,
+  .shift-reminder-btn {
+    width: 100%;
+  }
+
+  .notification-quiet-times {
+    padding-left: 0;
+  }
+
+  .notification-settings-dialog {
+    max-height: min(88vh, 760px);
+  }
+}
+

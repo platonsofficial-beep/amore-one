@@ -14,6 +14,8 @@ export function TodayCommandHeader({
   onChipSelect,
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
+  notificationBell = null,
+  onOpenNotifications,
 }) {
   const availableQuickActions = (quickActions ?? []).filter((action) => action.available)
 
@@ -47,11 +49,13 @@ export function TodayCommandHeader({
             </div>
 
             <div className="today-command-header-aside">
+              {notificationBell}
               <UserMenu
                 profileChipDisplay={profileChipDisplay}
                 employees={employees}
                 onOpenWorkspaceProfile={onOpenWorkspaceProfile}
                 canOpenWorkspaceProfile={canOpenWorkspaceProfile}
+                onOpenNotifications={onOpenNotifications}
                 variant="today-compact"
               />
             </div>

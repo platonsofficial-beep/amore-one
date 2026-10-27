@@ -56,6 +56,8 @@ export function MobileStaffApp({
   bottomTabs,
   shellVariant = 'staff',
   hostStationContent = null,
+  notificationBell = null,
+  clockOpenToken = 0,
 }) {
   const isStaffShell = shellVariant === 'staff'
   const isHostShell = shellVariant === 'host'
@@ -81,6 +83,11 @@ export function MobileStaffApp({
       setStaffTab(activeTab)
     }
   }, [activeTab, isHostShell])
+
+  useEffect(() => {
+    if (!clockOpenToken) return
+    setClockOpen(true)
+  }, [clockOpenToken])
 
   const resolvedBottomTabs = isHostShell
     ? HOST_BOTTOM_TABS
@@ -205,6 +212,7 @@ export function MobileStaffApp({
   if (expandedView) {
     return (
       <div className="mobile-app mobile-app-expanded">
+        {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
         {noticeBanner}
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
@@ -230,6 +238,7 @@ export function MobileStaffApp({
 
   return (
     <div className={`mobile-app${showHostStation ? ' mobile-app-host-mode mobile-app-host-station is-reservations-host-mode' : ''}`}>
+      {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
       {noticeBanner}
       {showLeaveConfirm ? (
         <div className="mobile-availability-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="mobile-availability-leave-title">
@@ -271,6 +280,13 @@ export function MobileStaffApp({
         {resolvedActiveTab === 'menu' ? (
           menuProps?.screen === 'profile' ? (
             <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />
+          ) : menuProps?.screen === 'notifications' ? (
+            <div className="mobile-screen mobile-notification-settings">
+              <button type="button" className="mobile-back-btn" onClick={menuProps.onBackFromNotifications}>
+                ‹ Back
+              </button>
+              {menuProps.notificationSettings}
+            </div>
           ) : (
             <MobileMenuView
               {...menuProps}

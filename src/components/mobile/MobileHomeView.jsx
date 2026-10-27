@@ -13,6 +13,7 @@ export function MobileHomeView({
   isAnnouncementsSaving = false,
   onMarkAnnouncementSeen,
   clockCard = null,
+  reminderCard = null,
 }) {
   const {
     active = 0,
@@ -33,6 +34,8 @@ export function MobileHomeView({
         <h1 className="mobile-screen-title">{greeting || 'Welcome'}</h1>
         {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
       </header>
+
+      {reminderCard}
 
       {clockCard}
 
