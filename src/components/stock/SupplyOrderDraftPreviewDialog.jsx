@@ -34,14 +34,30 @@ export function SupplyOrderDraftPreviewDialog({
   }
 
   return (
-    <div className="supply-draft-preview" role="presentation">
+    <div className="supply-draft-preview" role="presentation" onClick={() => { if (!isSaving) onCancel?.() }}>
       <section
         className="supply-draft-preview-card"
         role="dialog"
         aria-modal="true"
         aria-labelledby="supply-draft-preview-title"
+        onClick={(event) => event.stopPropagation()}
       >
-        <h2 id="supply-draft-preview-title">Suggest order</h2>
+        <header className="supply-draft-preview-header">
+          <div>
+            <p className="supply-draft-preview-kicker">Purchase orders</p>
+            <h2 id="supply-draft-preview-title">Suggest order</h2>
+          </div>
+          <button
+            type="button"
+            className="icon-btn supply-draft-preview-close"
+            onClick={onCancel}
+            disabled={isSaving}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </header>
+        <div className="supply-draft-preview-scroll">
         {`${summary ?? ''}`.trim() ? (
           <p className="supply-draft-preview-summary">{`${summary}`.trim()}</p>
         ) : null}
@@ -81,6 +97,7 @@ export function SupplyOrderDraftPreviewDialog({
             ))}
           </ul>
         )}
+        </div>
         <div className="supply-draft-preview-actions">
           <button type="button" className="ghost-btn" onClick={onCancel} disabled={isSaving}>
             Cancel

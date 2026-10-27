@@ -1,4 +1,5 @@
 import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
+import { resolveListedProductName } from './stockProductIdentity'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 import { formatInVenueZone } from './timeFormatUtils'
@@ -65,6 +66,41 @@ export function computeOrderTotalCost(items = []) {
 }
 
 /**
+ * Unit cost to show for one order line.
+ * Stored line cost wins. When a saved line is €0, use the catalog cost.
+ */
+export function resolveDisplayedLineCost(line, stockItems = []) {
+  const quantity = Math.max(0, Number(line?.quantity) || 0)
+  const stored = Number(line?.costPrice ?? line?.cost_price) || 0
+  if (stored > 0) {
+    return { cost: stored, usedCatalogFallback: false, missing: false }
+  }
+  if (!(quantity > 0)) {
+    return { cost: 0, usedCatalogFallback: false, missing: false }
+  }
+  const stockItemId = line?.stockItemId ?? line?.stock_item_id
+  const catalog = Array.isArray(stockItems) ? stockItems : []
+  const match = catalog.find((item) => item && `${item.id}` === `${stockItemId}`)
+  const catalogCost = Number(match?.costPrice ?? match?.cost_price) || 0
+  if (catalogCost > 0) {
+    return { cost: catalogCost, usedCatalogFallback: true, missing: false }
+  }
+  return { cost: 0, usedCatalogFallback: false, missing: true }
+}
+
+export function formatDisplayedLineCostLabel(line, stockItems = []) {
+  const resolved = resolveDisplayedLineCost(line, stockItems)
+  if (resolved.missing) return 'No cost'
+  return formatStockPurchasePrice(resolved.cost)
+}
+
+export function formatMissingCostLineNote(count) {
+  const missing = Math.max(0, Number(count) || 0)
+  if (missing === 1) return '1 line has no cost'
+  return `${missing} lines have no cost`
+}
+
+/**
  * What to show as an order estimate.
  * Stored line cost wins. When a saved draft has €0 because cost was dropped,
  * use the catalog cost for that product. Lines with neither stay missing.
@@ -79,29 +115,27 @@ export function resolveDisplayedOrderTotal(order, stockItems = []) {
     }
   }
 
-  const catalog = Array.isArray(stockItems) ? stockItems : []
   let total = 0
   let missingCostLines = 0
   let usedCatalogFallback = false
 
   lines.forEach((line) => {
     const quantity = Math.max(0, Number(line?.quantity) || 0)
-    const stored = Number(line?.costPrice ?? line?.cost_price) || 0
-    let cost = stored
-    if (!(cost > 0) && quantity > 0) {
-      const stockItemId = line?.stockItemId ?? line?.stock_item_id
-      const match = catalog.find((item) => item && `${item.id}` === `${stockItemId}`)
-      const catalogCost = Number(match?.costPrice ?? match?.cost_price) || 0
-      if (catalogCost > 0) {
-        cost = catalogCost
-        usedCatalogFallback = true
-      }
-    }
-    if (!(cost > 0) && quantity > 0) missingCostLines += 1
-    total += quantity * cost
+    const resolved = resolveDisplayedLineCost(line, stockItems)
+    if (resolved.usedCatalogFallback) usedCatalogFallback = true
+    if (resolved.missing) missingCostLines += 1
+    total += quantity * resolved.cost
   })
 
   return { total, missingCostLines, usedCatalogFallback }
+}
+
+export function formatDisplayedOrderTotalLabel(order, stockItems = []) {
+  const estimate = resolveDisplayedOrderTotal(order, stockItems)
+  return {
+    ...estimate,
+    label: estimate.total > 0 ? formatStockPurchasePrice(estimate.total) : 'No cost on file',
+  }
 }
 
 export function buildSuggestedOrderLine(item) {
@@ -110,7 +144,7 @@ export function buildSuggestedOrderLine(item) {
 
   return {
     stockItemId: item.id,
-    itemName: item.name ?? '',
+    itemName: resolveListedProductName(item, item) || item.name || '',
     quantity,
     unit: item.unit ?? '',
     costPrice,
@@ -165,7 +199,7 @@ export function replaceDraftOrderLineProduct(line, catalogItem) {
   return {
     ...line,
     stockItemId: catalogItem?.id ?? null,
-    itemName: catalogItem?.name ?? '',
+    itemName: resolveListedProductName(catalogItem, catalogItem) || catalogItem?.name || '',
     unit: catalogItem?.unit ?? '',
     costPrice,
     totalPrice: computeOrderLineTotal(quantity, costPrice),

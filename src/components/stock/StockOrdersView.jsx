@@ -9,6 +9,7 @@ import {
 import {
   formatStockOrderDate,
   formatStockOrderDeliveryDate,
+  formatMissingCostLineNote,
   formatStockOrderNumber,
   getStockOrderNextAction,
   resolveDisplayedOrderTotal,
@@ -135,7 +136,7 @@ function StockOrderCard({ order, stockItems = [], onOpen, showCost = true, timeZ
             </span>
             {estimate.missingCostLines > 0 ? (
               <span className="stock-order-card-stat-label">
-                {estimate.missingCostLines} line{estimate.missingCostLines === 1 ? '' : 's'} have no cost
+                {formatMissingCostLineNote(estimate.missingCostLines)}
               </span>
             ) : null}
           </div>
@@ -242,7 +243,6 @@ export function StockOrdersView({
   return (
     <section className="stock-orders-page" aria-label="Stock orders">
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading orders…</div> : null}
 
       <div className="stock-orders-toolbar">
         <p className="stock-orders-toolbar-copy">
@@ -314,9 +314,9 @@ export function StockOrdersView({
                 onClick={() => setStatusFilter(filter.id)}
               >
                 {filter.label}
-                {statusFilterCounts[filter.id] > 0 ? (
-                  <span className="stock-status-filter-count">{statusFilterCounts[filter.id]}</span>
-                ) : null}
+                <span className="stock-status-filter-count">
+                  {isLoading ? '—' : statusFilterCounts[filter.id] ?? 0}
+                </span>
               </button>
             ))}
           </div>
@@ -330,7 +330,7 @@ export function StockOrdersView({
               className="stock-orders-search-input"
               value={localSearchTerm}
               onChange={(event) => setLocalSearchTerm(event.target.value)}
-              placeholder="Search order #, supplier, product, creator…"
+              placeholder="Search orders"
             />
           </label>
 
@@ -351,7 +351,17 @@ export function StockOrdersView({
         ) : null}
       </div>
 
-      {!isLoading && visibleOrders.length === 0 ? (
+      {isLoading ? (
+        <div className="stock-orders-grid" aria-busy="true" aria-label="Loading orders">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="stock-list-skeleton-card panel staff-panel">
+              <span className="stock-loading-skeleton-bar" />
+              <span className="stock-loading-skeleton-bar is-short" />
+              <span className="stock-loading-skeleton-bar" />
+            </div>
+          ))}
+        </div>
+      ) : visibleOrders.length === 0 ? (
         <div className="stock-empty-state panel staff-panel stock-orders-empty">
           <h4>{emptyState.title}</h4>
           <p>{emptyState.description}</p>

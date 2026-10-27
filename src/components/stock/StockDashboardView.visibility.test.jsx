@@ -326,7 +326,10 @@ describe('StockDashboardView visibility UI', () => {
       'Reactivate',
       'Delete product',
     ])
-    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(3)
+    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(0)
+    const menuText = document.querySelector('[role="menu"]')?.textContent ?? ''
+    expect(menuText).toContain('Status')
+    expect(menuText.indexOf('Status')).toBeLessThan(menuText.indexOf('Delete product'))
     expect(labels).toContain('Delete product')
     expect(labels).toContain('Edit')
 

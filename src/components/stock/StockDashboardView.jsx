@@ -1803,7 +1803,7 @@ export function StockDashboardView({
             <header className="stock-today-card-header">
               <h3>To order</h3>
               <p>
-                {formatToOrderBreakdown(activeCatalogItems)}
+                {formatToOrderBreakdown(activeCatalogItems, summary)}
                 {toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}
               </p>
             </header>

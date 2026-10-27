@@ -1,12 +1,14 @@
 import { useMemo } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
+  formatDisplayedOrderTotalLabel,
   formatStockOrderNumber,
   getStockOrderStatusLabel,
   getStockOrderStatusTone,
 } from '../../lib/stockOrderUtils'
 import {
   buildSupplierMetrics,
+  formatReceivedValueLabel,
   formatSupplierMetricDate,
   formatSupplierProductLine,
   formatSupplierStatusLabel,
@@ -14,7 +16,6 @@ import {
   getSupplierStatusTone,
   supplierHasHistory,
 } from '../../lib/stockSupplierUtils'
-import { formatStockPurchasePrice } from '../../lib/stockUtils'
 
 function DetailRow({ label, value }) {
   if (!`${value ?? ''}`.trim()) return null
@@ -163,7 +164,7 @@ export function StockSupplierDetailDrawer({
                         </span>
                         {canManage ? (
                           <span className="stock-supplier-order-value">
-                            {formatStockPurchasePrice(order.totalCost)}
+                            {formatDisplayedOrderTotalLabel(order, stockItems).label}
                           </span>
                         ) : null}
                       </div>
@@ -183,14 +184,14 @@ export function StockSupplierDetailDrawer({
               </div>
               {canManage ? (
                 <div className="stock-product-history-overview-row">
-                  <dt>Total spend</dt>
-                  <dd>{formatStockPurchasePrice(metrics.totalSpend)}</dd>
+                  <dt>Received value</dt>
+                  <dd>{formatReceivedValueLabel(metrics.totalSpend, metrics.receivedOrders?.length)}</dd>
                 </div>
               ) : null}
               {canManage ? (
                 <div className="stock-product-history-overview-row">
-                  <dt>Average order value</dt>
-                  <dd>{formatStockPurchasePrice(metrics.averageOrderValue)}</dd>
+                  <dt>Average received</dt>
+                  <dd>{formatReceivedValueLabel(metrics.averageOrderValue, metrics.receivedOrders?.length)}</dd>
                 </div>
               ) : null}
               <div className="stock-product-history-overview-row">

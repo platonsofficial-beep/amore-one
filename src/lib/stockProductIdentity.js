@@ -75,6 +75,29 @@ export function buildProductDisplayNameFromItem(item) {
 }
 
 /**
+ * List title for an order line, supplier product, or dialog row.
+ * Catalog Brand + Name + Size wins. Otherwise the line's own identity parts.
+ * Does not rewrite stored item names.
+ *
+ * @param {object|null|undefined} line
+ * @param {object|null|undefined} catalogItem
+ * @returns {string}
+ */
+export function resolveListedProductName(line, catalogItem) {
+  if (catalogItem && (catalogItem.brand || catalogItem.name || catalogItem.size)) {
+    const fromCatalog = buildProductDisplayNameFromItem(catalogItem)
+    if (fromCatalog) return fromCatalog
+  }
+  const fromLine = buildProductDisplayName({
+    brand: line?.brand,
+    name: line?.productName || line?.name || line?.itemName,
+    size: line?.size,
+  })
+  if (fromLine) return fromLine
+  return normalizeProductIdentityComponent(line?.itemName ?? line?.name)
+}
+
+/**
  * Comparison key for duplicate detection (not DB-enforced in this sprint).
  * Whitespace- and casing-insensitive. Size differentiates products.
  * Excludes unit, packaging, supplier, cost, storage, quantity, barcode.

@@ -7,6 +7,10 @@ import {
   isStockOrderLineInactive,
   pickDefaultReceiveStorageId,
   replaceDraftOrderLineProduct,
+  formatDisplayedLineCostLabel,
+  formatDisplayedOrderTotalLabel,
+  formatMissingCostLineNote,
+  resolveDisplayedLineCost,
   resolveDisplayedOrderTotal,
   resolveOrderGroupIdentity,
   UNASSIGNED_SUPPLIER,
@@ -52,6 +56,24 @@ describe('resolveDisplayedOrderTotal', () => {
 
     expect(estimate.total).toBe(0)
     expect(estimate.missingCostLines).toBe(1)
+    expect(formatDisplayedOrderTotalLabel({
+      totalCost: 0,
+      items: [{ stockItemId: 'missing', quantity: 3, costPrice: 0 }],
+    }, []).label).toBe('No cost on file')
+    expect(formatMissingCostLineNote(1)).toBe('1 line has no cost')
+    expect(formatMissingCostLineNote(4)).toBe('4 lines have no cost')
+  })
+
+  it('labels a zero stored line with the catalog cost', () => {
+    const line = { stockItemId: 'cola', quantity: 5, costPrice: 0, itemName: 'Cola' }
+    const catalog = [{ id: 'cola', brand: 'TEST', name: 'GrokBot Cola', size: '330 ml', costPrice: 1.2 }]
+    expect(resolveDisplayedLineCost(line, catalog)).toMatchObject({
+      cost: 1.2,
+      usedCatalogFallback: true,
+      missing: false,
+    })
+    expect(formatDisplayedLineCostLabel(line, catalog)).toContain('1.20')
+    expect(formatDisplayedOrderTotalLabel({ items: [line], totalCost: 0 }, catalog).label).toContain('6.00')
   })
 })
 

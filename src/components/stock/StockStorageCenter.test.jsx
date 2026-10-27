@@ -60,7 +60,7 @@ describe('StockStorageCenter navigation contract', () => {
       label: 'Storages',
     })
     expect(getModuleTitle('stock', { stockSection: 'storages' })).toBe('Storages')
-    expect(getSearchPlaceholder('stock', { stockSection: 'storages' })).toBe('Search storages or products')
+    expect(getSearchPlaceholder('stock', { stockSection: 'storages' })).toBe('Search storages')
   })
 
   it('does not keep a Coming soon shell for storage actions that already exist', () => {

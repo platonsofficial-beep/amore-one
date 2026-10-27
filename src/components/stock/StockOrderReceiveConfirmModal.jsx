@@ -5,11 +5,13 @@ import {
   formatStockOrderNumber,
   willCompleteOrderAfterReceive,
 } from '../../lib/stockOrderUtils'
+import { resolveListedProductName } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { LoadingButton } from '../LoadingButton'
 
 export function StockOrderReceiveConfirmModal({
   order,
+  stockItems = [],
   receiveNowByItemId,
   destinationLabel = '',
   isSaving = false,
@@ -101,7 +103,12 @@ export function StockOrderReceiveConfirmModal({
             <ul className="stock-order-receive-confirm-list">
               {pendingLines.map(({ item, receiveNow }) => (
                 <li key={item.id} className="stock-order-receive-confirm-item">
-                  <strong>{item.itemName}</strong>
+                  <strong>
+                    {resolveListedProductName(
+                      item,
+                      (stockItems ?? []).find((entry) => entry && `${entry.id}` === `${item.stockItemId ?? item.stock_item_id}`),
+                    ) || item.itemName}
+                  </strong>
                   <span>{formatStockQuantity(receiveNow, item.unit)}</span>
                 </li>
               ))}

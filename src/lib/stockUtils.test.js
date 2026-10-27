@@ -41,6 +41,7 @@ describe('stockUtils', () => {
     }))).toBe('ok')
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 12, minimumQuantity: 10 }))).toBe('ok')
     expect(resolveStockItemStatus(makeItem({ active: false }))).toBe('inactive')
+    expect(resolveStockItemStatus(makeItem({ active: undefined, currentQuantity: 0 }))).toBe('out')
   })
 
   it('resolves quantity status independently of active lifecycle (P8.24.1)', () => {

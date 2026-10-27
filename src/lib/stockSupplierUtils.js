@@ -1,4 +1,5 @@
 import { formatStockCategoryTypeLine } from './stockCatalog'
+import { resolveListedProductName } from './stockProductIdentity'
 import {
   computeOrderTotalCost,
   formatStockOrderDate,
@@ -293,10 +294,16 @@ export function formatSupplierMetricDate(value) {
   return formatStockOrderDate(value)
 }
 
+export function formatReceivedValueLabel(amount, receivedCount) {
+  if (!(Number(receivedCount) > 0)) return '—'
+  if (!(Number(amount) > 0)) return 'No cost on received orders'
+  return formatStockPurchasePrice(amount)
+}
+
 export function formatSupplierProductLine(item) {
   return {
     id: item.id,
-    name: item.name ?? 'Unnamed product',
+    name: resolveListedProductName(item, item) || 'Unnamed product',
     categoryType: formatStockCategoryTypeLine(item.category, item.itemType),
     currentStock: formatStockQuantity(item.currentQuantity, item.unit),
     lastPurchasePrice: formatStockPurchasePrice(item.costPrice),

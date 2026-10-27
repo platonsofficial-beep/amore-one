@@ -324,6 +324,7 @@ function InventoryCountSessionPanel({
 
 export function InventoryCountView({
   initialOpenSessionId = null,
+  initialOpenWizard = 0,
   onInitialOpenSessionApplied,
   canManage = true,
   timeZone = '',
@@ -332,6 +333,7 @@ export function InventoryCountView({
   const workspaceId = `${workspace?.id ?? ''}`.trim()
 
   const [isWizardOpen, setIsWizardOpen] = useState(false)
+  const appliedWizardTokenRef = useRef(0)
   const [isSessionOpen, setIsSessionOpen] = useState(false)
   const [isPostedReviewOpen, setIsPostedReviewOpen] = useState(false)
   const [isCorrectionReviewOpen, setIsCorrectionReviewOpen] = useState(false)
@@ -383,6 +385,13 @@ export function InventoryCountView({
   useEffect(() => {
     void loadHomeSessions()
   }, [loadHomeSessions])
+
+  useEffect(() => {
+    const token = Number(initialOpenWizard) || 0
+    if (!canManage || token <= 0 || token === appliedWizardTokenRef.current) return
+    appliedWizardTokenRef.current = token
+    setIsWizardOpen(true)
+  }, [canManage, initialOpenWizard])
 
   useEffect(() => {
     if (!canManage) {
@@ -759,7 +768,14 @@ export function InventoryCountView({
         </div>
       ) : null}
 
-      <div className="inventory-count-foundation-grid" aria-label="Inventory count status">
+      <div
+        className={`inventory-count-foundation-grid${
+          !isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0
+            ? ' is-recent-only'
+            : ''
+        }`}
+        aria-label="Inventory count status"
+      >
         {!isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0 ? (
           <div className="inventory-count-quiet-empty">
             <p>No active counts.</p>

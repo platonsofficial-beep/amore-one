@@ -273,7 +273,7 @@ describe('stockItemPermanentDeleteUi helpers', () => {
 })
 
 describe('StockItemMoreMenu permanent delete entry', () => {
-  it('shows Permanently Delete after a separator and passes the captured item', () => {
+  it('shows Delete product in the status section and passes the captured item', () => {
     const onPermanentlyDelete = vi.fn()
     const item = { id: 'item-1', name: 'KETEL ONE', active: true }
     const anchor = document.createElement('button')
@@ -293,7 +293,10 @@ describe('StockItemMoreMenu permanent delete entry', () => {
     expect(labels).toContain('Edit')
     expect(labels).toContain('Deactivate')
     expect(labels).toContain('Delete product')
-    expect(document.querySelector('[role="separator"]')).toBeTruthy()
+    const menuText = document.querySelector('[role="menu"]')?.textContent ?? ''
+    expect(menuText.indexOf('Status')).toBeGreaterThan(-1)
+    expect(menuText.indexOf('Status')).toBeLessThan(menuText.indexOf('Delete product'))
+    expect(document.querySelector('[role="separator"]')).toBeNull()
 
     act(() => {
       Array.from(document.querySelectorAll('[role="menuitem"]'))

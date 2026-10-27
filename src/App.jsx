@@ -14631,6 +14631,7 @@ function App() {
   const [supplyDraftPreview, setSupplyDraftPreview] = useState(null)
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
+  const [stockCountWizardToken, setStockCountWizardToken] = useState(0)
   const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
   const [inventoryImportHistoryRefresh, setInventoryImportHistoryRefresh] = useState(0)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
@@ -15224,6 +15225,11 @@ function App() {
     handleStockSectionChange(section)
     if (useMobileExperience) setMobileExpandedView('workspace')
   }, [useMobileExperience, role, handleActiveViewChange, handleStockSectionChange])
+
+  const handleOpenStockCountWizard = useCallback(() => {
+    handleOpenStockLiveSection('count')
+    setStockCountWizardToken((token) => token + 1)
+  }, [handleOpenStockLiveSection])
 
   const handleOpenInventoryCountSession = useCallback((sessionId = '') => {
     const nextSessionId = `${sessionId ?? ''}`.trim()
@@ -23788,7 +23794,7 @@ function App() {
             stockLiveSnapshot={stockLiveSnapshot}
             onOpenBelowPar={() => handleOpenStockLiveSection('storages')}
             onOpenDrafts={() => handleOpenStockLiveSection('orders', 'draft')}
-            onOpenCounts={() => handleOpenStockLiveSection('count')}
+            onOpenCounts={handleOpenStockCountWizard}
             onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
             timeZone={workspaceTimeZone}
@@ -23798,6 +23804,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'count' ? (
           <InventoryCountView
             initialOpenSessionId={inventoryCountOpenSessionId}
+            initialOpenWizard={stockCountWizardToken}
             onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
             canManage={canManageStockRole}
             timeZone={workspaceTimeZone}

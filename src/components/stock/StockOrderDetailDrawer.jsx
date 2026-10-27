@@ -23,8 +23,13 @@ import {
   isOrderPartiallyReceived,
   isStockOrderLineInactive,
   normalizeStockOrderStatus,
+  formatDisplayedLineCostLabel,
+  formatMissingCostLineNote,
   replaceDraftOrderLineProduct,
+  resolveDisplayedLineCost,
+  resolveDisplayedOrderTotal,
 } from '../../lib/stockOrderUtils'
+import { resolveListedProductName } from '../../lib/stockProductIdentity'
 import {
   buildStockOrderMailtoUrl,
   buildStockOrderPrintHtml,
@@ -51,6 +56,23 @@ function receiveDestinationHint(storages = []) {
   }
   if (supplyCount > 1) return 'Choose which supply storage should receive this delivery.'
   return 'Choose where this delivery should be stored.'
+}
+
+function presentOrderLine(item, stockItems = []) {
+  const stockItemId = item?.stockItemId ?? item?.stock_item_id
+  const catalog = (stockItems ?? []).find((entry) => entry && `${entry.id}` === `${stockItemId}`) ?? null
+  const name = resolveListedProductName(item, catalog) || item?.itemName || 'Product'
+  const resolved = resolveDisplayedLineCost(item, stockItems)
+  const quantity = Math.max(0, Number(item?.quantity) || 0)
+  const costLabel = resolved.missing ? 'No cost' : formatDisplayedLineCostLabel(item, stockItems)
+  return {
+    name,
+    costLabel,
+    totalLabel: resolved.missing ? 'No cost' : formatStockPurchasePrice(quantity * resolved.cost),
+    headline: resolved.missing
+      ? `${formatStockQuantity(quantity, item?.unit)} · No cost`
+      : `${quantity} x ${costLabel}`,
+  }
 }
 
 function ReceiveProgressBar({ received, ordered, unit }) {
@@ -116,6 +138,7 @@ function OrderTimeline({ order, timeZone = '' }) {
 
 function DraftOrderItem({
   item,
+  presentation,
   isInactive = false,
   replaceOptions = [],
   isReplaceOpen = false,
@@ -125,12 +148,15 @@ function DraftOrderItem({
   onReplace,
 }) {
   const summary = formatStockOrderLineSummary(item)
+  const lineName = presentation?.name || item.itemName
+  const costLabel = presentation?.costLabel || formatStockPurchasePrice(item.costPrice)
+  const totalLabel = presentation?.totalLabel || summary.total
 
   return (
     <article className={`stock-order-detail-line is-editable${isInactive ? ' is-inactive-product' : ''}`}>
       <div className="stock-order-detail-line-copy">
         <div className="stock-order-detail-line-title-row">
-          <strong>{item.itemName}</strong>
+          <strong>{lineName}</strong>
           {isInactive ? (
             <span className="stock-order-status-badge tone-muted">Inactive</span>
           ) : null}
@@ -164,7 +190,7 @@ function DraftOrderItem({
               <select
                 className="stock-order-inactive-replace-select"
                 defaultValue=""
-                aria-label={`Replace ${item.itemName}`}
+                aria-label={`Replace ${lineName}`}
                 onChange={(event) => {
                   const nextId = event.target.value
                   if (!nextId) return
@@ -174,7 +200,7 @@ function DraftOrderItem({
                 <option value="">Select a product…</option>
                 {replaceOptions.map((option) => (
                   <option key={option.id} value={option.id}>
-                    {option.name}
+                    {resolveListedProductName(option, option) || option.name}
                     {option.unit ? ` · ${option.unit}` : ''}
                   </option>
                 ))}
@@ -192,17 +218,17 @@ function DraftOrderItem({
           className="stock-create-order-qty-input"
           value={item.quantity}
           onChange={(event) => onQuantityChange(item.id, event.target.value)}
-          aria-label={`Quantity for ${item.itemName}`}
+          aria-label={`Quantity for ${lineName}`}
         />
         <span className="stock-order-detail-line-cost">
-          x {formatStockPurchasePrice(item.costPrice)}
+          {costLabel === 'No cost' ? 'No cost' : `x ${costLabel}`}
         </span>
-        <span className="stock-order-detail-line-total">{summary.total}</span>
+        <span className="stock-order-detail-line-total">{totalLabel}</span>
         <button
           type="button"
           className="icon-btn stock-create-order-remove-item"
           onClick={() => onRemove(item.id)}
-          aria-label={`Remove ${item.itemName}`}
+          aria-label={`Remove ${lineName}`}
         >
           ✕
         </button>
@@ -213,6 +239,7 @@ function DraftOrderItem({
 
 function ReceivingOrderItem({
   item,
+  presentation,
   receiveNow,
   onReceiveNowChange,
   onReceiveAllRemaining,
@@ -221,12 +248,13 @@ function ReceivingOrderItem({
   const received = getOrderLineReceivedQuantity(item)
   const remaining = getOrderLineRemainingQuantity(item)
   const summary = formatStockOrderLineSummary(item)
+  const lineName = presentation?.name || item.itemName
 
   return (
     <article className="stock-order-detail-line stock-order-receive-line">
       <div className="stock-order-detail-line-copy">
-        <strong>{item.itemName}</strong>
-        <span>{summary.headline}</span>
+        <strong>{lineName}</strong>
+        <span>{presentation?.headline || summary.headline}</span>
       </div>
 
       <ReceiveProgressBar received={received} ordered={ordered} unit={item.unit} />
@@ -258,7 +286,7 @@ function ReceivingOrderItem({
               className="stock-create-order-qty-input"
               value={receiveNow}
               onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
-              aria-label={`Receive now for ${item.itemName}`}
+              aria-label={`Receive now for ${lineName}`}
             />
             <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
           </label>
@@ -305,17 +333,18 @@ function formatReceivedOrderDifference(ordered, received, unit) {
   }
 }
 
-function ReceivedOrderItem({ item, showCost = true }) {
+function ReceivedOrderItem({ item, presentation, showCost = true }) {
   const ordered = Number(item.quantity) || 0
   const received = getOrderLineReceivedQuantity(item)
   const summary = formatStockOrderLineSummary(item)
   const differenceDisplay = formatReceivedOrderDifference(ordered, received, item.unit)
+  const lineName = presentation?.name || item.itemName
 
   return (
     <article className="stock-order-detail-line stock-order-completed-line is-received">
       <div className="stock-order-detail-line-copy">
-        <strong>{item.itemName}</strong>
-        <span>{showCost ? summary.headline : formatStockQuantity(ordered, item.unit)}</span>
+        <strong>{lineName}</strong>
+        <span>{showCost ? (presentation?.headline || summary.headline) : formatStockQuantity(ordered, item.unit)}</span>
       </div>
 
       <ReceiveProgressBar received={received} ordered={ordered} unit={item.unit} />
@@ -340,23 +369,24 @@ function ReceivedOrderItem({ item, showCost = true }) {
         </div>
       </dl>
 
-      {showCost ? <span className="stock-order-detail-line-total">{summary.total}</span> : null}
+      {showCost ? <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span> : null}
     </article>
   )
 }
 
-function CompletedOrderItem({ item, showCost = true }) {
+function CompletedOrderItem({ item, presentation, showCost = true }) {
   const ordered = Number(item.quantity) || 0
   const received = getOrderLineReceivedQuantity(item)
   const remaining = getOrderLineRemainingQuantity(item)
   const summary = formatStockOrderLineSummary(item)
   const difference = received - ordered
+  const lineName = presentation?.name || item.itemName
 
   return (
     <article className="stock-order-detail-line stock-order-completed-line">
       <div className="stock-order-detail-line-copy">
-        <strong>{item.itemName}</strong>
-        <span>{showCost ? summary.headline : formatStockQuantity(ordered, item.unit)}</span>
+        <strong>{lineName}</strong>
+        <span>{showCost ? (presentation?.headline || summary.headline) : formatStockQuantity(ordered, item.unit)}</span>
       </div>
 
       <dl className="stock-order-receive-metrics">
@@ -384,7 +414,7 @@ function CompletedOrderItem({ item, showCost = true }) {
         </p>
       ) : null}
 
-      {showCost ? <span className="stock-order-detail-line-total">{summary.total}</span> : null}
+      {showCost ? <span className="stock-order-detail-line-total">{presentation?.totalLabel || summary.total}</span> : null}
     </article>
   )
 }
@@ -498,10 +528,10 @@ export function StockOrderDetailDrawer({
   const receiveSummary = useMemo(() => getOrderReceivedSummary(order), [order])
   const partiallyReceived = isOrderPartiallyReceived(order)
 
-  const totalCost = useMemo(() => {
+  const displayedEstimate = useMemo(() => {
     const items = isEditable ? draftItems : order.items
-    return items.reduce((sum, item) => sum + computeOrderLineTotal(item.quantity, item.costPrice), 0)
-  }, [draftItems, isEditable, order.items])
+    return resolveDisplayedOrderTotal({ ...order, items }, stockItems)
+  }, [draftItems, isEditable, order, stockItems])
 
   const handleQuantityChange = (itemId, rawValue) => {
     const quantity = Math.max(0, Number(rawValue) || 0)
@@ -876,10 +906,20 @@ export function StockOrderDetailDrawer({
                   <dt>Products</dt>
                   <dd>{displayItems.length}</dd>
                 </div>
+                {canManage && displayedEstimate.missingCostLines > 0 ? (
+                  <div className="stock-product-history-overview-row">
+                    <dt>Missing cost</dt>
+                    <dd>{formatMissingCostLineNote(displayedEstimate.missingCostLines)}</dd>
+                  </div>
+                ) : null}
                 {canManage ? (
                   <div className="stock-product-history-overview-row">
                     <dt>{isReceived ? 'Final total' : 'Estimated total'}</dt>
-                    <dd>{formatStockPurchasePrice(isEditable ? totalCost : order.totalCost)}</dd>
+                    <dd>
+                      {displayedEstimate.total > 0
+                        ? formatStockPurchasePrice(displayedEstimate.total)
+                        : 'No cost on file'}
+                    </dd>
                   </div>
                 ) : null}
                 {showReceivingMode || isReceived ? (
@@ -929,6 +969,7 @@ export function StockOrderDetailDrawer({
                     <DraftOrderItem
                       key={item.id}
                       item={item}
+                      presentation={presentOrderLine(item, stockItems)}
                       isInactive={isInactive}
                       replaceOptions={replaceOptions}
                       isReplaceOpen={replacingItemId === item.id}
@@ -944,6 +985,7 @@ export function StockOrderDetailDrawer({
                   <ReceivingOrderItem
                     key={item.id}
                     item={item}
+                    presentation={presentOrderLine(item, stockItems)}
                     receiveNow={receiveNowByItemId[item.id] ?? ''}
                     onReceiveNowChange={handleReceiveNowChange}
                     onReceiveAllRemaining={handleReceiveAllRemaining}
@@ -951,11 +993,11 @@ export function StockOrderDetailDrawer({
                 )) : null}
 
                 {isReceived ? displayItems.map((item) => (
-                  <ReceivedOrderItem key={item.id} item={item} showCost={canManage} />
+                  <ReceivedOrderItem key={item.id} item={item} presentation={presentOrderLine(item, stockItems)} showCost={canManage} />
                 )) : null}
 
                 {!isEditable && !showReceivingMode && !isReceived ? displayItems.map((item) => (
-                  <CompletedOrderItem key={item.id} item={item} showCost={canManage} />
+                  <CompletedOrderItem key={item.id} item={item} presentation={presentOrderLine(item, stockItems)} showCost={canManage} />
                 )) : null}
               </div>
             </section>
@@ -1013,33 +1055,39 @@ export function StockOrderDetailDrawer({
                     </button>
                     {sendMenuOpen ? (
                       <div className="stock-order-action-popover" role="menu" aria-label="Send order">
-                        <button
-                          type="button"
-                          className="ghost-btn stock-product-history-action-btn"
-                          role="menuitem"
-                          onClick={handleSendEmail}
-                          disabled={isSaving || !canEmailSupplier}
-                        >
-                          Email
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-btn stock-product-history-action-btn"
-                          role="menuitem"
-                          onClick={handleSendWhatsApp}
-                          disabled={isSaving || !canMessageSupplier}
-                        >
-                          WhatsApp
-                        </button>
-                        <button
-                          type="button"
-                          className="ghost-btn stock-product-history-action-btn"
-                          role="menuitem"
-                          onClick={handleSendViber}
-                          disabled={isSaving || !canMessageSupplier}
-                        >
-                          Viber
-                        </button>
+                        {canEmailSupplier ? (
+                          <button
+                            type="button"
+                            className="ghost-btn stock-product-history-action-btn"
+                            role="menuitem"
+                            onClick={handleSendEmail}
+                            disabled={isSaving}
+                          >
+                            Email
+                          </button>
+                        ) : null}
+                        {canMessageSupplier ? (
+                          <button
+                            type="button"
+                            className="ghost-btn stock-product-history-action-btn"
+                            role="menuitem"
+                            onClick={handleSendWhatsApp}
+                            disabled={isSaving}
+                          >
+                            WhatsApp
+                          </button>
+                        ) : null}
+                        {canMessageSupplier ? (
+                          <button
+                            type="button"
+                            className="ghost-btn stock-product-history-action-btn"
+                            role="menuitem"
+                            onClick={handleSendViber}
+                            disabled={isSaving}
+                          >
+                            Viber
+                          </button>
+                        ) : null}
                         <button
                           type="button"
                           className="ghost-btn stock-product-history-action-btn"
@@ -1121,6 +1169,7 @@ export function StockOrderDetailDrawer({
       {isReceiveConfirmOpen ? (
         <StockOrderReceiveConfirmModal
           order={order}
+          stockItems={stockItems}
           receiveNowByItemId={receiveNowByItemId}
           destinationLabel={(() => {
             const selected = destinationStorages.find((storage) => `${storage.id}` === `${workspaceStorageId}`)
