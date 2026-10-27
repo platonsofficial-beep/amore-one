@@ -56,6 +56,23 @@ describe('MobileMenuView Request Leave entry', () => {
     unmount()
   })
 
+  it('labels the manager and staff time clock entry Time clock', () => {
+    const manager = renderMenu({
+      menuVariant: 'manager',
+      onOpenAttendance: vi.fn(),
+    })
+    expect(manager.container.textContent).toContain('Time clock')
+    expect(manager.container.textContent).not.toContain('Attendance')
+    manager.unmount()
+
+    const staff = renderMenu({
+      onOpenAttendance: vi.fn(),
+    })
+    expect(staff.container.textContent).toContain('Time clock')
+    expect(staff.container.textContent).not.toContain('Attendance')
+    staff.unmount()
+  })
+
   it('hides Request Leave when canRequestLeave is false', () => {
     const { container, unmount } = renderMenu({
       canRequestLeave: false,

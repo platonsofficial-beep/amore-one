@@ -5,6 +5,7 @@ import {
   attendanceErrorMessage,
   canDecideOwnAttendance,
   classifyUnclockedShift,
+  countsForLateToday,
   dateKeyInZone,
   exceptionKindLabel,
   formatClockTime,
@@ -14,12 +15,10 @@ import {
   indexBreaksByEntry,
   isOpenBreak,
   isOpenEntry,
-  isOvernightShift,
+  lateTodayDetail,
+  minutesAfterShiftStart,
   personKeyForEntry,
   shiftDateKey,
-  shiftEndTime,
-  shiftPlaceLabel,
-  shiftStartTime,
   summarizeHours,
   toDateTimeLocalValue,
 } from '../../lib/attendance'
@@ -124,24 +123,19 @@ export function AttendanceBoard({
     }
     const seenShift = new Set(entries.map((entry) => `${entry.shift_id ?? ''}`).filter(Boolean))
     for (const shift of shifts) {
-      const dateKey = shiftDateKey(shift)
-      const overnightYesterday = dateKey !== todayKey && isOvernightShift(shiftStartTime(shift), shiftEndTime(shift))
-      if (dateKey !== todayKey && !overnightYesterday) continue
+      if (!countsForLateToday(shift, todayKey)) continue
       if (seenShift.has(`${shift.id}`)) continue
       const covered = entries.some((entry) => (
         `${entry.employee_id ?? ''}` === `${shift.employee_id ?? ''}`
-        && `${entry.work_date ?? ''}`.slice(0, 10) === dateKey
+        && `${entry.work_date ?? ''}`.slice(0, 10) === shiftDateKey(shift)
       ))
       if (covered) continue
       const status = classifyUnclockedShift(shift, { now, graceMinutes, timeZone })
-      if (status !== 'late' && status !== 'no-show') continue
-      const place = shiftPlaceLabel(shift)
+      if (status !== 'not-clocked-in' && status !== 'no-show') continue
       rows.push({
         id: `shift-${shift.id}`,
         name: personName(employees, shift.employee_id),
-        detail: status === 'no-show'
-          ? `No-show · ${shiftStartTime(shift)}–${shiftEndTime(shift)}${place ? `, ${place}` : ''}`
-          : `Late · ${shiftStartTime(shift)}–${shiftEndTime(shift)}${place ? `, ${place}` : ''}`,
+        detail: lateTodayDetail(shift, status, minutesAfterShiftStart(shift, now, timeZone)),
       })
     }
     return rows
@@ -238,7 +232,7 @@ export function AttendanceBoard({
   }
 
   return (
-    <section className="attendance-board" aria-label="Attendance">
+    <section className="attendance-board" aria-label="Time clock">
       {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
       {notice ? <p className="attendance-clock-message" role="status">{notice}</p> : null}
 

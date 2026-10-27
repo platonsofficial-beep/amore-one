@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { getModuleLabel, getModuleTitle } from './appNavigation'
 import { resolveMemberAccess } from './memberAccess'
+import { normalizeActiveView } from './navigationPersistence'
 import { canManageAttendance, resolvePermittedActiveView } from './permissions'
 import {
   LOCATION_OFF_MESSAGE,
@@ -10,6 +12,7 @@ import {
   breakMinutes,
   canDecideOwnAttendance,
   classifyUnclockedShift,
+  countsForLateToday,
   clockInMessage,
   clockOutMessage,
   describeTodayShift,
@@ -17,6 +20,8 @@ import {
   formatSignedHours,
   formatWorkingLabel,
   isOvernightShift,
+  lateTodayDetail,
+  minutesAfterShiftStart,
   needsManagerRequest,
   shiftDurationMinutes,
   summarizeHours,
@@ -122,38 +127,81 @@ describe('attendance hours and overnight shifts', () => {
   })
 })
 
-describe('late and no-show', () => {
-  const shift = {
+describe('late today with a fixed clock', () => {
+  const evening = {
+    id: 'shift-evening',
     shift_date: '2026-10-27',
-    start_time: '18:00',
-    end_time: '02:00',
+    start_time: '16:30',
+    end_time: '00:30',
+    area: 'Bar',
   }
 
-  it('is late after the grace and a no-show after 60 minutes or at shift end', () => {
-    expect(classifyUnclockedShift(shift, {
-      now: new Date('2026-10-27T18:10:00Z'),
+  it('does not flag a 16:30 shift at 12:21, or one still inside the grace', () => {
+    const beforeStart = new Date('2026-10-27T12:21:00Z')
+    expect(classifyUnclockedShift(evening, {
+      now: beforeStart,
       graceMinutes: 10,
       timeZone: 'UTC',
-    })).toBe('on-time')
-    expect(classifyUnclockedShift(shift, {
-      now: new Date('2026-10-27T18:11:00Z'),
+    })).toBe('upcoming')
+    expect(lateTodayDetail(evening, 'upcoming', 0)).toBe('')
+
+    const insideGrace = new Date('2026-10-27T16:40:00Z')
+    expect(classifyUnclockedShift(evening, {
+      now: insideGrace,
       graceMinutes: 10,
       timeZone: 'UTC',
-    })).toBe('late')
-    expect(classifyUnclockedShift(shift, {
-      now: new Date('2026-10-27T19:00:00Z'),
+    })).toBe('within-grace')
+
+    expect(classifyUnclockedShift(evening, {
+      now: new Date('2026-10-27T10:21:00Z'),
+      graceMinutes: 10,
+      timeZone: 'Europe/Nicosia',
+    })).toBe('upcoming')
+  })
+
+  it('says not clocked in while the shift is running past grace, and no-show only after it ends', () => {
+    const running = new Date('2026-10-27T16:41:00Z')
+    expect(classifyUnclockedShift(evening, {
+      now: running,
+      graceMinutes: 10,
+      timeZone: 'UTC',
+    })).toBe('not-clocked-in')
+    expect(minutesAfterShiftStart(evening, running, 'UTC')).toBe(11)
+    expect(lateTodayDetail(evening, 'not-clocked-in', 11)).toBe('Not clocked in (late by 11 min) · 16:30–00:30, Bar')
+
+    const stillRunning = new Date('2026-10-28T00:29:00Z')
+    expect(classifyUnclockedShift(evening, {
+      now: stillRunning,
+      graceMinutes: 10,
+      timeZone: 'UTC',
+    })).toBe('not-clocked-in')
+
+    const ended = new Date('2026-10-28T00:30:00Z')
+    expect(classifyUnclockedShift(evening, {
+      now: ended,
       graceMinutes: 10,
       timeZone: 'UTC',
     })).toBe('no-show')
-    expect(classifyUnclockedShift({
-      shift_date: '2026-10-27',
-      start_time: '10:00',
-      end_time: '10:40',
-    }, {
-      now: new Date('2026-10-27T10:40:00Z'),
-      graceMinutes: 10,
-      timeZone: 'UTC',
-    })).toBe('no-show')
+    expect(lateTodayDetail(evening, 'no-show', 0)).toBe('No-show · 16:30–00:30, Bar')
+  })
+
+  it('keeps late today to today and yesterday’s overnight shift', () => {
+    expect(countsForLateToday(evening, '2026-10-27')).toBe(true)
+    expect(countsForLateToday({
+      shift_date: '2026-10-26',
+      start_time: '16:30',
+      end_time: '00:30',
+    }, '2026-10-27')).toBe(true)
+    expect(countsForLateToday({
+      shift_date: '2026-10-28',
+      start_time: '16:30',
+      end_time: '00:30',
+    }, '2026-10-27')).toBe(false)
+    expect(countsForLateToday({
+      shift_date: '2026-10-26',
+      start_time: '09:00',
+      end_time: '17:00',
+    }, '2026-10-27')).toBe(false)
   })
 })
 
@@ -164,7 +212,8 @@ describe('attendance permission gate', () => {
     expect(canManageAttendance('manager')).toBe(true)
     expect(canManageAttendance('host')).toBe(false)
     expect(canManageAttendance('staff')).toBe(false)
-    expect(resolvePermittedActiveView('manager', 'attendance')).toBe('attendance')
+    expect(resolvePermittedActiveView('manager', 'attendance')).toBe('time-clock')
+    expect(resolvePermittedActiveView('manager', 'time-clock')).toBe('time-clock')
     expect(resolvePermittedActiveView('host', 'attendance')).toBe('reservations')
     expect(resolvePermittedActiveView('staff', 'attendance')).toBe('today')
   })
@@ -175,10 +224,20 @@ describe('attendance permission gate', () => {
     const hostManage = resolveMemberAccess('host', [{ module: 'attendance', level: 2 }])
 
     expect(canManageAttendance(staffManage)).toBe(true)
-    expect(resolvePermittedActiveView(staffManage, 'attendance')).toBe('attendance')
+    expect(resolvePermittedActiveView(staffManage, 'time-clock')).toBe('time-clock')
     expect(canManageAttendance(managerView)).toBe(false)
     expect(canManageAttendance(hostManage)).toBe(false)
     expect(resolvePermittedActiveView(hostManage, 'attendance')).toBe('reservations')
+  })
+
+  it('shows Time clock to people and still opens a saved Attendance view', () => {
+    expect(getModuleTitle('time-clock')).toBe('Time clock')
+    expect(getModuleTitle('attendance')).toBe('Time clock')
+    expect(getModuleLabel('attendance')).toBe('Time clock')
+    expect(getModuleLabel('time-clock')).toBe('Time clock')
+    expect(normalizeActiveView('attendance')).toBe('time-clock')
+    expect(normalizeActiveView('time-clock')).toBe('time-clock')
+    expect(resolvePermittedActiveView('owner', 'attendance')).toBe('time-clock')
   })
 
   it('blocks a manager from deciding or fixing their own entry', () => {

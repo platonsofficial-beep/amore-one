@@ -62,6 +62,11 @@ describe('navigationPersistence', () => {
     expect(resolveInitialScheduleWeekStart('2026-10-26')).toBe('2026-10-26')
   })
 
+  it('opens a saved Attendance view on Time clock', () => {
+    expect(normalizeActiveView('attendance')).toBe('time-clock')
+    expect(resolvePermittedActiveView('manager', normalizeActiveView('attendance'))).toBe('time-clock')
+  })
+
   it('lets managers open reservation seating settings', () => {
     expect(resolvePermittedActiveView('manager', normalizeActiveView('settings'))).toBe('settings')
     expect(resolvePermittedActiveView('manager', normalizeActiveView('reservations'))).toBe('reservations')

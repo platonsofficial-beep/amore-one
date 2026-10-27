@@ -15,7 +15,6 @@ export const POOR_ACCURACY_MESSAGE = 'GPS is not accurate enough, move near a wi
 export const DEFAULT_RADIUS_M = 50
 export const DEFAULT_LATE_GRACE_MINUTES = 10
 export const RADIUS_CHOICES_M = [30, 50, 100, 200]
-export const NO_SHOW_AFTER_MINUTES = 60
 
 const MANAGER_REQUEST_REASONS = new Set(['outside', 'poor_accuracy', 'no_location'])
 
@@ -252,6 +251,26 @@ export function shiftBounds(shift, timeZone = 'Europe/Nicosia') {
   return { start, end }
 }
 
+function instantMs(now) {
+  return now instanceof Date ? now.getTime() : new Date(now).getTime()
+}
+
+export function countsForLateToday(shift, todayKey) {
+  const dateKey = shiftDateKey(shift)
+  if (!dateKey || !todayKey) return false
+  if (dateKey === todayKey) return true
+  return dateKey === addDaysToDateKey(todayKey, -1)
+    && isOvernightShift(shiftStartTime(shift), shiftEndTime(shift))
+}
+
+export function minutesAfterShiftStart(shift, now = new Date(), timeZone = 'Europe/Nicosia') {
+  const bounds = shiftBounds(shift, timeZone)
+  if (!bounds) return 0
+  return Math.floor((instantMs(now) - bounds.start.getTime()) / 60000)
+}
+
+// Flag only after start + grace, with no clock-in.
+// Still running: not-clocked-in. Ended: no-show. Not started or inside grace: hidden.
 export function classifyUnclockedShift(shift, {
   now = new Date(),
   graceMinutes = DEFAULT_LATE_GRACE_MINUTES,
@@ -259,12 +278,20 @@ export function classifyUnclockedShift(shift, {
 } = {}) {
   const bounds = shiftBounds(shift, timeZone)
   if (!bounds) return 'upcoming'
-  const nowMs = now instanceof Date ? now.getTime() : new Date(now).getTime()
-  if (nowMs < bounds.start.getTime()) return 'upcoming'
-  const minutesAfterStart = Math.floor((nowMs - bounds.start.getTime()) / 60000)
-  if (nowMs >= bounds.end.getTime() || minutesAfterStart >= NO_SHOW_AFTER_MINUTES) return 'no-show'
-  if (minutesAfterStart > graceMinutes) return 'late'
-  return 'on-time'
+  const nowMs = instantMs(now)
+  const startMs = bounds.start.getTime()
+  const graceMs = Math.max(0, Number(graceMinutes) || 0) * 60000
+  if (nowMs <= startMs + graceMs) return nowMs < startMs ? 'upcoming' : 'within-grace'
+  if (nowMs >= bounds.end.getTime()) return 'no-show'
+  return 'not-clocked-in'
+}
+
+export function lateTodayDetail(shift, status, lateMinutes = 0) {
+  const place = shiftPlaceLabel(shift)
+  const range = `${shiftStartTime(shift)}–${shiftEndTime(shift)}${place ? `, ${place}` : ''}`
+  if (status === 'no-show') return `No-show · ${range}`
+  if (status === 'not-clocked-in') return `Not clocked in (late by ${lateMinutes} min) · ${range}`
+  return ''
 }
 
 export function describeTodayShift(shifts, {
