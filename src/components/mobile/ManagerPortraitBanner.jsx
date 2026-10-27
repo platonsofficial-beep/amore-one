@@ -25,7 +25,7 @@ export function ManagerPortraitBanner({ area = 'view' }) {
   }
 
   return (
-    <div className="manager-portrait-banner" role="note">
+    <button type="button" className="manager-portrait-banner" onClick={dismiss} aria-label="Dismiss">
       <span className="manager-portrait-banner-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18">
           <rect x="8" y="3" width="8" height="14" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -33,10 +33,8 @@ export function ManagerPortraitBanner({ area = 'view' }) {
           <path d="M15.2 6.2l2.6.4-.4 2.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      <p>Turn your phone sideways for the full view</p>
-      <button type="button" className="manager-portrait-banner-dismiss" onClick={dismiss} aria-label="Dismiss">
-        ×
-      </button>
-    </div>
+      <span className="manager-portrait-banner-copy">Turn your phone sideways for the full view</span>
+      <span className="manager-portrait-banner-dismiss" aria-hidden="true">×</span>
+    </button>
   )
 }

@@ -326,7 +326,12 @@ export function MobileManagerStockView({
           onClick={() => { void onPrepareDrafts() }}
           disabled={!isWorkspaceReady || isSavingOrders}
         >
-          {isSavingOrders ? 'Saving…' : 'Suggest order'}
+          {isSavingOrders ? 'Saving…' : (
+            <>
+              <span className="mobile-manager-stock-quick-label-full">Suggest order</span>
+              <span className="mobile-manager-stock-quick-label-short">Suggest</span>
+            </>
+          )}
         </button>
       ) : null}
       <button
@@ -347,25 +352,25 @@ export function MobileManagerStockView({
         <h1 className="mobile-manager-stock-command-title">Stock</h1>
         <p className="mobile-manager-stock-command-stats">
           <span>
-            <strong>{isLoading ? '—' : totalItems}</strong> items
+            <strong>{isLoading ? '0' : totalItems}</strong> items
           </span>
           <span aria-hidden="true">·</span>
           <span className={lowCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading ? '—' : lowCount}</strong> low
+            <strong>{isLoading ? '0' : lowCount}</strong> low
           </span>
           <span aria-hidden="true">·</span>
           <span className={outCount > 0 ? 'tone-danger' : ''}>
-            <strong>{isLoading ? '—' : outCount}</strong> out
+            <strong>{isLoading ? '0' : outCount}</strong> out
           </span>
           <span aria-hidden="true">·</span>
           <span className={toOrderCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading ? '—' : toOrderCount}</strong> to order
+            <strong>{isLoading ? '0' : toOrderCount}</strong> to order
           </span>
           {pendingOrders > 0 ? (
             <>
               <span aria-hidden="true">·</span>
               <span className="tone-info">
-                <strong>{isLoading ? '—' : pendingOrders}</strong> pending
+                <strong>{isLoading ? '0' : pendingOrders}</strong> pending
               </span>
             </>
           ) : null}

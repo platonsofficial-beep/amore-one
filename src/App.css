@@ -51574,3 +51574,20 @@ summary:focus-visible {
   }
 }
 
+@media (max-width: 900px) {
+  /* portrait-week-names: short day labels and unwrapped shift names on a phone. */
+  .schedule-shift-instance-name,
+  .schedule-shift-instance-dept {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .blend-grid-header-day-name {
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+  }
+}
+

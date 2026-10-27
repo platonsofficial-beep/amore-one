@@ -238,3 +238,11 @@ export function buildPortraitFloorTables({
     }
   })
 }
+
+export function portraitShiftSubtitle(shift) {
+  const role = `${shift?.role ?? ''}`.trim()
+  const area = `${shift?.area ?? ''}`.trim()
+  if (!role && !area) return 'Shift'
+  if (role && area && role.localeCompare(area, undefined, { sensitivity: 'accent' }) === 0) return role
+  return [role, area].filter(Boolean).join(' · ')
+}

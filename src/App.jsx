@@ -3004,6 +3004,8 @@ function ScheduleView({
   })
   const scheduleUsesFluidDayColumns = scheduleFillsWidth
     || shouldUseFluidScheduleDayColumns(scheduleDayColumnWidth)
+  const useShortScheduleDayNames = isScheduleCompactLandscape
+    || (scheduleViewportWidth > 0 && scheduleViewportWidth <= 900)
 
   const scheduleGridTableMinWidth = useMemo(
     () => getScheduleGridTableMinWidth(weekDays.length, scheduleDayColumnWidth),
@@ -5891,7 +5893,7 @@ function ScheduleView({
                   }}
                   >
                     <strong className="blend-grid-header-day-name" title={dayHeader.weekdayLabel}>
-                      {isScheduleCompactLandscape ? dayHeader.weekdayShortLabel : dayHeader.weekdayLabel}
+                      {useShortScheduleDayNames ? dayHeader.weekdayShortLabel : dayHeader.weekdayLabel}
                     </strong>
                     <div className="blend-grid-header-day-meta">
                       <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
