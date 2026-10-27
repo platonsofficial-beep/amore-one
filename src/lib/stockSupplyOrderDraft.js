@@ -1,3 +1,4 @@
+import { selectItemsToOrder } from './stockCatalog'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
 import {
@@ -10,8 +11,7 @@ import {
 } from './stockOrderUtils'
 import { formatStockQuantity } from './stockUtils'
 
-export const SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE =
-  'Nothing is below par in a supply or buying storage.'
+export const SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE = 'Nothing to order.'
 
 function roundOrderQuantity(value) {
   return Math.round((value + Number.EPSILON) * 1000) / 1000
@@ -99,7 +99,9 @@ export function supplyOrderQuantity({
 }
 
 /**
- * One editable draft group per supplier. Quantity is the supply/buying shortfall.
+ * One editable draft group per supplier.
+ * The item set and quantities are the shared To order selector
+ * (catalog target, otherwise minimum), so the estimate matches the dashboard.
  *
  * @param {{
  *   items?: unknown,
@@ -111,25 +113,17 @@ export function supplyOrderQuantity({
  */
 export function buildSupplyOrderDraftGroups({
   items = [],
-  storages = [],
-  balances = [],
-  pars = [],
   suppliers = [],
 } = {}) {
   const groups = new Map()
 
-  for (const item of Array.isArray(items) ? items : []) {
-    if (!item || item.active === false) continue
+  for (const item of selectItemsToOrder(items)) {
     const itemId = trimmedId(item.id)
     if (!itemId) continue
-    const quantity = supplyOrderQuantity({ itemId, storages, balances, pars })
-    if (!(quantity > 0)) continue
+    const line = buildSuggestedOrderLine({ ...item, id: itemId })
+    if (!(line.quantity > 0)) continue
 
     const identity = resolveOrderGroupIdentity(item, suppliers)
-    const line = buildSuggestedOrderLine({ ...item, id: itemId })
-    line.quantity = quantity
-    line.totalPrice = computeOrderTotalCost([{ quantity, costPrice: line.costPrice }])
-    line.needLabel = formatStockQuantity(quantity, item.unit)
 
     if (!groups.has(identity.groupKey)) {
       groups.set(identity.groupKey, {
@@ -230,12 +224,12 @@ export function formatSupplyOrderDraftPreview(plan = [], existingOrders = []) {
     const supplier = `${step?.group?.supplier ?? ''}`.trim() || 'Supplier'
     const nextTotal = formatEuroAmount(step?.group?.totalCost)
     if (step?.action !== 'update') {
-      return `Create a draft for ${supplier} · ${nextTotal}`
+      return `Create an order for ${supplier} · ${nextTotal}`
     }
     const existing = orders.find((order) => String(order?.id) === String(step.orderId))
     const number = formatStockOrderNumber(existing?.orderNumber ?? existing?.order_number)
     const previousTotal = formatEuroAmount(orderTotalAmount(existing))
-    return `Update draft ${number} for ${supplier} · ${previousTotal} → ${nextTotal}`
+    return `Update order ${number} for ${supplier} · ${previousTotal} → ${nextTotal}`
   })
 }
 
@@ -300,12 +294,12 @@ export function formatSupplyOrderDraftNotice({ created = [], updated = [] } = {}
 
   const parts = []
   if (createdCount > 0) {
-    parts.push(`Created ${createdCount} draft${createdCount === 1 ? '' : 's'}`)
+    parts.push(`Created ${createdCount} order${createdCount === 1 ? '' : 's'}`)
   }
   if (updatedCount > 0) {
-    parts.push(`updated ${updatedCount} draft${updatedCount === 1 ? '' : 's'}`)
+    parts.push(`updated ${updatedCount} order${updatedCount === 1 ? '' : 's'}`)
   }
   const lead = parts.join(' and ')
   const capitalized = lead.charAt(0).toUpperCase() + lead.slice(1)
-  return `${capitalized} from supply pars. Edit them before sending.`
+  return `${capitalized}. Edit them before sending.`
 }

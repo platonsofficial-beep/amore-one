@@ -7,7 +7,7 @@ import {
   stockItemToDuplicateForm,
   STOCK_CATEGORIES,
 } from '../../lib/stockCatalog'
-import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
+import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../lib/stockProductIdentity'
 import {
   buildStockItemUpdatePayload,
   exportStockItemsToCsv,
@@ -30,6 +30,7 @@ import {
 import {
   buildToCountStorageGroups,
   buildToOrderSupplierGroups,
+  formatToOrderBreakdown,
   getStockDashboardEmptyState,
   getStockItemInsights,
 } from '../../lib/stockInsights'
@@ -37,10 +38,11 @@ import { StockUsageCostReport } from './StockUsageCostReport'
 import {
   buildStockDashboardSummary,
   buildTodayStockActivitySummary,
+  formatStockInactiveNote,
   formatStockInventoryValue,
   formatStockMovementRelativeTime,
+  formatStockPurchasePrice,
   formatStockQuantity,
-  formatStockTotalItemsLabel,
   formatTodayStockActivityLine,
   getStockCategoryFilters,
   getStockMovementLabel,
@@ -49,7 +51,7 @@ import {
 } from '../../lib/stockUtils'
 import { getCurrentDateKey } from '../../lib/currentDateUtils'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
-import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
+import { buildStockOrdersOperationsSummary, sumSuggestedOrderCost } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockActionIcon } from './StockActionIcon'
@@ -186,6 +188,7 @@ function StockItemCard({
   const insights = getStockItemInsights(item, { canManage })
   const staleCount = insights.find((insight) => insight.id === 'not-counted')
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const sizeDetail = formatProductSizeDetail(item)
   const needsDelivery = item.status === 'out' || item.status === 'low'
   const level = stockLevelPercent(item)
   const metaLine = [supplierLabel || 'No supplier', location].filter(Boolean).join(' · ')
@@ -222,6 +225,7 @@ function StockItemCard({
           <h3 className="stock-item-name" title={displayTitle || undefined}>
             {displayTitle}
           </h3>
+          {sizeDetail ? <p className="stock-item-size-detail">{sizeDetail}</p> : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted">Inactive</span>
           ) : (
@@ -402,6 +406,7 @@ function StockListRow({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const sizeDetail = formatProductSizeDetail(item)
   const handleRowClick = () => {
     if (selectionMode) {
       onToggleSelect?.()
@@ -436,6 +441,7 @@ function StockListRow({
           <span className="stock-list-product-name" title={displayTitle || undefined}>
             {displayTitle}
           </span>
+          {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted stock-list-product-inactive">
               Inactive
@@ -507,6 +513,7 @@ function StockListMobileCard({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const sizeDetail = formatProductSizeDetail(item)
 
   const handleRowClick = () => {
     if (selectionMode) {
@@ -538,6 +545,7 @@ function StockListMobileCard({
         ) : null}
         <div className="stock-list-mobile-title-wrap">
           <h3 className="stock-list-mobile-name">{displayTitle}</h3>
+          {sizeDetail ? <p className="stock-item-size-detail">{sizeDetail}</p> : null}
           <span className={`stock-item-status-badge stock-list-mobile-status-badge tone-${item.status}`}>
             {getStockStatusShortLabel(item.status)}
           </span>
@@ -676,6 +684,7 @@ function StockCompactRow({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const sizeDetail = formatProductSizeDetail(item)
 
   const handleRowClick = () => {
     if (selectionMode) {
@@ -706,6 +715,7 @@ function StockCompactRow({
       ) : null}
       <div className="stock-compact-copy">
         <h3 className="stock-compact-name">{displayTitle}</h3>
+        {sizeDetail ? <p className="stock-item-size-detail">{sizeDetail}</p> : null}
         <span className={`stock-item-status-badge stock-compact-status-badge tone-${item.status}`}>
           {getStockStatusShortLabel(item.status)}
         </span>
@@ -1494,8 +1504,14 @@ export function StockDashboardView({
   const filteredProductCount = visibleItems.length
 
   const toCountTotal = toCountGroups.reduce((sum, group) => sum + group.count, 0)
+  const visibleCountGroups = toCountGroups.slice(0, 4)
+  const visibleCountSum = visibleCountGroups.reduce((sum, group) => sum + group.count, 0)
+  const hiddenCountItems = Math.max(0, toCountTotal - visibleCountSum)
   const visibleOrderGroups = toOrderGroups.slice(0, 4)
   const hiddenOrderGroups = Math.max(0, toOrderGroups.length - visibleOrderGroups.length)
+  const toOrderEstimate = sumSuggestedOrderCost(activeCatalogItems)
+  const inactiveCount = catalogItems.filter((entry) => entry.active === false).length
+  const inactiveNote = formatStockInactiveNote(inactiveCount)
 
   const categoryOptions = useMemo(
     () => categoryFilters.map((category) => ({ id: category, label: category })),
@@ -1726,12 +1742,12 @@ export function StockDashboardView({
         <div>
           <p className="stock-calm-kicker">Inventory</p>
           <h2 className="stock-calm-title">
-            {isLoading ? '—' : formatStockTotalItemsLabel(
-              summary.totalItems,
-              catalogItems.filter((entry) => entry.active === false).length,
-            )}
+            {isLoading ? '—' : summary.totalItems}
             <span> items</span>
           </h2>
+          {!isLoading && inactiveNote ? (
+            <p className="stock-calm-inactive-note">{inactiveNote}</p>
+          ) : null}
         </div>
         {canManage ? (
           <p className="stock-calm-value">
@@ -1772,23 +1788,22 @@ export function StockDashboardView({
           <article className="stock-today-card" aria-label="To order">
             <header className="stock-today-card-header">
               <h3>To order</h3>
-              <p>{summary.outOfStock} out · {summary.lowStock} low</p>
+              <p>
+                {formatToOrderBreakdown(activeCatalogItems)}
+                {toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}
+              </p>
             </header>
             {visibleOrderGroups.length > 0 ? (
               <ul className="stock-today-groups">
                 {visibleOrderGroups.map((group) => (
                   <li key={group.supplier}>
                     <span>{group.supplier}</span>
-                    <span>
-                      {group.out > 0 ? `${group.out} out` : ''}
-                      {group.out > 0 && group.low > 0 ? ' · ' : ''}
-                      {group.low > 0 ? `${group.low} low` : ''}
-                    </span>
+                    <span>{group.count}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="stock-today-card-empty">Nothing to order from the catalog minimum.</p>
+              <p className="stock-today-card-empty">Nothing to order.</p>
             )}
             {hiddenOrderGroups > 0 ? (
               <p className="stock-today-card-more">+{hiddenOrderGroups} more supplier{hiddenOrderGroups === 1 ? '' : 's'}</p>
@@ -1796,7 +1811,7 @@ export function StockDashboardView({
             <div className="stock-today-links">
               {stockLiveSnapshot?.parsReady && Number(stockLiveSnapshot.belowParCount) > 0 ? (
                 <button type="button" className="stock-text-btn" onClick={onOpenBelowPar}>
-                  {stockLiveSnapshot.belowParCount} running low on shelves
+                  Shelf levels
                 </button>
               ) : null}
               {ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
@@ -1821,9 +1836,9 @@ export function StockDashboardView({
                   : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
               </p>
             </header>
-            {toCountGroups.length > 0 ? (
+            {visibleCountGroups.length > 0 ? (
               <ul className="stock-today-groups">
-                {toCountGroups.slice(0, 4).map((group) => (
+                {visibleCountGroups.map((group) => (
                   <li key={group.storage}>
                     <span>{group.storage}</span>
                     <span>{group.count}</span>
@@ -1833,6 +1848,9 @@ export function StockDashboardView({
             ) : (
               <p className="stock-today-card-empty">Only items not counted in the last 14 days show here.</p>
             )}
+            {hiddenCountItems > 0 ? (
+              <p className="stock-today-card-more">+{hiddenCountItems} in other storages</p>
+            ) : null}
             {typeof onOpenCounts === 'function' && toCountTotal > 0 ? (
               <button type="button" className="stock-text-btn" onClick={onOpenCounts}>
                 <StockActionIcon name="clipboard" />

@@ -42,6 +42,8 @@ describe('prepareSupplyOrderDrafts', () => {
         active: true,
         unit: 'btl',
         costPrice: 2,
+        currentQuantity: 1,
+        targetQuantity: 4,
         supplierId: 'sup-1',
         supplier: 'Wine',
       }],

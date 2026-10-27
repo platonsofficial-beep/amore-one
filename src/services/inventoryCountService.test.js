@@ -278,7 +278,7 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       status: 'paused',
       statusLabel: 'Paused',
       countType: 'quick',
-      countTypeLabel: 'Quick Count',
+      countTypeLabel: 'Quick count',
       startedBy: 'user-1',
       pausedAt: '2026-07-21T11:00:00.000Z',
       updatedAt: '2026-07-21T11:00:00.000Z',
@@ -561,7 +561,7 @@ describe('getOpenInventoryCountBlockerForStockItem (P8.16.29)', () => {
     ])
     expect(blocker).toMatchObject({
       sessionId: 'session-open',
-      countTypeLabel: 'New Count',
+      countTypeLabel: 'New count',
       statusLabel: 'In progress',
       storageLocation: 'Main Storage',
       operatorName: 'PLATON SACHINIS',

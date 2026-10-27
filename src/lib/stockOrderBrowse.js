@@ -2,7 +2,7 @@ import { formatStockOrderNumber, normalizeStockOrderStatus } from './stockOrderU
 
 export const STOCK_ORDER_STATUS_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'draft', label: 'Draft' },
+  { id: 'draft', label: 'To send' },
   { id: 'sent', label: 'Sent' },
   { id: 'received', label: 'Received' },
   { id: 'cancelled', label: 'Cancelled' },
@@ -95,8 +95,8 @@ export function getStockOrdersEmptyState(statusFilter = 'all', hasAnyOrders = fa
 
   if (statusFilter === 'draft') {
     return {
-      title: 'No draft orders',
-      description: 'Draft orders you are preparing will appear here.',
+      title: 'No orders to send',
+      description: 'Orders you are still preparing will appear here.',
       showCreate: true,
     }
   }

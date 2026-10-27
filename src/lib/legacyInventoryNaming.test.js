@@ -23,8 +23,8 @@ describe('Retired Legacy Inventory navigation', () => {
       id: 'migration',
       label: 'Import',
     })
-    expect(STOCK_SECTIONS.find((section) => section.id === 'count')?.label).toBe('Inventory Count')
-    expect(getModuleTitle('stock', { stockSection: 'count' })).toBe('Inventory Count')
+    expect(STOCK_SECTIONS.find((section) => section.id === 'count')?.label).toBe('Counts')
+    expect(getModuleTitle('stock', { stockSection: 'count' })).toBe('Counts')
     expect(getModuleTitle('stock', { stockSection: 'migration' })).toBe('Import')
   })
 

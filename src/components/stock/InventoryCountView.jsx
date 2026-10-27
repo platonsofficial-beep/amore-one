@@ -728,10 +728,10 @@ export function InventoryCountView({
   }
 
   return (
-    <section className="inventory-count-page" aria-label="Inventory Count">
+    <section className="inventory-count-page" aria-label="Counts">
       <header className="inventory-count-header">
         <div className="inventory-count-header-copy">
-          <h2 className="inventory-count-title">Inventory Count</h2>
+          <h2 className="inventory-count-title">Counts</h2>
           <p className="inventory-count-subtitle">
             Count inventory by location, review variances, and post verified stock levels.
           </p>
@@ -742,7 +742,7 @@ export function InventoryCountView({
             className="primary-btn inventory-count-start-btn"
             onClick={() => setIsWizardOpen(true)}
           >
-            Start new count
+            Start count
           </button>
         ) : null}
       </header>
@@ -760,37 +760,54 @@ export function InventoryCountView({
       ) : null}
 
       <div className="inventory-count-foundation-grid" aria-label="Inventory count status">
-        <InventoryCountSessionPanel
-          title="Active counts"
-          sessions={activeSessions}
-          emptyTitle="No active counts."
-          emptyCopy=""
-          isLoading={isLoadingSessions}
-          onOpenSession={openSession}
-          onReviewSession={openSession}
-          onPostSession={handlePostSession}
-          onCancelSession={handleCancelSession}
-          onDeleteSession={handleRequestDeleteSession}
-          busySessionId={busySessionId}
-          busyAction={busyAction}
-          actionErrors={actionErrors}
-          canManage={canManage}
-          timeZone={timeZone}
-        />
-        <InventoryCountSessionPanel
-          title="Paused counts"
-          sessions={pausedSessions}
-          emptyTitle="No paused counts."
-          emptyCopy=""
-          isLoading={isLoadingSessions}
-          onOpenSession={openSession}
-          onDeleteSession={handleRequestDeleteSession}
-          busySessionId={busySessionId}
-          busyAction={busyAction}
-          actionErrors={actionErrors}
-          canManage={canManage}
-          timeZone={timeZone}
-        />
+        {!isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0 ? (
+          <div className="inventory-count-quiet-empty">
+            <p>No active counts.</p>
+            {canManage ? (
+              <button
+                type="button"
+                className="primary-btn inventory-count-start-btn"
+                onClick={() => setIsWizardOpen(true)}
+              >
+                Start count
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <>
+            <InventoryCountSessionPanel
+              title="Active counts"
+              sessions={activeSessions}
+              emptyTitle="No active counts."
+              emptyCopy=""
+              isLoading={isLoadingSessions}
+              onOpenSession={openSession}
+              onReviewSession={openSession}
+              onPostSession={handlePostSession}
+              onCancelSession={handleCancelSession}
+              onDeleteSession={handleRequestDeleteSession}
+              busySessionId={busySessionId}
+              busyAction={busyAction}
+              actionErrors={actionErrors}
+              canManage={canManage}
+              timeZone={timeZone}
+            />
+            <InventoryCountSessionPanel
+              title="Paused counts"
+              sessions={pausedSessions}
+              emptyTitle="No paused counts."
+              emptyCopy=""
+              isLoading={isLoadingSessions}
+              onOpenSession={openSession}
+              onDeleteSession={handleRequestDeleteSession}
+              busySessionId={busySessionId}
+              busyAction={busyAction}
+              actionErrors={actionErrors}
+              canManage={canManage}
+              timeZone={timeZone}
+            />
+          </>
+        )}
         <InventoryCountSessionPanel
           title="Recent counts"
           sessions={recentSessions}

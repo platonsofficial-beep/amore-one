@@ -274,9 +274,15 @@ export function buildTodayStatusSummary({
     const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)
       + (Number(stockOrdersSummary?.partialCount) || 0)
 
+    const toOrder = Math.max(0, Number(stockSummary?.toOrder) || 0)
+    const toOrderLabel = toOrder === 1 ? '1 to order' : `${toOrder} to order`
+
     if (hasStockModuleData || pendingDeliveries > 0) {
       if (outCount > 0 || lowCount > 0) {
         stockSummaryLine = formatSharedStockHealthLine({ outOfStock: outCount, lowStock: lowCount })
+        if (toOrder > 0) stockSummaryLine = `${stockSummaryLine} · ${toOrderLabel}`
+      } else if (toOrder > 0) {
+        stockSummaryLine = toOrderLabel
       } else if (pendingDeliveries > 0) {
         stockSummaryLine = pendingDeliveries === 1
           ? '1 delivery pending'
@@ -410,7 +416,7 @@ export function buildTodayAttentionItems({
         tone: item.severity === 'critical' ? 'critical' : 'warning',
         priority: item.severity === 'critical' ? 'urgent' : 'reminder',
         label: item.name,
-        detail: item.severity === 'critical' ? 'Out of stock' : 'Low stock',
+        detail: item.severity === 'critical' ? 'Out of stock' : 'Low',
       })
     })
   }

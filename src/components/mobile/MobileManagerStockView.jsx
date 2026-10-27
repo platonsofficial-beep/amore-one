@@ -15,6 +15,7 @@ import {
 } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from '../stock/StockCreateOrderModal'
 import { formatInventoryUnit } from '../../lib/inventoryUnitDisplay'
+import { formatProductSizeDetail } from '../../lib/stockProductIdentity'
 
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
@@ -39,6 +40,7 @@ function MobileManagerStockItemCard({
 }) {
   const currentQuantity = Number(item.currentQuantity) || 0
   const statusLabel = getStockStatusShortLabel(item.status)
+  const sizeDetail = formatProductSizeDetail(item, item.name)
 
   return (
     <button
@@ -46,7 +48,10 @@ function MobileManagerStockItemCard({
       className={`mobile-manager-stock-card mobile-manager-stock-row tone-${item.status}`}
       onClick={() => onOpen?.(item)}
     >
-      <span className="mobile-manager-stock-card-name">{item.name}</span>
+      <span className="mobile-manager-stock-card-name">
+        {item.name}
+        {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
+      </span>
       <span className={`mobile-manager-stock-row-qty tone-${item.status}`}>
         {formatInventoryUnit(currentQuantity, item.unit)}
       </span>
@@ -89,6 +94,9 @@ function MobileStockDetailSheet({
         <header className="mobile-stock-detail-header">
           <div>
             <h2 id="mobile-stock-detail-title">{item.name}</h2>
+            {formatProductSizeDetail(item, item.name) ? (
+              <p className="stock-item-size-detail">{formatProductSizeDetail(item, item.name)}</p>
+            ) : null}
             <p>{categoryLabel}</p>
           </div>
           <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
@@ -158,7 +166,7 @@ function MobileStockPendingOrdersBanner({
   } else if (partialCount > 0) {
     message = partialCount === 1 ? '1 partial order open' : `${partialCount} partial orders open`
   } else if (draftCount > 0) {
-    message = draftCount === 1 ? '1 draft order to review' : `${draftCount} draft orders to review`
+    message = draftCount === 1 ? '1 order to review' : `${draftCount} orders to review`
   }
 
   return (

@@ -8,7 +8,9 @@ import {
   PRODUCT_IDENTITY_EXCLUDED_FIELDS,
   PRODUCT_IDENTITY_FIELDS,
   buildProductDisplayName,
+  buildProductDisplayNameFromItem,
   buildProductIdentityKey,
+  formatProductSizeDetail,
   normalizeProductIdentityComponent,
 } from './stockProductIdentity.js'
 
@@ -97,6 +99,22 @@ describe('buildProductDisplayName', () => {
       name: 'Belvedere Vodka',
       size: '1 L',
     })).toBe('Belvedere Belvedere Vodka 1 L')
+  })
+})
+
+describe('formatProductSizeDetail', () => {
+  it('hides the chip when the visible name already contains that size', () => {
+    const item = { name: 'Espresso beans', size: '1 kg' }
+    expect(buildProductDisplayNameFromItem(item)).toBe('Espresso beans 1 kg')
+    expect(formatProductSizeDetail(item)).toBe('')
+    expect(formatProductSizeDetail(item, 'Espresso beans 1 kg')).toBe('')
+  })
+
+  it('keeps the chip when the shown name does not include the size', () => {
+    const item = { name: 'Espresso beans', size: '1 kg' }
+    expect(formatProductSizeDetail(item, item.name)).toBe('1 kg')
+    expect(formatProductSizeDetail({ name: 'House ice', size: '' })).toBe('')
+    expect(formatProductSizeDetail({ name: 'Cola 330 ml', size: '330 ml' }, 'Cola 330 ml')).toBe('')
   })
 })
 
@@ -223,6 +241,7 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/stock/StockUsageCostReport.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockTransferModal.jsx'),
       resolve(process.cwd(), 'src/components/stock/StaffShelfCountSheet.jsx'),
+      resolve(process.cwd(), 'src/components/mobile/MobileManagerStockView.jsx'),
       resolve(process.cwd(), 'src/lib/inventoryCountItemName.js'),
     ])
 

@@ -251,7 +251,7 @@ async function renderWorkspace(props = {}) {
 
 async function advanceWizardToSession(container) {
   await act(async () => {
-    getButtonByText(container, 'Start new count').click()
+    getButtonByText(container, 'Start count').click()
   })
   await act(async () => {
     await Promise.resolve()
@@ -283,7 +283,7 @@ async function advanceWizardToSession(container) {
     continueBtn.click()
   })
 
-  const startBtn = getButtonByText(dialog, 'Start Inventory Count Session')
+  const startBtn = getButtonByText(dialog, 'Start count')
   await act(async () => {
     startBtn.click()
   })
@@ -423,7 +423,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       getButtonByText(container, 'Exit').click()
     })
     expect(container.querySelector('.inventory-count-session')).toBeNull()
-    expect(container.textContent).toContain('Start new count')
+    expect(container.textContent).toContain('Start count')
 
     cleanup()
   })
@@ -2400,7 +2400,7 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
     })
     expect(container.querySelector('.inventory-count-page')).toBeTruthy()
     expect(container.querySelector('.inventory-count-session.is-high-density')).toBeNull()
-    expect(getButtonByText(container, 'Start new count')).toBeTruthy()
+    expect(getButtonByText(container, 'Start count')).toBeTruthy()
     cleanup()
   })
 

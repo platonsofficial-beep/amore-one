@@ -48,7 +48,7 @@ export function buildManagerMobileAttentionItems({
       category: 'stock',
       tone: 'warning',
       priority: 'reminder',
-      label: drafts === 1 ? '1 draft order' : `${drafts} draft orders`,
+      label: drafts === 1 ? '1 order to review' : `${drafts} orders to review`,
       detail: 'Review before sending to supplier',
     })
   }

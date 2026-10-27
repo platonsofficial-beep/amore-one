@@ -1,4 +1,4 @@
-import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
+import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 import { formatInVenueZone } from './timeFormatUtils'
@@ -74,6 +74,11 @@ export function buildSuggestedOrderLine(item) {
     totalPrice: computeOrderLineTotal(quantity, costPrice),
     needLabel: formatStockQuantity(quantity, item.unit),
   }
+}
+
+/** Estimated order total for the shared To order set. */
+export function sumSuggestedOrderCost(items = []) {
+  return computeOrderTotalCost(selectItemsToOrder(items).map((item) => buildSuggestedOrderLine(item)))
 }
 
 /**
@@ -167,10 +172,7 @@ export function resolveOrderGroupIdentity(item, suppliers = []) {
 export function buildSupplierOrderGroups(stockItems = [], suppliers = []) {
   const groups = new Map()
 
-  ;(stockItems ?? []).forEach((item) => {
-    if (item.active === false) return
-    if (!itemNeedsOrder(item)) return
-
+  selectItemsToOrder(stockItems).forEach((item) => {
     const identity = resolveOrderGroupIdentity(item, suppliers)
     const line = buildSuggestedOrderLine(item)
 

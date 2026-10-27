@@ -143,7 +143,7 @@ describe('InventoryCountWizard foundation', () => {
 
     expect(container.querySelector('[role="dialog"]')).toBeNull()
 
-    const startBtn = getButtonByText(container, 'Start new count')
+    const startBtn = getButtonByText(container, 'Start count')
     expect(startBtn).toBeTruthy()
 
     await act(async () => {
@@ -153,7 +153,7 @@ describe('InventoryCountWizard foundation', () => {
 
     const dialog = container.querySelector('[role="dialog"]')
     expect(dialog).not.toBeNull()
-    expect(dialog?.textContent).toContain('Inventory Count')
+    expect(dialog?.textContent).toContain('New count')
     expect(dialog?.textContent).toContain('Create a new inventory counting session.')
     expect(dialog?.textContent).toContain('Step 1 of 4')
     expect(dialog?.textContent).toContain('Count Type')
@@ -383,7 +383,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(container.textContent).toContain('Inactive inventory items will be included.')
     expect(container.textContent).not.toContain('Step 4 coming next')
 
-    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    const startBtn = getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')
     expect(startBtn).toBeTruthy()
     expect(startBtn?.disabled).toBe(false)
 
@@ -440,7 +440,7 @@ describe('InventoryCountWizard foundation', () => {
     await act(async () => {
       continueBtn.click()
     })
-    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    const startBtn = getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')
 
     await act(async () => {
       startBtn.click()
@@ -449,7 +449,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).not.toHaveBeenCalled()
     expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Create failed')
-    expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
+    expect(getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')?.disabled).toBe(false)
 
     cleanup()
   })
@@ -466,7 +466,7 @@ describe('InventoryCountWizard foundation', () => {
     await act(async () => {
       continueBtn.click()
     })
-    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    const startBtn = getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')
 
     await act(async () => {
       startBtn.click()
@@ -475,7 +475,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).not.toHaveBeenCalled()
     expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Snapshot failed')
-    expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
+    expect(getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')?.disabled).toBe(false)
 
     cleanup()
   })
@@ -499,7 +499,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(container.textContent).toContain('Step 4 of 4')
 
     await act(async () => {
-      getButtonByText(container, 'Start Inventory Count Session').click()
+      getButtonByText(container.querySelector('[role="dialog"]'), 'Start count').click()
     })
 
     expect(onStartSession).not.toHaveBeenCalled()
@@ -554,7 +554,7 @@ describe('InventoryCountWizard foundation', () => {
       continueBtn.click()
     })
     await act(async () => {
-      getButtonByText(container, 'Start Inventory Count Session').click()
+      getButtonByText(container.querySelector('[role="dialog"]'), 'Start count').click()
     })
 
     expect(onStartSession).not.toHaveBeenCalled()
@@ -585,7 +585,7 @@ describe('InventoryCountWizard foundation', () => {
     await act(async () => {
       continueBtn.click()
     })
-    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    const startBtn = getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')
 
     await act(async () => {
       startBtn.click()
@@ -693,7 +693,7 @@ describe('InventoryCountWizard live location scope (P8.21.1)', () => {
       continueBtn.click()
     })
 
-    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    const startBtn = getButtonByText(container.querySelector('[role="dialog"]'), 'Start count')
     await act(async () => {
       startBtn.click()
     })
@@ -807,7 +807,7 @@ describe('InventoryCountWizard live location scope (P8.21.1)', () => {
     await flushAsync()
     await flushAsync()
 
-    expect(container.textContent).not.toContain('Start new count')
+    expect(container.textContent).not.toContain('Start count')
     expect(container.textContent).not.toContain('Post Count')
     expect(container.textContent).not.toContain('Cancel Count')
     expect(container.textContent).not.toContain('Review')

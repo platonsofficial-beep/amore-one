@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
+import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../lib/stockProductIdentity'
 import {
   STORAGE_PAR_LABEL,
   STORAGE_PAR_UNAVAILABLE_MESSAGE,
@@ -189,6 +189,7 @@ function StorageProductRow({
   onCommitPar,
   onFocusParItem,
 }) {
+  const sizeDetail = formatProductSizeDetail(row)
   return (
     <div
       className={`stock-storage-product-row-wrap${row.active ? '' : ' is-inactive'}${menuOpen ? ' is-menu-open' : ''}`}
@@ -201,6 +202,7 @@ function StorageProductRow({
       >
         <div className="stock-storage-product-row-main">
           <strong className="stock-storage-product-name">{buildProductDisplayNameFromItem(row)}</strong>
+          {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
           <span className="stock-storage-product-category">{row.category || 'Other'}</span>
         </div>
         <div className="stock-storage-product-row-meta">

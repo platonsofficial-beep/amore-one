@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 
 const MENU_Z_INDEX = 12000
 const MENU_MARGIN = 8
-const MOBILE_SHEET_QUERY = '(max-width: 900px)'
+const MOBILE_SHEET_QUERY = '(max-width: 900px), (max-height: 520px)'
 
 const MENU_ITEMS = [
   { id: 'receive', label: 'Receive delivery', group: 'operations' },

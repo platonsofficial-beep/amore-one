@@ -7,17 +7,17 @@ import { createRoot } from 'react-dom/client'
 import { StockOrderDetailDrawer } from './StockOrderDetailDrawer'
 
 function render(ui) {
-  const container = document.createElement('div')
-  document.body.appendChild(container)
-  const root = createRoot(container)
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  const root = createRoot(host)
   act(() => {
     root.render(ui)
   })
   return {
-    container,
+    container: document.body,
     cleanup: () => {
       act(() => root.unmount())
-      container.remove()
+      host.remove()
     },
   }
 }

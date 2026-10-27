@@ -21,7 +21,7 @@ describe('Inventory Count section foundation', () => {
   it('registers Inventory Count in the Stock section navigation', () => {
     expect(STOCK_SECTIONS).toEqual(expect.arrayContaining([
       { id: 'dashboard', label: 'Dashboard' },
-      { id: 'count', label: 'Inventory Count' },
+      { id: 'count', label: 'Counts' },
       { id: 'storages', label: 'Storages' },
       { id: 'suppliers', label: 'Suppliers' },
       { id: 'orders', label: 'Orders' },
@@ -76,7 +76,7 @@ describe('Inventory Count section foundation', () => {
   })
 
   it('keeps the foundation free of session creation, posting, and local persistence', () => {
-    expect(inventoryCountSource).toContain('Start new count')
+    expect(inventoryCountSource).toContain('Start count')
     expect(inventoryCountSource).toContain('InventoryCountWizard')
     expect(inventoryCountSource).toContain('onClick')
     expect(inventoryCountSource).toContain('useState')
@@ -88,7 +88,7 @@ describe('Inventory Count section foundation', () => {
   })
 
   it('exposes Inventory Count module chrome copy', () => {
-    expect(getModuleTitle('stock', { stockSection: 'count' })).toBe('Inventory Count')
+    expect(getModuleTitle('stock', { stockSection: 'count' })).toBe('Counts')
     expect(getModuleSubtitle('stock', 'Friday', { stockSection: 'count' })).toContain('review variances')
   })
 })

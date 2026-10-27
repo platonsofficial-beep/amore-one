@@ -41,6 +41,29 @@ export function buildProductDisplayName({ brand, name, size } = {}) {
  * @param {{ brand?: unknown, name?: unknown, size?: unknown }|null|undefined} item
  * @returns {string}
  */
+/**
+ * Bottle or pack size when it is stored and the visible name does not
+ * already contain it. The computed title is Brand + Name + Size, so a chip
+ * next to that title would repeat "1 kg" on "Espresso beans 1 kg".
+ * Pass the text actually shown when it is not the computed title.
+ * Empty when size was never stored. Does not read the unit or invent a size.
+ *
+ * @param {{ brand?: unknown, name?: unknown, size?: unknown }|null|undefined} item
+ * @param {unknown} [visibleLabel]
+ * @returns {string}
+ */
+export function formatProductSizeDetail(item, visibleLabel) {
+  const size = normalizeProductIdentityComponent(item?.size)
+  if (!size) return ''
+  const label = visibleLabel == null
+    ? buildProductDisplayNameFromItem(item)
+    : normalizeProductIdentityComponent(visibleLabel)
+  const haystack = label.toLocaleLowerCase('en-US')
+  const needle = size.toLocaleLowerCase('en-US')
+  if (haystack && needle && haystack.includes(needle)) return ''
+  return size
+}
+
 export function buildProductDisplayNameFromItem(item) {
   const display = buildProductDisplayName({
     brand: item?.brand,
