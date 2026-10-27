@@ -50804,10 +50804,13 @@ summary:focus-visible {
   }
 
   .app-shell.is-personal-view .mobile-availability .mobile-screen-title,
-  .app-shell.is-personal-view .staff-host-personal-page .mobile-screen-title,
-  .app-shell.is-personal-view .staff-host-personal-page .mobile-profile-header h1 {
+  .app-shell.is-personal-view .staff-host-personal-page .mobile-screen-title {
     font-size: 1rem;
     line-height: 1.1;
+  }
+
+  .app-shell.is-personal-view:not(.is-mobile-shell) .staff-host-personal-page .mobile-profile-header h1 {
+    display: none;
   }
 
   .app-shell.is-personal-view .mobile-availability .mobile-screen-subtitle,
@@ -50834,15 +50837,35 @@ summary:focus-visible {
     gap: 8px;
   }
 
+  .app-shell.is-personal-view .mobile-availability .mobile-availability-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .app-shell.is-personal-view .mobile-availability .mobile-availability-save-btn {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+  }
+
   .app-shell.is-personal-view .staff-host-clock-page {
-    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
   }
 
   .app-shell.is-personal-view .staff-host-clock-page > .mobile-back-btn {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 1;
+    position: static;
+    align-self: flex-start;
   }
 
   .app-shell.is-personal-view .staff-host-personal-page .attendance-clock {
@@ -50858,7 +50881,6 @@ summary:focus-visible {
     flex-wrap: wrap;
     gap: 8px;
     min-height: 44px;
-    padding-left: 88px;
   }
 
   .app-shell.is-personal-view .staff-host-personal-page .attendance-clock-kicker {

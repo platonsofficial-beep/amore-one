@@ -9102,4 +9102,23 @@ body:not(:has(.inventory-count-session)) :is(
   .attendance-clock-screen .attendance-action {
     min-height: 44px;
   }
+
+  .mobile-availability .mobile-availability-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 48px;
+    min-height: 48px;
+    max-height: 48px;
+    margin-top: 0;
+    padding: 0;
+  }
+
+  .mobile-availability .mobile-availability-save-btn {
+    width: auto;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    padding: 0 16px;
+  }
 }
