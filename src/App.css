@@ -45441,64 +45441,77 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font: inherit;
 }
 
-.mobile-availability-time {
-  position: relative;
-  display: block;
+.hour-minute-field {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
   width: 100%;
   min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
 }
 
-.mobile-availability-input[type='time'] {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  min-height: 44px;
+.hour-minute-field select {
+  flex: 1 1 56px;
+  width: 56px;
+  max-width: 72px;
+  min-width: 44px;
   height: 44px;
+  min-height: 44px;
   margin: 0;
-  padding: 10px 12px;
-  line-height: 1.2;
-  color: #fff7e8;
+  padding: 0 4px;
+  border: 0;
+  box-sizing: border-box;
+  background: transparent;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
   color-scheme: dark;
+  font: inherit;
+  font-size: 16px;
+  line-height: 44px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  text-align-last: center;
   -webkit-appearance: none;
   appearance: none;
 }
 
-.mobile-availability-input[type='time']::-webkit-date-and-time-value {
-  min-height: 1.2em;
-  text-align: left;
+.hour-minute-field select:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.85);
+  outline-offset: -2px;
+  border-radius: 8px;
 }
 
-.mobile-availability-input[type='time']::-webkit-datetime-edit,
-.mobile-availability-input[type='time']::-webkit-datetime-edit-fields-wrapper,
-.mobile-availability-input[type='time']::-webkit-datetime-edit-hour-field,
-.mobile-availability-input[type='time']::-webkit-datetime-edit-minute-field,
-.mobile-availability-input[type='time']::-webkit-datetime-edit-ampm-field {
-  display: inline-flex;
-  align-items: center;
-  padding: 0;
+.hour-minute-field select:disabled {
+  opacity: 0.55;
+}
+
+.hour-minute-sep {
+  flex: 0 0 auto;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.hour-minute-field.is-empty select,
+.hour-minute-field.is-empty .hour-minute-sep {
+  color: rgba(247, 239, 225, 0.55);
+}
+
+.mobile-availability-field .hour-minute-field {
+  border-color: rgba(255, 255, 255, 0.1);
   color: #fff7e8;
 }
 
-.mobile-availability-time.is-empty .mobile-availability-input[type='time']::-webkit-datetime-edit {
-  color: transparent;
-}
-
-.mobile-availability-input[type='time']::-webkit-calendar-picker-indicator {
-  display: none;
-}
-
-.mobile-availability-time-placeholder {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
+.mobile-availability-field .hour-minute-field.is-empty select,
+.mobile-availability-field .hour-minute-field.is-empty .hour-minute-sep {
   color: rgba(255, 247, 232, 0.55);
-  pointer-events: none;
-  font: inherit;
 }
 
 .mobile-availability-textarea {
@@ -51004,71 +51017,8 @@ summary:focus-visible {
   font-size: 0.85rem;
 }
 
-.notification-quiet-time-box {
-  position: relative;
-  display: block;
+.notification-quiet-time .hour-minute-field {
   width: 100%;
-  min-width: 0;
-}
-
-.notification-quiet-time-box input[type='time'] {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  min-height: 44px;
-  height: 44px;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f7efe1;
-  -webkit-text-fill-color: #f7efe1;
-  caret-color: transparent;
-  color-scheme: dark;
-  font-variant-numeric: tabular-nums;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-.notification-quiet-time-box input[type='time']::-webkit-date-and-time-value,
-.notification-quiet-time-box input[type='time']::-webkit-datetime-edit,
-.notification-quiet-time-box input[type='time']::-webkit-datetime-edit-fields-wrapper,
-.notification-quiet-time-box input[type='time']::-webkit-datetime-edit-hour-field,
-.notification-quiet-time-box input[type='time']::-webkit-datetime-edit-minute-field,
-.notification-quiet-time-box input[type='time']::-webkit-datetime-edit-ampm-field {
-  color: #f7efe1;
-  -webkit-text-fill-color: #f7efe1;
-}
-
-.notification-quiet-time-box.is-empty input[type='time'],
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-date-and-time-value,
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit,
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-fields-wrapper,
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-hour-field,
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-minute-field,
-.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-ampm-field {
-  color: transparent;
-  -webkit-text-fill-color: transparent;
-}
-
-.notification-quiet-time-box input[type='time']::-webkit-calendar-picker-indicator {
-  display: none;
-}
-
-.notification-quiet-time-face {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  color: #f7efe1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  pointer-events: none;
 }
 
 .notification-device-list {
