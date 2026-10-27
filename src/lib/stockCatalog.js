@@ -399,8 +399,31 @@ export function resolveUnitFieldsForForm(unit, category) {
   }
 }
 
-export function buildEmptyStockItemForm(category = 'Spirits') {
-  const normalizedCategory = normalizeStockCategory(category)
+export function buildEmptyStockItemForm(category = '') {
+  const requested = `${category ?? ''}`.trim()
+  if (!requested) {
+    return {
+      name: '',
+      brand: '',
+      category: '',
+      itemType: '',
+      supplier: '',
+      storageLocation: '',
+      unitPreset: '',
+      customUnit: '',
+      persistedUnit: '',
+      size: '',
+      packagingNote: '',
+      barcode: '',
+      currentQuantity: '',
+      minimumQuantity: '',
+      targetQuantity: '',
+      orderQuantity: '',
+      purchasePrice: '',
+    }
+  }
+
+  const normalizedCategory = normalizeStockCategory(requested)
   const typeOptions = getStockTypeOptionsForCategory(normalizedCategory)
 
   return {
@@ -478,7 +501,10 @@ export function validateStockItemForm(form) {
   const name = `${form.name ?? ''}`.trim()
   if (!name) return 'Please enter a product name.'
 
-  const category = normalizeStockCategory(form.category)
+  const rawCategory = `${form.category ?? ''}`.trim()
+  if (!rawCategory) return 'Please select a category.'
+
+  const category = normalizeStockCategory(rawCategory)
   if (!category) return 'Please select a category.'
 
   const itemType = `${form.itemType ?? ''}`.trim()

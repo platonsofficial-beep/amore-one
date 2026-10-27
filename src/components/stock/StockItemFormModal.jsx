@@ -103,9 +103,27 @@ export function StockItemFormModal({
   )
 
   const typeOptions = useMemo(
-    () => getStockTypeOptionsForCategory(form.category),
+    () => (form.category ? getStockTypeOptionsForCategory(form.category) : []),
     [form.category],
   )
+
+  useEffect(() => {
+    if (initialItem?.id) {
+      setForm(stockItemToForm(initialItem))
+      setStoragePar('')
+      setError('')
+      return
+    }
+    if (initialForm) {
+      setForm(initialForm)
+      setStoragePar('')
+      setError('')
+      return
+    }
+    setForm(buildEmptyStockItemForm())
+    setStoragePar('')
+    setError('')
+  }, [initialItem, initialForm])
 
   const unitPresets = useMemo(
     () => getStockUnitPresetsForCategory(form.category),
@@ -113,6 +131,18 @@ export function StockItemFormModal({
   )
 
   const handleCategoryChange = (category) => {
+    if (!`${category ?? ''}`.trim()) {
+      setForm((current) => ({
+        ...current,
+        category: '',
+        itemType: '',
+        storageLocation: '',
+        unitPreset: '',
+        customUnit: '',
+      }))
+      return
+    }
+
     const normalizedCategory = normalizeStockCategory(category)
     const nextTypeOptions = getStockTypeOptionsForCategory(normalizedCategory)
 
@@ -178,9 +208,9 @@ export function StockItemFormModal({
   const storedProductName = `${form.name ?? ''}`.trim()
 
   return (
-    <div className="employee-modal-backdrop" onClick={onClose}>
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={onClose}>
       <div
-        className="employee-modal stock-item-form-modal"
+        className="employee-modal stock-item-form-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -242,6 +272,7 @@ export function StockItemFormModal({
                     value={form.category}
                     onChange={(event) => handleCategoryChange(event.target.value)}
                   >
+                    <option value="">Choose a category</option>
                     {STOCK_CATEGORIES.map((category) => (
                       <option key={category} value={category}>{category}</option>
                     ))}
@@ -253,8 +284,10 @@ export function StockItemFormModal({
                   <select
                     value={form.itemType}
                     onChange={(event) => setForm((current) => ({ ...current, itemType: event.target.value }))}
+                    disabled={!form.category}
                     required
                   >
+                    <option value="">Choose a subcategory</option>
                     {typeOptions.map((type) => (
                       <option key={type} value={type}>{type}</option>
                     ))}

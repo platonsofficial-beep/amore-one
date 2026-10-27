@@ -172,6 +172,7 @@ export function StockOrdersView({
   searchTerm = '',
   canManage = false,
   isSaving = false,
+  isPreparingDrafts = false,
   isWorkspaceReady = false,
   workspaceId = '',
   initialStatusFilter = null,
@@ -239,7 +240,7 @@ export function StockOrdersView({
     setIsCreateModalOpen(false)
   }
 
-  const isActionBusy = isSaving || isLoading
+  const isActionBusy = isSaving || isLoading || isPreparingDrafts
 
   return (
     <section className="stock-orders-page" aria-label="Stock orders">
@@ -289,7 +290,7 @@ export function StockOrdersView({
                 onClick={() => { void onPrepareDrafts() }}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isSaving ? 'Saving…' : 'Suggest order'}
+                {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : 'Suggest order')}
               </button>
             ) : null}
             <button
@@ -367,7 +368,7 @@ export function StockOrdersView({
                   onClick={() => { void onPrepareDrafts() }}
                   disabled={!isWorkspaceReady || isActionBusy}
                 >
-                  {isSaving ? 'Saving…' : 'Suggest order'}
+                  {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : 'Suggest order')}
                 </button>
               ) : null}
               <button

@@ -52076,8 +52076,8 @@ summary:focus-visible {
   }
 
   .stock-take-stepper button {
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 40px;
+    min-height: 40px;
     padding: 0;
     border-radius: 8px;
     font-size: 1rem;
@@ -52139,6 +52139,8 @@ summary:focus-visible {
   .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-movement-modal),
   .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-transfer-modal),
   .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-create-order-modal),
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-item-form-modal),
+  .app-shell.is-mobile-shell .employee-modal-backdrop:has(.stock-supplier-form-modal),
   .app-shell.is-mobile-shell .employee-modal-backdrop.staff-shelf-count-backdrop {
     align-items: stretch;
     justify-content: stretch;
@@ -52152,6 +52154,8 @@ summary:focus-visible {
   .app-shell.is-mobile-shell .employee-modal.stock-movement-modal.task-form-modal.is-responsive-sheet,
   .app-shell.is-mobile-shell .employee-modal.stock-transfer-modal.task-form-modal.is-responsive-sheet,
   .app-shell.is-mobile-shell .employee-modal.stock-create-order-modal.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.stock-item-form-modal.task-form-modal.is-responsive-sheet,
+  .app-shell.is-mobile-shell .employee-modal.stock-supplier-form-modal.task-form-modal.is-responsive-sheet,
   .app-shell.is-mobile-shell .employee-modal.staff-shelf-count-sheet {
     width: 100%;
     max-width: none;
@@ -52164,6 +52168,287 @@ summary:focus-visible {
     padding-top: max(12px, env(safe-area-inset-top, 0px));
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     background: #12141c;
+  }
+
+  .app-shell.is-mobile-shell .stock-item-form-modal,
+  .app-shell.is-mobile-shell .stock-supplier-form-modal {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .stock-item-form,
+  .stock-supplier-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .stock-item-form-scroll,
+  .stock-supplier-form-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .stock-item-form-footer,
+  .stock-supplier-form-footer {
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding-top: 8px;
+    background: #12141c;
+  }
+
+  .stock-supplier-form .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inventory-import-history-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .inventory-import-history-table {
+    min-width: 640px;
+  }
+
+  .stock-product-history-backdrop:has(.stock-supplier-detail-drawer) {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .stock-product-history-drawer.stock-supplier-detail-drawer {
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: auto;
+    border-radius: 0;
+  }
+
+  .inventory-import-wizard-step {
+    padding: 6px 8px;
+  }
+
+  .inventory-import-wizard-step-label {
+    font-size: 0.68rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .app-shell.is-mobile-shell.is-mobile-expanded .stock-section-nav .module-section-tabs {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+
+.stock-movement-modal label,
+.stock-movement-modal legend,
+.stock-movement-storage-field-label {
+  color: var(--one-gold-light);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.stock-movement-storage-row {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(11, 15, 23, 0.72);
+  color: #fff7e8;
+  text-align: left;
+}
+
+@media (max-width: 720px) {
+  .inventory-count-wizard {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .inventory-count-wizard-header {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .inventory-count-wizard-header-copy {
+    min-width: 0;
+  }
+
+  .inventory-count-wizard-title,
+  .inventory-count-wizard-subtitle {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inventory-count-wizard-close-btn {
+    flex: 0 0 auto;
+  }
+
+  .inventory-count-wizard-footer,
+  .inventory-count-wizard-footer-end {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .inventory-count-wizard-continue-btn,
+  .inventory-count-wizard-continue-btn:disabled,
+  .inventory-count-wizard-continue-btn[aria-disabled='true'],
+  .inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']),
+  .inventory-count-wizard-footer-end .inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+    padding-inline: 12px;
+  }
+}
+
+@media (max-height: 430px) {
+  .stock-orders-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stock-orders-title {
+    font-size: 1rem;
+    white-space: nowrap;
+  }
+
+  .stock-orders-toolbar-copy {
+    display: none;
+  }
+
+  .stock-orders-toolbar-actions {
+    flex-wrap: nowrap;
+  }
+
+  .stock-orders-toolbar-actions .ghost-btn,
+  .stock-orders-toolbar-actions .primary-btn {
+    min-height: 40px;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .stock-orders-browse {
+    gap: 6px;
+  }
+
+  .stock-status-filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .stock-status-filter {
+    flex: 0 0 auto;
+    min-height: 40px;
+    white-space: nowrap;
+  }
+
+  .stock-filter-group-label {
+    display: none;
+  }
+
+  .employee-modal-backdrop:has(.stock-supplier-form-modal),
+  .inventory-count-wizard-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 8px;
+    box-sizing: border-box;
+  }
+
+  .employee-modal.stock-supplier-form-modal,
+  .inventory-count-wizard {
+    width: 100%;
+    max-width: 100%;
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+    margin: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stock-supplier-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .stock-supplier-form-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .stock-supplier-form-footer {
+    flex: 0 0 auto;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 0;
+    padding: 8px 0;
+    background: #12141c;
+  }
+
+  .inventory-count-wizard {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .inventory-count-wizard-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .inventory-count-wizard-title,
+  .inventory-count-wizard-subtitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .inventory-count-wizard-close-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .inventory-count-wizard-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .inventory-count-wizard-footer {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    padding: 8px 12px;
+  }
+
+  .inventory-count-wizard-continue-btn,
+  .inventory-count-wizard-continue-btn:disabled,
+  .inventory-count-wizard-continue-btn[aria-disabled='true'],
+  .inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']),
+  .inventory-count-wizard-footer-end .inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']) {
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    flex: 0 1 auto;
+    padding-inline: 12px;
   }
 }
 

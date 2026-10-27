@@ -6,7 +6,8 @@ export const STOCK_PHONE_PRIMARY_SECTION_IDS = ['dashboard', 'count', 'storages'
 /** Spreadsheet import is a manager tool. Staff do not see it. */
 export const STOCK_MANAGER_ONLY_SECTION_IDS = ['migration']
 
-const STOCK_PHONE_OVERFLOW_ORDER = ['suppliers', 'migration']
+/** Also listed in More so a clipped primary tab stays one tap away. */
+const STOCK_PHONE_OVERFLOW_ORDER = ['orders', 'suppliers', 'migration']
 
 export function isStockSectionVisible(sectionId, canManage) {
   if (!canManage && STOCK_MANAGER_ONLY_SECTION_IDS.includes(sectionId)) return false
@@ -45,7 +46,6 @@ export function resolveStockSectionNav({ canManage = false, compactPhone = false
 
   const overflow = STOCK_PHONE_OVERFLOW_ORDER
     .filter((id) => visible.some((section) => section.id === id))
-    .filter((id) => !STOCK_PHONE_PRIMARY_SECTION_IDS.includes(id))
     .map((id) => visible.find((section) => section.id === id))
     .filter(Boolean)
 

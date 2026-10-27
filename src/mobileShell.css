@@ -8705,9 +8705,11 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .mobile-stock-detail-sheet {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 80;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
+  padding: 0;
+  background: #070b12;
 }
 
 .mobile-stock-detail-backdrop {
@@ -8720,19 +8722,29 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .mobile-stock-detail-card {
   position: relative;
   width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
-  border-radius: 20px 20px 0 0;
-  background: #102033;
+  overflow: hidden;
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    16px
+    max(12px, env(safe-area-inset-bottom, 0px));
+  border-radius: 0;
+  background: #12141c;
   color: #fff7e8;
 }
 
 .mobile-stock-detail-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 12px;
+  flex: 0 0 auto;
 }
 
 .mobile-stock-detail-header h2 {
@@ -8751,6 +8763,20 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   flex-direction: column;
   gap: 10px;
   margin: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mobile-stock-detail-card .primary-btn {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+@media (max-width: 600px) {
+  body:has(.mobile-stock-detail-sheet) .mobile-bottom-nav {
+    display: none !important;
+  }
 }
 
 .mobile-stock-detail-card dd {

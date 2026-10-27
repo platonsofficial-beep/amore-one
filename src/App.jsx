@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
@@ -14697,6 +14698,7 @@ function App() {
   const [inventoryImportHistoryRefresh, setInventoryImportHistoryRefresh] = useState(0)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
+  const [isPreparingSupplyDrafts, setIsPreparingSupplyDrafts] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
   const isReceivingStockOrderRef = useRef(false)
   const stockOrderReceiveRequestRef = useRef(null)
@@ -22068,10 +22070,12 @@ function App() {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
     }
-    if (isCreatingStockOrdersRef.current) return
+    if (isCreatingStockOrdersRef.current || isPreparingSupplyDrafts) return
 
     isCreatingStockOrdersRef.current = true
-    setIsSavingStockOrder(true)
+    flushSync(() => {
+      setIsPreparingSupplyDrafts(true)
+    })
     setStockOrdersNotice('')
     setStockItemsNotice('')
 
@@ -22096,7 +22100,7 @@ function App() {
       throw error
     } finally {
       isCreatingStockOrdersRef.current = false
-      setIsSavingStockOrder(false)
+      setIsPreparingSupplyDrafts(false)
     }
   }
 
@@ -24527,6 +24531,7 @@ function App() {
             onOpenCounts={handleOpenStockCountWizard}
             onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
+            isPreparingDrafts={isPreparingSupplyDrafts}
             timeZone={workspaceTimeZone}
           />
         ) : null}
@@ -24538,6 +24543,7 @@ function App() {
             onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
             canManage={canManageStockRole}
             timeZone={workspaceTimeZone}
+            searchTerm={searchTerm}
           />
         ) : null}
 
@@ -24572,6 +24578,7 @@ function App() {
             searchTerm={searchTerm}
             canManage={canManageStockRole}
             isSaving={isSavingStockOrder}
+            isPreparingDrafts={isPreparingSupplyDrafts}
             isWorkspaceReady={isStockWorkspaceReady}
             workspaceId={activeWorkspaceId}
             initialStatusFilter={stockOrdersFilterHint}
@@ -25072,6 +25079,7 @@ function App() {
                           canManageStock: canManageStockRole,
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
+                          isPreparingDrafts: isPreparingSupplyDrafts,
                           onCreateOrders: handleCreateStockOrders,
                           onPrepareDrafts: handlePrepareSupplyOrderDrafts,
                           onCountStock: handleMobileManagerCountStock,

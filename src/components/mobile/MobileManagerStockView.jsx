@@ -207,6 +207,7 @@ export function MobileManagerStockView({
   canManageStock = false,
   isWorkspaceReady = false,
   isSavingOrders = false,
+  isPreparingDrafts = false,
   onCreateOrders,
   onPrepareDrafts,
   onCountStock,
@@ -324,14 +325,15 @@ export function MobileManagerStockView({
           type="button"
           className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
           onClick={() => { void onPrepareDrafts() }}
-          disabled={!isWorkspaceReady || isSavingOrders}
+          disabled={!isWorkspaceReady || isSavingOrders || isPreparingDrafts}
+          aria-busy={isPreparingDrafts || undefined}
         >
-          {isSavingOrders ? 'Saving…' : (
+          {isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : (
             <>
               <span className="mobile-manager-stock-quick-label-full">Suggest order</span>
               <span className="mobile-manager-stock-quick-label-short">Suggest</span>
             </>
-          )}
+          ))}
         </button>
       ) : null}
       <button

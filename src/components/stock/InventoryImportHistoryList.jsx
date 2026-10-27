@@ -131,7 +131,7 @@ export function InventoryImportHistoryList({
       <header className="inventory-import-history-header">
         <h3 className="inventory-import-history-title">Recent imports</h3>
         <p className="inventory-import-history-copy">
-          The last few imports for this workspace stay here after you leave Import Complete.
+          Recent imports stay on this page after you finish.
         </p>
       </header>
 
@@ -146,6 +146,7 @@ export function InventoryImportHistoryList({
       ) : null}
 
       {sessions.length > 0 ? (
+        <div className="inventory-import-history-scroll">
         <table className="inventory-import-history-table">
           <thead>
             <tr>
@@ -213,6 +214,7 @@ export function InventoryImportHistoryList({
           })}
           </tbody>
         </table>
+        </div>
       ) : null}
 
       {undoError ? (

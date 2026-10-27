@@ -930,4 +930,32 @@ describe('InventoryCountView home reversed status (P8.23.0 / P8.23.2)', () => {
 
     cleanup()
   })
+
+  it('filters the count list and says when nothing matches', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [sessionFixture({ id: 'bar-count', operatorName: 'Alex Manager', locations: ['Bar'] })],
+      paused: [],
+      recent: [sessionFixture({
+        id: 'cellar-count',
+        status: 'posted',
+        statusLabel: 'Posted',
+        operatorName: 'Nikos',
+        locations: ['Cellar'],
+        countTypeLabel: 'Full count',
+      })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView, { searchTerm: 'cellar' }))
+    await flush()
+
+    expect(container.textContent).toContain('Showing 1 of 2 counts.')
+    expect(container.textContent).toContain('Nikos')
+    expect(container.textContent).not.toContain('Alex Manager')
+
+    cleanup()
+    const missed = render(createElement(InventoryCountView, { searchTerm: 'missing-token' }))
+    await flush()
+    expect(missed.container.textContent).toContain('No counts match “missing-token”.')
+    missed.cleanup()
+  })
 })

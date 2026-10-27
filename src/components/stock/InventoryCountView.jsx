@@ -30,6 +30,25 @@ function formatProgress(session) {
   return `${completed} / ${total} locations`
 }
 
+function sessionSearchHaystack(session) {
+  const shelf = staffShelfCountPresentation(session)
+  return [
+    shelf?.title,
+    session?.countTypeLabel,
+    session?.operatorName,
+    session?.statusLabel,
+    formatInventoryCountSessionStatusLabel(session),
+    formatLocations(session),
+    formatProgress(session),
+  ].join(' ').toLowerCase()
+}
+
+function filterCountSessions(sessions, searchTerm = '') {
+  const needle = `${searchTerm ?? ''}`.trim().toLowerCase()
+  if (!needle) return sessions
+  return sessions.filter((session) => sessionSearchHaystack(session).includes(needle))
+}
+
 function formatLocations(session) {
   const keys = Array.isArray(session?.locations) ? session.locations.filter(Boolean) : []
   if (keys.length === 0) return '—'
@@ -328,6 +347,7 @@ export function InventoryCountView({
   onInitialOpenSessionApplied,
   canManage = true,
   timeZone = '',
+  searchTerm = '',
 } = {}) {
   const { workspace } = useAuth()
   const workspaceId = `${workspace?.id ?? ''}`.trim()
@@ -354,6 +374,12 @@ export function InventoryCountView({
   const [pendingDeleteSession, setPendingDeleteSession] = useState(null)
   const [deleteDialogError, setDeleteDialogError] = useState('')
   const pendingOpenSessionIdRef = useRef('')
+  const searchNeedle = `${searchTerm ?? ''}`.trim()
+  const visibleActiveSessions = filterCountSessions(activeSessions, searchNeedle)
+  const visiblePausedSessions = filterCountSessions(pausedSessions, searchNeedle)
+  const visibleRecentSessions = filterCountSessions(recentSessions, searchNeedle)
+  const totalSessionCount = activeSessions.length + pausedSessions.length + recentSessions.length
+  const visibleSessionCount = visibleActiveSessions.length + visiblePausedSessions.length + visibleRecentSessions.length
 
   const loadHomeSessions = useCallback(async () => {
     if (!workspaceId) {
@@ -768,6 +794,14 @@ export function InventoryCountView({
         </div>
       ) : null}
 
+      {searchNeedle ? (
+        <p className="inventory-count-search-status" role="status">
+          {visibleSessionCount === 0
+            ? `No counts match “${searchNeedle}”.`
+            : `Showing ${visibleSessionCount} of ${totalSessionCount} count${totalSessionCount === 1 ? '' : 's'}.`}
+        </p>
+      ) : null}
+
       <div
         className={`inventory-count-foundation-grid${
           !isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0
@@ -784,7 +818,8 @@ export function InventoryCountView({
           <>
             <InventoryCountSessionPanel
               title="Active counts"
-              sessions={activeSessions}
+              sessions={visibleActiveSessions}
+              emptyTitle={searchNeedle && activeSessions.length > 0 ? 'No active counts match this search.' : 'No active counts.'}
               emptyTitle="No active counts."
               emptyCopy=""
               isLoading={isLoadingSessions}
@@ -801,8 +836,8 @@ export function InventoryCountView({
             />
             <InventoryCountSessionPanel
               title="Paused counts"
-              sessions={pausedSessions}
-              emptyTitle="No paused counts."
+              sessions={visiblePausedSessions}
+              emptyTitle={searchNeedle && pausedSessions.length > 0 ? 'No paused counts match this search.' : 'No paused counts.'}
               emptyCopy=""
               isLoading={isLoadingSessions}
               onOpenSession={openSession}
@@ -817,8 +852,8 @@ export function InventoryCountView({
         )}
         <InventoryCountSessionPanel
           title="Recent counts"
-          sessions={recentSessions}
-          emptyTitle="No completed counts yet."
+          sessions={visibleRecentSessions}
+          emptyTitle={searchNeedle && recentSessions.length > 0 ? 'No completed counts match this search.' : 'No completed counts yet.'}
           emptyCopy=""
           isLoading={isLoadingSessions}
           onOpenSession={handleOpenHomeCard}
