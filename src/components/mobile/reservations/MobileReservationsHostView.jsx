@@ -427,7 +427,7 @@ export function MobileReservationsHostView({
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search guest, phone, table, area, notes"
+            placeholder="Search guest"
           />
         </label>
         <div className="mobile-host-reservations-create-actions">

@@ -380,7 +380,14 @@
 
 .app-shell.is-reservations-dedicated-shell .main-panel-reservations {
   position: absolute;
-  inset: 0;
+  /* The shell padding is the safe area, but an inset: 0 panel is positioned
+     against the padding edge and paints over the Dynamic Island. Match the
+     insets so the header and the booking list start inside the content box. */
+  inset:
+    var(--one-safe-area-top, env(safe-area-inset-top, 0px))
+    var(--one-safe-area-right, env(safe-area-inset-right, 0px))
+    var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px))
+    var(--one-safe-area-left, env(safe-area-inset-left, 0px));
   width: auto;
   height: auto;
   max-height: none;
@@ -388,10 +395,15 @@
 }
 
 .app-shell.is-reservations-dedicated-shell .main-panel,
-.app-shell.is-reservations-dedicated-shell .main-panel-reservations,
 .app-shell.is-reservations-dedicated-shell .mobile-host-reservations {
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+}
+
+.app-shell.is-reservations-dedicated-shell .main-panel-reservations {
+  width: auto;
+  max-width: none;
   min-width: 0;
 }
 
@@ -7942,13 +7954,16 @@
   position: relative;
   display: inline-flex;
   align-items: center;
+  flex: 1 1 auto;
+  min-width: min(100%, 9.5rem);
+  max-width: 100%;
 }
 
 .floor-plan-area-select-input {
   appearance: none;
   min-width: 0;
-  width: clamp(5.5rem, 40%, 9.25rem);
-  max-width: 100%;
+  width: 100%;
+  max-width: none;
   height: 32px;
   padding: 0 28px 0 12px;
   border-radius: 8px;
@@ -14546,10 +14561,14 @@
     display: block;
   }
 
+  .floor-plan-area-select {
+    min-width: min(100%, 9.5rem);
+  }
+
   .floor-plan-area-select-input {
-    width: clamp(5.5rem, 42cqw, 9rem);
+    width: 100%;
     min-width: 0;
-    max-width: 100%;
+    max-width: none;
   }
 }
 
