@@ -681,15 +681,24 @@ export function StockStorageCenter({
       {status === 'ready' && summary ? (
         <div className="stock-storage-center-overview" role="status">
           <div className="stock-storage-center-overview-stat">
-            <span>Active storages</span>
+            <span className="stock-storage-center-overview-label">
+              <span className="stock-storage-center-overview-label-full">Active storages</span>
+              <span className="stock-storage-center-overview-label-short">Storages</span>
+            </span>
             <strong>{summary.activeStorageCount}</strong>
           </div>
           <div className="stock-storage-center-overview-stat">
-            <span>Products with balances</span>
+            <span className="stock-storage-center-overview-label">
+              <span className="stock-storage-center-overview-label-full">Products with balances</span>
+              <span className="stock-storage-center-overview-label-short">Products</span>
+            </span>
             <strong>{summary.totalProductsWithBalances}</strong>
           </div>
           <div className="stock-storage-center-overview-stat">
-            <span>Total quantity</span>
+            <span className="stock-storage-center-overview-label">
+              <span className="stock-storage-center-overview-label-full">Total quantity</span>
+              <span className="stock-storage-center-overview-label-short">Total qty</span>
+            </span>
             <strong>{formatStockQuantity(summary.totalQuantity)}</strong>
           </div>
         </div>

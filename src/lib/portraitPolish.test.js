@@ -41,7 +41,14 @@ describe('portrait polish layout', () => {
     expect(narrow).toContain('word-break: normal')
     expect(narrow).toContain('white-space: normal')
     expect(narrow).toContain('.blend-grid-header-day-name')
-    expect(narrow).not.toContain('text-overflow: ellipsis')
+    expect(narrow).toContain('.schedule-shift-instance-dept')
+    expect(narrow).toContain('text-overflow: ellipsis')
+    const nameRule = narrow.slice(
+      narrow.indexOf('.schedule-shift-instance-name'),
+      narrow.indexOf('.schedule-shift-instance-dept'),
+    )
+    expect(nameRule).toContain('white-space: normal')
+    expect(nameRule).not.toContain('text-overflow: ellipsis')
     const shortHeader = mediaBlocks(appCss, '@media (max-height: 430px)')
       .find((block) => block.includes('portrait-week-header'))
     expect(shortHeader).toContain('.schedule-focus-workspace .schedule-header')

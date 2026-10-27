@@ -200,7 +200,7 @@ export function StockTransferModal({
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
       <div
-        className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet"
+        className="employee-modal stock-dashboard-modal stock-transfer-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         data-testid="stock-transfer-modal"
       >

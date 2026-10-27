@@ -64,6 +64,14 @@ describe('Stock full-screen workspace navigation helpers', () => {
       view: 'today',
       teamSection: 'today',
     })
+    expect(resolveSidebarWorkspaceExit({ view: 'reservations', teamSection: 'today' })).toEqual({
+      view: 'today',
+      teamSection: 'today',
+    })
+    expect(resolveSidebarWorkspaceExit({ view: 'chat', teamSection: 'today' })).toEqual({
+      view: 'chat',
+      teamSection: 'today',
+    })
     expect(resolveSidebarWorkspaceExit(null)).toEqual({
       view: 'today',
       teamSection: 'today',

@@ -116,7 +116,7 @@ export function resolveExitStockDestination(previousView) {
 }
 
 export function isStandaloneFocusView(view, teamSection = '') {
-  if (view === 'stock') return true
+  if (view === 'stock' || view === 'reservations') return true
   return view === 'team' && teamSection === 'schedule'
 }
 

@@ -143,9 +143,9 @@ describe('host station responsive routing', () => {
       expect(appSource).toContain('hideGlobalAppSidebar')
       expect(appSource).toContain('const useHostStationShell = isHostAccount && activeView === \'reservations\' && (!useMobileExperience || mobileReservationsHostMode)')
       expect(appSource).toContain('onExitHostMode={isHostMobileRole(role) ? handleHostLeaveStation : handleMobileExitReservationsHostMode}')
-      expect(appSource).toContain('resolveExitReservationsHostDestination')
-      expect(appSource).toContain('preReservationsHostViewRef.current || \'today\'')
-      expect(appSource).toContain('handleActiveViewChange(destination)')
+      expect(appSource).toContain('resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)')
+      expect(appSource).toContain('is-reservations-dedicated-shell')
+      expect(appSource).toContain('handleActiveViewChange(destination.view)')
     })
 
     it('does not duplicate a separate desktop Host Station component', () => {
