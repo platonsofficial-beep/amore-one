@@ -41,6 +41,7 @@ export const PERMISSION_MODULES = [
   'private_data',
   'access',
   'mobile_tasks',
+  'chat',
 ]
 
 const APP_MODULE_PERMISSION = {
@@ -81,6 +82,7 @@ export const ROLE_PERMISSION_PRESETS = {
     announcements: 'manage',
     private_data: 'manage',
     access: 'manage',
+    chat: 'manage',
   }),
   general_manager: defineRolePreset({
     today: 'manage',
@@ -95,6 +97,7 @@ export const ROLE_PERMISSION_PRESETS = {
     floor_plan_edit: 'manage',
     announcements: 'manage',
     private_data: 'manage',
+    chat: 'manage',
   }),
   manager: defineRolePreset({
     today: 'manage',
@@ -107,6 +110,7 @@ export const ROLE_PERMISSION_PRESETS = {
     floor_plan: 'manage',
     floor_plan_edit: 'manage',
     announcements: 'manage',
+    chat: 'manage',
   }),
   host: defineRolePreset({
     reservations: 'manage',
@@ -114,6 +118,7 @@ export const ROLE_PERMISSION_PRESETS = {
     operations: 'view',
     floor_plan_edit: 'manage',
     mobile_tasks: 'view',
+    chat: 'view',
   }),
   staff: defineRolePreset({
     team: 'view',
@@ -121,6 +126,7 @@ export const ROLE_PERMISSION_PRESETS = {
     shelf_count: 'manage',
     operations: 'view',
     mobile_tasks: 'view',
+    chat: 'view',
   }),
 }
 
@@ -181,16 +187,17 @@ function readAccess(access, fallback = '') {
 export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
+  { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
 export const MOBILE_HOST_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'reservations', label: 'Bookings', icon: '▣' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
+  { id: 'reservations', label: 'Bookings', ariaLabel: 'Reservations', icon: '▣' },
+  { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
 export const MOBILE_MANAGER_BOTTOM_TABS = [
@@ -242,8 +249,17 @@ export function getAccessibleModules(role) {
   return APP_MODULES.filter((moduleId) => canAccessModule(role, moduleId))
 }
 
+export function canUseChat(access) {
+  return hasPermission(readAccess(access, '').perms, 'chat', 'view')
+}
+
+export function canManageChat(access) {
+  return hasPermission(readAccess(access, '').perms, 'chat', 'manage')
+}
+
 export function filterNavItemsByRole(navItems, role) {
   return navItems.filter((item) => {
+    if (item.id === 'chat') return canUseChat(role)
     if (item.id === 'settings' && canConfigureReservationSeatings(role)) return true
     return canAccessModule(role, item.id)
   })
@@ -253,6 +269,7 @@ export function resolvePermittedActiveView(role, requestedView) {
   const fallbackModule = resolveDefaultModuleForRole(role)
   const normalizedView = normalizeModuleId(requestedView) || fallbackModule
   if (canOpenStaffHostPersonalView(role, normalizedView)) return normalizedView
+  if (normalizedView === 'chat') return canUseChat(role) ? 'chat' : fallbackModule
   if (normalizedView === 'settings' && canConfigureReservationSeatings(role)) return 'settings'
   if (normalizedView === 'attendance' || normalizedView === 'time-clock') {
     return canManageAttendance(role) ? 'time-clock' : fallbackModule
@@ -364,6 +381,7 @@ export function resolveExitReservationsHostDestination(previousView, role) {
 const HOST_MOBILE_TAB_VIEWS = {
   home: 'today',
   schedule: 'team',
+  chat: 'chat',
   tasks: 'operations',
   reservations: 'reservations',
   host: 'reservations',
@@ -566,9 +584,14 @@ export function getTodayQuickActions(role) {
   ]
 }
 
+function tabsVisibleForChat(tabs, role) {
+  if (canUseChat(role)) return tabs
+  return tabs.filter((tab) => tab.id !== 'chat')
+}
+
 export function getMobileBottomTabs(role, variant = 'staff') {
   if (variant === 'host') {
-    return MOBILE_HOST_BOTTOM_TABS
+    return tabsVisibleForChat(MOBILE_HOST_BOTTOM_TABS, role)
   }
 
   if (variant === 'manager') {
@@ -579,5 +602,5 @@ export function getMobileBottomTabs(role, variant = 'staff') {
     })
   }
 
-  return MOBILE_STAFF_BOTTOM_TABS
+  return tabsVisibleForChat(MOBILE_STAFF_BOTTOM_TABS, role)
 }

@@ -64,6 +64,9 @@ export function MobileMenuView({
   onOpenRequestLeave,
   onOpenLeaveInbox,
   onOpenAvailability,
+  onOpenTasks,
+  onOpenChat,
+  chatUnread = 0,
   onOpenClock,
   onOpenAttendance,
   onOpenNotifications,
@@ -116,6 +119,11 @@ export function MobileMenuView({
                 My Availability
               </button>
             ) : null}
+            {onOpenTasks ? (
+              <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
+                My tasks
+              </button>
+            ) : null}
             {onOpenClock ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenClock}>
                 ⏱ Clock in/out
@@ -135,6 +143,7 @@ export function MobileMenuView({
 
   const showWorkspaceSection = showFullSchedule
     || Boolean(onOpenAttendance)
+    || Boolean(onOpenChat)
     || (menuVariant === 'manager'
       ? managerWorkspaceItems.length > 0 || canViewLeaveInbox
       : visibleModules.length > 0 || showSettings)
@@ -160,6 +169,14 @@ export function MobileMenuView({
           <section className="mobile-manager-menu-section" aria-label="Venue">
             <h2 className="mobile-manager-menu-section-title">Venue</h2>
             <div className="mobile-manager-menu-nav-list">
+              {onOpenChat ? (
+                <ManagerNavCard
+                  icon="💬"
+                  title={Number(chatUnread) > 0 ? `Chat (${Number(chatUnread) > 9 ? '9+' : chatUnread})` : 'Chat'}
+                  subtitle="Team messages"
+                  onClick={onOpenChat}
+                />
+              ) : null}
               {showFullSchedule ? (
                 <ManagerNavCard
                   icon="📅"
@@ -287,6 +304,11 @@ export function MobileMenuView({
           {onOpenAvailability ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
               My Availability
+            </button>
+          ) : null}
+          {onOpenTasks ? (
+            <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
+              My tasks
             </button>
           ) : null}
           {onOpenClock ? (

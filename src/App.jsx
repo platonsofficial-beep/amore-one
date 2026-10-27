@@ -554,6 +554,9 @@ import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { StockSectionNav } from './components/shell/StockSectionNav'
 import { UserMenu } from './components/auth/UserMenu'
 import { useNotificationCenter } from './components/notifications/useNotificationCenter'
+import { ChatScreen } from './components/chat/ChatScreen'
+import { useChatInbox } from './components/chat/useChatInbox'
+import './components/chat/chat.css'
 import { planNotificationOpen, resolveNotificationTarget } from './lib/pushNotifications'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
@@ -642,6 +645,8 @@ import {
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
   canManageAttendance,
+  canUseChat,
+  canManageChat,
 } from './lib/permissions'
 import { isOwnerRole } from './lib/membershipRoles'
 import {
@@ -15050,6 +15055,23 @@ function App() {
     [permissionAccess],
   )
 
+  const canUseChatRole = useMemo(
+    () => canUseChat(permissionAccess),
+    [permissionAccess],
+  )
+
+  const canManageChatRole = useMemo(
+    () => canManageChat(permissionAccess),
+    [permissionAccess],
+  )
+
+  const [chatConversationId, setChatConversationId] = useState('')
+  const chatInbox = useChatInbox({
+    workspaceId: activeWorkspaceId,
+    memberId: membership?.id ?? '',
+    enabled: canUseChatRole && Boolean(activeWorkspaceId),
+  })
+
   const mobileBottomTabs = useMemo(
     () => getMobileBottomTabs(permissionAccess, resolveMobileShellVariant(role)),
     [permissionAccess, role],
@@ -15083,6 +15105,7 @@ function App() {
     canOpenStaffHostPersonalView(permissionAccess, activeView)
     || (activeView === 'settings' && (canOpenWorkspaceProfile || canConfigureReservationSeatingsRole))
     || (activeView === 'time-clock' && canManageAttendanceRole)
+    || (activeView === 'chat' && canUseChatRole)
     || canAccessModule(permissionAccess, activeView)
   )
   const shouldRenderReservationsHostView = useMemo(
@@ -16038,8 +16061,12 @@ function App() {
     const allowedTabs = getMobileBottomTabs(permissionAccess, variant)
     if (allowedTabs.length === 0) return
 
-    const isPersonalTab = activeMobileTab === 'availability' && (variant === 'staff' || variant === 'host')
-    const isActiveTabAllowed = isPersonalTab || allowedTabs.some((tab) => tab.id === activeMobileTab)
+    const keepsOffBarTab = (
+      (activeMobileTab === 'availability' && (variant === 'staff' || variant === 'host'))
+      || (activeMobileTab === 'tasks' && variant === 'host')
+      || (activeMobileTab === 'chat' && canUseChat(permissionAccess))
+    )
+    const isActiveTabAllowed = keepsOffBarTab || allowedTabs.some((tab) => tab.id === activeMobileTab)
     if (isActiveTabAllowed) return
 
     const fallbackTab = allowedTabs[0].id
@@ -23289,6 +23316,16 @@ function App() {
       setMobileReservationsHostMode(false)
       setMobileManagerTab(tab)
       persistManagerMobileTab(tab)
+      if (tab === 'chat') handleActiveViewChange('chat')
+      else if (activeView === 'chat') handleActiveViewChange(resolveDefaultModuleForRole(role))
+      return
+    }
+
+    if (tab === 'chat') {
+      setMobileStaffTab('chat')
+      persistMobileTab('chat', isHostMobileRole(role) ? 'host' : 'staff')
+      setMobileReservationsHostMode(false)
+      handleActiveViewChange('chat')
       return
     }
 
@@ -23311,7 +23348,7 @@ function App() {
     setMobileStaffTab(tab)
     persistMobileTab(tab, 'staff')
     setMobileReservationsHostMode(false)
-    if (isStaffHostPersonalView(activeView)) {
+    if (activeView === 'chat' || isStaffHostPersonalView(activeView)) {
       const staffView = tab === 'schedule'
         ? 'team'
         : tab === 'tasks'
@@ -23671,6 +23708,14 @@ function App() {
       persistMobileWeekStart(weekStartDate)
     }
 
+    if (plan.action === 'chat') {
+      setChatConversationId(plan.conversationId || '')
+      setMobileExpandedView(null)
+      setMobileReservationsHostMode(false)
+      if (useMobileExperience) handleMobileTabChange('chat')
+      else handleActiveViewChange('chat')
+      return
+    }
     if (plan.action === 'staff-clock') {
       setMobileExpandedView(null)
       setMobileReservationsHostMode(false)
@@ -23761,11 +23806,17 @@ function App() {
   }
 
   const staffHostAccountActions = isStaffOrHostRole(role)
-    ? staffHostAvatarActions({ canRequestLeave: canRequestOwnLeave })
-    : []
+    ? staffHostAvatarActions({ canRequestLeave: canRequestOwnLeave, canUseChat: canUseChatRole })
+    : (canUseChatRole ? [{ id: 'chat', label: 'Chat' }] : [])
   const handleStaffHostAccountAction = (actionId) => {
     if (actionId === 'leave') {
       setIsRequestLeaveModalOpen(true)
+      return
+    }
+    if (actionId === 'chat') {
+      setChatConversationId('')
+      if (useMobileExperience) handleMobileTabChange('chat')
+      else handleActiveViewChange('chat')
       return
     }
     openStaffHostPersonalView(actionId)
@@ -23833,7 +23884,12 @@ function App() {
                 handleActiveViewChange(item.id)
               }}
             >
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon">
+                {item.icon}
+                {item.id === 'chat' && chatInbox.unread > 0 ? (
+                  <span className="chat-nav-badge">{chatInbox.unread > 9 ? '9+' : chatInbox.unread}</span>
+                ) : null}
+              </span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -23841,8 +23897,18 @@ function App() {
       </aside>
       ) : null}
 
-      <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
+      <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${activeView === 'chat' ? ' main-panel-chat' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
         {(() => {
+          const chatScreen = canUseChatRole && activeWorkspaceId ? (
+            <ChatScreen
+              workspaceId={activeWorkspaceId}
+              memberId={membership?.id ?? ''}
+              canManage={canManageChatRole}
+              inboxRows={chatInbox.rows}
+              onRefreshInbox={chatInbox.refresh}
+              initialConversationId={chatConversationId}
+            />
+          ) : null
           const attendanceClockCard = activeWorkspaceId ? (
             <AttendanceClockScreen
               workspaceId={activeWorkspaceId}
@@ -23973,6 +24039,7 @@ function App() {
             {notificationSettingsPanel}
           </div>
         ) : null}
+        {isActiveViewAllowed && activeView === 'chat' ? chatScreen : null}
 
         {isActiveViewAllowed && activeView === 'today' ? (
           <CommandCenterView
@@ -24670,6 +24737,7 @@ function App() {
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
                       clockCard: attendanceClockCard,
                       reminderCard: shiftReminderCard,
+                      onOpenTasks: isHostMobileShellLocal ? () => handleMobileTabChange('tasks') : undefined,
                     }
 
                   const sharedMenuProps = {
@@ -24704,6 +24772,8 @@ function App() {
                     onOpenSettings: handleMobileOpenSettings,
                     onOpenAttendance: canManageAttendanceRole ? handleOpenAttendance : undefined,
                     onOpenNotifications: showNotificationShortcut ? openNotificationSettings : undefined,
+                    onOpenChat: canUseChatRole && isManagerMobileShell ? () => handleMobileTabChange('chat') : undefined,
+                    chatUnread: chatInbox.unread,
                     onBackFromNotifications: () => {
                       if (activeView === 'notifications') {
                         leavePersonalView()
@@ -24805,6 +24875,7 @@ function App() {
                         isReservationsHostMode={shouldRenderReservationsHostView && activeView === 'reservations'}
                         bottomTabs={mobileBottomTabs}
                         notificationBell={notificationBell}
+                        chatContent={chatScreen}
                       />
                     )
                   }
@@ -24862,6 +24933,9 @@ function App() {
                         personalDestination={isStaffHostPersonalView(activeView) ? activeView : ''}
                         onPersonalDestination={openStaffHostPersonalView}
                         onLeavePersonal={leavePersonalView}
+                        canUseChat={canUseChatRole}
+                        chatUnread={chatInbox.unread}
+                        chatContent={chatScreen}
                       />
                     )
                   }
@@ -24915,6 +24989,9 @@ function App() {
                       personalDestination={isStaffHostPersonalView(activeView) ? activeView : ''}
                       onPersonalDestination={openStaffHostPersonalView}
                       onLeavePersonal={leavePersonalView}
+                      canUseChat={canUseChatRole}
+                      chatUnread={chatInbox.unread}
+                      chatContent={chatScreen}
                     />
                   )
                 })()

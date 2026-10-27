@@ -163,7 +163,7 @@ describe('stored member permissions', () => {
 })
 
 describe('member access screen logic', () => {
-  it('lists the nine areas in plain language, with the salary toggle and live clock-in levels', () => {
+  it('lists the ten areas in plain language, with the salary toggle and live clock-in levels', () => {
     expect(MEMBER_ACCESS_AREAS.map((area) => area.module)).toEqual(WORKSPACE_PERMISSION_MODULES)
     expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'private_data')).toMatchObject({
       label: 'Salaries & personal data',
@@ -174,7 +174,11 @@ describe('member access screen logic', () => {
       control: 'level',
     })
     expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'attendance').note).toBeUndefined()
-    expect(MEMBER_ACCESS_AREAS.filter((area) => area.control === 'level')).toHaveLength(8)
+    expect(MEMBER_ACCESS_AREAS.filter((area) => area.control === 'level')).toHaveLength(9)
+    expect(MEMBER_ACCESS_AREAS.find((area) => area.module === 'chat')).toMatchObject({
+      label: 'Chat',
+      control: 'level',
+    })
   })
 
   it('shows access only to the owner and locks an owner row', () => {
@@ -210,7 +214,7 @@ describe('member access screen logic', () => {
     })).toBe(false)
   })
 
-  it('uses the role preset when rows are missing and writes all nine rows on save', () => {
+  it('uses the role preset when rows are missing and writes all ten rows on save', () => {
     expect(levelsForMember('manager', null)).toEqual(presetLevelsForRole('manager'))
     expect(levelsForMember('host', [])).toEqual(presetLevelsForRole('host'))
     expect(presetLevelsForRole('manager')).toMatchObject({
@@ -233,7 +237,10 @@ describe('member access screen logic', () => {
       updatedAt,
     })
 
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(10)
+    expect(presetLevelsForRole('staff').chat).toBe('view')
+    expect(presetLevelsForRole('host').chat).toBe('view')
+    expect(presetLevelsForRole('manager').chat).toBe('manage')
     expect(rows.map((row) => row.module)).toEqual(WORKSPACE_PERMISSION_MODULES)
     expect(rows.every((row) => row.updated_by === 'user-1' && row.updated_at === updatedAt)).toBe(true)
     expect(rows.every((row) => row.workspace_id === 'ws-1' && row.member_id === 'member-2')).toBe(true)

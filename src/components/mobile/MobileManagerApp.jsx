@@ -22,6 +22,7 @@ export function MobileManagerApp({
   isReservationsHostMode = false,
   bottomTabs,
   notificationBell = null,
+  chatContent = null,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -79,6 +80,7 @@ export function MobileManagerApp({
       {noticeBanner}
       <div className="mobile-app-content">
         {activeTab === 'today' ? <MobileManagerHomeView {...homeProps} /> : null}
+        {activeTab === 'chat' ? chatContent : null}
         {activeTab === 'stock' ? <MobileManagerStockView {...stockProps} /> : null}
         {activeTab === 'tasks' ? <MobileManagerTasksView {...managerTasksProps} /> : null}
         {activeTab === 'menu' ? (

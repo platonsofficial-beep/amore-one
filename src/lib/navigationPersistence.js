@@ -22,6 +22,7 @@ const VALID_ACTIVE_VIEWS = new Set([
   'account',
   'clock',
   'notifications',
+  'chat',
 ])
 
 const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])

@@ -24,6 +24,7 @@ import {
   unregisterPushEndpoint,
   upsertNotificationPreference,
 } from '../../services/pushNotificationService'
+import { isChatNotification } from '../../lib/chat'
 import { NotificationBell, NotificationSettingsPanel } from './NotificationCenter'
 import { ShiftReminderCard } from './ShiftReminderCard'
 
@@ -74,7 +75,7 @@ export function useNotificationCenter({
       listPushDevices(userId),
       readCurrentPushSubscription().catch(() => null),
     ])
-    setItems(nextItems)
+    setItems((nextItems ?? []).filter((item) => !isChatNotification(item)))
     setPreferences(nextPreferences)
     setDevices(nextDevices)
     setThisDeviceEndpoint(subscription?.endpoint || '')
@@ -112,6 +113,7 @@ export function useNotificationCenter({
   useEffect(() => {
     if (!userId || !workspaceId) return undefined
     return subscribeToNotificationInserts(userId, (row) => {
+      if (isChatNotification(row)) return
       if (row.workspace_id && row.workspace_id !== workspaceId) return
       setItems((current) => mergeNotification(current, row))
     })

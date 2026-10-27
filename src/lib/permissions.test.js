@@ -214,6 +214,11 @@ describe('permissions', () => {
         openHostMode: false,
         activeView: 'team',
       })
+      expect(resolveHostMobileTabChange('chat', 'host')).toEqual({
+        tab: 'chat',
+        openHostMode: false,
+        activeView: 'chat',
+      })
       expect(resolveHostMobileTabChange('tasks', 'host')).toEqual({
         tab: 'tasks',
         openHostMode: false,
@@ -284,15 +289,20 @@ describe('permissions', () => {
   describe('getMobileBottomTabs', () => {
     it('returns staff-safe tabs for the staff shell', () => {
       expect(getMobileBottomTabs('staff', 'staff')).toEqual(MOBILE_STAFF_BOTTOM_TABS)
-      expect(tabIds(getMobileBottomTabs('staff', 'staff'))).toEqual(['home', 'schedule', 'tasks', 'menu'])
+      expect(tabIds(getMobileBottomTabs('staff', 'staff'))).toEqual(['home', 'schedule', 'chat', 'tasks', 'menu'])
     })
 
-    it('gives host the staff tabs plus reservations', () => {
+    it('hides Chat when the member has no chat access', () => {
+      expect(tabIds(getMobileBottomTabs({ role: 'staff', permissions: { chat: 'none' } }, 'staff'))).not.toContain('chat')
+      expect(tabIds(getMobileBottomTabs({ role: 'host', permissions: { chat: 'none' } }, 'host'))).not.toContain('chat')
+    })
+
+    it('gives host Home, Schedule, Chat, Bookings and Profile', () => {
       expect(getMobileBottomTabs('host', 'host')).toEqual(MOBILE_HOST_BOTTOM_TABS)
       expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual([
         'home',
         'schedule',
-        'tasks',
+        'chat',
         'reservations',
         'menu',
       ])

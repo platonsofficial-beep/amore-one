@@ -56,7 +56,13 @@ describe('push notification helpers', () => {
     expect(clockin.types).toEqual(['clockin_reminder_10', 'clockin_reminder_20'])
     expect(isGroupPushEnabled(rows, clockin.types)).toBe(false)
     expect(isGroupPushEnabled([], clockin.types)).toBe(true)
-    expect(visibleNotificationGroups(false).map((group) => group.id)).toEqual(['clockin', 'schedule', 'tasks'])
+    expect(visibleNotificationGroups(false).map((group) => group.id)).toEqual([
+      'clockin',
+      'schedule',
+      'tasks',
+      'chat_message',
+      'chat_direct',
+    ])
     expect(visibleNotificationGroups(true).map((group) => group.id)).toContain('timeclock_request')
     expect(visibleNotificationGroups(true).map((group) => group.id)).toContain('late_team')
   })
@@ -117,6 +123,13 @@ describe('push notification helpers', () => {
     })
     expect(planNotificationOpen({ view: 'tasks', taskId: 'task-1' }, { useMobileExperience: true, isManagerMobile: false }).action).toBe('staff-tasks')
     expect(planNotificationOpen({ view: 'home' }, { useMobileExperience: true, isManagerMobile: true }).action).toBe('manager-home')
+    expect(resolveNotificationTarget({
+      type: 'chat_direct',
+      data: { view: 'chat', conversation_id: 'conv-1', message_id: 'msg-1' },
+    })).toMatchObject({ view: 'chat', conversationId: 'conv-1', messageId: 'msg-1' })
+    expect(planNotificationOpen({ view: 'chat', conversationId: 'conv-1' }).action).toBe('chat')
+    expect(visibleNotificationGroups(false).find((group) => group.id === 'chat_message').label).toBe('Team & group chats')
+    expect(visibleNotificationGroups(false).find((group) => group.id === 'chat_direct').label).toBe('Direct messages')
   })
 
   it('builds the open url and reads the notif id', () => {

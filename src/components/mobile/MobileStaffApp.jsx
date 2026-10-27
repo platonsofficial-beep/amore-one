@@ -13,7 +13,7 @@ import { MobileTasksView } from './MobileTasksView'
 const STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'availability', label: 'My week', ariaLabel: 'My week', icon: '◔' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
@@ -21,7 +21,7 @@ const STAFF_BOTTOM_TABS = [
 const HOST_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'reservations', label: 'Bookings', ariaLabel: 'Reservations', icon: '▣' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
@@ -61,6 +61,9 @@ export function MobileStaffApp({
   personalDestination = '',
   onPersonalDestination,
   onLeavePersonal,
+  canUseChat = true,
+  chatUnread = 0,
+  chatContent = null,
 }) {
   const isStaffShell = shellVariant === 'staff'
   const isHostShell = shellVariant === 'host'
@@ -80,8 +83,8 @@ export function MobileStaffApp({
 
   useEffect(() => {
     const syncedTabs = isHostShell
-      ? ['home', 'schedule', 'availability', 'tasks', 'menu', 'reservations']
-      : ['home', 'schedule', 'availability', 'tasks', 'menu']
+      ? ['home', 'schedule', 'availability', 'chat', 'tasks', 'menu', 'reservations']
+      : ['home', 'schedule', 'availability', 'chat', 'tasks', 'menu']
     if (syncedTabs.includes(activeTab)) {
       setStaffTab(activeTab)
     }
@@ -97,11 +100,14 @@ export function MobileStaffApp({
     setClockOpen(true)
   }, [clockOpenToken])
 
-  const resolvedBottomTabs = isHostShell
+  const baseBottomTabs = isHostShell
     ? HOST_BOTTOM_TABS
     : isStaffShell
       ? STAFF_BOTTOM_TABS
       : bottomTabs
+  const resolvedBottomTabs = (Array.isArray(baseBottomTabs) ? baseBottomTabs : [])
+    .filter((tab) => tab.id !== 'chat' || canUseChat)
+    .map((tab) => (tab.id === 'chat' && Number(chatUnread) > 0 ? { ...tab, badge: chatUnread } : tab))
   const resolvedActiveTab = usesInternalTabs ? staffTab : activeTab
   const employeeId = `${tasksProps?.currentEmployeeId ?? ''}`.trim()
   const needsEmployeeLink = Boolean(tasksProps?.needsEmployeeLink)
@@ -193,6 +199,7 @@ export function MobileStaffApp({
   ) : null
 
   const showBottomNav = Array.isArray(resolvedBottomTabs) && resolvedBottomTabs.length > 0
+  const bottomNavTab = resolvedActiveTab === 'availability' ? 'schedule' : resolvedActiveTab
 
   const availabilityView = useMemo(() => (
     <MobileAvailabilityView
@@ -237,7 +244,7 @@ export function MobileStaffApp({
           ) : null}
         </div>
         {showBottomNav ? (
-          <MobileBottomNav activeTab={resolvedActiveTab} onTabChange={handleTabChange} tabs={resolvedBottomTabs} />
+          <MobileBottomNav activeTab={bottomNavTab} onTabChange={handleTabChange} tabs={resolvedBottomTabs} />
         ) : null}
       </div>
     )
@@ -290,8 +297,32 @@ export function MobileStaffApp({
       ) : (
       <div className="mobile-app-content">
         {resolvedActiveTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
-        {resolvedActiveTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
-        {resolvedActiveTab === 'availability' ? availabilityView : null}
+        {resolvedActiveTab === 'schedule' || resolvedActiveTab === 'availability' ? (
+          <div className="mobile-schedule-shell">
+            <div className="mobile-segmented-control mobile-schedule-segments" role="tablist" aria-label="Schedule">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={resolvedActiveTab !== 'availability'}
+                className={`mobile-segmented-btn${resolvedActiveTab !== 'availability' ? ' is-active' : ''}`}
+                onClick={() => handleTabChange('schedule')}
+              >
+                Shifts
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={resolvedActiveTab === 'availability'}
+                className={`mobile-segmented-btn${resolvedActiveTab === 'availability' ? ' is-active' : ''}`}
+                onClick={() => handleTabChange('availability')}
+              >
+                My week
+              </button>
+            </div>
+            {resolvedActiveTab === 'availability' ? availabilityView : <MobileScheduleView {...scheduleProps} />}
+          </div>
+        ) : null}
+        {resolvedActiveTab === 'chat' ? chatContent : null}
         {resolvedActiveTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
         {resolvedActiveTab === 'menu' ? (
           menuProps?.screen === 'profile' ? (
@@ -310,14 +341,15 @@ export function MobileStaffApp({
                 setClockOpen(true)
                 onPersonalDestination?.('clock')
               } : undefined}
-              onOpenAvailability={isHostShell ? () => handleTabChange('availability') : undefined}
+              onOpenAvailability={isHostShell || isStaffShell ? () => handleTabChange('availability') : undefined}
+              onOpenTasks={isHostShell ? () => handleTabChange('tasks') : undefined}
             />
           )
         ) : null}
       </div>
       )}
       {showBottomNav ? (
-        <MobileBottomNav activeTab={resolvedActiveTab} onTabChange={handleTabChange} tabs={resolvedBottomTabs} />
+        <MobileBottomNav activeTab={bottomNavTab} onTabChange={handleTabChange} tabs={resolvedBottomTabs} />
       ) : null}
     </div>
   )

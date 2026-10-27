@@ -12,6 +12,7 @@ export const WORKSPACE_PERMISSION_MODULES = [
   'team',
   'insights',
   'attendance',
+  'chat',
   'private_data',
 ]
 
@@ -77,6 +78,13 @@ export const MEMBER_ACCESS_AREAS = [
     control: 'level',
   },
   {
+    module: 'chat',
+    label: 'Chat',
+    hint: 'Message the team, or also create channels and pin messages.',
+    icon: '💬',
+    control: 'level',
+  },
+  {
     module: 'private_data',
     label: 'Salaries & personal data',
     hint: 'Salary and personal details.',
@@ -102,6 +110,7 @@ export function permissionRankFromLevel(level) {
 export function workspaceRolePresetLevel(role, module) {
   const normalizedRole = normalizeWorkspaceRole(role, '')
   if (!WORKSPACE_PERMISSION_MODULES.includes(module)) return 0
+  if (module === 'chat' && (normalizedRole === 'host' || normalizedRole === 'staff')) return 1
   if (normalizedRole === 'owner') return 2
   if (normalizedRole === 'general_manager') return module === 'insights' ? 1 : 2
   if (normalizedRole === 'manager') {
@@ -214,6 +223,7 @@ function projectModuleOverride(module, level) {
   if (module === 'team') return { team: level }
   if (module === 'insights') return { insights: level === 'none' ? 'none' : level }
   if (module === 'attendance') return { attendance: level }
+  if (module === 'chat') return { chat: level }
   if (module === 'private_data') return { private_data: level === 'none' ? 'none' : level }
   return {}
 }
