@@ -22,6 +22,12 @@ describe('safe area insets', () => {
     expect(appCss).toMatch(
       /\.app-shell\.stock-focus-mode\s+\.main-panel-stock\s*\{[^}]*max\(16px,\s*env\(safe-area-inset-bottom/s,
     )
+    expect(appCss).toMatch(
+      /\.app-shell\.is-reservations-dedicated-shell \.main-panel-reservations\s*\{[^}]*var\(--one-safe-area-left/s,
+    )
+    expect(appCss).toMatch(
+      /\.app-shell\.is-reservations-dedicated-shell \.main-panel-reservations\s*\{[^}]*var\(--one-safe-area-right/s,
+    )
   })
 
   it('keeps the fixed bottom nav inside the side safe areas, including short landscape', () => {

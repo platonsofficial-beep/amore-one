@@ -6415,10 +6415,41 @@
   overflow: hidden;
 }
 
+.mobile-host-reservations.is-landscape .floor-seating-selector-label {
+  display: none;
+}
+
 .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
   flex: 0 1 auto;
-  max-height: 3.25rem;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-height: 44px;
+  height: auto;
+  overflow: hidden;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-name,
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-time {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-count {
+  flex: 0 0 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-metrics {
+  display: none;
 }
 
 .mobile-host-reservations-right-pane.is-assignment-mode .mobile-host-floor-stage {
@@ -6520,10 +6551,41 @@
   touch-action: manipulation;
 }
 
+.mobile-host-reservations.is-landscape .floor-seating-selector-label {
+  display: none;
+}
+
 .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
   flex: 0 1 auto;
-  max-height: 3.25rem;
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  min-height: 44px;
+  height: auto;
+  overflow: hidden;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-name,
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-time {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-count {
+  flex: 0 0 auto;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.mobile-host-reservations.is-landscape .floor-seating-selector-chip-metrics {
+  display: none;
 }
 
 .mobile-host-reservations.is-landscape .floor-plan-viewport.is-host-viewport {
@@ -6561,6 +6623,18 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
+}
+
+.mobile-host-floor-stage .floor-plan-viewport.is-host-viewport > .floor-plan-canvas-area-title {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  margin: 4px 8px 2px;
+  max-width: calc(100% - 16px);
+  z-index: 2;
 }
 
 .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-canvas-stage,

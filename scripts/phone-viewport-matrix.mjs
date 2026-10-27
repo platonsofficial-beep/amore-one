@@ -236,6 +236,27 @@ const MEASURE_SOURCE = `(() => {
   }).length
   const floor = document.querySelector('.floor-plan-viewport')
   const floorRect = floor ? floor.getBoundingClientRect() : null
+  const safeLeft = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--one-safe-area-left')) || 0
+  const edgeLeft = (selector) => {
+    const el = document.querySelector(selector)
+    if (!el) return null
+    const rect = el.getBoundingClientRect()
+    if (rect.width < 1 || rect.height < 1) return null
+    return Math.round(rect.left)
+  }
+  const search = document.querySelector('.mobile-host-reservations-search input')
+  const areaSelect = document.querySelector('.floor-plan-area-select-input')
+  const seatingCount = document.querySelector('.floor-seating-selector-chip-count')
+  const seatingChip = seatingCount ? seatingCount.closest('.floor-seating-selector-chip') : null
+  const seatingCountRect = seatingCount ? seatingCount.getBoundingClientRect() : null
+  const seatingChipRect = seatingChip ? seatingChip.getBoundingClientRect() : null
+  const title = document.querySelector('.floor-plan-canvas-area-title')
+  const titleRect = title ? title.getBoundingClientRect() : null
+  const titleOverlapsTable = Boolean(titleRect && titleRect.width > 1 && sizedTables.some((table) => {
+    const overlapW = Math.min(table.left + table.width, titleRect.right) - Math.max(table.left, titleRect.left)
+    const overlapH = Math.min(table.top + table.height, titleRect.bottom) - Math.max(table.top, titleRect.top)
+    return overlapW > 2 && overlapH > 2
+  }))
   const boxOf = (selector) => {
     const el = document.querySelector(selector)
     if (!el) return null
@@ -267,6 +288,23 @@ const MEASURE_SOURCE = `(() => {
     canvas: boxOf('.host-operations-canvas'),
     layout: boxOf('.floor-plan-layout-space'),
     overflow: scrollWidth - width,
+    safeLeft,
+    headerLeft: edgeLeft('.mobile-host-sticky-bar'),
+    searchLeft: edgeLeft('.mobile-host-reservations-search input'),
+    areaFilterLeft: edgeLeft('.host-queue-toolbar-btn'),
+    searchPlaceholder: search ? search.getAttribute('placeholder') : '',
+    areaSelectClipped: Boolean(areaSelect && areaSelect.offsetWidth > 0 && areaSelect.scrollWidth > areaSelect.clientWidth + 2),
+    seatingCountClipped: Boolean(
+      seatingCountRect
+      && seatingChipRect
+      && seatingCountRect.height > 1
+      && (
+        seatingCountRect.bottom > seatingChipRect.bottom + 1
+        || seatingCountRect.right > seatingChipRect.right + 1
+        || seatingCountRect.top < seatingChipRect.top - 1
+      ),
+    ),
+    titleOverlapsTable,
     clipped,
     tableCount: sizedTables.length,
     visibleTableCount,
@@ -375,6 +413,25 @@ function assertMeasurement(page, width, height, measurement) {
   if (measurement.scrollWidth > measurement.innerWidth + 1) {
     failures.push(`horizontal overflow ${measurement.scrollWidth} > ${measurement.innerWidth}`)
   }
+  if ((measurement.safeLeft || 0) >= 59) {
+    const edges = [
+      ['header', measurement.headerLeft],
+      ['search', measurement.searchLeft],
+      ['area filter', measurement.areaFilterLeft],
+    ]
+    for (const [name, left] of edges) {
+      if (left == null) continue
+      if (left < measurement.safeLeft - 1) {
+        failures.push(`${name} starts at ${left}px under the ${measurement.safeLeft}px left safe area`)
+      }
+    }
+  }
+  if (measurement.areaSelectClipped) failures.push('area selector text is truncated')
+  if (measurement.seatingCountClipped) failures.push('seating availability line is clipped')
+  if (measurement.titleOverlapsTable) failures.push('floor area label covers a table')
+  if (page.id === 'reservations' && measurement.searchPlaceholder && measurement.searchPlaceholder !== 'Search guest') {
+    failures.push(`search placeholder is "${measurement.searchPlaceholder}"`)
+  }
   if (measurement.clipped.length > 0) {
     const sample = measurement.clipped
       .map((item) => `${item.className || item.tag} right ${item.right}`)
@@ -390,6 +447,22 @@ function assertMeasurement(page, width, height, measurement) {
     failures.push('floor plan is visible but its tables are outside the viewport')
   }
   return failures
+}
+
+async function applySimulatedSafeArea(send) {
+  await send('Runtime.evaluate', {
+    expression: `(() => {
+      const landscape = window.innerWidth > window.innerHeight
+      const root = document.documentElement
+      root.style.setProperty('--one-safe-area-left', landscape ? '59px' : '0px')
+      root.style.setProperty('--one-safe-area-right', '0px')
+      root.style.setProperty('--one-safe-area-top', landscape ? '0px' : '47px')
+      root.style.setProperty('--one-safe-area-bottom', landscape ? '21px' : '34px')
+      window.dispatchEvent(new Event('resize'))
+    })()`,
+    returnByValue: true,
+  })
+  await sleep(120)
 }
 
 async function waitForApp(send) {
@@ -461,6 +534,7 @@ export async function runPhoneViewportMatrix({
           await new Promise((resolve) => setTimeout(resolve, 150))
         }
         await waitForApp(send)
+        await applySimulatedSafeArea(send)
         await new Promise((resolve) => setTimeout(resolve, 200))
       }
 
@@ -534,6 +608,7 @@ export async function runPhoneViewportMatrix({
           expression: `window.dispatchEvent(new Event('resize')); window.dispatchEvent(new Event('orientationchange'));`,
           returnByValue: true,
         })
+        await applySimulatedSafeArea(send)
         await new Promise((resolve) => setTimeout(resolve, 500))
         if (page.requiresFloorInWorkspace && workspaceFloorExpected(landscapeWidth, landscapeHeight)) {
           await waitForFloorTables()
