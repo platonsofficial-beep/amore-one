@@ -1,18 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PersonAvatar } from '../identity/PersonAvatar'
+import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
 import { getIdentityColorById } from '../../lib/identity/identityColorPalette'
+import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import {
   CHAT_EMOJIS,
   canDeleteChatMessage,
   canEditChatMessage,
+  chatIdentityHints,
   clipChatBody,
   conversationTitle,
   dayLabel,
   groupReactions,
   lastMessagePreview,
+  lastMessageTimeLabel,
   muteUntilValue,
   orderInbox,
-  seenByLabels,
+  seenByText,
 } from '../../lib/chat'
 import {
   addChatReaction,
@@ -22,6 +26,7 @@ import {
   editChatMessage,
   fetchChatMembers,
   fetchChatMessages,
+  fetchChatNameHints,
   fetchChatParticipants,
   fetchChatReactions,
   fetchPinnedChatMessages,
@@ -61,8 +66,7 @@ function useWideChatLayout(layout) {
 }
 
 function initials(name) {
-  const parts = `${name ?? ''}`.trim().split(/\s+/).filter(Boolean)
-  return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || '•'
+  return getProfileInitials(name)
 }
 
 function ChatPhoto({ path }) {
@@ -91,6 +95,8 @@ export function ChatScreen({
 }) {
   const ordered = useMemo(() => orderInbox(inboxRows), [inboxRows])
   const [members, setMembers] = useState([])
+  const [nameHints, setNameHints] = useState({ byConversation: {}, byMessage: {} })
+  const refreshAvatars = useAvatarDirectory().refresh
   const [openId, setOpenId] = useState(initialConversationId || '')
   const [messages, setMessages] = useState([])
   const [pinned, setPinned] = useState([])
@@ -123,17 +129,38 @@ export function ChatScreen({
   const showList = resolvedLayout === 'split' || !openId
   const showThread = resolvedLayout === 'split' || Boolean(openId)
   const cannotPost = openRow?.post_policy === 'managers' && !canManage
+  const aliases = useMemo(() => {
+    const map = { ...(nameHints.byConversation || {}) }
+    for (const [conversationId, name] of Object.entries(nameHints.byConversation || {})) {
+      const row = ordered.find((item) => item.conversation_id === conversationId)
+      if (row?.other_member_id && name) map[row.other_member_id] = name
+    }
+    for (const message of messages) {
+      const name = nameHints.byMessage?.[message.id]
+      if (name && message.author_member_id) map[message.author_member_id] = name
+    }
+    return map
+  }, [messages, nameHints, ordered])
 
   useEffect(() => {
     if (!workspaceId) return undefined
     let cancelled = false
-    fetchChatMembers(workspaceId).then((next) => {
-      if (!cancelled) setMembers(next)
-    }).catch(() => {})
+    refreshAvatars?.()
+    Promise.all([
+      fetchChatMembers(workspaceId).catch((error) => {
+        console.warn('[chat] members', error)
+        return []
+      }),
+      fetchChatNameHints(workspaceId).catch(() => []),
+    ]).then(([nextMembers, notifications]) => {
+      if (cancelled) return
+      setMembers(nextMembers)
+      setNameHints(chatIdentityHints(notifications))
+    })
     return () => {
       cancelled = true
     }
-  }, [workspaceId])
+  }, [refreshAvatars, workspaceId])
 
   useEffect(() => {
     if (initialConversationId) setOpenId(initialConversationId)
@@ -384,8 +411,10 @@ export function ChatScreen({
           <div className="chat-list-scroll">
             {ordered.length === 0 ? <p className="chat-empty">No chats yet.</p> : null}
             {ordered.map((row) => {
-              const title = conversationTitle(row, membersById)
-              const color = getIdentityColorById(membersById[row.other_member_id]?.identityColor)
+              const title = conversationTitle(row, membersById, aliases)
+              const person = membersById[row.other_member_id]
+              const color = getIdentityColorById(person?.identityColor)
+              const when = lastMessageTimeLabel(row.last_message_at)
               return (
                 <button
                   key={row.conversation_id}
@@ -401,7 +430,8 @@ export function ChatScreen({
                     {row.kind === 'direct' ? (
                       <PersonAvatar
                         memberId={row.other_member_id}
-                        employeeId={membersById[row.other_member_id]?.employeeId}
+                        employeeId={person?.employeeId}
+                        authUserId={person?.authUserId}
                         name={title}
                         fallback={row.icon || initials(title)}
                       />
@@ -411,6 +441,7 @@ export function ChatScreen({
                     <strong>{title}</strong>
                     <span>{lastMessagePreview(row)}</span>
                   </span>
+                  {when ? <time className="chat-row-time" dateTime={row.last_message_at}>{when}</time> : null}
                   {row.muted ? <span className="chat-muted">Muted</span> : null}
                   {!row.muted && Number(row.unread) > 0 ? (
                     <span className="chat-badge">{Number(row.unread) > 9 ? '9+' : row.unread}</span>
@@ -428,7 +459,20 @@ export function ChatScreen({
             {resolvedLayout !== 'split' ? (
               <button type="button" className="chat-icon-btn" onClick={() => setOpenId('')}>Back</button>
             ) : null}
-            <h2>{openRow ? conversationTitle(openRow, membersById) : 'Choose a chat'}</h2>
+            <h2 className="chat-thread-title">
+              {openRow?.kind === 'direct' ? (
+                <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
+                  <PersonAvatar
+                    memberId={openRow.other_member_id}
+                    employeeId={membersById[openRow.other_member_id]?.employeeId}
+                    authUserId={membersById[openRow.other_member_id]?.authUserId}
+                    name={conversationTitle(openRow, membersById, aliases)}
+                    fallback={initials(conversationTitle(openRow, membersById, aliases))}
+                  />
+                </span>
+              ) : null}
+              <span>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
+            </h2>
             {openId ? (
               <button type="button" className="chat-icon-btn" onClick={() => setSheet('mute')}>Mute</button>
             ) : null}
@@ -471,11 +515,12 @@ export function ChatScreen({
               const mine = message.author_member_id === memberId
               const deleted = Boolean(message.deleted_at)
               const author = membersById[message.author_member_id]
+              const authorName = author?.name || aliases[message.author_member_id] || ''
               const reply = message.reply_to_id ? messagesById[message.reply_to_id] : null
               const grouped = groupReactions(reactions.filter((row) => row.message_id === message.id), memberId)
               const seen = mine && index === messages.length - 1
-                ? seenByLabels(participants, message, membersById)
-                : []
+                ? seenByText(participants, message, membersById, aliases)
+                : ''
               return (
                 <div key={message.id} id={`chat-message-${message.id}`} className="chat-message-wrap">
                   {showDay ? <p className="chat-day">{dayLabel(message.created_at)}</p> : null}
@@ -483,10 +528,11 @@ export function ChatScreen({
                   {!mine ? (
                     <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
                       <PersonAvatar
-                        memberId={author?.id}
+                        memberId={message.author_member_id}
                         employeeId={author?.employeeId}
-                        name={author?.name}
-                        fallback={initials(author?.name)}
+                        authUserId={author?.authUserId}
+                        name={authorName}
+                        fallback={initials(authorName)}
                       />
                     </span>
                   ) : null}
@@ -505,7 +551,7 @@ export function ChatScreen({
                     onPointerUp={() => window.clearTimeout(pressTimer.current)}
                     onPointerLeave={() => window.clearTimeout(pressTimer.current)}
                   >
-                    {!mine && author ? <p className="chat-meta">{author.name}</p> : null}
+                    {!mine && authorName ? <p className="chat-meta">{authorName}</p> : null}
                     {reply ? <p className="chat-reply-quote">{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</p> : null}
                     {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} /> : null}
                     <p>{deleted ? 'Message deleted' : (message.body || (message.attachment_path ? '' : ''))}</p>
@@ -524,7 +570,7 @@ export function ChatScreen({
                         ))}
                       </div>
                     ) : null}
-                    {seen.length > 0 ? <p className="chat-meta">Seen by {seen.join(', ')}</p> : null}
+                    {seen ? <p className="chat-meta">{seen}</p> : null}
                   </article>
                   </div>
                 </div>
@@ -567,8 +613,10 @@ export function ChatScreen({
                   }
                 }}
               />
-              <button type="submit" className="chat-send" disabled={busy || cannotPost || !draft.trim()}>
-                Send
+              <button type="submit" className="chat-send" aria-label="Send" disabled={busy || cannotPost || !draft.trim()}>
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
               </button>
             </form>
           ) : (
