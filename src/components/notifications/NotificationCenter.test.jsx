@@ -89,13 +89,15 @@ describe('quiet hours', () => {
       onQuietChange,
     }))
 
-    const faces = Array.from(container.querySelectorAll('.notification-quiet-time-face'))
-    expect(faces.map((face) => face.textContent)).toEqual(['23:00', '08:00'])
-    expect(container.textContent).not.toMatch(/11:00|PM|AM/)
+    expect(container.querySelectorAll('.notification-quiet-time-face')).toHaveLength(0)
+    expect(container.querySelectorAll('.notification-quiet-time-box.is-empty')).toHaveLength(0)
 
     const inputs = Array.from(container.querySelectorAll('input[type="time"]'))
     expect(inputs.map((input) => input.value)).toEqual(['23:00', '08:00'])
     expect(inputs[0].getAttribute('lang')).toBe('en-GB')
+    inputs.forEach((input) => {
+      expect(input.parentElement?.querySelector('.notification-quiet-time-face')).toBeNull()
+    })
 
     act(() => {
       setInputValue(inputs[0], '07:30:00')
@@ -116,6 +118,10 @@ describe('quiet hours', () => {
     expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*-webkit-appearance: none;/s)
     expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*min-height: 44px;/s)
     expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*width: 100%;/s)
+    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*color: #f7efe1;/s)
+    expect(css).toMatch(/\.notification-quiet-time-box input\[type='time'\] \{[^}]*-webkit-text-fill-color: #f7efe1;/s)
+    expect(css).toContain('.notification-quiet-time-box.is-empty input[type=\'time\']')
+    expect(css).toMatch(/\.notification-quiet-time-box\.is-empty input\[type='time'\][\s\S]*-webkit-text-fill-color: transparent;/)
     expect(css).toContain('.notification-quiet-time-face')
   })
 })

@@ -51,7 +51,13 @@ describe('staff availability time fields', () => {
     expect(inputs[1].value).toBe('17:00')
     expect(inputs[0].placeholder).toBe('--:--')
     expect(container.querySelectorAll('.mobile-availability-time.is-empty')).toHaveLength(12)
+    expect(container.querySelectorAll('.mobile-availability-time-placeholder')).toHaveLength(12)
     expect(container.querySelector('.mobile-availability-time-placeholder')?.textContent).toBe('--:--')
+    const filledFields = Array.from(container.querySelectorAll('.mobile-availability-time:not(.is-empty)'))
+    expect(filledFields).toHaveLength(2)
+    filledFields.forEach((field) => {
+      expect(field.querySelector('.mobile-availability-time-placeholder')).toBeNull()
+    })
     expect(container.textContent).toContain('Start time (optional)')
     expect(container.textContent).toContain('End time (optional)')
 
@@ -66,6 +72,8 @@ describe('staff availability time fields', () => {
     expect(css).toContain('appearance: none;')
     expect(css).toContain('min-height: 44px;')
     expect(css).toContain('.mobile-availability-time-placeholder')
+    expect(css).toContain(".mobile-availability-time.is-empty .mobile-availability-input[type='time']::-webkit-datetime-edit")
+    expect(css).toMatch(/\.mobile-availability-input\[type='time'\] \{[^}]*color: #fff7e8;/s)
     expect(css).toMatch(/@media \(max-width: 420px\) \{\s*\.mobile-availability-time-grid \{\s*grid-template-columns: 1fr;/)
   })
 })

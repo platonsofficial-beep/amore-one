@@ -51023,7 +51023,8 @@ summary:focus-visible {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: transparent;
+  color: #f7efe1;
+  -webkit-text-fill-color: #f7efe1;
   caret-color: transparent;
   color-scheme: dark;
   font-variant-numeric: tabular-nums;
@@ -51037,7 +51038,19 @@ summary:focus-visible {
 .notification-quiet-time-box input[type='time']::-webkit-datetime-edit-hour-field,
 .notification-quiet-time-box input[type='time']::-webkit-datetime-edit-minute-field,
 .notification-quiet-time-box input[type='time']::-webkit-datetime-edit-ampm-field {
+  color: #f7efe1;
+  -webkit-text-fill-color: #f7efe1;
+}
+
+.notification-quiet-time-box.is-empty input[type='time'],
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-date-and-time-value,
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit,
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-fields-wrapper,
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-hour-field,
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-minute-field,
+.notification-quiet-time-box.is-empty input[type='time']::-webkit-datetime-edit-ampm-field {
   color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .notification-quiet-time-box input[type='time']::-webkit-calendar-picker-indicator {
