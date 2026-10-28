@@ -146,11 +146,13 @@ export function MobileReservationsHostView({
       dateKey: todayKey,
       areaFilterId,
       layout,
+      nowMinutes,
     }),
     [
       areaFilterId,
       layout,
       reservationSeatings,
+      nowMinutes,
       selectedSeating,
       todayKey,
       workspaceReservations,

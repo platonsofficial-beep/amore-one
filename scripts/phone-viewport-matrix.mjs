@@ -625,8 +625,8 @@ function assertMeasurement(page, width, height, measurement) {
       }
     }
     if (seatingNames.some((entry) => entry.clipped)) failures.push('seating name is clipped')
-    if (!measurement.nextArea || measurement.nextArea.width < 36 || measurement.nextArea.right > width + 1) {
-      failures.push('next area arrow is missing or clipped')
+    if (!measurement.nextArea || measurement.nextArea.width < 36 || measurement.nextArea.right > width - 6) {
+      failures.push('next area arrow is missing, clipped, or touching the right edge')
     }
     if (height <= 520) {
       if (measurement.toolbarOverlaps) failures.push('floor toolbar controls overlap')
@@ -840,6 +840,93 @@ export async function runPhoneViewportMatrix({
           if (!locked.result?.value?.skipped && !locked.result?.value?.blocked) {
             landscapeFailures.push(`lock does not freeze the map (${locked.result?.value?.overflow} ${locked.result?.value?.touchAction})`)
           }
+          const followUp = await send('Runtime.evaluate', {
+            expression: `(async () => {
+              const failures = []
+              const lock = document.querySelector('[data-testid="host-floor-interaction-lock"]')
+              const viewport = document.querySelector('.floor-plan-viewport.is-host-viewport')
+              if (lock) {
+                const lockRect = lock.getBoundingClientRect()
+                if (lockRect.right > window.innerWidth - 6) failures.push('lock touches the right edge')
+                const wasLocked = lock.getAttribute('aria-pressed') === 'true'
+                if (!wasLocked) lock.click()
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+                const toast = document.querySelector('.floor-plan-lock-toast')
+                if (!toast) failures.push('lock toast did not render')
+                else {
+                  const toastStyle = getComputedStyle(toast)
+                  const toastRect = toast.getBoundingClientRect()
+                  if (toastStyle.position !== 'fixed') failures.push('lock toast is not fixed')
+                  if (Number.parseInt(toastStyle.zIndex, 10) < 1000) failures.push('lock toast sits under the page')
+                  if (toastRect.top < 0 || toastRect.bottom > window.innerHeight || toastRect.left < 0 || toastRect.right > window.innerWidth) {
+                    failures.push('lock toast is outside the viewport')
+                  }
+                  const chips = document.querySelector('.floor-seating-selector-shell')
+                  if (chips) {
+                    const chipRect = chips.getBoundingClientRect()
+                    const overlaps = toastRect.bottom > chipRect.top + 2 && toastRect.top < chipRect.bottom - 2
+                      && toastRect.right > chipRect.left && toastRect.left < chipRect.right
+                    if (overlaps && toastRect.top >= chipRect.top) failures.push('lock toast is hidden behind the seating chips')
+                  }
+                }
+                const zoomIn = document.querySelector('.floor-plan-zoom-btn[aria-label="Zoom in"]')
+                if (zoomIn && !zoomIn.disabled) failures.push('zoom stays enabled while the map is locked')
+                if (!wasLocked) lock.click()
+              }
+              const more = document.querySelector('.floor-plan-toolbar-more-summary')
+              if (more) {
+                more.click()
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+                const item = [...document.querySelectorAll('.floor-plan-toolbar-more-menu button')]
+                  .find((button) => button.textContent.includes('Edit layout'))
+                if (!item) failures.push('Edit layout is missing from More')
+                else {
+                  const rect = item.getBoundingClientRect()
+                  const menuStyle = getComputedStyle(item.closest('.floor-plan-toolbar-more-menu'))
+                  if (menuStyle.position !== 'fixed' || Number.parseInt(menuStyle.zIndex, 10) < 1000) {
+                    failures.push('More menu is not on the top layer')
+                  }
+                  if (rect.top < 0 || rect.left < 0 || rect.bottom > window.innerHeight + 1 || rect.right > window.innerWidth + 1 || rect.height < 8) {
+                    failures.push('Edit layout is not fully visible')
+                  }
+                }
+                more.click()
+              }
+              const fit = document.querySelector('.floor-plan-zoom-btn[aria-label="Fit to view"]')
+              if (fit && viewport && !fit.disabled) {
+                fit.click()
+                await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+                const viewRect = viewport.getBoundingClientRect()
+                const tables = [...viewport.querySelectorAll('.floor-table-node')]
+                const outside = tables.filter((node) => {
+                  const rect = node.getBoundingClientRect()
+                  if (rect.width < 2 || rect.height < 2) return false
+                  return rect.left < viewRect.left - 2
+                    || rect.top < viewRect.top - 2
+                    || rect.right > viewRect.right + 2
+                    || rect.bottom > viewRect.bottom + 2
+                })
+                if (tables.length > 0 && outside.length > 0) {
+                  failures.push('Fit leaves ' + outside.length + ' tables outside the plan')
+                }
+                if (viewport.scrollWidth > viewport.clientWidth + 2 || viewport.scrollHeight > viewport.clientHeight + 2) {
+                  failures.push('Fit still shows plan scrollbars')
+                }
+              }
+              const sheetActions = document.querySelector('.mobile-host-reservation-form-actions, .reservation-smart-modal .modal-actions')
+              if (sheetActions) {
+                const style = getComputedStyle(sheetActions)
+                if (style.position !== 'sticky' && style.position !== 'fixed') {
+                  failures.push('reservation sheet actions are not sticky')
+                }
+              }
+              return failures
+            })()`,
+            awaitPromise: true,
+            returnByValue: true,
+          })
+          const followUpFailures = followUp.result?.value
+          if (Array.isArray(followUpFailures)) landscapeFailures.push(...followUpFailures)
         }
         if (landscapeFailures.length) {
           failures.push({ page: page.id, size: `${landscapeWidth}x${landscapeHeight}`, mode: 'landscape', failures: landscapeFailures })
