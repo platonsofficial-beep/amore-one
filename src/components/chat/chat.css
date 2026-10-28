@@ -920,7 +920,7 @@
   .chat-list-header,
   .chat-thread-header {
     position: sticky;
-    top: 0;
+    top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px);
     z-index: 5;
     background: #12100e;
   }
