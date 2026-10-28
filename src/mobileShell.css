@@ -8215,7 +8215,30 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-  padding-top: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-top: 8px;
+  padding-top: 10px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  background: #12141c;
+}
+
+.mobile-host-reservation-sheet.mobile-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-body,
+.mobile-host-reservation-inline-body,
+.mobile-host-reservation-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .app-shell.is-host-station-shell .mobile-host-reservation-form-actions {
@@ -10016,6 +10039,13 @@ body:not(:has(.inventory-count-session)) :is(
     flex: 1 1 100%;
     min-width: 0;
     justify-content: flex-end;
+    padding-right: 10px;
+    box-sizing: border-box;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+    padding-right: 10px;
+    box-sizing: border-box;
   }
 
   .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,

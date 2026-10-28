@@ -1,15 +1,16 @@
 import { useMemo, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
+import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
 import { getHostListCompactStatusLabel } from '../../lib/reservationHostStatus'
-import { formatTime24, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
+import { formatTime24 } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
 
 function reservationOnDate(reservation, dateKey) {
-  return normalizeReservationDateKey(reservation?.date) === dateKey
+  return getReservationDateKey(reservation) === dateKey
 }
 
 export function MobileManagerReservationsView({

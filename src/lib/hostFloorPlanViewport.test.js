@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { clampHostFloorPan, computeHostFloorContainBox, computeHostFloorFit, computeHostFloorReadableBox } from './hostFloorPlanViewport'
+import {
+  clampHostFloorPan,
+  computeHostFloorContainBox,
+  computeHostFloorFit,
+  computeHostFloorReadableBox,
+  computeHostFloorTablesFit,
+} from './hostFloorPlanViewport'
 
 describe('computeHostFloorFit', () => {
   it('does not apply a second fit-to-table-bounds zoom on published layouts', () => {
@@ -45,6 +51,39 @@ describe('computeHostFloorContainBox', () => {
       contentWidth: 400,
       contentHeight: 300,
     })).toEqual({ x: -200, y: -200 })
+  })
+})
+
+describe('computeHostFloorTablesFit', () => {
+  it('fits every table, including the left edge and the bottom row, into the visible plan', () => {
+    const tables = [
+      { id: 't10', x: 8, y: 18, widthPercent: 10, heightPercent: 8 },
+      { id: 'side', x: 94, y: 40, widthPercent: 8, heightPercent: 8 },
+      { id: 'bottom', x: 50, y: 90, widthPercent: 12, heightPercent: 10 },
+    ]
+    const viewportWidth = 667
+    const viewportHeight = 220
+    const fit = computeHostFloorTablesFit({
+      tables,
+      viewportWidth,
+      viewportHeight,
+      aspectWidth: 1000,
+      aspectHeight: 700,
+      paddingPx: 8,
+    })
+
+    tables.forEach((table) => {
+      const halfW = table.widthPercent / 2
+      const halfH = table.heightPercent / 2
+      const left = fit.width * ((table.x - halfW) / 100) - fit.scrollLeft
+      const right = fit.width * ((table.x + halfW) / 100) - fit.scrollLeft
+      const top = fit.height * ((table.y - halfH) / 100) - fit.scrollTop
+      const bottom = fit.height * ((table.y + halfH) / 100) - fit.scrollTop
+      expect(left).toBeGreaterThanOrEqual(-1)
+      expect(top).toBeGreaterThanOrEqual(-1)
+      expect(right).toBeLessThanOrEqual(viewportWidth + 1)
+      expect(bottom).toBeLessThanOrEqual(viewportHeight + 1)
+    })
   })
 })
 

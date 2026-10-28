@@ -229,7 +229,7 @@ export function buildPortraitFloorTables({
   const tables = layout?.tables ?? layout?.units ?? []
   return tables.map((table, index) => {
     const matched = getReservationsForFloorTable(table, reservations, dateKey, {
-      syncWithList: true,
+      syncWithList: false,
       floorUnits: tables,
     })
     const operational = resolveFloorTableOperationalState(matched, nowMinutes, dateKey)
