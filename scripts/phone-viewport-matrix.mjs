@@ -490,6 +490,11 @@ const MEASURE_SOURCE = `(() => {
       if (!chrome) return ''
       return getComputedStyle(chrome).position
     })(),
+    stockChromeHeight: (() => {
+      const chrome = document.querySelector('.main-panel-stock > .stock-focus-chrome')
+      if (!chrome) return 0
+      return Math.round(chrome.getBoundingClientRect().height)
+    })(),
     scheduleDayName: (() => {
       const el = document.querySelector('.blend-grid-header-day-name')
       return el ? el.textContent.trim() : ''
@@ -756,6 +761,9 @@ function assertMeasurement(page, width, height, measurement) {
   }
   if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromePosition && measurement.stockChromePosition !== 'sticky') {
     failures.push(`stock tabs are ${measurement.stockChromePosition}`)
+  }
+  if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromeHeight > Math.round(height * 0.22)) {
+    failures.push(`stock tab header is ${measurement.stockChromeHeight}px of ${height}px`)
   }
   if (page.id === 'chat') {
     if (!measurement.chatScreen) failures.push('chat screen did not render')

@@ -280,6 +280,7 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/mobile/MobileManagerStockView.jsx'),
       resolve(process.cwd(), 'src/lib/inventoryCountItemName.js'),
       resolve(process.cwd(), 'src/lib/stockOrderUtils.js'),
+      resolve(process.cwd(), 'src/lib/stockDashboardBrowse.js'),
       resolve(process.cwd(), 'src/lib/stockSupplierUtils.js'),
       resolve(process.cwd(), 'src/components/stock/StockOrderDetailDrawer.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockOrderReceiveConfirmModal.jsx'),

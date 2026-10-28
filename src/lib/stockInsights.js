@@ -109,13 +109,17 @@ export function summarizeToOrderBreakdown(items = []) {
   }
 }
 
-/** "131 items · 16 out · 24 low · 91 under target" */
+/**
+ * "24 to order: 9 out, 10 low, 5 below target".
+ * Out and low match the Home stock card (catalog on-hand). Below target is a
+ * to-order product that is neither out nor low. It is not a storage-shelf par.
+ */
 export function formatToOrderBreakdown(items = [], summary = null) {
   const breakdown = summarizeToOrderBreakdown(items)
   const out = summary && summary.outOfStock != null ? summary.outOfStock : breakdown.out
   const low = summary && summary.lowStock != null ? summary.lowStock : breakdown.low
-  const itemsLabel = breakdown.total === 1 ? '1 item' : `${breakdown.total} items`
-  return `${itemsLabel} · ${out} out · ${low} low · ${breakdown.underTarget} under target`
+  const orderLabel = breakdown.total === 1 ? '1 to order' : `${breakdown.total} to order`
+  return `${orderLabel}: ${out} out, ${low} low, ${breakdown.underTarget} below target`
 }
 
 export function buildToOrderSupplierGroups(items = []) {

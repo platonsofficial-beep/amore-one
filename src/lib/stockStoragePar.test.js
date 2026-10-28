@@ -46,8 +46,8 @@ describe('countBelowParByStorage', () => {
     })
     expect(counts.get('soft')).toBe(2)
     expect(counts.get('spirits')).toBeUndefined()
-    expect(formatItemsBelowPar(1)).toBe('1 item below par')
-    expect(formatItemsBelowPar(2)).toBe('2 items below par')
+    expect(formatItemsBelowPar(1)).toBe('1 item below storage par')
+    expect(formatItemsBelowPar(2)).toBe('2 items below storage par')
   })
 })
 

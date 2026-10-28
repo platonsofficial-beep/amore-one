@@ -1,8 +1,11 @@
 import {
   itemNeedsOrder,
+  normalizeStockCategory,
   resolveStockItemType,
   resolveStockStorageLocation,
+  STOCK_CATEGORIES,
 } from './stockCatalog'
+import { buildProductDisplayNameFromItem } from './stockProductIdentity'
 import { buildStockProductSearchHaystack } from './stockProductMetadataDisplay'
 import { resolveStockItemQuantityStatus } from './stockUtils'
 
@@ -58,6 +61,10 @@ function compareStrings(left, right) {
   return `${left ?? ''}`.localeCompare(`${right ?? ''}`, undefined, { sensitivity: 'base' })
 }
 
+function productSortName(item) {
+  return buildProductDisplayNameFromItem(item) || `${item?.name ?? ''}`
+}
+
 function matchesVisibilityFilter(item, visibilityFilter = 'active') {
   const isActive = item?.active !== false
   if (visibilityFilter === 'inactive') return !isActive
@@ -99,32 +106,32 @@ export function sortStockDashboardItems(items = [], sortKey = 'name-asc') {
 
   list.sort((left, right) => {
     if (sortKey === 'name-desc') {
-      return compareStrings(right.name, left.name)
+      return compareStrings(productSortName(right), productSortName(left))
     }
 
     if (sortKey === 'name-asc') {
-      return compareStrings(left.name, right.name)
+      return compareStrings(productSortName(left), productSortName(right))
     }
 
     if (sortKey === 'low-first') {
       const leftPriority = STATUS_SORT_PRIORITY[left.status] ?? 99
       const rightPriority = STATUS_SORT_PRIORITY[right.status] ?? 99
       if (leftPriority !== rightPriority) return leftPriority - rightPriority
-      return compareStrings(left.name, right.name)
+      return compareStrings(productSortName(left), productSortName(right))
     }
 
     if (sortKey === 'out-first') {
       const leftOut = left.status === 'out' ? 0 : 1
       const rightOut = right.status === 'out' ? 0 : 1
       if (leftOut !== rightOut) return leftOut - rightOut
-      return compareStrings(left.name, right.name)
+      return compareStrings(productSortName(left), productSortName(right))
     }
 
     if (sortKey === 'recent') {
       return getItemUpdatedTimestamp(right) - getItemUpdatedTimestamp(left)
     }
 
-    return compareStrings(left.name, right.name)
+    return compareStrings(productSortName(left), productSortName(right))
   })
 
   return list
@@ -148,6 +155,47 @@ function resolveGroupKey(item, groupBy) {
   }
 
   return ''
+}
+
+function categoryOrderIndex(category) {
+  const normalized = normalizeStockCategory(category)
+  const index = STOCK_CATEGORIES.indexOf(normalized)
+  return index === -1 ? STOCK_CATEGORIES.length : index
+}
+
+/** Out, then low, then ok, then the full brand + name + size. */
+export function compareStockItemsByStatusThenName(left, right) {
+  const leftPriority = STATUS_SORT_PRIORITY[left?.status] ?? 99
+  const rightPriority = STATUS_SORT_PRIORITY[right?.status] ?? 99
+  if (leftPriority !== rightPriority) return leftPriority - rightPriority
+  return compareStrings(productSortName(left), productSortName(right))
+}
+
+/**
+ * Section headers follow the app category order (Spirits, then Syrups, …).
+ * Inside a section, out comes before low, then ok.
+ */
+export function groupStockItemsByCategoryStatus(items = []) {
+  const groups = new Map()
+
+  ;(items ?? []).forEach((item) => {
+    const label = normalizeStockCategory(item?.category) || 'Other'
+    const existing = groups.get(label) ?? []
+    existing.push(item)
+    groups.set(label, existing)
+  })
+
+  return Array.from(groups.entries())
+    .sort(([left], [right]) => {
+      const order = categoryOrderIndex(left) - categoryOrderIndex(right)
+      if (order !== 0) return order
+      return compareStrings(left, right)
+    })
+    .map(([label, groupItems]) => ({
+      key: label,
+      label,
+      items: [...groupItems].sort(compareStockItemsByStatusThenName),
+    }))
 }
 
 export function groupStockDashboardItems(items = [], groupBy = 'none') {

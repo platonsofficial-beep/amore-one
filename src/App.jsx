@@ -22372,6 +22372,13 @@ function App() {
     isCreatingStockOrdersRef.current = true
     flushSync(() => {
       setIsPreparingSupplyDrafts(true)
+      setSupplyDraftPreview({
+        loading: true,
+        lines: [],
+        review: [],
+        summary: '',
+        message: '',
+      })
     })
     setStockOrdersNotice('')
     setStockItemsNotice('')
@@ -22386,14 +22393,28 @@ function App() {
         setStockOrdersNotice(preview.message)
         setStockItemsNotice(preview.message)
         setMobileNotice(preview.message)
+        setSupplyDraftPreview({
+          loading: false,
+          lines: [],
+          review: [],
+          summary: preview.summary ?? '',
+          message: preview.message,
+        })
         return
       }
-      setSupplyDraftPreview(preview)
+      setSupplyDraftPreview({ ...preview, loading: false })
     } catch (error) {
       const message = error.message || 'Unable to prepare order drafts right now.'
       setStockOrdersNotice(message)
       setStockItemsNotice(message)
       setMobileNotice(message)
+      setSupplyDraftPreview({
+        loading: false,
+        lines: [],
+        review: [],
+        summary: '',
+        message,
+      })
       throw error
     } finally {
       isCreatingStockOrdersRef.current = false
@@ -24785,11 +24806,17 @@ function App() {
         ) : null}
 
         <SupplyOrderDraftPreviewDialog
+          isOpen={Boolean(supplyDraftPreview)}
+          isLoading={Boolean(supplyDraftPreview?.loading)}
           lines={supplyDraftPreview?.lines ?? []}
           review={supplyDraftPreview?.review ?? []}
           summary={supplyDraftPreview?.summary ?? ''}
+          message={supplyDraftPreview?.message ?? ''}
           isSaving={isSavingStockOrder}
-          onCancel={() => setSupplyDraftPreview(null)}
+          onCancel={() => {
+            if (isPreparingSupplyDrafts) return
+            setSupplyDraftPreview(null)
+          }}
           onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
         />
 

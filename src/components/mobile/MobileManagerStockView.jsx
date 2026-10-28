@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   filterStockDashboardItems,
-  sortStockDashboardItems,
+  groupStockItemsByCategoryStatus,
 } from '../../lib/stockDashboardBrowse'
 import { getStockDashboardEmptyState } from '../../lib/stockInsights'
 import {
@@ -15,7 +15,7 @@ import {
 } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from '../stock/StockCreateOrderModal'
 import { formatInventoryUnit } from '../../lib/inventoryUnitDisplay'
-import { formatProductSizeDetail } from '../../lib/stockProductIdentity'
+import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../lib/stockProductIdentity'
 
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
@@ -40,7 +40,8 @@ function MobileManagerStockItemCard({
 }) {
   const currentQuantity = Number(item.currentQuantity) || 0
   const statusLabel = getStockStatusShortLabel(item.status)
-  const sizeDetail = formatProductSizeDetail(item, item.name)
+  const displayTitle = buildProductDisplayNameFromItem(item)
+  const sizeDetail = formatProductSizeDetail(item, displayTitle)
 
   return (
     <button
@@ -49,7 +50,7 @@ function MobileManagerStockItemCard({
       onClick={() => onOpen?.(item)}
     >
       <span className="mobile-manager-stock-card-name">
-        {item.name}
+        {displayTitle}
         {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
       </span>
       <span className={`mobile-manager-stock-row-qty tone-${item.status}`}>
@@ -93,9 +94,9 @@ function MobileStockDetailSheet({
       <section className="mobile-stock-detail-card" role="dialog" aria-modal="true" aria-labelledby="mobile-stock-detail-title">
         <header className="mobile-stock-detail-header">
           <div>
-            <h2 id="mobile-stock-detail-title">{item.name}</h2>
-            {formatProductSizeDetail(item, item.name) ? (
-              <p className="stock-item-size-detail">{formatProductSizeDetail(item, item.name)}</p>
+            <h2 id="mobile-stock-detail-title">{buildProductDisplayNameFromItem(item)}</h2>
+            {formatProductSizeDetail(item) ? (
+              <p className="stock-item-size-detail">{formatProductSizeDetail(item)}</p>
             ) : null}
             <p>{categoryLabel}</p>
           </div>
@@ -234,11 +235,11 @@ export function MobileManagerStockView({
       statusFilter,
       searchTerm,
     })
-    return sortStockDashboardItems(filtered, 'low-first')
+    return groupStockItemsByCategoryStatus(filtered)
   }, [stockItems, categoryFilter, statusFilter, searchTerm])
 
   const hasNoItems = stockItems.length === 0
-  const hasNoMatches = !hasNoItems && visibleItems.length === 0
+  const hasNoMatches = !hasNoItems && visibleItems.every((group) => group.items.length === 0)
 
   const emptyState = useMemo(() => {
     // P8.17.1 — Never treat a failed load as a successful empty catalog.
@@ -482,16 +483,23 @@ export function MobileManagerStockView({
       ) : emptyState ? (
         <MobileManagerStockEmptyState title={emptyState.title} message={emptyState.message} />
       ) : (
-        <ul className="mobile-manager-stock-list">
-          {visibleItems.map((item) => (
-            <li key={item.id}>
-              <MobileManagerStockItemCard
-                item={item}
-                onOpen={setDetailItem}
-              />
-            </li>
+        <div className="mobile-manager-stock-list">
+          {visibleItems.map((group) => (
+            <section key={group.key} className="mobile-manager-stock-group" aria-label={group.label}>
+              <h3 className="mobile-manager-stock-group-title">{group.label}</h3>
+              <ul>
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <MobileManagerStockItemCard
+                      item={item}
+                      onOpen={setDetailItem}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
       </div>
 
