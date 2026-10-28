@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyboardOverlap } from './keyboardInset'
+import { keyboardOverlap, keepChatPinned } from './keyboardInset'
 import { clampOverlayLeft } from './safeInline'
 
 describe('keyboardOverlap', () => {
@@ -25,6 +25,32 @@ describe('keyboardOverlap', () => {
 
   it('falls back to the layout height without a visual viewport', () => {
     expect(keyboardOverlap(null, 844)).toEqual({ kb: 0, vvh: 844, top: 0 })
+  })
+
+  it('pins a stuck chat after the viewport moves, and leaves history alone', () => {
+    const pins = []
+    const node = {
+      dataset: { chatStick: '1' },
+      scrollHeight: 2000,
+      scrollTop: 400,
+    }
+    const win = {
+      document: { querySelector: () => node },
+      scrollTo: () => pins.push('window'),
+      requestAnimationFrame: (fn) => { fn(); return 1 },
+      setTimeout: (fn) => { fn(); return 2 },
+      clearTimeout() {},
+      cancelAnimationFrame() {},
+    }
+    keepChatPinned(win)
+    expect(node.scrollTop).toBe(2000)
+    expect(pins.length).toBeGreaterThan(0)
+    expect(node.dataset.chatHold).toBeUndefined()
+
+    node.dataset = { chatStick: '0' }
+    node.scrollTop = 100
+    keepChatPinned(win)
+    expect(node.scrollTop).toBe(100)
   })
 })
 

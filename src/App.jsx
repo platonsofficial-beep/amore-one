@@ -1,5 +1,6 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { clampOverlayLeft } from './lib/safeInline'
+import { formatProfileSaveError } from './lib/profileSaveError'
 import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
@@ -597,6 +598,7 @@ import {
   shouldUseFluidScheduleDayColumns,
 } from './lib/mobileScheduleUtils'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
+import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
 import {
   isMobileScrollDebugEnabled,
   scheduleMobileReservationsScrollDebug,
@@ -4517,6 +4519,11 @@ function ScheduleView({
     [activeStaffMembers],
   )
 
+  const shiftDisplayNames = useMemo(
+    () => buildShiftDisplayNames(employees),
+    [employees],
+  )
+
   const employeeWeeklyHoursMap = useMemo(
     () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
     [visibleWeekShifts],
@@ -6162,8 +6169,10 @@ function ScheduleView({
                                   ?? shift.employees?.id
                                   ?? '',
                               )
-                              const displayNameLabel = (
-                                staffAvailabilityDisplayLabels.get(employeeKey) || employeeName
+                              const displayNameLabel = lookupShiftDisplayName(
+                                shiftDisplayNames,
+                                employeeKey,
+                                employeeName,
                               )
                               const identityEmployee = resolveScheduleIdentityEmployee(shift, employeeName)
                               const identityPresentation = getEmployeeIdentityColor(identityEmployee)
@@ -24199,12 +24208,12 @@ function App() {
 
       setMobileNotice('Profile updated.')
     } catch (error) {
-      const errorMessage = error?.message || 'Unable to save profile right now.'
+      const errorMessage = formatProfileSaveError(error)
       setMobileProfileError(errorMessage)
       if (isMobileViewport) {
         setMobileNotice(errorMessage)
       }
-      throw error
+      throw new Error(errorMessage)
     } finally {
       setIsSavingMobileProfile(false)
     }
@@ -24449,7 +24458,12 @@ function App() {
             email: `${membership?.email ?? user?.email ?? ''}`.trim(),
             phone: mobileProfilePhone,
             roleLabel,
-            venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+            venueName: resolveSupplierOrderVenueName(
+              workspace?.name,
+              workspaceProfile.businessName,
+              membership?.workspaceName,
+              membership?.workspace?.name,
+            ),
             linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
             canEditPhone: Boolean(membership?.employeeId),
             isSaving: isSavingMobileProfile,
@@ -25301,7 +25315,12 @@ function App() {
                       email: `${membership?.email ?? user?.email ?? ''}`.trim(),
                       phone: mobileProfilePhone,
                       roleLabel,
-                      venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+                      venueName: resolveSupplierOrderVenueName(
+              workspace?.name,
+              workspaceProfile.businessName,
+              membership?.workspaceName,
+              membership?.workspace?.name,
+            ),
                       linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
                       canEditPhone: Boolean(membership?.employeeId),
                       isSaving: isSavingMobileProfile,
@@ -25364,6 +25383,7 @@ function App() {
                           phone: mobileProfilePhone,
                         },
                         workspaceProfile,
+                        workspace,
                         membership,
                         onSignOut: handleMobileSignOut,
                       }}

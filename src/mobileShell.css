@@ -1501,6 +1501,25 @@
   width: 100%;
 }
 
+.profile-photo-remove {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-photo-remove:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .profile-photo-caption,
 .profile-photo-toast {
   margin: 0;
