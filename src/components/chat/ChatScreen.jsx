@@ -341,7 +341,7 @@ export function ChatScreen({
     node.style.height = `${Math.min(node.scrollHeight, 120)}px`
   }, [draft, openId])
 
-  const { kb, vvh } = useKeyboardInset(true)
+  useKeyboardInset(true)
 
   useEffect(() => {
     const node = scrollerRef.current
