@@ -288,9 +288,10 @@ describe('hostFloorTableContent', () => {
     })
 
     expect(resolveHostFloorSemanticClass(activeSeatingState.operational)).toBe('is-seated')
-    expect(resolveHostFloorSemanticClass(inactiveSeatingState.operational)).toBe('is-available')
+    expect(resolveHostFloorSemanticClass(inactiveSeatingState.operational)).toBe('is-seated')
     expect(activeContent.timeLabel).toBe('19:30')
-    expect(inactiveContent.mode).toBe('available')
+    expect(inactiveContent.timeLabel).toBe('19:30')
+    expect(inactiveContent.mode).toBe('occupied')
   })
 
   it('uses compact guest count on very small tables', () => {

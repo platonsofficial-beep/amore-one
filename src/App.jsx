@@ -11987,7 +11987,10 @@ function MobileReservationsHostShellBody({
     if (!hostSeatingInitializedRef.current) {
       hostSeatingInitializedRef.current = true
       if (isViewingToday && !hostSeatingManuallySelectedRef.current) {
-        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes)
+        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes, {
+          reservations,
+          dateKey: todayKey,
+        })
         setSelectedServiceSeatingId(initialId ?? activeSeatings[0].id)
         return
       }
@@ -11998,7 +12001,7 @@ function MobileReservationsHostShellBody({
     setSelectedServiceSeatingId((current) => (
       activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
     ))
-  }, [reservationSeatings, todayKey, workspaceTodayKey, nowMinutes])
+  }, [nowMinutes, reservationSeatings, reservations, todayKey, workspaceTodayKey])
 
   useEffect(() => {
     if (!selectedReservation?.id) return

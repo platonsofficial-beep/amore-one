@@ -503,3 +503,72 @@ describe('buildHostQueueServiceMetricsFromReservations scope', () => {
     expect(seated.reservedTables).toBe(1)
   })
 })
+
+describe('venue presence across services', () => {
+  const seatings = [
+    {
+      id: 'brunch',
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      sortOrder: 0,
+      isActive: true,
+    },
+    {
+      id: 'lunch',
+      name: 'Lunch',
+      startTime: '12:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      sortOrder: 1,
+      isActive: true,
+    },
+  ]
+  const layout = {
+    tables: ['t10', 't11', 't12', 't13', 't14', 't15', 't16', 't17'].map((id) => ({
+      id,
+      label: id.toUpperCase(),
+      zoneId: 'main',
+      seats: 4,
+    })),
+  }
+  const reservations = [
+    ['t10', 't11'],
+    ['t12', 't13'],
+    ['t14', 't15'],
+    ['t16', 't17'],
+  ].map((tables, index) => buildReservation({
+    id: `brunch-${index}`,
+    date: '2026-10-28',
+    time: '10:30',
+    guests: 5,
+    status: index === 3 ? 'Walk In' : 'Checked In',
+    seatingId: 'brunch',
+    seatingAssignment: {
+      assignedUnits: tables.map((id) => ({ id, label: id.toUpperCase() })),
+      extraChairs: 0,
+      standingGuests: 0,
+    },
+  }))
+
+  it('counts seated tables and in-house guests from every service', () => {
+    const venue = buildHostQueueServiceMetrics(reservations, {
+      layout,
+      dateKey: '2026-10-28',
+      nowMinutes: 11 * 60 + 22,
+    })
+    const lunch = buildHostQueueServiceMetricsFromReservations(reservations, {
+      selectedSeating: seatings[1],
+      seatings,
+      dateKey: '2026-10-28',
+      layout,
+      nowMinutes: 11 * 60 + 22,
+    })
+
+    expect(venue.seatedTables).toBe(8)
+    expect(venue.inHouseGuests).toBe(20)
+    expect(lunch.expectedGuests).toBe(0)
+    expect(lunch.inHouseGuests).toBe(0)
+  })
+})

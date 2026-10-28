@@ -77,7 +77,7 @@ describe('hostFloorTableVisualState', () => {
     expect(resolveHostFloorSemanticClass(operational)).toBe('is-seated')
   })
 
-  it('applies seated styling only for the selected seating window', () => {
+  it('keeps a checked-in party seated when another service is selected', () => {
     const seatedReservation = buildReservation()
     const tableState = buildTableState(LAYOUT.tables[0], [seatedReservation])
 
@@ -96,7 +96,7 @@ describe('hostFloorTableVisualState', () => {
       layout: LAYOUT,
     })
 
-    expect(resolveHostFloorSemanticClass(dinnerOneStates[0].operational)).toBe('is-available')
+    expect(resolveHostFloorSemanticClass(dinnerOneStates[0].operational)).toBe('is-seated')
     expect(resolveHostFloorSemanticClass(dinnerTwoStates[0].operational)).toBe('is-seated')
   })
 
@@ -187,7 +187,7 @@ describe('hostFloorTableVisualState', () => {
     ])
   })
 
-  it('updates visible table state when the selected seating changes', () => {
+  it('keeps an in-house party visible after the service tab changes', () => {
     const reservation = buildReservation({ time: '19:30', seatingId: 'dinner-1' })
     const tableState = buildTableState(LAYOUT.tables[0], [reservation], 1170)
 
@@ -207,7 +207,7 @@ describe('hostFloorTableVisualState', () => {
     })
 
     expect(resolveHostFloorSemanticClass(dinnerOne[0].operational)).toBe('is-seated')
-    expect(resolveHostFloorSemanticClass(dinnerTwo[0].operational)).toBe('is-available')
+    expect(resolveHostFloorSemanticClass(dinnerTwo[0].operational)).toBe('is-seated')
   })
 
   it('preserves seated semantic class when the seated table is selected', () => {
