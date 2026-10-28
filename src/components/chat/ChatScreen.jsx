@@ -345,9 +345,9 @@ export function ChatScreen({
 
   useEffect(() => {
     const node = scrollerRef.current
-    if (!node || !stickToBottomRef.current) return
-    node.scrollTop = node.scrollHeight
-  }, [kb, vvh, openId])
+    if (!node) return
+    node.dataset.chatStick = stickToBottomRef.current ? '1' : '0'
+  })
 
   useEffect(() => {
     writeChatSession({ openId, draft })
@@ -757,6 +757,11 @@ export function ChatScreen({
             ref={scrollerRef}
             onScroll={(event) => {
               const node = event.currentTarget
+              if (node.dataset.chatHold === '1') {
+                stickToBottomRef.current = true
+                node.dataset.chatStick = '1'
+                return
+              }
               const metrics = readChatScrollMetrics(node)
               const position = planChatScrollPosition({
                 distance: metrics.distance,
@@ -764,6 +769,7 @@ export function ChatScreen({
                 pendingCount: pendingRef.current,
               })
               stickToBottomRef.current = position.stick
+              node.dataset.chatStick = position.stick ? '1' : '0'
               pendingRef.current = position.pendingCount
               setJumpCount(position.pendingCount)
               setShowJump(position.showButton)

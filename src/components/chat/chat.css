@@ -661,8 +661,7 @@
 }
 
 .app-shell.is-mobile-shell.is-chat-thread .mobile-shell-bell {
-  top: calc(env(safe-area-inset-top, 0px) + 2px);
-  right: max(8px, var(--safe-r, 0px));
+  display: none;
 }
 
 .app-shell:not(.is-mobile-shell) .chat-list-header,
