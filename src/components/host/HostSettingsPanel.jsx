@@ -1,7 +1,9 @@
 import { findPhoneCountryByIso2 } from '../../lib/phoneCountries'
+import { resolveSupplierOrderVenueName } from '../../lib/stockOrderSend'
 
 export function HostSettingsPanel({
   profile = {},
+  workspace = null,
   workspaceProfile = {},
   membership = null,
   onClose,
@@ -9,6 +11,12 @@ export function HostSettingsPanel({
 }) {
   const country = findPhoneCountryByIso2(workspaceProfile.countryCode)
   const phoneDefault = workspaceProfile.defaultPhoneCountryCode || country?.code || ''
+  const venueName = resolveSupplierOrderVenueName(
+    workspace?.name,
+    workspaceProfile.businessName,
+    membership?.workspaceName,
+    membership?.workspace?.name,
+  )
 
   return (
     <div className="host-settings-panel" role="dialog" aria-modal="true" aria-labelledby="host-settings-title">
@@ -30,7 +38,7 @@ export function HostSettingsPanel({
 
         <section className="host-settings-section">
           <h3>Venue</h3>
-          <p>{workspaceProfile.businessName || 'Workspace'}</p>
+          <p>{venueName || '—'}</p>
           {workspaceProfile.city || workspaceProfile.countryName ? (
             <p>
               {[workspaceProfile.city, workspaceProfile.countryName].filter(Boolean).join(', ')}

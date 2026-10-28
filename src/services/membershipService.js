@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { formatProfileSaveError } from '../lib/profileSaveError'
 import { resolveBootstrapMembershipRole } from '../lib/membershipBootstrapUtils'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { getSession } from './authService'
@@ -354,7 +355,7 @@ export async function updateMembershipDisplayName(authUserId, displayName) {
       throw new Error('Workspace members table is not ready yet.')
     }
 
-    throw new Error(error.message || 'Unable to update display name right now.')
+    throw new Error(formatProfileSaveError(error, 'Unable to update display name right now.'))
   }
 
   return mapMembership(data)

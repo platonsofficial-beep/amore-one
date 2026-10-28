@@ -169,7 +169,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
             </button>
           )}
           {hasPhoto ? (
-            <button type="button" className="mobile-secondary-btn" onClick={removePhoto} disabled={busy}>
+            <button type="button" className="profile-photo-remove" onClick={removePhoto} disabled={busy}>
               Remove photo
             </button>
           ) : null}
