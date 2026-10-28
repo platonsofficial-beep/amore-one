@@ -110,6 +110,17 @@ export const PHONE_VIEWPORT_PAGES = [
     ready: 'stock',
   },
   {
+    id: 'chat',
+    navigation: {
+      activeView: 'chat',
+      settingsSection: 'profile',
+      teamSection: 'today',
+      stockSection: 'dashboard',
+      operationsSection: 'dashboard',
+    },
+    ready: 'chat',
+  },
+  {
     id: 'shell',
     navigation: {
       activeView: 'today',
@@ -331,6 +342,10 @@ const MEASURE_SOURCE = `(() => {
     searchLeft: edgeLeft('.mobile-host-reservations-search input'),
     areaFilterLeft: edgeLeft('.host-queue-toolbar-btn'),
     searchPlaceholder: search ? search.getAttribute('placeholder') : '',
+    chatScreen: Boolean(document.querySelector('.chat-screen')),
+    chatList: Boolean(document.querySelector('.chat-list')),
+    chatSearch: Boolean(document.querySelector('[data-testid="chat-search"]')),
+    chatSplit: Boolean(document.querySelector('.chat-screen.is-split')),
     searchPlaceholderClipped: (() => {
       if (!search) return false
       const style = getComputedStyle(search)
@@ -657,6 +672,14 @@ function assertMeasurement(page, width, height, measurement) {
   }
   if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromePosition && measurement.stockChromePosition !== 'sticky') {
     failures.push(`stock tabs are ${measurement.stockChromePosition}`)
+  }
+  if (page.id === 'chat') {
+    if (!measurement.chatScreen) failures.push('chat screen did not render')
+    if (!measurement.chatList) failures.push('chat list did not render')
+    if (!measurement.chatSearch) failures.push('chat search did not render')
+    const split = Boolean(measurement.chatSplit)
+    if (width > height && width >= 700 && !split) failures.push('chat landscape is not split')
+    if (height > width && split) failures.push('chat portrait is split')
   }
   if (page.id === 'schedule' && width > height && height <= 460 && width <= 1100 && measurement.scheduleDayName) {
     if (measurement.scheduleDayName.length > 3) {
