@@ -1,0 +1,204 @@
+/*
+  Phone landscape usable area. One pair of insets for the shell and for
+  anything portaled onto document.body. The island can be on either side,
+  so both sides use the larger inset (at least 12px). Portrait keeps the
+  real top and bottom insets and does not add a side minimum.
+*/
+
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --safe-l: max(
+      var(--one-safe-area-left, env(safe-area-inset-left, 0px)),
+      var(--one-safe-area-right, env(safe-area-inset-right, 0px)),
+      12px
+    );
+    --safe-r: var(--safe-l);
+  }
+
+  .app-shell {
+    padding-left: var(--safe-l);
+    padding-right: var(--safe-r);
+  }
+
+  /* This panel is positioned against the viewport, so it needs the same
+     inset as the shell. Both sides use the symmetric island value. */
+  .app-shell.is-reservations-dedicated-shell .main-panel-reservations {
+    left: var(--safe-l);
+    right: var(--safe-r);
+  }
+
+  .mobile-bottom-nav,
+  .mobile-manager-app .mobile-bottom-nav,
+  .app-shell.is-host-station-shell .mobile-app-host-station .mobile-bottom-nav {
+    left: var(--safe-l);
+    right: var(--safe-r);
+  }
+
+  .mobile-sheet-backdrop,
+  .mobile-host-date-picker-backdrop,
+  .chat-sheet-backdrop,
+  .employee-modal-backdrop,
+  .app-shell.is-mobile-shell .employee-modal-backdrop,
+  .employee-modal-backdrop:has(.reservation-smart-modal.is-responsive-sheet),
+  .supply-draft-preview,
+  .drawer-backdrop,
+  .notification-drawer-backdrop,
+  .stock-item-more-menu-backdrop,
+  .floor-table-schedule-card-overlay {
+    padding-left: var(--safe-l);
+    padding-right: var(--safe-r);
+    box-sizing: border-box;
+  }
+
+  .mobile-sheet,
+  .chat-sheet,
+  .employee-modal,
+  .employee-modal.is-responsive-sheet,
+  .employee-modal.reservation-smart-modal.is-responsive-sheet,
+  .supply-draft-preview-card,
+  .mobile-stock-detail-card,
+  .stock-item-more-menu-panel.is-sheet {
+    border-radius: 18px;
+  }
+
+  .employee-modal.reservation-smart-modal.is-responsive-sheet {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
+  }
+
+  .mobile-stock-detail-sheet {
+    padding:
+      max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+      var(--safe-r)
+      max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
+      var(--safe-l);
+    box-sizing: border-box;
+  }
+
+  .stock-item-more-menu-panel.is-sheet {
+    left: var(--safe-l);
+    right: var(--safe-r);
+    width: auto;
+    bottom: max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+  }
+
+  .notification-drawer {
+    right: max(16px, var(--safe-r));
+    left: auto;
+    width: min(380px, calc(100vw - var(--safe-l) - var(--safe-r) - 32px));
+    max-width: calc(100vw - var(--safe-l) - var(--safe-r) - 32px);
+    border-radius: 18px;
+  }
+
+  .pwa-status-stack {
+    left: var(--safe-l);
+    right: var(--safe-r);
+    width: auto;
+  }
+
+  .employee-drawer {
+    right: var(--safe-r);
+  }
+
+  .reservations-toast,
+  .floor-plan-lock-toast {
+    max-width: calc(100vw - var(--safe-l) - var(--safe-r) - 24px);
+  }
+}
+
+/* Keyboard: the chat column is the visual viewport, and sheets lift by --kb.
+   The active inventory count does not use these selectors. */
+@media (max-width: 900px) {
+  body:has(.app-shell.is-chat-thread) {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .app-shell.is-chat-thread .chat-screen {
+    position: fixed;
+    z-index: 25;
+    top: var(--vv-top, 0px);
+    left: var(--safe-l, 0px);
+    right: var(--safe-r, 0px);
+    width: auto;
+    height: var(--vvh, 100dvh);
+    max-height: var(--vvh, 100dvh);
+    background: #0b1018;
+  }
+
+  .app-shell.is-chat-thread .chat-thread-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    padding-bottom: var(--one-mobile-bottom-inset, 72px);
+  }
+
+  body.is-keyboard-open .app-shell.is-chat-thread .chat-thread-pane,
+  body.is-composer-focused .app-shell.is-chat-thread .chat-thread-pane {
+    padding-bottom: 0;
+  }
+
+  .app-shell.is-chat-thread .chat-messages {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .app-shell.is-chat-thread .chat-composer {
+    flex: 0 0 auto;
+    padding-bottom: 8px;
+  }
+}
+
+body.is-keyboard-open .mobile-bottom-nav,
+body.is-composer-focused .mobile-bottom-nav {
+  display: none !important;
+}
+
+body.is-keyboard-open .mobile-sheet-backdrop,
+body.is-keyboard-open .chat-sheet-backdrop,
+body.is-keyboard-open .employee-modal-backdrop,
+body.is-keyboard-open .supply-draft-preview,
+body.is-keyboard-open .mobile-host-date-picker-backdrop {
+  padding-bottom: calc(8px + var(--kb, 0px));
+  box-sizing: border-box;
+}
+
+body.is-keyboard-open .mobile-sheet,
+body.is-keyboard-open .chat-sheet,
+body.is-keyboard-open .employee-modal.is-responsive-sheet,
+body.is-keyboard-open .supply-draft-preview-card {
+  max-height: calc(var(--vvh, 100dvh) - 24px);
+}
+
+body.is-keyboard-open .employee-modal.reservation-smart-modal.is-responsive-sheet {
+  height: auto;
+  max-height: var(--vvh, 100dvh);
+}
+
+body.is-keyboard-open .stock-item-more-menu-panel.is-sheet {
+  bottom: calc(var(--kb, 0px) + 8px);
+  max-height: calc(var(--vvh, 100dvh) - 16px);
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .chat-composer textarea,
+  .chat-search input,
+  .chat-field input,
+  .chat-field select,
+  .chat-sheet input,
+  .chat-sheet textarea,
+  .mobile-sheet input,
+  .mobile-sheet textarea,
+  .employee-modal input,
+  .employee-modal textarea,
+  .employee-modal select {
+    font-size: 16px;
+  }
+}

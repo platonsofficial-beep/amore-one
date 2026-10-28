@@ -33521,9 +33521,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-create-order-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -33534,6 +33534,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 4px;
   min-width: 0;
+}
+
+.stock-create-order-item-copy strong,
+.stock-create-order-item-copy span {
+  overflow-wrap: anywhere;
 }
 
 .stock-create-order-item-copy strong {
@@ -34262,6 +34267,59 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-storage-center-state.is-error {
   border-color: rgba(255, 140, 140, 0.35);
+}
+
+.stock-storage-par-note {
+  margin: 0 0 10px;
+  color: var(--one-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mobile-manager-stock-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mobile-manager-stock-group-title {
+  margin: 12px 0 6px;
+  color: rgba(232, 196, 110, 0.92);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.stock-storage-center-skeleton {
+  display: grid;
+  gap: 8px;
+}
+
+.stock-storage-skeleton-card {
+  display: block;
+  height: 72px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+  background-size: 200% 100%;
+  animation: stock-storage-skeleton 1.1s ease-in-out infinite;
+}
+
+@keyframes stock-storage-skeleton {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (max-width: 560px) {
+  .stock-create-order-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stock-create-order-item-controls {
+    justify-content: flex-end;
+  }
 }
 
 .stock-storage-center-empty-title {
@@ -51978,8 +52036,8 @@ summary:focus-visible {
 @media (max-width: 900px) {
   .notification-drawer {
     top: auto;
-    right: env(safe-area-inset-right, 0px);
-    left: env(safe-area-inset-left, 0px);
+    right: var(--safe-r, env(safe-area-inset-right, 0px));
+    left: var(--safe-l, env(safe-area-inset-left, 0px));
     bottom: calc(var(--one-mobile-bottom-nav-height, 64px) + var(--one-mobile-nav-float-gap, 0px) + 8px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-height: calc(100dvh - var(--one-mobile-bottom-nav-height, 64px) - var(--one-mobile-nav-float-gap, 0px) - 8px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) - 12px);
@@ -52907,12 +52965,37 @@ summary:focus-visible {
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
   .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--ui-gap, 4px);
     position: sticky;
     top: 0;
     z-index: 8;
     flex: 0 0 auto;
+    min-height: 0;
+    max-height: var(--ui-control, 40px);
+    padding-block: 0;
+    overflow: hidden;
     background: var(--one-bg, #0e0e0f);
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-header {
+    display: contents;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-exit-btn,
+  .app-shell.stock-focus-mode .stock-focus-chrome .module-section-tab {
+    min-height: var(--ui-control, 36px);
+    height: var(--ui-control, 36px);
+    padding-inline: var(--ui-pad, 8px);
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-search {
+    flex: 0 1 9rem;
+    min-width: 0;
+    min-height: var(--ui-control, 36px);
+    height: var(--ui-control, 36px);
   }
 
   .stock-supplier-card-stats {

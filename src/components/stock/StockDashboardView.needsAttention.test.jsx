@@ -158,7 +158,7 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
     const today = container.querySelector('[aria-label="What to do today"]')
     expect(today).toBeTruthy()
     const orderCard = today.querySelector('[aria-label="To order"]')
-    expect(orderCard?.textContent).toContain('13 items · 7 out · 6 low · 0 under target')
+    expect(orderCard?.textContent).toContain('13 to order: 7 out, 6 low, 0 below target')
     expect(container.querySelector('[aria-label="Needs attention"]')).toBeNull()
     expect(today.textContent).not.toContain('OUT 00')
     expect(today.textContent).not.toContain('Show all')

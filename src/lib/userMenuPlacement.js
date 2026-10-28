@@ -19,8 +19,12 @@ export function placeUserMenuPanel(triggerRect, viewport, options = {}) {
   const height = Math.max(0, numberOrZero(viewport?.height))
   const safeTop = Math.max(0, numberOrZero(viewport?.safeTop))
   const safeBottom = Math.max(0, numberOrZero(viewport?.safeBottom))
+  const safeLeft = Math.max(0, numberOrZero(viewport?.safeLeft))
+  const safeRight = Math.max(0, numberOrZero(viewport?.safeRight))
   const topEdge = margin + safeTop
   const bottomEdge = Math.max(topEdge, height - margin - safeBottom)
+  const leftEdge = Math.max(margin, safeLeft)
+  const rightEdge = Math.max(margin, safeRight)
   const triggerTop = numberOrZero(triggerRect?.top)
   const triggerBottom = numberOrZero(triggerRect?.bottom ?? triggerTop)
   const triggerRight = numberOrZero(triggerRect?.right ?? width)
@@ -29,9 +33,9 @@ export function placeUserMenuPanel(triggerRect, viewport, options = {}) {
   const placeBelow = spaceBelow >= spaceAbove
   const viewportCap = Math.max(0, height - (margin * 2) - safeTop - safeBottom)
   const maxHeight = Math.min(placeBelow ? spaceBelow : spaceAbove, viewportCap)
-  const menuWidth = Math.min(maxWidth, Math.max(0, width - (margin * 2)))
-  const minLeft = margin
-  const maxLeft = Math.max(minLeft, width - margin - menuWidth)
+  const menuWidth = Math.min(maxWidth, Math.max(0, width - leftEdge - rightEdge))
+  const minLeft = leftEdge
+  const maxLeft = Math.max(minLeft, width - rightEdge - menuWidth)
   const left = Math.min(Math.max(triggerRight - menuWidth, minLeft), maxLeft)
   const top = placeBelow
     ? Math.min(triggerBottom + gap, Math.max(topEdge, bottomEdge - maxHeight))

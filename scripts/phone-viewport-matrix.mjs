@@ -414,6 +414,56 @@ const MEASURE_SOURCE = `(() => {
     layout: boxOf('.floor-plan-layout-space'),
     overflow: scrollWidth - width,
     safeLeft,
+    overlayProbe: (() => {
+      const measureVar = (name) => {
+        const probe = document.createElement('div')
+        probe.setAttribute('data-overlay-probe', 'true')
+        probe.style.cssText = 'position:absolute;visibility:hidden;height:1px;width:var(' + name + ');'
+        document.body.appendChild(probe)
+        const width = probe.getBoundingClientRect().width
+        probe.remove()
+        return width
+      }
+      const safe = measureVar('--safe-l')
+      const safeR = measureVar('--safe-r')
+      const make = (className, parent) => {
+        const el = document.createElement('div')
+        el.className = className
+        el.setAttribute('data-overlay-probe', 'true')
+        el.textContent = 'Overlay'
+        parent.appendChild(el)
+        return el
+      }
+      const sheet = make('stock-item-more-menu-panel is-sheet is-visible', document.body)
+      const backdrop = make('mobile-sheet-backdrop', document.body)
+      const mobileSheet = make('mobile-sheet', backdrop)
+      const drawer = make('notification-drawer', document.body)
+      const box = (el) => {
+        const rect = el.getBoundingClientRect()
+        return { left: Math.round(rect.left), right: Math.round(rect.right) }
+      }
+      const result = { safe, safeR, sheet: box(sheet), mobile: box(mobileSheet), drawer: box(drawer) }
+      document.querySelectorAll('[data-overlay-probe]').forEach((node) => node.remove())
+      return result
+    })(),
+    reservationsHeader: (() => {
+      const visible = (selector) => [...document.querySelectorAll(selector)].find((el) => {
+        const rect = el.getBoundingClientRect()
+        const style = getComputedStyle(el)
+        return rect.width > 8 && rect.height > 8 && style.display !== 'none' && style.visibility !== 'hidden'
+      })
+      const box = (el) => {
+        if (!el) return null
+        return {
+          text: el.textContent.trim(),
+          clipped: el.scrollWidth > el.clientWidth + 2,
+        }
+      }
+      return {
+        title: box(visible('.mobile-host-sticky-title, .reservations-host-header-main h2')),
+        date: box(visible('[data-testid="mobile-host-date-label"], .host-workspace-date-nav-label')),
+      }
+    })(),
     headerLeft: edgeLeft('.mobile-host-sticky-bar'),
     searchLeft: edgeLeft('.mobile-host-reservations-search input'),
     areaFilterLeft: edgeLeft('.host-queue-toolbar-btn'),
@@ -515,6 +565,11 @@ const MEASURE_SOURCE = `(() => {
       const chrome = document.querySelector('.main-panel-stock > .stock-focus-chrome')
       if (!chrome) return ''
       return getComputedStyle(chrome).position
+    })(),
+    stockChromeHeight: (() => {
+      const chrome = document.querySelector('.main-panel-stock > .stock-focus-chrome')
+      if (!chrome) return 0
+      return Math.round(chrome.getBoundingClientRect().height)
     })(),
     scheduleDayName: (() => {
       const el = document.querySelector('.blend-grid-header-day-name')
@@ -670,6 +725,35 @@ function assertMeasurement(page, width, height, measurement) {
   if (measurement.scrollWidth > measurement.innerWidth + 1) {
     failures.push(`horizontal overflow ${measurement.scrollWidth} > ${measurement.innerWidth}`)
   }
+  if (height > width && measurement.overlayProbe && measurement.overlayProbe.safe > 1) {
+    failures.push(`portrait side inset is ${measurement.overlayProbe.safe}px`)
+  }
+  if (width > height && height <= 520 && (measurement.safeLeft || 0) >= 59) {
+    const overlay = measurement.overlayProbe
+    if (!overlay) failures.push('overlay inset probe missing')
+    else {
+      const safe = measurement.safeLeft
+      if (overlay.safe < safe - 1) failures.push(`--safe-l used value is ${overlay.safe}px`)
+      if (Math.abs(overlay.safe - overlay.safeR) > 0.5) failures.push('landscape insets are not symmetric')
+      const edges = [
+        ['stock sheet', overlay.sheet],
+        ['mobile sheet', overlay.mobile],
+        ['notification drawer', overlay.drawer],
+      ]
+      for (const [name, box] of edges) {
+        if (!box) {
+          failures.push(`${name} probe missing`)
+          continue
+        }
+        if (box.left < safe - 1) {
+          failures.push(`${name} starts at ${box.left}px inside the ${safe}px inset`)
+        }
+        if (box.right > width - safe + 1) {
+          failures.push(`${name} ends at ${box.right}px inside the right inset`)
+        }
+      }
+    }
+  }
   if ((measurement.safeLeft || 0) >= 59) {
     const edges = [
       ['header', measurement.headerLeft],
@@ -723,6 +807,11 @@ function assertMeasurement(page, width, height, measurement) {
       if (measurement.toolbarOverlaps) failures.push('floor toolbar controls overlap')
       if (!measurement.dateLabel?.text) failures.push('header date is missing')
       else if (measurement.dateLabel.clipped) failures.push(`header date is truncated (${measurement.dateLabel.text})`)
+      const header = measurement.reservationsHeader
+      if (header?.title?.clipped) failures.push(`header title is truncated (${header.title.text})`)
+      if (header?.date?.text && /Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday/.test(header.date.text)) {
+        failures.push(`header date is long (${header.date.text})`)
+      }
       if (measurement.searchPlaceholderClipped) failures.push('search placeholder is clipped')
       if (measurement.sortVisibleLabel !== 'Sort') {
         failures.push(`sort control shows "${measurement.sortVisibleLabel}"`)
@@ -748,6 +837,9 @@ function assertMeasurement(page, width, height, measurement) {
   }
   if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromePosition && measurement.stockChromePosition !== 'sticky') {
     failures.push(`stock tabs are ${measurement.stockChromePosition}`)
+  }
+  if (page.id === 'stock' && width > height && height <= 520 && measurement.stockChromeHeight > Math.round(height * 0.22)) {
+    failures.push(`stock tab header is ${measurement.stockChromeHeight}px of ${height}px`)
   }
   if (page.id === 'chat') {
     if (!measurement.chatScreen) failures.push('chat screen did not render')

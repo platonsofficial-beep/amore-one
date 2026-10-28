@@ -102,7 +102,7 @@ describe('to order agreement', () => {
     const expectedTotal = sumSuggestedOrderCost(catalog)
 
     expect(toOrder.map((item) => item.id)).toEqual(['out', 'between', 'low'])
-    expect(formatToOrderBreakdown(catalog)).toBe('3 items · 1 out · 1 low · 1 under target')
+    expect(formatToOrderBreakdown(catalog)).toBe('3 to order: 1 out, 1 low, 1 below target')
     expect(summary.outOfStock + summary.lowStock).toBe(2)
     expect(summary.toOrder).toBe(3)
     expect(summary.toOrder).not.toBe(summary.outOfStock + summary.lowStock)
@@ -137,7 +137,7 @@ describe('to order agreement', () => {
 
     expect(summary.outOfStock).toBe(2)
     expect(selectItemsToOrder(withZeroParOut).map((item) => item.id)).toEqual(['out', 'between', 'low'])
-    expect(breakdown).toBe('3 items · 2 out · 1 low · 1 under target')
+    expect(breakdown).toBe('3 to order: 2 out, 1 low, 1 below target')
     expect(formatToOrderBreakdown(withZeroParOut, summary)).toBe(breakdown)
     const outInBreakdown = Number(breakdown.match(/(\d+) out/)?.[1])
     expect(outInBreakdown).toBe(summary.outOfStock)

@@ -1,7 +1,7 @@
 import { FLOOR_TABLE_OPERATIONAL_PHASES } from './floorTableOperationalState'
 import { getConflictingUnitIds } from './reservationTableOptions'
 import { resolveSeatingFloorStatus } from './tableAvailability'
-import { isTerminalReservationStatus } from './reservationHostStatus'
+import { isReservationInHouseStatus, isTerminalReservationStatus, normalizeReservationStatus } from './reservationHostStatus'
 import {
   getReservationAssignedUnitsForMatching,
   seatingUnitMatchesFloorUnit,
@@ -187,6 +187,19 @@ export function applyHostFloorSelectedSeatingContext(
           hasSeatingConflict: false,
         },
       }
+    }
+
+    const presentReservation = tableState.operational?.displayReservation
+      ?? tableState.operational?.activeReservation
+      ?? tableState.reservation
+    const presentStatus = normalizeReservationStatus(presentReservation?.status)
+    const physicallyPresent = isReservationInHouseStatus(presentStatus) || presentStatus === 'Waiting'
+    const presentReservationId = `${presentReservation?.id ?? ''}`
+    const occupiedByAnotherService = physicallyPresent
+      && (!conflict || (presentReservationId && presentReservationId !== `${conflict.reservationId ?? ''}`))
+
+    if (occupiedByAnotherService) {
+      return tableState
     }
 
     if (!conflict) {

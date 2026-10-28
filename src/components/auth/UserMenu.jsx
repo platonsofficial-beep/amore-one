@@ -6,20 +6,15 @@ import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { resolveUserDisplayName } from '../../lib/userDisplayName'
 import { placeUserMenuPanel } from '../../lib/userMenuPlacement'
+import { readCssPx } from '../../lib/safeInline'
 
 function readSafeAreaInsets() {
-  if (typeof document === 'undefined') return { safeTop: 0, safeBottom: 0 }
-  const probe = document.createElement('div')
-  probe.style.position = 'absolute'
-  probe.style.visibility = 'hidden'
-  probe.style.paddingTop = 'env(safe-area-inset-top)'
-  probe.style.paddingBottom = 'env(safe-area-inset-bottom)'
-  document.body.appendChild(probe)
-  const styles = getComputedStyle(probe)
-  const safeTop = Number.parseFloat(styles.paddingTop) || 0
-  const safeBottom = Number.parseFloat(styles.paddingBottom) || 0
-  probe.remove()
-  return { safeTop, safeBottom }
+  return {
+    safeTop: readCssPx('--one-safe-area-top'),
+    safeBottom: readCssPx('--one-safe-area-bottom'),
+    safeLeft: readCssPx('--safe-l'),
+    safeRight: readCssPx('--safe-r'),
+  }
 }
 
 export function UserMenu({

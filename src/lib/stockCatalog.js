@@ -56,6 +56,8 @@ export const STOCK_CATEGORIES = [
   'Beverages',
   'Wine',
   'Fresh',
+  'Vegetables',
+  'Meat and Seafood',
   'Consumables',
   'Other',
 ]
@@ -206,6 +208,21 @@ export const STOCK_TYPES_BY_CATEGORY = {
     'Garnish',
     'Other',
   ],
+  Vegetables: [
+    'Leafy greens',
+    'Root vegetables',
+    'Tomatoes',
+    'Onions and garlic',
+    'Other',
+  ],
+  'Meat and Seafood': [
+    'Beef',
+    'Poultry',
+    'Pork',
+    'Fish',
+    'Shellfish',
+    'Other',
+  ],
   Consumables: [
     'Napkins',
     'Straws',
@@ -229,6 +246,8 @@ export const STOCK_UNIT_PRESETS_BY_CATEGORY = {
   Beverages: [...STOCK_GENERAL_UNIT_PRESETS],
   Wine: [...STOCK_GENERAL_UNIT_PRESETS],
   Fresh: [...STOCK_GENERAL_UNIT_PRESETS],
+  Vegetables: [...STOCK_GENERAL_UNIT_PRESETS],
+  'Meat and Seafood': [...STOCK_GENERAL_UNIT_PRESETS],
   Consumables: [...STOCK_GENERAL_UNIT_PRESETS],
   Other: [...STOCK_GENERAL_UNIT_PRESETS],
 }
@@ -239,6 +258,8 @@ export const STOCK_DEFAULT_UNIT_BY_CATEGORY = {
   Beverages: 'Bottle',
   Wine: 'Bottle',
   Fresh: 'Kilogram',
+  Vegetables: 'Kilogram',
+  'Meat and Seafood': 'Kilogram',
   Consumables: 'Piece',
   Other: 'Piece',
 }
@@ -249,6 +270,8 @@ export const STOCK_DEFAULT_LOCATION_BY_CATEGORY = {
   Beverages: 'Main Storage',
   Wine: 'Wine Storage',
   Fresh: 'Fridge',
+  Vegetables: 'Fridge',
+  'Meat and Seafood': 'Fridge',
   Consumables: 'Main Storage',
   Other: 'Main Storage',
 }

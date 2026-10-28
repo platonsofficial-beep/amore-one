@@ -1,4 +1,5 @@
 import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationConstants'
+import { isReservationInHouseStatus } from './reservationHostStatus'
 import {
   normalizeReservationTimeValue,
   parseReservationTimeToMinutes,
@@ -168,9 +169,55 @@ export function getActiveSeatingsForDate(seatings = [], dateKey) {
   ))
 }
 
-export function resolveHostStationInitialSeatingId(activeSeatings = [], nowMinutes = 0) {
+function seatingWindowContainsNow(seating, nowMinutes) {
+  const startMinutes = parseReservationTimeToMinutes(seating?.startTime)
+  if (startMinutes === null || !Number.isFinite(nowMinutes)) return false
+  const durationMinutes = Number(seating?.durationMinutes) || DEFAULT_RESERVATION_DURATION_MINUTES
+  return nowMinutes >= startMinutes && nowMinutes < startMinutes + durationMinutes
+}
+
+function reservationMatchesServiceDate(reservation, dateKey) {
+  if (!dateKey) return true
+  const reservationDate = `${reservation?.date ?? reservation?.reservation_date ?? ''}`.slice(0, 10)
+  return reservationDate === `${dateKey}`.slice(0, 10)
+}
+
+function resolveInHouseSeatingId(sortedSeatings, nowMinutes, reservations = [], dateKey = '') {
+  const inHouseIds = new Set()
+  reservations.forEach((reservation) => {
+    if (!reservationMatchesServiceDate(reservation, dateKey)) return
+    if (!isReservationInHouseStatus(reservation?.status)) return
+    const seatingId = resolveReservationSeatingId(reservation, sortedSeatings, dateKey || reservation?.date)
+    if (seatingId) inHouseIds.add(seatingId)
+  })
+  const matches = sortedSeatings.filter((seating) => inHouseIds.has(seating.id))
+  if (matches.length === 0) return null
+  const current = matches.find((seating) => seatingWindowContainsNow(seating, nowMinutes))
+  if (current) return current.id
+  const started = matches.filter((seating) => {
+    const startMinutes = parseReservationTimeToMinutes(seating.startTime)
+    return startMinutes !== null && startMinutes <= nowMinutes
+  })
+  return (started[started.length - 1] ?? matches[0]).id
+}
+
+export function resolveHostStationInitialSeatingId(activeSeatings = [], nowMinutes = 0, options = {}) {
   const sorted = sortReservationSeatings(activeSeatings)
   if (sorted.length === 0) return null
+
+  const currentMinutes = Number(nowMinutes)
+  const inHouseSeatingId = resolveInHouseSeatingId(
+    sorted,
+    currentMinutes,
+    options.reservations,
+    options.dateKey,
+  )
+  if (inHouseSeatingId) return inHouseSeatingId
+
+  if (Number.isFinite(currentMinutes)) {
+    const currentSeating = sorted.find((seating) => seatingWindowContainsNow(seating, currentMinutes))
+    if (currentSeating) return currentSeating.id
+  }
 
   const startEntries = sorted
     .map((seating) => ({
@@ -181,7 +228,6 @@ export function resolveHostStationInitialSeatingId(activeSeatings = [], nowMinut
 
   if (startEntries.length === 0) return sorted[0].id
 
-  const currentMinutes = Number(nowMinutes)
   if (!Number.isFinite(currentMinutes)) return sorted[0].id
 
   const firstStart = startEntries[0].startMinutes

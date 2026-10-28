@@ -41,7 +41,7 @@ describe('StockLiveCard', () => {
 
     const rows = Array.from(container.querySelectorAll('button'))
     expect(rows.map((row) => row.textContent)).toEqual([
-      '1 item below par›',
+      '1 item below storage par›',
       '1 open draft›',
       'Last inventory count 30 Jul›',
     ])

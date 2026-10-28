@@ -646,7 +646,7 @@ describe('StockStorageCenter UI', () => {
     })
 
     expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
-      .toBe('1 item below par')
+      .toBe('1 item below storage par')
     expect(container.textContent).toContain('Soft drinks')
   })
 
@@ -702,7 +702,7 @@ describe('StockStorageCenter UI', () => {
       await Promise.resolve()
     })
     expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
-      .toBe('1 item below par')
+      .toBe('1 item below storage par')
 
     await act(async () => {
       container.querySelector('[data-storage-id="s-soft"]').click()
@@ -721,7 +721,7 @@ describe('StockStorageCenter UI', () => {
 
     expect(loadSummaries).toHaveBeenCalledTimes(2)
     expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
-      .toBe('0 items below par')
+      .toBe('0 items below storage par')
     expect(container.querySelector('[data-testid="stock-storage-center-loading"]')).toBeNull()
   })
 

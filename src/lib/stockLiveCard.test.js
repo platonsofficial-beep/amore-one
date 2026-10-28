@@ -55,7 +55,7 @@ describe('stock live card', () => {
       now,
     })
 
-    expect(facts.belowParLabel).toBe('2 items below par')
+    expect(facts.belowParLabel).toBe('2 items below storage par')
     expect(facts.belowParTone).toBe('warning')
     expect(facts.draftLabel).toBe('2 open drafts')
     expect(facts.draftTone).toBe('warning')

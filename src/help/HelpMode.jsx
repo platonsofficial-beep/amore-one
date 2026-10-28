@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
+import { readCssPx } from '../lib/safeInline'
 import { resolveHelpCopy } from './helpTexts'
 import './helpMode.css'
 
@@ -215,13 +216,15 @@ export function HelpModeChrome() {
     if (!panel || !popover) return
     const box = panel.getBoundingClientRect()
     const margin = 8
+    const safeLeft = Math.max(margin, readCssPx('--safe-l'))
+    const safeRight = Math.max(margin, readCssPx('--safe-r'))
     let top = popover.top
-    let left = popover.left
+    let left = Math.max(safeLeft, popover.left)
     if (box.bottom > window.innerHeight - margin) {
       top = Math.max(margin, popover.rect.top - box.height - margin)
     }
-    if (box.right > window.innerWidth - margin) {
-      left = Math.max(margin, window.innerWidth - margin - box.width)
+    if (left + box.width > window.innerWidth - safeRight) {
+      left = Math.max(safeLeft, window.innerWidth - safeRight - box.width)
     }
     if (top !== popover.top || left !== popover.left) {
       const next = { ...popover, top, left }

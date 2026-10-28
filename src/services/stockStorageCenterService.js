@@ -251,12 +251,31 @@ export function buildWorkspaceStorageSummaries({
  *
  * @param {string} workspaceId
  */
+const storageSummaryCache = new Map()
+const storageSummaryInflight = new Map()
+
+export function peekWorkspaceStorageSummaries(workspaceId) {
+  return storageSummaryCache.get(asTrimmedString(workspaceId)) ?? null
+}
+
 export async function getWorkspaceStorageSummaries(workspaceId) {
   const normalizedWorkspaceId = asTrimmedString(workspaceId)
   if (!normalizedWorkspaceId) {
     throw new Error('Workspace is required to load storage summaries.')
   }
 
+  const inflight = storageSummaryInflight.get(normalizedWorkspaceId)
+  if (inflight) return inflight
+
+  const promise = loadWorkspaceStorageSummaries(normalizedWorkspaceId)
+    .finally(() => {
+      storageSummaryInflight.delete(normalizedWorkspaceId)
+    })
+  storageSummaryInflight.set(normalizedWorkspaceId, promise)
+  return promise
+}
+
+async function loadWorkspaceStorageSummaries(normalizedWorkspaceId) {
   const loadStorageRows = (columns) => supabase
     .from(WORKSPACE_STORAGES_TABLE)
     .select(columns)
@@ -266,6 +285,14 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
 
   let departmentsAvailable = true
   let buyingAvailable = true
+  const balancePromise = supabase
+    .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
+    .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
+  const parPromise = supabase
+    .from(STOCK_ITEM_STORAGE_PARS_TABLE)
+    .select(STOCK_STORAGE_PAR_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
   let storageResult = await loadStorageRows(WORKSPACE_STORAGE_BUYING_COLUMNS)
   if (storageResult.error && isBuyingStorageColumnMissing(storageResult.error)) {
     buyingAvailable = false
@@ -287,16 +314,7 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
 
   const storages = (storageRows ?? []).map(mapWorkspaceStorage)
 
-  const [balanceResult, parResult] = await Promise.all([
-    supabase
-      .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
-      .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
-      .eq('workspace_id', normalizedWorkspaceId),
-    supabase
-      .from(STOCK_ITEM_STORAGE_PARS_TABLE)
-      .select(STOCK_STORAGE_PAR_COLUMNS)
-      .eq('workspace_id', normalizedWorkspaceId),
-  ])
+  const [balanceResult, parResult] = await Promise.all([balancePromise, parPromise])
 
   const { data: balanceRows, error: balanceError } = balanceResult
   const { data: parData, error: parError } = parResult
@@ -344,7 +362,7 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     parRows = parData ?? []
   }
 
-  return Object.freeze({
+  const summary = Object.freeze({
     ...buildWorkspaceStorageSummaries({
       storages,
       balances: balanceRows ?? [],
@@ -355,6 +373,8 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     buyingAvailable,
     parsAvailable,
   })
+  storageSummaryCache.set(normalizedWorkspaceId, summary)
+  return summary
 }
 
 /**

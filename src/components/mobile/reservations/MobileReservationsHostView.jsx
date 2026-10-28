@@ -237,16 +237,18 @@ export function MobileReservationsHostView({
   )
 
   const visibleServiceMetrics = useMemo(() => {
-    const listed = buildHostQueueServiceMetrics(queueReservations, {
+    const venue = buildHostQueueServiceMetrics(workspaceReservations, {
       layout,
       areaFilterId: HOST_QUEUE_ALL_AREAS,
+      dateKey: todayKey,
+      nowMinutes,
     })
     return {
       ...serviceMetrics,
-      seatedTables: listed.seatedTables,
-      inHouseGuests: listed.inHouseGuests,
+      seatedTables: venue.seatedTables,
+      inHouseGuests: venue.inHouseGuests,
     }
-  }, [layout, queueReservations, serviceMetrics])
+  }, [layout, nowMinutes, serviceMetrics, todayKey, workspaceReservations])
 
   const queueEmptyState = useMemo(
     () => buildHostQueueEmptyState({

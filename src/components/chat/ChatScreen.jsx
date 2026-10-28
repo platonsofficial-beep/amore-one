@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useKeyboardInset } from '../../lib/keyboardInset'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
 import { getIdentityColorById } from '../../lib/identity/identityColorPalette'
@@ -147,7 +148,6 @@ export function ChatScreen({
   const [channelPolicy, setChannelPolicy] = useState('all')
   const [channelIcon, setChannelIcon] = useState('')
   const [pickedMembers, setPickedMembers] = useState([])
-  const [keyboardOffset, setKeyboardOffset] = useState(0)
   const [query, setQuery] = useState('')
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState('')
@@ -310,21 +310,17 @@ export function ChatScreen({
     node.style.height = `${Math.min(node.scrollHeight, 120)}px`
   }, [draft, openId])
 
+  const { kb } = useKeyboardInset(true)
+  const previousKb = useRef(0)
+
   useEffect(() => {
-    const viewport = window.visualViewport
-    if (!viewport) return undefined
-    const update = () => {
-      const overlap = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
-      setKeyboardOffset(overlap)
-    }
-    viewport.addEventListener('resize', update)
-    viewport.addEventListener('scroll', update)
-    update()
-    return () => {
-      viewport.removeEventListener('resize', update)
-      viewport.removeEventListener('scroll', update)
-    }
-  }, [])
+    const wasClosed = previousKb.current < 60
+    previousKb.current = kb
+    if (!wasClosed || kb < 60) return
+    stickToBottomRef.current = true
+    const node = scrollerRef.current
+    if (node) node.scrollTop = node.scrollHeight
+  }, [kb, openId])
 
   useEffect(() => {
     writeChatSession({ openId, draft })
@@ -511,7 +507,6 @@ export function ChatScreen({
   return (
     <div
       className={`chat-screen${resolvedLayout === 'split' ? ' is-split' : ''}`}
-      style={{ '--chat-keyboard': `${keyboardOffset}px` }}
     >
       {showList ? (
         <section className="chat-list" aria-label="Chats">
@@ -588,7 +583,11 @@ export function ChatScreen({
         <section className="chat-thread-pane" aria-label="Conversation">
           <header className="chat-thread-header">
             {resolvedLayout !== 'split' ? (
-              <button type="button" className="chat-icon-btn" data-help="chat.back" onClick={() => setOpenId('')}>Back</button>
+              <button type="button" className="chat-icon-btn chat-back-btn" aria-label="Back" data-help="chat.back" onClick={() => setOpenId('')}>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <path fill="currentColor" d="M15.4 19.4 8 12l7.4-7.4 1.4 1.4L10.8 12l6 6z" />
+                </svg>
+              </button>
             ) : null}
             <h2 className="chat-thread-title">
               <button
@@ -613,7 +612,19 @@ export function ChatScreen({
               </button>
             </h2>
             {openId ? (
-              <button type="button" className="chat-icon-btn" data-help="chat.mute" onClick={() => setSheet('mute')}>Mute</button>
+              <button
+                type="button"
+                className="chat-icon-btn chat-mute-btn"
+                aria-label="Mute"
+                aria-pressed={Boolean(openRow?.muted)}
+                data-help="chat.mute"
+                onClick={() => setSheet('mute')}
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.2-2h-4.4A2.2 2.2 0 0 0 12 22Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 1 0-2 0v1.1A6 6 0 0 0 6 11v5l-1.7 1.7A1 1 0 0 0 5 19.4h14a1 1 0 0 0 .7-1.7L18 16Z" />
+                  {openRow?.muted ? <path fill="currentColor" d="M4.3 3.3 3 4.6 19.4 21l1.3-1.3L4.3 3.3Z" /> : null}
+                </svg>
+              </button>
             ) : null}
             {openId && canManage && openRow?.kind === 'group' ? (
               <button
@@ -819,7 +830,9 @@ export function ChatScreen({
                 onChange={onPhoto}
               />
               <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
-                Photo
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
+                </svg>
               </button>
               <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
                 ☺
@@ -833,6 +846,13 @@ export function ChatScreen({
                 rows={1}
                 disabled={cannotPost}
                 placeholder="Message"
+                onFocus={() => {
+                  stickToBottomRef.current = true
+                  window.requestAnimationFrame(() => {
+                    const node = scrollerRef.current
+                    if (node) node.scrollTop = node.scrollHeight
+                  })
+                }}
                 onChange={(event) => setDraft(clipChatBody(event.target.value))}
                 onKeyDown={(event) => {
                   if (event.key === 'Enter' && !event.shiftKey) {

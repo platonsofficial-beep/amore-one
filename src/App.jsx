@@ -1,4 +1,6 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { clampOverlayLeft } from './lib/safeInline'
+import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
@@ -42,6 +44,7 @@ import { formatHostNextArrivalHint } from './components/reservations/HostService
 import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
 import {
   buildHostManagerSummary,
+  formatHostWorkspaceCompactDateNavLabel,
   formatHostWorkspaceDateNavLabel,
   formatHostWorkspaceLongDateLabel,
   formatHostWorkspaceShortDateLabel,
@@ -9990,10 +9993,7 @@ function FloorPlanView({
       if (!button) return
       const rect = button.getBoundingClientRect()
       const menuWidth = 188
-      const left = Math.min(
-        Math.max(8, rect.right - menuWidth),
-        Math.max(8, window.innerWidth - menuWidth - 8),
-      )
+      const left = clampOverlayLeft(rect.right - menuWidth, menuWidth, window.innerWidth)
       const top = Math.min(rect.bottom + 6, Math.max(8, window.innerHeight - 160))
       setFloorMoreStyle({ top, left, width: menuWidth })
     }
@@ -11996,7 +11996,10 @@ function MobileReservationsHostShellBody({
     if (!hostSeatingInitializedRef.current) {
       hostSeatingInitializedRef.current = true
       if (isViewingToday && !hostSeatingManuallySelectedRef.current) {
-        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes)
+        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes, {
+          reservations,
+          dateKey: todayKey,
+        })
         setSelectedServiceSeatingId(initialId ?? activeSeatings[0].id)
         return
       }
@@ -12007,7 +12010,7 @@ function MobileReservationsHostShellBody({
     setSelectedServiceSeatingId((current) => (
       activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
     ))
-  }, [reservationSeatings, todayKey, workspaceTodayKey, nowMinutes])
+  }, [nowMinutes, reservationSeatings, reservations, todayKey, workspaceTodayKey])
 
   useEffect(() => {
     if (!selectedReservation?.id) return
@@ -14253,9 +14256,12 @@ function ReservationsWorkspaceBody({
   const workspaceTodayRef = useRef(workspaceTodayKey)
   const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
   const nowMinutes = getWorkspaceNowMinutes(liveNow, workspaceTimeZone).minutes ?? 0
+  const phoneLandscapeDate = useMediaQuery('(orientation: landscape) and (max-height: 520px) and (max-width: 1100px)')
   const selectedDateLabel = useMemo(
-    () => formatHostWorkspaceDateNavLabel(selectedDateKey, workspaceTodayKey),
-    [selectedDateKey, workspaceTodayKey],
+    () => (phoneLandscapeDate
+      ? formatHostWorkspaceCompactDateNavLabel(selectedDateKey, workspaceTodayKey)
+      : formatHostWorkspaceDateNavLabel(selectedDateKey, workspaceTodayKey)),
+    [phoneLandscapeDate, selectedDateKey, workspaceTodayKey],
   )
   const isViewingToday = selectedDateKey === workspaceTodayKey
 
@@ -22378,6 +22384,13 @@ function App() {
     isCreatingStockOrdersRef.current = true
     flushSync(() => {
       setIsPreparingSupplyDrafts(true)
+      setSupplyDraftPreview({
+        loading: true,
+        lines: [],
+        review: [],
+        summary: '',
+        message: '',
+      })
     })
     setStockOrdersNotice('')
     setStockItemsNotice('')
@@ -22392,14 +22405,28 @@ function App() {
         setStockOrdersNotice(preview.message)
         setStockItemsNotice(preview.message)
         setMobileNotice(preview.message)
+        setSupplyDraftPreview({
+          loading: false,
+          lines: [],
+          review: [],
+          summary: preview.summary ?? '',
+          message: preview.message,
+        })
         return
       }
-      setSupplyDraftPreview(preview)
+      setSupplyDraftPreview({ ...preview, loading: false })
     } catch (error) {
       const message = error.message || 'Unable to prepare order drafts right now.'
       setStockOrdersNotice(message)
       setStockItemsNotice(message)
       setMobileNotice(message)
+      setSupplyDraftPreview({
+        loading: false,
+        lines: [],
+        review: [],
+        summary: '',
+        message,
+      })
       throw error
     } finally {
       isCreatingStockOrdersRef.current = false
@@ -24346,7 +24373,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && !useDedicatedShell && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       <HelpModeChrome />
       {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
@@ -24797,11 +24824,17 @@ function App() {
         ) : null}
 
         <SupplyOrderDraftPreviewDialog
+          isOpen={Boolean(supplyDraftPreview)}
+          isLoading={Boolean(supplyDraftPreview?.loading)}
           lines={supplyDraftPreview?.lines ?? []}
           review={supplyDraftPreview?.review ?? []}
           summary={supplyDraftPreview?.summary ?? ''}
+          message={supplyDraftPreview?.message ?? ''}
           isSaving={isSavingStockOrder}
-          onCancel={() => setSupplyDraftPreview(null)}
+          onCancel={() => {
+            if (isPreparingSupplyDrafts) return
+            setSupplyDraftPreview(null)
+          }}
           onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
         />
 
