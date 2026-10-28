@@ -7,6 +7,7 @@ import {
 } from './reservationSeatings'
 import { isTerminalReservationStatus, normalizeReservationStatus } from './reservationHostStatus'
 import { formatTime24 } from './timeFormatUtils'
+import { collectArrivedFloorTableIds } from './floorTableOccupancy'
 import { countPublishedTablesInScope } from './hostQueueServiceMetrics'
 import { HOST_QUEUE_ALL_AREAS } from './hostQueuePipeline'
 
@@ -47,6 +48,7 @@ export function buildHostSeatingTableAvailability(
     layout = null,
     areaFilterId = HOST_QUEUE_ALL_AREAS,
     seatingsById = new Map(),
+    nowMinutes = null,
   } = {},
 ) {
   const totalTables = countPublishedTablesInScope(layout, areaFilterId)
@@ -60,7 +62,15 @@ export function buildHostSeatingTableAvailability(
     : new Map()
 
   const unavailableTableIds = filterUnavailableTableIdsToScope(
-    new Set(conflicts.keys()),
+    new Set([
+      ...conflicts.keys(),
+      ...collectArrivedFloorTableIds(reservations, {
+        layout,
+        dateKey,
+        nowMinutes,
+        areaFilterId,
+      }),
+    ]),
     layout,
     areaFilterId,
   )

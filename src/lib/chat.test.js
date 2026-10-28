@@ -7,8 +7,12 @@ import {
   chatIdentityHints,
   conversationTitle,
   dayLabel,
+  filterInboxByName,
   groupReactions,
   inboxUnreadTotal,
+  messageGroupPosition,
+  readTickState,
+  shouldUseWideChatLayout,
   isChatNotification,
   lastMessagePreview,
   lastMessageTimeLabel,
@@ -26,6 +30,27 @@ const inbox = [
 ]
 
 describe('chat helpers', () => {
+  it('keeps the same chat structure rules for phone landscape and portrait', () => {
+    expect(shouldUseWideChatLayout(852, 393)).toBe(true)
+    expect(shouldUseWideChatLayout(700, 360)).toBe(true)
+    expect(shouldUseWideChatLayout(667, 375)).toBe(false)
+    expect(shouldUseWideChatLayout(393, 852)).toBe(false)
+    expect(filterInboxByName(inbox, 'team').map((row) => row.conversation_id)).toEqual(['t1'])
+  })
+
+  it('groups a short run of messages and marks a read tick from read times', () => {
+    const messages = [
+      { id: 'a', author_member_id: 'me', created_at: '2026-10-27T10:00:00Z' },
+      { id: 'b', author_member_id: 'me', created_at: '2026-10-27T10:01:00Z' },
+    ]
+    expect(messageGroupPosition(messages, 0)).toBe('first')
+    expect(messageGroupPosition(messages, 1)).toBe('last')
+    expect(readTickState(messages[1], 'me', [
+      { member_id: 'alex', last_read_at: '2026-10-27T10:02:00Z' },
+    ])).toBe('read')
+    expect(readTickState(messages[1], 'me', [])).toBe('sent')
+  })
+
   it('pins Team first and skips muted chats in the nav badge', () => {
     expect(orderInbox(inbox).map((row) => row.conversation_id)).toEqual(['t1', 'd1', 'g1'])
     expect(inboxUnreadTotal(inbox)).toBe(6)
@@ -44,6 +69,7 @@ describe('chat helpers', () => {
     expect(canEditChatMessage(message, 'me', Date.parse('2026-10-27T10:16:00.000Z'))).toBe(false)
     expect(canEditChatMessage(message, 'other', now)).toBe(false)
     expect(canDeleteChatMessage(message, 'me', false)).toBe(true)
+    expect(canDeleteChatMessage(message, 'other', false)).toBe(false)
     expect(canDeleteChatMessage(message, 'other', true)).toBe(true)
     expect(canDeleteChatMessage({ ...message, deleted_at: created }, 'me', true)).toBe(false)
   })

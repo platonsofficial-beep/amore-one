@@ -4,6 +4,7 @@ import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
 import { getIdentityColorById } from '../../lib/identity/identityColorPalette'
 import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import {
+  CHAT_COMPOSER_EMOJIS,
   CHAT_EMOJIS,
   canDeleteChatMessage,
   canEditChatMessage,
@@ -11,12 +12,16 @@ import {
   clipChatBody,
   conversationTitle,
   dayLabel,
+  filterInboxByName,
   groupReactions,
   lastMessagePreview,
   lastMessageTimeLabel,
+  messageGroupPosition,
   muteUntilValue,
   orderInbox,
+  readTickState,
   seenReceiptText,
+  shouldUseWideChatLayout,
 } from '../../lib/chat'
 import {
   addChatReaction,
@@ -38,26 +43,48 @@ import {
   setChatMute,
   setChatPinned,
   subscribeToChatConversation,
+  subscribeToChatTyping,
   uploadChatPhoto,
 } from '../../services/chatService'
 import './chat.css'
+
+const CHAT_SESSION_KEY = 'one.chat.session'
+
+function readChatSession() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(CHAT_SESSION_KEY) || '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeChatSession(patch) {
+  try {
+    sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify({ ...readChatSession(), ...patch }))
+  } catch {
+    // Ignore private-mode storage failures.
+  }
+}
 
 function useWideChatLayout(layout) {
   const [wide, setWide] = useState(() => {
     if (layout === 'split') return true
     if (layout === 'stack') return false
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
-    return window.matchMedia('(min-width: 980px)').matches
+    if (typeof window === 'undefined') return false
+    return shouldUseWideChatLayout(window.innerWidth, window.innerHeight)
   })
 
   useEffect(() => {
     if (layout === 'stack' || layout === 'split') return undefined
-    if (typeof window.matchMedia !== 'function') return undefined
-    const query = window.matchMedia('(min-width: 980px)')
-    const update = () => setWide(query.matches)
+    const update = () => setWide(shouldUseWideChatLayout(window.innerWidth, window.innerHeight))
     update()
-    query.addEventListener?.('change', update)
-    return () => query.removeEventListener?.('change', update)
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
   }, [layout])
 
   if (layout === 'split') return true
@@ -69,7 +96,7 @@ function initials(name) {
   return getProfileInitials(name)
 }
 
-function ChatPhoto({ path }) {
+function ChatPhoto({ path, onOpen }) {
   const [url, setUrl] = useState('')
   useEffect(() => {
     let cancelled = false
@@ -81,7 +108,11 @@ function ChatPhoto({ path }) {
     }
   }, [path])
   if (!url) return null
-  return <img src={url} alt="" />
+  return (
+    <button type="button" className="chat-photo" aria-label="View photo" onClick={() => onOpen?.(url)}>
+      <img src={url} alt="" />
+    </button>
+  )
 }
 
 export function ChatScreen({
@@ -95,15 +126,16 @@ export function ChatScreen({
   layout = '',
 }) {
   const ordered = useMemo(() => orderInbox(inboxRows), [inboxRows])
+  const restoredSession = useRef(readChatSession())
   const [members, setMembers] = useState([])
   const [nameHints, setNameHints] = useState({ byConversation: {}, byMessage: {} })
   const refreshAvatars = useAvatarDirectory().refresh
-  const [openId, setOpenId] = useState(initialConversationId || '')
+  const [openId, setOpenId] = useState(initialConversationId || restoredSession.current.openId || '')
   const [messages, setMessages] = useState([])
   const [pinned, setPinned] = useState([])
   const [participants, setParticipants] = useState([])
   const [reactions, setReactions] = useState([])
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(restoredSession.current.draft || '')
   const [replyTo, setReplyTo] = useState(null)
   const [editing, setEditing] = useState(null)
   const [sheet, setSheet] = useState(null)
@@ -116,9 +148,23 @@ export function ChatScreen({
   const [channelIcon, setChannelIcon] = useState('')
   const [pickedMembers, setPickedMembers] = useState([])
   const [keyboardOffset, setKeyboardOffset] = useState(0)
+  const [query, setQuery] = useState('')
+  const [emojiOpen, setEmojiOpen] = useState(false)
+  const [viewerUrl, setViewerUrl] = useState('')
+  const [someoneTyping, setSomeoneTyping] = useState(false)
+  const [swipeX, setSwipeX] = useState(0)
+  const [showJump, setShowJump] = useState(false)
+  const [jumpCount, setJumpCount] = useState(0)
+  const [outgoingPhoto, setOutgoingPhoto] = useState(null)
+  const [directQuery, setDirectQuery] = useState('')
   const fileRef = useRef(null)
   const scrollerRef = useRef(null)
+  const draftRef = useRef(null)
   const pressTimer = useRef(0)
+  const swipeRef = useRef(null)
+  const typingRef = useRef(null)
+  const stickToBottomRef = useRef(true)
+  const didRestoreScroll = useRef(false)
 
   const membersById = useMemo(
     () => Object.fromEntries(members.map((member) => [member.id, member])),
@@ -142,6 +188,14 @@ export function ChatScreen({
     }
     return map
   }, [messages, nameHints, ordered])
+  const listed = useMemo(() => {
+    const withHistory = ordered.filter((row) => (
+      row.conversation_id === openId
+      || row.kind !== 'direct'
+      || Boolean(`${row.last_body ?? ''}`.trim() || row.last_message_at)
+    ))
+    return filterInboxByName(withHistory, query, membersById, aliases)
+  }, [aliases, membersById, openId, ordered, query])
 
   useEffect(() => {
     if (!workspaceId) return undefined
@@ -238,6 +292,25 @@ export function ChatScreen({
   }, [openId])
 
   useEffect(() => {
+    if (!openId || !memberId) return undefined
+    setSomeoneTyping(false)
+    const typing = subscribeToChatTyping(openId, memberId, setSomeoneTyping)
+    typingRef.current = typing
+    return () => {
+      typingRef.current = null
+      typing?.stop?.()
+      setSomeoneTyping(false)
+    }
+  }, [memberId, openId])
+
+  useEffect(() => {
+    const node = draftRef.current
+    if (!node) return
+    node.style.height = 'auto'
+    node.style.height = `${Math.min(node.scrollHeight, 120)}px`
+  }, [draft, openId])
+
+  useEffect(() => {
     const viewport = window.visualViewport
     if (!viewport) return undefined
     const update = () => {
@@ -254,10 +327,27 @@ export function ChatScreen({
   }, [])
 
   useEffect(() => {
+    writeChatSession({ openId, draft })
+  }, [draft, openId])
+
+  useEffect(() => {
     const node = scrollerRef.current
-    if (!node) return
-    node.scrollTop = node.scrollHeight
-  }, [messages.length, openId])
+    if (!node || !openId) return undefined
+    const apply = () => {
+      const saved = readChatSession()
+      if (!didRestoreScroll.current && saved.openId === openId && Number.isFinite(saved.scrollTop)) {
+        didRestoreScroll.current = true
+        node.scrollTop = saved.scrollTop
+        stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80
+        return
+      }
+      didRestoreScroll.current = true
+      if (stickToBottomRef.current) node.scrollTop = node.scrollHeight
+    }
+    apply()
+    const frame = window.requestAnimationFrame(apply)
+    return () => window.cancelAnimationFrame(frame)
+  }, [messages, openId])
 
   const openActions = (message) => {
     setActiveMessage(message)
@@ -295,6 +385,8 @@ export function ChatScreen({
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !openId || cannotPost) return
+    const localUrl = URL.createObjectURL(file)
+    setOutgoingPhoto({ url: localUrl, status: 'sending' })
     setBusy(true)
     setError('')
     try {
@@ -309,12 +401,29 @@ export function ChatScreen({
       })
       setDraft('')
       setReplyTo(null)
+      setOutgoingPhoto(null)
+      URL.revokeObjectURL(localUrl)
       await loadConversation(openId)
     } catch (err) {
+      setOutgoingPhoto({ url: localUrl, status: 'failed' })
       setError(err?.message || 'That photo could not be sent.')
     } finally {
       setBusy(false)
     }
+  }
+
+  useEffect(() => {
+    typingRef.current?.setTyping(Boolean(draft.trim()) && !editing)
+  }, [draft, editing])
+
+  const copyMessage = async (message) => {
+    const text = `${message?.body ?? ''}`.trim()
+    try {
+      await navigator.clipboard?.writeText(text)
+    } catch {
+      // Copy stays in the menu even when the clipboard is blocked.
+    }
+    setSheet(null)
   }
 
   const toggleReaction = async (message, emoji) => {
@@ -413,10 +522,22 @@ export function ChatScreen({
               <button type="button" className="chat-icon-btn" data-help="chat.channel" onClick={() => setSheet('channel')}>Channel</button>
             ) : null}
           </header>
+          <label className="chat-search" data-help="chat.search">
+            <span className="sr-only">Search chats</span>
+            <input
+              type="search"
+              value={query}
+              placeholder="Search by name"
+              data-testid="chat-search"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </label>
           {error && !openId ? <p className="chat-banner" role="alert">{error}</p> : null}
           <div className="chat-list-scroll">
-            {ordered.length === 0 ? <p className="chat-empty">No chats yet.</p> : null}
-            {ordered.map((row) => {
+            {listed.length === 0 ? (
+              <p className="chat-empty">{query.trim() ? `No chats named “${query.trim()}”.` : 'No chats yet. Start one with New.'}</p>
+            ) : null}
+            {listed.map((row) => {
               const title = conversationTitle(row, membersById, aliases)
               const person = membersById[row.other_member_id]
               const color = getIdentityColorById(person?.identityColor)
@@ -425,8 +546,12 @@ export function ChatScreen({
                 <button
                   key={row.conversation_id}
                   type="button"
-                  className={`chat-row${row.conversation_id === openId ? ' is-active' : ''}`}
-                  onClick={() => setOpenId(row.conversation_id)}
+                  className={`chat-row${row.kind === 'team' ? ' is-pinned' : ''}${row.conversation_id === openId ? ' is-active' : ''}`}
+                  onClick={() => {
+                    stickToBottomRef.current = true
+                    writeChatSession({ openId: row.conversation_id, scrollTop: 0 })
+                    setOpenId(row.conversation_id)
+                  }}
                 >
                   <span
                     className="chat-avatar"
@@ -463,9 +588,16 @@ export function ChatScreen({
         <section className="chat-thread-pane" aria-label="Conversation">
           <header className="chat-thread-header">
             {resolvedLayout !== 'split' ? (
-              <button type="button" className="chat-icon-btn" onClick={() => setOpenId('')}>Back</button>
+              <button type="button" className="chat-icon-btn" data-help="chat.back" onClick={() => setOpenId('')}>Back</button>
             ) : null}
             <h2 className="chat-thread-title">
+              <button
+                type="button"
+                className="chat-thread-title-btn"
+                data-help="chat.info"
+                disabled={!openId}
+                onClick={() => openId && setSheet('info')}
+              >
               {openRow?.kind === 'direct' ? (
                 <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
                   <PersonAvatar
@@ -478,9 +610,10 @@ export function ChatScreen({
                 </span>
               ) : null}
               <span>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
+              </button>
             </h2>
             {openId ? (
-              <button type="button" className="chat-icon-btn" onClick={() => setSheet('mute')}>Mute</button>
+              <button type="button" className="chat-icon-btn" data-help="chat.mute" onClick={() => setSheet('mute')}>Mute</button>
             ) : null}
             {openId && canManage && openRow?.kind === 'group' ? (
               <button
@@ -505,7 +638,19 @@ export function ChatScreen({
               ))}
             </div>
           ) : null}
-          <div className="chat-messages" ref={scrollerRef}>
+          <div
+            className="chat-messages"
+            ref={scrollerRef}
+            onScroll={(event) => {
+              const node = event.currentTarget
+              const distance = node.scrollHeight - node.scrollTop - node.clientHeight
+              const atBottom = distance < 80
+              stickToBottomRef.current = atBottom
+              setShowJump(!atBottom)
+              if (atBottom) setJumpCount(0)
+              writeChatSession({ scrollTop: node.scrollTop, openId })
+            }}
+          >
             {hasMore ? (
               <button
                 type="button"
@@ -525,42 +670,77 @@ export function ChatScreen({
               const reply = message.reply_to_id ? messagesById[message.reply_to_id] : null
               const grouped = groupReactions(reactions.filter((row) => row.message_id === message.id), memberId)
               const seen = seenReceiptText(messages, index, memberId, participants, membersById, aliases)
+              const group = messageGroupPosition(messages, index)
+              const tick = readTickState(message, memberId, participants)
+              const showAvatar = !mine && (group === 'single' || group === 'last')
               return (
                 <div key={message.id} id={`chat-message-${message.id}`} className="chat-message-wrap">
                   {showDay ? <p className="chat-day">{dayLabel(message.created_at)}</p> : null}
-                  <div className={`chat-message${mine ? ' is-mine' : ''}`}>
+                  <div className={`chat-message is-group-${group}${mine ? ' is-mine' : ''}`}>
                   {!mine ? (
-                    <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
-                      <PersonAvatar
-                        memberId={message.author_member_id}
-                        employeeId={author?.employeeId}
-                        authUserId={author?.authUserId}
-                        name={authorName}
-                        fallback={initials(authorName)}
-                      />
+                    <span className={`chat-avatar chat-avatar-inline${showAvatar ? '' : ' is-spacer'}`} aria-hidden="true">
+                      {showAvatar ? (
+                        <PersonAvatar
+                          memberId={message.author_member_id}
+                          employeeId={author?.employeeId}
+                          authUserId={author?.authUserId}
+                          name={authorName}
+                          fallback={initials(authorName)}
+                        />
+                      ) : null}
                     </span>
                   ) : null}
                   <div className="chat-message-stack">
                   <article
-                    className={`chat-bubble${mine ? ' is-mine' : ''}${deleted ? ' is-deleted' : ''}`}
+                    className={`chat-bubble is-group-${group}${mine ? ' is-mine' : ''}${deleted ? ' is-deleted' : ''}`}
+                    style={swipeRef.current?.id === message.id ? { transform: `translateX(${swipeX}px)` } : undefined}
                     onContextMenu={(event) => {
                       event.preventDefault()
                       if (!deleted) openActions(message)
                     }}
-                    onPointerDown={() => {
+                    onPointerDown={(event) => {
                       window.clearTimeout(pressTimer.current)
+                      swipeRef.current = { id: message.id, x: event.clientX, y: event.clientY }
                       pressTimer.current = window.setTimeout(() => {
                         if (!deleted) openActions(message)
                       }, 450)
                     }}
-                    onPointerUp={() => window.clearTimeout(pressTimer.current)}
-                    onPointerLeave={() => window.clearTimeout(pressTimer.current)}
+                    onPointerMove={(event) => {
+                      const start = swipeRef.current
+                      if (!start || start.id !== message.id || deleted) return
+                      const dx = event.clientX - start.x
+                      const dy = event.clientY - start.y
+                      if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) {
+                        window.clearTimeout(pressTimer.current)
+                        setSwipeX(Math.max(0, Math.min(72, dx)))
+                      }
+                    }}
+                    onPointerUp={() => {
+                      window.clearTimeout(pressTimer.current)
+                      if (swipeX > 48 && !deleted) setReplyTo(message)
+                      swipeRef.current = null
+                      setSwipeX(0)
+                    }}
+                    onPointerCancel={() => {
+                      window.clearTimeout(pressTimer.current)
+                      swipeRef.current = null
+                      setSwipeX(0)
+                    }}
                   >
-                    {!mine && authorName ? <p className="chat-meta">{authorName}</p> : null}
-                    {reply ? <p className="chat-reply-quote">{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</p> : null}
-                    {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} /> : null}
+                    {!mine && authorName && (group === 'single' || group === 'first') ? <p className="chat-meta">{authorName}</p> : null}
+                    {reply ? (
+                      <p className="chat-reply-quote">
+                        <strong>{membersById[reply.author_member_id]?.name || aliases[reply.author_member_id] || 'Message'}</strong>
+                        <span>{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</span>
+                      </p>
+                    ) : null}
+                    {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} onOpen={setViewerUrl} /> : null}
                     <p>{deleted ? 'Message deleted' : (message.body || (message.attachment_path ? '' : ''))}</p>
-                    {message.edited_at && !deleted ? <p className="chat-meta">Edited</p> : null}
+                    <span className="chat-bubble-meta">
+                      {message.edited_at && !deleted ? <span>Edited</span> : null}
+                      <time dateTime={message.created_at}>{lastMessageTimeLabel(message.created_at)}</time>
+                      {tick ? <span className={`chat-ticks is-${tick}`} aria-label={tick === 'read' ? 'Read' : 'Sent'}>{tick === 'read' ? '✓✓' : '✓'}</span> : null}
+                    </span>
                     {!deleted && grouped.length > 0 ? (
                       <div className="chat-reactions">
                         {grouped.map((reaction) => (
@@ -582,6 +762,22 @@ export function ChatScreen({
                 </div>
               )
             })}
+            {someoneTyping ? <p className="chat-typing" role="status">Typing…</p> : null}
+            {showJump ? (
+              <button
+                type="button"
+                className="chat-jump"
+                onClick={() => {
+                  stickToBottomRef.current = true
+                  const node = scrollerRef.current
+                  if (node) node.scrollTop = node.scrollHeight
+                  setShowJump(false)
+                  setJumpCount(0)
+                }}
+              >
+                {jumpCount > 0 ? `${jumpCount} new` : 'Latest'}
+              </button>
+            ) : null}
           </div>
           {openId ? (
             <form
@@ -591,9 +787,30 @@ export function ChatScreen({
                 send()
               }}
             >
-              {replyTo ? <p className="chat-meta">Replying to {replyTo.body || 'a photo'}</p> : null}
+              {replyTo ? (
+                <p className="chat-compose-quote">
+                  <span>
+                    <strong>{membersById[replyTo.author_member_id]?.name || aliases[replyTo.author_member_id] || 'Message'}</strong>
+                    {replyTo.body || 'Photo'}
+                  </span>
+                  <button type="button" aria-label="Cancel reply" onClick={() => setReplyTo(null)}>✕</button>
+                </p>
+              ) : null}
+              {outgoingPhoto ? (
+                <p className="chat-photo-preview">
+                  <img src={outgoingPhoto.url} alt="" />
+                  <span>{outgoingPhoto.status === 'failed' ? 'Photo failed' : 'Sending photo…'}</span>
+                </p>
+              ) : null}
               {editing ? <p className="chat-meta">Editing your message</p> : null}
               {cannotPost ? <p className="chat-meta">Only managers can post in this channel.</p> : null}
+              {emojiOpen ? (
+                <div className="chat-emoji-picker" role="listbox" aria-label="Emoji">
+                  {CHAT_COMPOSER_EMOJIS.map((emoji) => (
+                    <button key={emoji} type="button" onClick={() => setDraft((current) => clipChatBody(`${current}${emoji}`))}>{emoji}</button>
+                  ))}
+                </div>
+              ) : null}
               <input
                 ref={fileRef}
                 type="file"
@@ -604,7 +821,11 @@ export function ChatScreen({
               <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
                 Photo
               </button>
+              <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
+                ☺
+              </button>
               <textarea
+                ref={draftRef}
                 aria-label="Message"
                 data-help="chat.message"
                 value={draft}
@@ -643,6 +864,7 @@ export function ChatScreen({
                   ))}
                 </div>
                 <button type="button" onClick={() => { setReplyTo(activeMessage); setSheet(null) }}>Reply</button>
+                <button type="button" onClick={() => copyMessage(activeMessage)}>Copy</button>
                 {canEditChatMessage(activeMessage, memberId) ? (
                   <button type="button" onClick={() => { setEditing(activeMessage); setDraft(activeMessage.body || ''); setSheet(null) }}>Edit</button>
                 ) : null}
@@ -662,20 +884,50 @@ export function ChatScreen({
                 ) : null}
               </>
             ) : null}
-            {sheet === 'direct' ? members.filter((member) => member.id !== memberId).map((member) => (
-              <button key={member.id} type="button" onClick={() => startDirect(member.id)}>{member.name}</button>
-            )) : null}
+            {sheet === 'direct' ? (
+              <>
+                <label className="chat-field">
+                  Search people
+                  <input value={directQuery} onChange={(event) => setDirectQuery(event.target.value)} placeholder="Name" />
+                </label>
+                {members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase())).map((member) => {
+                  const existing = ordered.find((row) => row.kind === 'direct' && row.other_member_id === member.id)
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className="chat-person-row"
+                      onClick={() => {
+                        if (existing) {
+                          stickToBottomRef.current = true
+                          setOpenId(existing.conversation_id)
+                          setSheet(null)
+                          return
+                        }
+                        startDirect(member.id)
+                      }}
+                    >
+                      <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
+                        <PersonAvatar memberId={member.id} employeeId={member.employeeId} authUserId={member.authUserId} name={member.name} fallback={initials(member.name)} />
+                      </span>
+                      <span>{member.name}</span>
+                      {existing ? <span className="chat-meta">Open</span> : null}
+                    </button>
+                  )
+                })}
+              </>
+            ) : null}
             {sheet === 'channel' ? (
               <>
-                <label>
+                <label className="chat-field">
                   Channel name
                   <input value={channelName} onChange={(event) => setChannelName(event.target.value)} />
                 </label>
-                <label>
+                <label className="chat-field">
                   Icon
                   <input value={channelIcon} onChange={(event) => setChannelIcon(event.target.value)} placeholder="Optional" />
                 </label>
-                <label>
+                <label className="chat-field">
                   Who can post
                   <select value={channelPolicy} onChange={(event) => setChannelPolicy(event.target.value)}>
                     <option value="all">Everyone can post</option>
@@ -722,6 +974,29 @@ export function ChatScreen({
                 <button type="button" onClick={saveMembers}>Save members</button>
               </>
             ) : null}
+            {sheet === 'info' && openRow ? (
+              <>
+                <p className="chat-sheet-title">{conversationTitle(openRow, membersById, aliases)}</p>
+                <p className="chat-meta">{openRow.kind === 'team' ? 'Team' : openRow.kind === 'group' ? 'Channel' : 'Direct message'}</p>
+                {participants.filter((person) => !person.left_at).map((person) => (
+                  <p key={person.member_id} className="chat-sheet-person">
+                    {membersById[person.member_id]?.name || aliases[person.member_id] || 'Member'}
+                  </p>
+                ))}
+                <button type="button" data-help="chat.mute" onClick={() => setSheet('mute')}>Mute</button>
+                {canManage && openRow.kind === 'group' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickedMembers(participants.filter((person) => !person.left_at).map((person) => person.member_id))
+                      setSheet('members')
+                    }}
+                  >
+                    Members
+                  </button>
+                ) : null}
+              </>
+            ) : null}
             {sheet === 'mute' ? (
               <>
                 <button type="button" onClick={() => applyMute('1h')}>Mute for 1 hour</button>
@@ -733,6 +1008,11 @@ export function ChatScreen({
             ) : null}
             <button type="button" onClick={() => setSheet(null)}>Close</button>
           </div>
+        </div>
+      ) : null}
+      {viewerUrl ? (
+        <div className="chat-viewer" role="dialog" aria-label="Photo" onClick={() => setViewerUrl('')}>
+          <img src={viewerUrl} alt="" />
         </div>
       ) : null}
     </div>

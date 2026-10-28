@@ -86,10 +86,20 @@
     zoom: var(--ui-scale);
   }
 
+  .employee-modal.reservation-smart-modal.is-responsive-sheet .employee-form {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
   .employee-modal.reservation-smart-modal.is-responsive-sheet .modal-actions {
     flex-direction: row;
     position: sticky;
     bottom: 0;
+    z-index: 5;
+    margin-top: auto;
     background: #10141c;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   }
 }

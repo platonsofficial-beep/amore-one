@@ -13942,18 +13942,18 @@
 }
 
 .floor-plan-legend-chip.tone-host-available .floor-plan-legend-dot {
-  background: var(--host-floor-available-dot);
-  box-shadow: 0 0 0 1px rgba(160, 176, 152, 0.55);
+  background: #6c8a74;
+  box-shadow: none;
 }
 
 .floor-plan-legend-chip.tone-host-reserved .floor-plan-legend-dot {
-  background: var(--host-floor-reserved-dot);
-  box-shadow: 0 0 0 1px rgba(255, 224, 150, 0.55);
+  background: #e8c46e;
+  box-shadow: none;
 }
 
 .floor-plan-legend-chip.tone-host-seated .floor-plan-legend-dot {
-  background: var(--host-floor-seated-dot);
-  box-shadow: 0 0 0 1px rgba(120, 220, 236, 0.45);
+  background: #30a8c4;
+  box-shadow: none;
 }
 
 .floor-plan-legend-chip.tone-host-problem .floor-plan-legend-dot {
@@ -14630,6 +14630,36 @@
   display: none;
 }
 
+.floor-plan-toolbar-more-menu.is-portaled {
+  position: fixed;
+  z-index: 4000;
+  right: auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  max-height: min(280px, calc(100dvh - 24px));
+}
+
+.floor-plan-zoom-btn:disabled {
+  opacity: 0.38;
+}
+
+.floor-plan-area-empty {
+  position: absolute;
+  z-index: 3;
+  left: 16px;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 16px;
+  border-radius: 14px;
+  background: rgba(12, 16, 24, 0.94);
+  color: #f7efe1;
+  text-align: center;
+  line-height: 1.4;
+}
+
 .floor-plan-toolbar-more-menu {
   position: absolute;
   z-index: 40;
@@ -14654,10 +14684,10 @@
 }
 
 .floor-plan-lock-toast {
-  position: absolute;
-  z-index: 5;
+  position: fixed;
+  z-index: 4000;
   left: 50%;
-  top: 8px;
+  top: max(12px, calc(8px + env(safe-area-inset-top, 0px)));
   transform: translateX(-50%);
   margin: 0;
   padding: 6px 12px;
@@ -51479,7 +51509,8 @@ summary:focus-visible {
     gap: 0;
   }
 
-  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip > div:not(.profile-avatar) {
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip > div:not(.profile-avatar),
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .user-menu-role-badge {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -51593,9 +51624,21 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex: 0 0 auto;
   min-height: 44px;
+}
+
+.mobile-manager-app .notification-drawer,
+.mobile-app .notification-drawer {
+  z-index: 1400;
+  top: auto;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-shell-bell,
+.notification-bell {
+  overflow: visible;
 }
 
 .notification-drawer-header h2 {

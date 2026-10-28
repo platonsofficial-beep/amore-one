@@ -305,6 +305,42 @@ export function subscribeToChatConversation(conversationId, { onMessage, onReact
   }
 }
 
+export function subscribeToChatTyping(conversationId, memberId, onTyping) {
+  const idle = { setTyping() {}, stop() {} }
+  if (!supabase || !conversationId || !memberId) return idle
+  try {
+    const channel = supabase.channel(`chat-typing:${conversationId}`, {
+      config: { presence: { key: `${memberId}` } },
+    })
+    channel.on('presence', { event: 'sync' }, () => {
+      try {
+        const state = channel.presenceState?.() || {}
+        const typing = Object.values(state).flat().some((entry) => (
+          entry?.typing && `${entry.member_id ?? ''}` !== `${memberId}`
+        ))
+        onTyping?.(Boolean(typing))
+      } catch {
+        onTyping?.(false)
+      }
+    })
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        channel.track({ member_id: memberId, typing: false }).catch(() => {})
+      }
+    })
+    return {
+      setTyping(typing) {
+        channel.track({ member_id: memberId, typing: Boolean(typing) }).catch(() => {})
+      },
+      stop() {
+        supabase.removeChannel(channel)
+      },
+    }
+  } catch {
+    return idle
+  }
+}
+
 export function subscribeToChatInbox(memberId, workspaceId, onChange) {
   if (!supabase || !memberId || !workspaceId) return () => {}
   const channel = supabase

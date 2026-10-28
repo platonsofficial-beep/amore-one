@@ -220,6 +220,26 @@ export const HELP_CATALOG = {
     title: { en: 'New chat' },
     body: { en: 'Starts a direct message with someone on the team.' },
   },
+  'chat.search': {
+    title: { en: 'Search chats' },
+    body: { en: 'Filters the conversation list by a person’s name.' },
+  },
+  'chat.back': {
+    title: { en: 'Back to chats' },
+    body: { en: 'Leaves this conversation and returns to the list. The draft stays until you send or clear it.' },
+  },
+  'chat.info': {
+    title: { en: 'Conversation info' },
+    body: { en: 'Opens members, mute, and other details for this chat.' },
+  },
+  'chat.mute': {
+    title: { en: 'Mute' },
+    body: { en: 'Quiets notifications for this conversation for a while, or until you unmute it.' },
+  },
+  'chat.emoji': {
+    title: { en: 'Emoji' },
+    body: { en: 'Opens the emoji picker and adds the one you tap to the message.' },
+  },
   'chat.channel': {
     title: { en: 'New channel' },
     body: { en: 'Creates a group channel. Only people who can manage chat see this.' },

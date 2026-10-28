@@ -60,6 +60,9 @@ export function NotificationBell({
           >
             Mark all read
           </button>
+          <button type="button" className="notification-text-btn" onClick={() => setOpen(false)}>
+            Close
+          </button>
         </header>
         {items.length === 0 ? (
           <p className="notification-drawer-empty">You're all caught up.</p>
