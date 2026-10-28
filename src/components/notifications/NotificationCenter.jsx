@@ -95,6 +95,7 @@ export function NotificationBell({
       <button
         type="button"
         className="icon-btn notification-bell-btn"
+        data-help="header.notifications"
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="dialog"

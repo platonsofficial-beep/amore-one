@@ -36,6 +36,7 @@ export function StockSectionNav({
         activeSection={activeSection}
         onSectionChange={onSectionChange}
         ariaLabel="Stock sections"
+        helpPrefix="stock"
       />
     )
   }
@@ -47,6 +48,7 @@ export function StockSectionNav({
         activeSection={activeSection}
         onSectionChange={onSectionChange}
         ariaLabel="Stock sections"
+        helpPrefix="stock"
       />
       <div className="stock-section-more" ref={moreRef}>
         <button
@@ -56,6 +58,7 @@ export function StockSectionNav({
           aria-expanded={isMoreOpen}
           aria-controls="stock-section-more-menu"
           data-testid="stock-section-more"
+          data-help="stock.more-sections"
           onClick={() => setIsMoreOpen((open) => !open)}
         >
           More
@@ -73,6 +76,8 @@ export function StockSectionNav({
                 type="button"
                 role="menuitem"
                 className={`stock-section-more-item${activeSection === section.id ? ' active' : ''}`}
+                data-help={`stock.${section.id}`}
+                data-help-nav=""
                 aria-current={activeSection === section.id ? 'page' : undefined}
                 onClick={() => {
                   onSectionChange(section.id)

@@ -22,6 +22,8 @@ export function MobileBottomNav({
           onClick={() => onTabChange(tab.id)}
           aria-current={activeTab === tab.id ? 'page' : undefined}
           aria-expanded={tab.id === 'more' ? moreExpanded : undefined}
+          data-help={`nav.${tab.id}`}
+          data-help-nav=""
           aria-label={tab.badge ? `${tab.ariaLabel || tab.label}, ${tab.badge} unread` : (tab.ariaLabel || tab.label)}
         >
           <span className="mobile-bottom-nav-icon" aria-hidden="true">{tab.icon}</span>

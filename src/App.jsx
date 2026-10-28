@@ -579,6 +579,7 @@ import { MobileReservationsHostView } from './components/mobile/reservations/Mob
 import { MobileReservationQuickCreateSheet } from './components/mobile/reservations/MobileReservationQuickCreateSheet'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
+import { HelpModeChrome, HelpModeToggle } from './help/HelpMode'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
 import {
@@ -9868,6 +9869,7 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
         className="floor-plan-area-nav-btn"
         onClick={() => switchZone('prev')}
         aria-label="Previous area"
+        data-help="reservations.area-prev"
       >
         ‹
       </button>
@@ -9891,6 +9893,7 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
         className="floor-plan-area-nav-btn"
         onClick={() => switchZone('next')}
         aria-label="Next area"
+        data-help="reservations.area-next"
       >
         ›
       </button>
@@ -11446,6 +11449,7 @@ function FloorPlanView({
                   <button
                     type="button"
                     className="floor-plan-mode-btn"
+                    data-help="reservations.edit-layout"
                     onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
                   >
                     Edit layout
@@ -11458,6 +11462,7 @@ function FloorPlanView({
                   aria-pressed={showDiningTimers}
                   aria-label="Dining timers"
                   data-testid="host-floor-dining-timers-toggle"
+                  data-help="reservations.timers"
                 >
                   ⏱ Timers
                 </button>
@@ -11469,6 +11474,7 @@ function FloorPlanView({
                   ref={floorMoreButtonRef}
                   aria-expanded={floorMoreOpen}
                   aria-haspopup="menu"
+                  data-help="reservations.more"
                   onClick={() => setFloorMoreOpen((open) => !open)}
                 >
                   More
@@ -11484,6 +11490,7 @@ function FloorPlanView({
                         type="button"
                         className="floor-plan-mode-btn"
                         role="menuitem"
+                        data-help="reservations.edit-layout"
                         onClick={() => {
                           setFloorMoreOpen(false)
                           closeHostEdit()
@@ -11497,6 +11504,7 @@ function FloorPlanView({
                       type="button"
                       className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
                       role="menuitem"
+                      data-help="reservations.timers"
                       onClick={() => {
                         setFloorMoreOpen(false)
                         setShowDiningTimers((current) => !current)
@@ -11512,11 +11520,11 @@ function FloorPlanView({
               </div>
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <div className="floor-plan-zoom-controls-group">
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out" disabled={floorInteractionLocked}>−</button>
-                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view" disabled={floorInteractionLocked}>
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out" data-help="reservations.zoom-out" disabled={floorInteractionLocked}>−</button>
+                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view" data-help="reservations.fit" disabled={floorInteractionLocked}>
                   Fit
                 </button>
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in" disabled={floorInteractionLocked}>+</button>
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in" data-help="reservations.zoom-in" disabled={floorInteractionLocked}>+</button>
               </div>
               <button
                 type="button"
@@ -11533,6 +11541,7 @@ function FloorPlanView({
                 aria-label={floorInteractionLocked ? 'Map locked. Tap to unlock the floor plan' : 'Map unlocked. Tap to lock the floor plan'}
                 title={floorInteractionLocked ? 'Map locked' : 'Map unlocked'}
                 data-testid="host-floor-interaction-lock"
+                data-help="reservations.lock"
               >
                 {floorInteractionLocked ? '🔒' : '🔓'}
               </button>
@@ -14708,7 +14717,7 @@ function ReservationsWorkspaceContent({
                 placeholder="Search guest or table"
               />
             </label>
-            <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving}>
+            <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving} data-help="reservations.add">
               {isSaving ? 'Saving…' : '+ Reservation'}
             </button>
           </div>
@@ -24375,6 +24384,7 @@ function App() {
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      <HelpModeChrome />
       {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
         <div className="notification-settings-overlay" role="presentation">
           <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
@@ -24410,6 +24420,8 @@ function App() {
               key={item.id}
               type="button"
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
+              data-help={`nav.${item.id}`}
+              data-help-nav=""
               onClick={() => {
                 if (isStaffHostPersonalView(item.id)) {
                   openStaffHostPersonalView(item.id)
@@ -24500,6 +24512,7 @@ function App() {
             activeSection={teamSection}
             onSectionChange={handleTeamSectionChange}
             ariaLabel="Team sections"
+            helpPrefix="team"
           />
         ) : null}
 
@@ -24512,6 +24525,7 @@ function App() {
                   className="ghost-btn stock-focus-exit-btn"
                   onClick={handleExitStockFocusMode}
                   aria-label="Exit Stock"
+                  data-help="stock.exit"
                 >
                   ← Exit Stock
                 </button>
@@ -24545,6 +24559,7 @@ function App() {
             activeSection={operationsSection}
             onSectionChange={handleOperationsSectionChange}
             ariaLabel="Operations sections"
+            helpPrefix="operations"
           />
         ) : null}
 
@@ -25652,7 +25667,7 @@ function App() {
                     </div>
                     <div className="topbar-meta">
                       {showModuleSearch ? (
-                      <label className="search-bar" aria-label={`Search ${moduleTitle}`}>
+                      <label className="search-bar" aria-label={`Search ${moduleTitle}`} data-help="header.search">
                         <span>⌕</span>
                         <input
                           type="text"
@@ -25662,6 +25677,7 @@ function App() {
                         />
                       </label>
                       ) : null}
+                      <HelpModeToggle />
                       {notificationBell}
                       <div className="date-pill">{currentDateLabel}</div>
                       <UserMenu
