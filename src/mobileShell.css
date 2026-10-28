@@ -9660,11 +9660,11 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .manager-portrait-shift .manager-portrait-reservation-copy strong {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
   white-space: normal;
   line-height: 1.25;
+  overflow: visible;
+  text-overflow: unset;
   overflow-wrap: break-word;
   word-break: normal;
 }
