@@ -2,6 +2,7 @@ import {
   getReservationSeatingAssignment,
   seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
+import { getReservationOperationalPhase } from './floorTableOperationalState'
 import {
   isReservationInHouseStatus,
   normalizeReservationStatus,
@@ -137,6 +138,8 @@ export function buildHostQueueServiceMetrics(
   {
     layout = null,
     areaFilterId = HOST_QUEUE_ALL_AREAS,
+    dateKey = '',
+    nowMinutes = null,
   } = {},
 ) {
   let expectedGuests = 0
@@ -156,9 +159,20 @@ export function buildHostQueueServiceMetrics(
     getReservedTableIdsForScope(reservation, layout, areaFilterId)
       .forEach((tableId) => reservedTableIds.add(tableId))
 
-    const seatedIds = getSeatedTableIdsForScope(reservation, layout, areaFilterId)
+    const arrivedNow = getReservationOperationalPhase(reservation, nowMinutes, dateKey) === 'waiting'
+    const seatedIds = getAssignedTableIdsForScope(
+      reservation,
+      layout,
+      areaFilterId,
+      {
+        includeReservation: (entry) => (
+          isReservationSeatedForTableMetrics(entry)
+          || getReservationOperationalPhase(entry, nowMinutes, dateKey) === 'waiting'
+        ),
+      },
+    )
     seatedIds.forEach((tableId) => seatedTableIds.add(tableId))
-    if (isReservationSeatedForTableMetrics(reservation) && seatedIds.size === 0) {
+    if ((isReservationSeatedForTableMetrics(reservation) || arrivedNow) && seatedIds.size === 0) {
       const seatedAnywhere = areaFilterId !== HOST_QUEUE_ALL_AREAS
         ? getSeatedTableIdsForScope(reservation, layout, HOST_QUEUE_ALL_AREAS)
         : seatedIds
@@ -167,7 +181,7 @@ export function buildHostQueueServiceMetrics(
       }
     }
 
-    if (isReservationInHouseStatus(status)) {
+    if (isReservationInHouseStatus(status) || arrivedNow) {
       inHouseGuests += guests > 0 ? guests : 1
     }
   })
@@ -194,6 +208,7 @@ export function buildHostQueueServiceMetricsFromReservations(
     dateKey = '',
     areaFilterId = HOST_QUEUE_ALL_AREAS,
     layout = null,
+    nowMinutes = null,
   } = {},
 ) {
   const scopedReservations = buildHostQueueScopeReservations(reservations, {
@@ -207,6 +222,8 @@ export function buildHostQueueServiceMetricsFromReservations(
   return buildHostQueueServiceMetrics(scopedReservations, {
     layout,
     areaFilterId,
+    dateKey,
+    nowMinutes,
   })
 }
 
@@ -217,6 +234,7 @@ export function buildHostQueueSeatingChipMetricsMap(
     dateKey = '',
     areaFilterId = HOST_QUEUE_ALL_AREAS,
     layout = null,
+    nowMinutes = null,
   } = {},
 ) {
   const metricsBySeatingId = {}
@@ -231,6 +249,7 @@ export function buildHostQueueSeatingChipMetricsMap(
         dateKey,
         areaFilterId,
         layout,
+        nowMinutes,
       },
     )
   })

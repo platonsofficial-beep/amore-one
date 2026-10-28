@@ -93,8 +93,8 @@ import {
   buildReservationLinkGroups,
   buildReservationLinkTableMeta,
   clampHostFloorPan,
-  computeHostFloorContainBox,
   computeHostFloorFit,
+  computeHostFloorTablesFit,
   computeHostFloorReadableBox,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
@@ -9959,6 +9959,7 @@ function FloorPlanView({
   const floorPanStateRef = useRef({ x: 0, y: 0 })
   const floorPointerRef = useRef({ mode: 'idle' })
   const isManualFloorZoomRef = useRef(false)
+  const suppressFloorAutoFitRef = useRef(false)
   const [floorZoom, setFloorZoom] = useState(1)
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [floorLayoutEpoch, setFloorLayoutEpoch] = useState(0)
@@ -9969,12 +9970,49 @@ function FloorPlanView({
   const [showDiningTimers, setShowDiningTimers] = useState(false)
   const [floorInteractionLocked, setFloorInteractionLocked] = useState(() => readHostFloorLockPreference())
   const [floorLockToast, setFloorLockToast] = useState('')
+  const [floorMoreOpen, setFloorMoreOpen] = useState(false)
+  const [floorMoreStyle, setFloorMoreStyle] = useState(null)
+  const floorMoreButtonRef = useRef(null)
 
   useEffect(() => {
     if (!floorLockToast) return undefined
     const timeoutId = window.setTimeout(() => setFloorLockToast(''), 1600)
     return () => window.clearTimeout(timeoutId)
   }, [floorLockToast])
+
+  useEffect(() => {
+    if (!floorMoreOpen) return undefined
+    const place = () => {
+      const button = floorMoreButtonRef.current
+      if (!button) return
+      const rect = button.getBoundingClientRect()
+      const menuWidth = 188
+      const left = Math.min(
+        Math.max(8, rect.right - menuWidth),
+        Math.max(8, window.innerWidth - menuWidth - 8),
+      )
+      const top = Math.min(rect.bottom + 6, Math.max(8, window.innerHeight - 160))
+      setFloorMoreStyle({ top, left, width: menuWidth })
+    }
+    place()
+    const onKey = (event) => {
+      if (event.key === 'Escape') setFloorMoreOpen(false)
+    }
+    const onPointer = (event) => {
+      if (floorMoreButtonRef.current?.contains(event.target)) return
+      if (event.target?.closest?.('.floor-plan-toolbar-more-menu')) return
+      setFloorMoreOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    window.addEventListener('pointerdown', onPointer)
+    window.addEventListener('resize', place)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('pointerdown', onPointer)
+      window.removeEventListener('resize', place)
+    }
+  }, [floorMoreOpen])
+
   const isHeatmap = viewMode === 'heatmap'
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
@@ -10033,17 +10071,25 @@ function FloorPlanView({
 
   floorPanStateRef.current = floorPan
 
+  const rejectLockedFloorZoom = useCallback(() => {
+    if (!floorInteractionLocked) return false
+    setFloorLockToast('Map locked')
+    return true
+  }, [floorInteractionLocked])
+
   const handleFloorZoomIn = useCallback(() => {
+    if (rejectLockedFloorZoom()) return
     closeScheduleCardTable('zoom-in')
     isManualFloorZoomRef.current = true
     setFloorZoom((current) => clampFloorZoom(current + 0.12))
-  }, [clampFloorZoom, closeScheduleCardTable])
+  }, [clampFloorZoom, closeScheduleCardTable, rejectLockedFloorZoom])
 
   const handleFloorZoomOut = useCallback(() => {
+    if (rejectLockedFloorZoom()) return
     closeScheduleCardTable('zoom-out')
     isManualFloorZoomRef.current = true
     setFloorZoom((current) => clampFloorZoom(current - 0.12))
-  }, [clampFloorZoom, closeScheduleCardTable])
+  }, [clampFloorZoom, closeScheduleCardTable, rejectLockedFloorZoom])
 
   useEffect(() => {
     if (!isCompact) return undefined
@@ -10054,6 +10100,7 @@ function FloorPlanView({
     const onWheel = (event) => {
       if (viewport.classList.contains('is-floor-interaction-locked')) {
         event.preventDefault()
+        if (event.ctrlKey || event.metaKey) setFloorLockToast('Map locked')
         return
       }
       if (scheduleCardTableIdRef.current) return
@@ -10078,6 +10125,7 @@ function FloorPlanView({
     }
     const blockLockedGesture = (event) => {
       if (!readHostFloorLockPreference() && !viewport.classList.contains('is-floor-interaction-locked')) return
+      if (event.touches && event.touches.length > 1) setFloorLockToast('Map locked')
       event.preventDefault()
     }
     viewport.addEventListener('wheel', onWheel, { passive: false })
@@ -10243,7 +10291,7 @@ function FloorPlanView({
       todayKey,
       nowMinutes,
       cleaningFlags,
-      syncWithList: isCompact,
+      syncWithList: false,
       debugAssignments: isCompact && import.meta.env.DEV,
       selectedSeating,
       seatingsById,
@@ -10393,27 +10441,36 @@ function FloorPlanView({
   }, [])
 
   const handleFloorZoomFit = useCallback(() => {
+    if (floorInteractionLocked) {
+      setFloorLockToast('Map locked')
+      return
+    }
     closeScheduleCardTable('zoom-fit')
     const viewport = viewportRef.current
     const layoutSpace = viewport?.querySelector('.floor-plan-layout-space')
     if (!viewport || !layoutSpace) return
     const aspect = readHostFloorAspect(layoutSpace)
-    const box = computeHostFloorContainBox({
+    const box = computeHostFloorTablesFit({
+      tables: visibleTableStatesRef.current.map((tableState) => tableState.table),
       viewportWidth: viewport.clientWidth,
       viewportHeight: viewport.clientHeight,
       aspectWidth: aspect.aspectWidth,
       aspectHeight: aspect.aspectHeight,
+      paddingPx: 12,
     })
     layoutSpace.style.width = `${box.width}px`
     layoutSpace.style.height = `${box.height}px`
+    layoutSpace.style.minWidth = '0'
+    layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
     layoutSpace.style.maxHeight = 'none'
     isManualFloorZoomRef.current = true
+    suppressFloorAutoFitRef.current = true
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
-    viewport.scrollTop = 0
-    viewport.scrollLeft = 0
-  }, [closeScheduleCardTable])
+    viewport.scrollTop = box.scrollTop
+    viewport.scrollLeft = box.scrollLeft
+  }, [closeScheduleCardTable, floorInteractionLocked])
 
   const hostFloorContextRef = useRef(null)
 
@@ -10479,6 +10536,13 @@ function FloorPlanView({
       const width = Math.round(layoutSpace?.clientWidth || viewport.clientWidth || 0)
       const height = Math.round(layoutSpace?.clientHeight || viewport.clientHeight || 0)
       if (width < 2 || height < 2) return false
+
+      if (suppressFloorAutoFitRef.current) {
+        suppressFloorAutoFitRef.current = false
+        lastSize.width = width
+        lastSize.height = height
+        return true
+      }
 
       const changed = Math.abs(width - lastSize.width) > 1 || Math.abs(height - lastSize.height) > 1
       if (!changed) return true
@@ -11275,6 +11339,7 @@ function FloorPlanView({
         dateKey: todayKey,
         areaFilterId: hostQueueAreaFilterId,
         layout,
+        nowMinutes,
       },
     )
 
@@ -11286,6 +11351,7 @@ function FloorPlanView({
           layout,
           areaFilterId: hostQueueAreaFilterId,
           seatingsById,
+          nowMinutes,
         }),
         operationalMetrics: operationalMetricsBySeating[seating.id] ?? null,
       }
@@ -11297,6 +11363,7 @@ function FloorPlanView({
     hostQueueAreaFilterId,
     layout,
     listReservations,
+    nowMinutes,
     reservations,
     seatingsById,
     todayKey,
@@ -11386,36 +11453,61 @@ function FloorPlanView({
                   ⏱ Timers
                 </button>
               </div>
-              <details className="floor-plan-toolbar-more">
-                <summary className="floor-plan-toolbar-more-summary">More</summary>
-                <div className="floor-plan-toolbar-more-menu">
-                  {canEditFloorPlan ? (
+              <div className="floor-plan-toolbar-more">
+                <button
+                  type="button"
+                  className="floor-plan-toolbar-more-summary"
+                  ref={floorMoreButtonRef}
+                  aria-expanded={floorMoreOpen}
+                  aria-haspopup="menu"
+                  onClick={() => setFloorMoreOpen((open) => !open)}
+                >
+                  More
+                </button>
+                {floorMoreOpen ? createPortal(
+                  <div
+                    className="floor-plan-toolbar-more-menu is-portaled"
+                    role="menu"
+                    style={floorMoreStyle ?? undefined}
+                  >
+                    {canEditFloorPlan ? (
+                      <button
+                        type="button"
+                        className="floor-plan-mode-btn"
+                        role="menuitem"
+                        onClick={() => {
+                          setFloorMoreOpen(false)
+                          closeHostEdit()
+                          setFloorPlanMode('edit')
+                        }}
+                      >
+                        Edit layout
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      className="floor-plan-mode-btn"
-                      onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+                      className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
+                      role="menuitem"
+                      onClick={() => {
+                        setFloorMoreOpen(false)
+                        setShowDiningTimers((current) => !current)
+                      }}
+                      aria-pressed={showDiningTimers}
+                      aria-label="Dining timers"
                     >
-                      Edit layout
+                      ⏱ Timers
                     </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
-                    onClick={() => setShowDiningTimers((current) => !current)}
-                    aria-pressed={showDiningTimers}
-                    aria-label="Dining timers"
-                  >
-                    ⏱ Timers
-                  </button>
-                </div>
-              </details>
+                  </div>,
+                  document.body,
+                ) : null}
+              </div>
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <div className="floor-plan-zoom-controls-group">
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
-                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view">
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out" disabled={floorInteractionLocked}>−</button>
+                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view" disabled={floorInteractionLocked}>
                   Fit
                 </button>
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in">+</button>
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in" disabled={floorInteractionLocked}>+</button>
               </div>
               <button
                 type="button"
@@ -11505,8 +11597,14 @@ function FloorPlanView({
         onTouchStart={isCompact ? handleViewportTouchStart : undefined}
         onTouchEnd={isCompact ? handleViewportTouchEnd : undefined}
       >
-        {floorLockToast ? (
-          <p className="floor-plan-lock-toast" role="status">{floorLockToast}</p>
+        {floorLockToast ? createPortal(
+          <p className="floor-plan-lock-toast" role="status">{floorLockToast}</p>,
+          document.body,
+        ) : null}
+        {isCompact && visibleTableStates.length === 0 ? (
+          <p className="floor-plan-area-empty" role="status">
+            {`No tables on ${activeZone?.label || 'this area'} yet - Edit layout to add`}
+          </p>
         ) : null}
         {isCompact && isHostFloorDebugEnabled() ? <HostFloorDebugOverlay /> : null}
         {isCompact ? (

@@ -125,6 +125,97 @@ export function getTablesBoundingBox(tables, halfPercent = DEFAULT_HALF_PERCENT)
   }
 }
 
+/**
+ * Bounds of every table, in canvas percent, including each table's own size.
+ * Edge tables stay in the box. Nothing is pulled inward.
+ */
+export function getHostFloorTableBounds(tables, halfPercent = DEFAULT_HALF_PERCENT) {
+  if (!tables?.length) return null
+
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  let counted = 0
+
+  tables.forEach((table) => {
+    const x = Number(table?.x)
+    const y = Number(table?.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    const { halfW, halfH } = getTableHalfExtents(table, halfPercent)
+    minX = Math.min(minX, x - halfW)
+    minY = Math.min(minY, y - halfH)
+    maxX = Math.max(maxX, x + halfW)
+    maxY = Math.max(maxY, y + halfH)
+    counted += 1
+  })
+
+  if (!counted) return null
+
+  const pad = 2
+  const paddedMinX = minX - pad
+  const paddedMinY = minY - pad
+  const paddedMaxX = maxX + pad
+  const paddedMaxY = maxY + pad
+
+  return {
+    minX: paddedMinX,
+    minY: paddedMinY,
+    maxX: paddedMaxX,
+    maxY: paddedMaxY,
+    width: Math.max(paddedMaxX - paddedMinX, 1),
+    height: Math.max(paddedMaxY - paddedMinY, 1),
+  }
+}
+
+/**
+ * Size the published canvas so every table in the current area fits inside
+ * the visible plan, then scroll so that box is centered.
+ */
+export function computeHostFloorTablesFit({
+  tables = [],
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+  paddingPx = 12,
+} = {}) {
+  const safeAspectHeight = aspectHeight > 0 ? aspectHeight : 1400
+  const aspect = (aspectWidth > 0 ? aspectWidth : 2200) / safeAspectHeight
+  const innerWidth = Math.max(1, viewportWidth - paddingPx * 2)
+  const innerHeight = Math.max(1, viewportHeight - paddingPx * 2)
+  const bounds = getHostFloorTableBounds(tables)
+
+  if (!bounds || viewportWidth <= 0 || viewportHeight <= 0) {
+    const box = computeHostFloorContainBox({
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
+      aspectWidth,
+      aspectHeight,
+    })
+    return { ...box, scrollLeft: 0, scrollTop: 0, zoom: 1 }
+  }
+
+  const widthFromBoundsWidth = innerWidth / (bounds.width / 100)
+  const widthFromBoundsHeight = (innerHeight * aspect) / (bounds.height / 100)
+  const contain = computeHostFloorContainBox({
+    viewportWidth: innerWidth,
+    viewportHeight: innerHeight,
+    aspectWidth,
+    aspectHeight,
+  })
+  const width = Math.max(1, Math.min(widthFromBoundsWidth, widthFromBoundsHeight, contain.width))
+  const height = Math.max(1, width / aspect)
+
+  return {
+    width: Math.round(width),
+    height: Math.round(height),
+    scrollLeft: 0,
+    scrollTop: 0,
+    zoom: 1,
+  }
+}
+
 /** Scale the published plan so the whole floor fits inside the visible viewport. */
 export function computeHostFloorContainBox({
   viewportWidth = 0,
