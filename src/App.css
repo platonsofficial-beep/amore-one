@@ -51978,8 +51978,8 @@ summary:focus-visible {
 @media (max-width: 900px) {
   .notification-drawer {
     top: auto;
-    right: env(safe-area-inset-right, 0px);
-    left: env(safe-area-inset-left, 0px);
+    right: var(--safe-r, env(safe-area-inset-right, 0px));
+    left: var(--safe-l, env(safe-area-inset-left, 0px));
     bottom: calc(var(--one-mobile-bottom-nav-height, 64px) + var(--one-mobile-nav-float-gap, 0px) + 8px + env(safe-area-inset-bottom, 0px));
     width: auto;
     max-height: calc(100dvh - var(--one-mobile-bottom-nav-height, 64px) - var(--one-mobile-nav-float-gap, 0px) - 8px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) - 12px);

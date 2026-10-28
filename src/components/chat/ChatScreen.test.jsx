@@ -102,6 +102,23 @@ describe('ChatScreen', () => {
     view.unmount()
   })
 
+  it('uses icons for back, mute, and photo in a direct chat', async () => {
+    const view = renderChat({ initialConversationId: 'direct-1', layout: 'stack' })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const back = view.container.querySelector('[aria-label="Back"]')
+    const mute = view.container.querySelector('[aria-label="Mute"]')
+    const photo = view.container.querySelector('[aria-label="Photo"]')
+    expect(back?.querySelector('svg')).toBeTruthy()
+    expect(back.textContent.trim()).toBe('')
+    expect(mute?.querySelector('svg')).toBeTruthy()
+    expect(photo?.querySelector('svg')).toBeTruthy()
+    expect(photo.textContent.trim()).toBe('')
+    expect(view.container.querySelector('.chat-thread-title')?.textContent).toContain('Alex')
+    view.unmount()
+  })
+
   it('sends the composer text through chat_send_message', async () => {
     const view = renderChat({ initialConversationId: 'team-1' })
     await act(async () => {

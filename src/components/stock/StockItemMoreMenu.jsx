@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { clampOverlayLeft } from '../../lib/safeInline'
 
 const MENU_Z_INDEX = 12000
 const MENU_MARGIN = 8
@@ -54,8 +55,7 @@ export function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   const maxBottom = viewportHeight - MENU_MARGIN
   const safeHeight = Math.max(menuHeight, 0)
 
-  let left = anchorRect.right - menuWidth
-  left = Math.max(MENU_MARGIN, Math.min(left, viewportWidth - menuWidth - MENU_MARGIN))
+  let left = clampOverlayLeft(anchorRect.right - menuWidth, menuWidth, viewportWidth, MENU_MARGIN)
 
   const belowTop = anchorRect.bottom + MENU_MARGIN
   const spaceBelow = Math.max(0, maxBottom - belowTop)

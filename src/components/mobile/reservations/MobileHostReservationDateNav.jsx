@@ -14,7 +14,7 @@ export function MobileHostReservationDateNav({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const normalizedSelectedDateKey = normalizeReservationDateKey(selectedDateKey)
   const normalizedWorkspaceTodayKey = normalizeReservationDateKey(workspaceTodayKey) || normalizedSelectedDateKey
-  const compactDate = useMediaQuery('(orientation: landscape) and (max-height: 520px)')
+  const compactDate = useMediaQuery('(orientation: landscape) and (max-height: 520px) and (max-width: 1100px)')
   const label = compactDate
     ? formatHostWorkspaceCompactDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
     : formatHostWorkspaceDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
