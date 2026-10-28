@@ -96,8 +96,10 @@ export function canEditChatMessage(message, memberId, now = Date.now()) {
 
 export function canDeleteChatMessage(message, memberId, canManage) {
   if (!message || message.deleted_at) return false
-  if (canManage) return true
-  return `${message.author_member_id ?? ''}` === `${memberId ?? ''}`
+  if (`${message.author_member_id ?? ''}` === `${memberId ?? ''}`) return true
+  // chat_delete_message allows another person's message only when
+  // can_manage_workspace_chat is true (chat manage permission).
+  return canManage === true
 }
 
 function readInstant(value) {

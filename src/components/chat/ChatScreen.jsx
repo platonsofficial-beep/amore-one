@@ -48,6 +48,25 @@ import {
 } from '../../services/chatService'
 import './chat.css'
 
+const CHAT_SESSION_KEY = 'one.chat.session'
+
+function readChatSession() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(CHAT_SESSION_KEY) || '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeChatSession(patch) {
+  try {
+    sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify({ ...readChatSession(), ...patch }))
+  } catch {
+    // Ignore private-mode storage failures.
+  }
+}
+
 function useWideChatLayout(layout) {
   const [wide, setWide] = useState(() => {
     if (layout === 'split') return true
@@ -107,15 +126,16 @@ export function ChatScreen({
   layout = '',
 }) {
   const ordered = useMemo(() => orderInbox(inboxRows), [inboxRows])
+  const restoredSession = useRef(readChatSession())
   const [members, setMembers] = useState([])
   const [nameHints, setNameHints] = useState({ byConversation: {}, byMessage: {} })
   const refreshAvatars = useAvatarDirectory().refresh
-  const [openId, setOpenId] = useState(initialConversationId || '')
+  const [openId, setOpenId] = useState(initialConversationId || restoredSession.current.openId || '')
   const [messages, setMessages] = useState([])
   const [pinned, setPinned] = useState([])
   const [participants, setParticipants] = useState([])
   const [reactions, setReactions] = useState([])
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(restoredSession.current.draft || '')
   const [replyTo, setReplyTo] = useState(null)
   const [editing, setEditing] = useState(null)
   const [sheet, setSheet] = useState(null)
@@ -133,12 +153,18 @@ export function ChatScreen({
   const [viewerUrl, setViewerUrl] = useState('')
   const [someoneTyping, setSomeoneTyping] = useState(false)
   const [swipeX, setSwipeX] = useState(0)
+  const [showJump, setShowJump] = useState(false)
+  const [jumpCount, setJumpCount] = useState(0)
+  const [outgoingPhoto, setOutgoingPhoto] = useState(null)
+  const [directQuery, setDirectQuery] = useState('')
   const fileRef = useRef(null)
   const scrollerRef = useRef(null)
   const draftRef = useRef(null)
   const pressTimer = useRef(0)
   const swipeRef = useRef(null)
   const typingRef = useRef(null)
+  const stickToBottomRef = useRef(true)
+  const didRestoreScroll = useRef(false)
 
   const membersById = useMemo(
     () => Object.fromEntries(members.map((member) => [member.id, member])),
@@ -162,10 +188,14 @@ export function ChatScreen({
     }
     return map
   }, [messages, nameHints, ordered])
-  const listed = useMemo(
-    () => filterInboxByName(ordered, query, membersById, aliases),
-    [aliases, membersById, ordered, query],
-  )
+  const listed = useMemo(() => {
+    const withHistory = ordered.filter((row) => (
+      row.conversation_id === openId
+      || row.kind !== 'direct'
+      || Boolean(`${row.last_body ?? ''}`.trim() || row.last_message_at)
+    ))
+    return filterInboxByName(withHistory, query, membersById, aliases)
+  }, [aliases, membersById, openId, ordered, query])
 
   useEffect(() => {
     if (!workspaceId) return undefined
@@ -297,10 +327,27 @@ export function ChatScreen({
   }, [])
 
   useEffect(() => {
+    writeChatSession({ openId, draft })
+  }, [draft, openId])
+
+  useEffect(() => {
     const node = scrollerRef.current
-    if (!node) return
-    node.scrollTop = node.scrollHeight
-  }, [messages.length, openId])
+    if (!node || !openId) return undefined
+    const apply = () => {
+      const saved = readChatSession()
+      if (!didRestoreScroll.current && saved.openId === openId && Number.isFinite(saved.scrollTop)) {
+        didRestoreScroll.current = true
+        node.scrollTop = saved.scrollTop
+        stickToBottomRef.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80
+        return
+      }
+      didRestoreScroll.current = true
+      if (stickToBottomRef.current) node.scrollTop = node.scrollHeight
+    }
+    apply()
+    const frame = window.requestAnimationFrame(apply)
+    return () => window.cancelAnimationFrame(frame)
+  }, [messages, openId])
 
   const openActions = (message) => {
     setActiveMessage(message)
@@ -338,6 +385,8 @@ export function ChatScreen({
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file || !openId || cannotPost) return
+    const localUrl = URL.createObjectURL(file)
+    setOutgoingPhoto({ url: localUrl, status: 'sending' })
     setBusy(true)
     setError('')
     try {
@@ -352,8 +401,11 @@ export function ChatScreen({
       })
       setDraft('')
       setReplyTo(null)
+      setOutgoingPhoto(null)
+      URL.revokeObjectURL(localUrl)
       await loadConversation(openId)
     } catch (err) {
+      setOutgoingPhoto({ url: localUrl, status: 'failed' })
       setError(err?.message || 'That photo could not be sent.')
     } finally {
       setBusy(false)
@@ -495,7 +547,11 @@ export function ChatScreen({
                   key={row.conversation_id}
                   type="button"
                   className={`chat-row${row.kind === 'team' ? ' is-pinned' : ''}${row.conversation_id === openId ? ' is-active' : ''}`}
-                  onClick={() => setOpenId(row.conversation_id)}
+                  onClick={() => {
+                    stickToBottomRef.current = true
+                    writeChatSession({ openId: row.conversation_id, scrollTop: 0 })
+                    setOpenId(row.conversation_id)
+                  }}
                 >
                   <span
                     className="chat-avatar"
@@ -581,7 +637,19 @@ export function ChatScreen({
               ))}
             </div>
           ) : null}
-          <div className="chat-messages" ref={scrollerRef}>
+          <div
+            className="chat-messages"
+            ref={scrollerRef}
+            onScroll={(event) => {
+              const node = event.currentTarget
+              const distance = node.scrollHeight - node.scrollTop - node.clientHeight
+              const atBottom = distance < 80
+              stickToBottomRef.current = atBottom
+              setShowJump(!atBottom)
+              if (atBottom) setJumpCount(0)
+              writeChatSession({ scrollTop: node.scrollTop, openId })
+            }}
+          >
             {hasMore ? (
               <button
                 type="button"
@@ -659,7 +727,12 @@ export function ChatScreen({
                     }}
                   >
                     {!mine && authorName && (group === 'single' || group === 'first') ? <p className="chat-meta">{authorName}</p> : null}
-                    {reply ? <p className="chat-reply-quote">{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</p> : null}
+                    {reply ? (
+                      <p className="chat-reply-quote">
+                        <strong>{membersById[reply.author_member_id]?.name || aliases[reply.author_member_id] || 'Message'}</strong>
+                        <span>{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</span>
+                      </p>
+                    ) : null}
                     {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} onOpen={setViewerUrl} /> : null}
                     <p>{deleted ? 'Message deleted' : (message.body || (message.attachment_path ? '' : ''))}</p>
                     <span className="chat-bubble-meta">
@@ -689,6 +762,21 @@ export function ChatScreen({
               )
             })}
             {someoneTyping ? <p className="chat-typing" role="status">Typing…</p> : null}
+            {showJump ? (
+              <button
+                type="button"
+                className="chat-jump"
+                onClick={() => {
+                  stickToBottomRef.current = true
+                  const node = scrollerRef.current
+                  if (node) node.scrollTop = node.scrollHeight
+                  setShowJump(false)
+                  setJumpCount(0)
+                }}
+              >
+                {jumpCount > 0 ? `${jumpCount} new` : 'Latest'}
+              </button>
+            ) : null}
           </div>
           {openId ? (
             <form
@@ -700,8 +788,17 @@ export function ChatScreen({
             >
               {replyTo ? (
                 <p className="chat-compose-quote">
-                  <span>Replying to {replyTo.body || 'a photo'}</span>
+                  <span>
+                    <strong>{membersById[replyTo.author_member_id]?.name || aliases[replyTo.author_member_id] || 'Message'}</strong>
+                    {replyTo.body || 'Photo'}
+                  </span>
                   <button type="button" aria-label="Cancel reply" onClick={() => setReplyTo(null)}>✕</button>
+                </p>
+              ) : null}
+              {outgoingPhoto ? (
+                <p className="chat-photo-preview">
+                  <img src={outgoingPhoto.url} alt="" />
+                  <span>{outgoingPhoto.status === 'failed' ? 'Photo failed' : 'Sending photo…'}</span>
                 </p>
               ) : null}
               {editing ? <p className="chat-meta">Editing your message</p> : null}
@@ -785,20 +882,50 @@ export function ChatScreen({
                 ) : null}
               </>
             ) : null}
-            {sheet === 'direct' ? members.filter((member) => member.id !== memberId).map((member) => (
-              <button key={member.id} type="button" onClick={() => startDirect(member.id)}>{member.name}</button>
-            )) : null}
+            {sheet === 'direct' ? (
+              <>
+                <label className="chat-field">
+                  Search people
+                  <input value={directQuery} onChange={(event) => setDirectQuery(event.target.value)} placeholder="Name" />
+                </label>
+                {members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase())).map((member) => {
+                  const existing = ordered.find((row) => row.kind === 'direct' && row.other_member_id === member.id)
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className="chat-person-row"
+                      onClick={() => {
+                        if (existing) {
+                          stickToBottomRef.current = true
+                          setOpenId(existing.conversation_id)
+                          setSheet(null)
+                          return
+                        }
+                        startDirect(member.id)
+                      }}
+                    >
+                      <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
+                        <PersonAvatar memberId={member.id} employeeId={member.employeeId} authUserId={member.authUserId} name={member.name} fallback={initials(member.name)} />
+                      </span>
+                      <span>{member.name}</span>
+                      {existing ? <span className="chat-meta">Open</span> : null}
+                    </button>
+                  )
+                })}
+              </>
+            ) : null}
             {sheet === 'channel' ? (
               <>
-                <label>
+                <label className="chat-field">
                   Channel name
                   <input value={channelName} onChange={(event) => setChannelName(event.target.value)} />
                 </label>
-                <label>
+                <label className="chat-field">
                   Icon
                   <input value={channelIcon} onChange={(event) => setChannelIcon(event.target.value)} placeholder="Optional" />
                 </label>
-                <label>
+                <label className="chat-field">
                   Who can post
                   <select value={channelPolicy} onChange={(event) => setChannelPolicy(event.target.value)}>
                     <option value="all">Everyone can post</option>

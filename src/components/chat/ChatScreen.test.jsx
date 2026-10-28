@@ -77,6 +77,7 @@ function renderChat(props = {}) {
 describe('ChatScreen', () => {
   beforeEach(() => {
     sendChatMessage.mockClear()
+    sessionStorage.clear()
   })
 
   it('lists Team above direct chats', async () => {
@@ -203,6 +204,20 @@ describe('ChatScreen', () => {
     expect(onThreadChange).toHaveBeenCalledWith(true)
     view.unmount()
     expect(onThreadChange).toHaveBeenCalledWith(false)
+  })
+
+  it('hides a direct chat until it has a message', async () => {
+    const view = renderChat({
+      inboxRows: [
+        ...inbox,
+        { conversation_id: 'empty-1', kind: 'direct', other_member_id: 'mina', last_body: '', last_message_at: null, unread: 0 },
+      ],
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(view.container.querySelectorAll('.chat-row')).toHaveLength(2)
+    view.unmount()
   })
 
   it('filters the list by name', async () => {

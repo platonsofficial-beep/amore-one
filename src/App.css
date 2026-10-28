@@ -51559,9 +51559,21 @@ summary:focus-visible {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   flex: 0 0 auto;
   min-height: 44px;
+}
+
+.mobile-manager-app .notification-drawer,
+.mobile-app .notification-drawer {
+  z-index: 1400;
+  top: auto;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-shell-bell,
+.notification-bell {
+  overflow: visible;
 }
 
 .notification-drawer-header h2 {

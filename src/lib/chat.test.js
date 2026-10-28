@@ -69,6 +69,7 @@ describe('chat helpers', () => {
     expect(canEditChatMessage(message, 'me', Date.parse('2026-10-27T10:16:00.000Z'))).toBe(false)
     expect(canEditChatMessage(message, 'other', now)).toBe(false)
     expect(canDeleteChatMessage(message, 'me', false)).toBe(true)
+    expect(canDeleteChatMessage(message, 'other', false)).toBe(false)
     expect(canDeleteChatMessage(message, 'other', true)).toBe(true)
     expect(canDeleteChatMessage({ ...message, deleted_at: created }, 'me', true)).toBe(false)
   })
