@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { clampOverlayLeft } from '../../../lib/safeInline'
 import { HOST_QUEUE_FILTER_MENU_SECTIONS } from '../../../lib/hostQueuePipeline'
 
 const MENU_MARGIN = 8
@@ -12,10 +13,7 @@ function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   let left = anchorRect.left
   let top = anchorRect.bottom + MENU_MARGIN
 
-  if (left + menuWidth > viewportWidth - MENU_MARGIN) {
-    left = Math.max(MENU_MARGIN, anchorRect.right - menuWidth)
-  }
-  left = Math.max(MENU_MARGIN, left)
+  left = clampOverlayLeft(left, menuWidth, viewportWidth, MENU_MARGIN)
 
   const maxHeight = Math.max(120, viewportHeight - MENU_MARGIN * 2)
   const usedHeight = Math.min(menuHeight, maxHeight)

@@ -15,6 +15,13 @@
   --one-safe-area-right: env(safe-area-inset-right, 0px);
   --one-safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --one-safe-area-left: env(safe-area-inset-left, 0px);
+  /* Portrait and desktop use the real side insets. Phone landscape
+     overrides both with the symmetric island inset. */
+  --safe-l: var(--one-safe-area-left);
+  --safe-r: var(--one-safe-area-right);
+  --kb: 0px;
+  --vvh: 100dvh;
+  --vv-top: 0px;
   --one-scrollbar-size: 6px;
   --one-scrollbar-track: transparent;
 }

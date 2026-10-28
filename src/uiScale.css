@@ -15,7 +15,7 @@
     area switcher, then More + zoom + lock).
   - Seating chips omit the start time; the row scrolls.
   - Service stats are icon + number.
-  - The date is the short form (Today, Wed 28 Oct).
+  - The date is the short form (Wed 28 Oct).
   - Table colours sit behind the info button.
 */
 
@@ -101,5 +101,56 @@
     margin-top: auto;
     background: #10141c;
     padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .reservations-host-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--ui-gap);
+    padding: var(--ui-pad);
+  }
+
+  .reservations-host-header-main {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--ui-gap);
+    flex: 1 1 auto;
+    min-width: max-content;
+  }
+
+  .reservations-host-header-main h2,
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-title {
+    flex: 0 0 auto;
+    min-width: max-content;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+    font-size: calc(15px * var(--ui-scale));
+  }
+
+  .reservations-host-header-date {
+    display: none;
+  }
+
+  .host-workspace-date-nav,
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    margin-top: 0;
+    flex-wrap: nowrap;
+  }
+
+  .host-workspace-date-nav-label,
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-date-btn {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-left {
+    min-width: max-content;
   }
 }
