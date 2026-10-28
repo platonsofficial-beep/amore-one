@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { enableViewportAuthBypass } from './viewportAuthBypass.mjs'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -34,7 +35,7 @@ async function resolveBaseUrl() {
   // CI has no .env and no dev server. Bake the same local auth bypass into a
   // production preview and wait until that port is actually serving.
   // An empty env dir keeps a developer .env from being required.
-  process.env.VITE_AUTH_DISABLED = 'true'
+  enableViewportAuthBypass()
   const envDir = await mkdtemp(join(tmpdir(), 'one-viewport-env-'))
   const { build, preview } = await import('vite')
   await build({ logLevel: 'warn', mode: 'production', envDir })
