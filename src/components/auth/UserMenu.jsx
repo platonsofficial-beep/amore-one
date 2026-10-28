@@ -134,6 +134,8 @@ export function UserMenu({
         className={chipClassName}
         aria-haspopup="menu"
         aria-expanded={isOpen}
+        aria-label="Your menu"
+        data-help="header.profile"
         onClick={() => setIsOpen((current) => !current)}
       >
         <div className="profile-avatar">

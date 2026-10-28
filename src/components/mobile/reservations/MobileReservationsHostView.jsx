@@ -437,6 +437,7 @@ export function MobileReservationsHostView({
             onClick={handleOpenWalkInCreate}
             disabled={isSaving}
             data-testid="host-walk-in-create-btn"
+            data-help="reservations.walk-in"
           >
             Walk-in
           </button>
@@ -446,6 +447,7 @@ export function MobileReservationsHostView({
             onClick={handleOpenStandardCreate}
             disabled={isSaving}
             data-testid="host-standard-create-btn"
+            data-help="reservations.add"
           >
             + Reservation
           </button>

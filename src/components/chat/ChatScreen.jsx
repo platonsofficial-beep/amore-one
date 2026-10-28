@@ -408,9 +408,9 @@ export function ChatScreen({
         <section className="chat-list" aria-label="Chats">
           <header className="chat-list-header">
             <h2>Chat</h2>
-            <button type="button" className="chat-icon-btn" onClick={() => setSheet('direct')}>New</button>
+            <button type="button" className="chat-icon-btn" data-help="chat.new" onClick={() => setSheet('direct')}>New</button>
             {canManage ? (
-              <button type="button" className="chat-icon-btn" onClick={() => setSheet('channel')}>Channel</button>
+              <button type="button" className="chat-icon-btn" data-help="chat.channel" onClick={() => setSheet('channel')}>Channel</button>
             ) : null}
           </header>
           {error && !openId ? <p className="chat-banner" role="alert">{error}</p> : null}
@@ -601,11 +601,12 @@ export function ChatScreen({
                 hidden
                 onChange={onPhoto}
               />
-              <button type="button" className="chat-composer-photo" aria-label="Photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
+              <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
                 Photo
               </button>
               <textarea
                 aria-label="Message"
+                data-help="chat.message"
                 value={draft}
                 maxLength={4000}
                 rows={1}
@@ -619,7 +620,7 @@ export function ChatScreen({
                   }
                 }}
               />
-              <button type="submit" className="chat-send" aria-label="Send" disabled={busy || cannotPost || !draft.trim()}>
+              <button type="submit" className="chat-send" aria-label="Send" data-help="chat.send" disabled={busy || cannotPost || !draft.trim()}>
                 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
                 </svg>

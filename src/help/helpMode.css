@@ -1,0 +1,132 @@
+.help-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: rgba(18, 16, 12, 0.94);
+  color: #e8c46e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.help-mode-toggle.is-on {
+  background: #d4af37;
+  color: #1b1408;
+  border-color: #e8c46e;
+}
+
+.help-mode-fallback {
+  display: none;
+}
+
+.app-shell.is-mobile-shell .help-mode-fallback {
+  display: inline-flex;
+  position: fixed;
+  z-index: 45;
+  top: max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)));
+  right: calc(52px + max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
+}
+
+.app-shell:not(.is-mobile-shell):not(:has(.topbar)) .help-mode-fallback {
+  display: inline-flex;
+  position: fixed;
+  z-index: 45;
+  top: max(10px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)));
+  right: max(12px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+}
+
+.app-shell.is-mobile-shell .topbar .help-mode-toggle,
+.app-shell.is-mobile-shell .today-command-header .help-mode-toggle {
+  display: none;
+}
+
+.help-mode-banner {
+  position: fixed;
+  z-index: 60;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  margin: 0;
+  padding:
+    max(6px, env(safe-area-inset-top, 0px))
+    max(108px, calc(108px + env(safe-area-inset-right, 0px)))
+    6px
+    max(12px, env(safe-area-inset-left, 0px));
+  box-sizing: border-box;
+  background: #1a1408;
+  color: #f7efe1;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  font-size: 0.82rem;
+  line-height: 1.3;
+  pointer-events: auto;
+}
+
+.help-mode-banner p {
+  margin: 0;
+  min-width: 0;
+}
+
+.help-mode-done {
+  margin-left: auto;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #d4af37;
+  color: #1b1408;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-mode-popover {
+  position: fixed;
+  z-index: 80;
+  box-sizing: border-box;
+  max-width: calc(100vw - 16px);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  background: #14110c;
+  color: #f7efe1;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.help-mode-popover-title {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.help-mode-popover-body {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(247, 239, 225, 0.88);
+}
+
+.help-mode-target {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+}
+
+.app-shell.is-mobile-shell .mobile-screen-header,
+.app-shell.is-mobile-shell .mobile-manager-command-header,
+.app-shell.is-mobile-shell .mobile-expanded-header,
+.app-shell.is-mobile-shell .manager-portrait-screen-header,
+.app-shell.is-mobile-shell .manager-portrait-module-header {
+  box-sizing: border-box;
+  padding-right: 108px;
+}

@@ -151,6 +151,82 @@ const FLOOR_LAYOUT = {
   publishedAt: '2026-01-01T00:00:00.000Z',
 }
 
+const HELP_MODE_SIZES = new Set([
+  '375x667',
+  '390x844',
+  '430x932',
+  '667x375',
+  '844x390',
+  '932x430',
+])
+
+async function assertHelpMode(send, width, height) {
+  if (!HELP_MODE_SIZES.has(`${width}x${height}`)) return []
+  const result = await send('Runtime.evaluate', {
+    expression: `(async () => {
+      const failures = []
+      const toggle = [...document.querySelectorAll('[data-testid="help-mode-toggle"]')].find((node) => {
+        const rect = node.getBoundingClientRect()
+        return rect.width > 8 && rect.height > 8
+      })
+      if (!toggle) return ['help toggle is missing']
+      const toggleRect = toggle.getBoundingClientRect()
+      if (toggleRect.width < 8 || toggleRect.top < -1 || toggleRect.right > window.innerWidth + 1) {
+        failures.push('help toggle is off screen')
+      }
+      const titles = [...document.querySelectorAll('h1, h2')].filter((node) => node.getClientRects().length)
+      for (const title of titles) {
+        const rect = title.getBoundingClientRect()
+        if (rect.width < 24 || rect.height < 8) continue
+        const overlaps = toggleRect.left < rect.right - 2
+          && toggleRect.right > rect.left + 2
+          && toggleRect.top < rect.bottom - 2
+          && toggleRect.bottom > rect.top + 2
+        if (overlaps) {
+          failures.push('help toggle overlaps a title')
+          break
+        }
+      }
+      toggle.click()
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      const banner = document.querySelector('.help-mode-banner')
+      if (!banner || !banner.textContent.includes('Help mode')) failures.push('help banner did not open')
+      const navItems = [...document.querySelectorAll('[data-help-nav]')].filter((node) => {
+        const rect = node.getBoundingClientRect()
+        return rect.width > 8 && rect.height > 8
+      })
+      const nav = navItems.find((node) => !node.classList.contains('active') && !node.classList.contains('is-active') && node.getAttribute('aria-current') !== 'page')
+        || navItems[0]
+      if (nav) {
+        const beforeActive = document.querySelector('.nav-link.active, .mobile-bottom-nav-item.is-active')
+        nav.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
+        nav.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+        const popover = document.querySelector('.help-mode-popover')
+        if (!popover) failures.push('help popover did not open')
+        else {
+          const rect = popover.getBoundingClientRect()
+          if (rect.left < -1 || rect.top < -1 || rect.right > window.innerWidth + 1 || rect.bottom > window.innerHeight + 1) {
+            failures.push('help popover does not fit on screen')
+          }
+        }
+        const afterActive = document.querySelector('.nav-link.active, .mobile-bottom-nav-item.is-active')
+        if (beforeActive && afterActive && beforeActive !== afterActive) {
+          failures.push('help mode let the first tap navigate')
+        }
+      }
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      if (document.querySelector('.help-mode-banner')) failures.push('escape did not turn help mode off')
+      return failures
+    })()`,
+    awaitPromise: true,
+    returnByValue: true,
+  })
+  const value = result.result?.value
+  return Array.isArray(value) ? value : ['help mode check failed']
+}
+
 function chromePath() {
   return process.env.CHROME_PATH
     || process.env.GOOGLE_CHROME_BIN
@@ -796,6 +872,9 @@ export async function runPhoneViewportMatrix({
           await writeFile(join(screenshotDir, portraitName), Buffer.from(shot.data, 'base64'))
           shots.push(portraitName)
         }
+        if (page.id === 'shell') {
+          portraitFailures.push(...await assertHelpMode(send, portraitWidth, portraitHeight))
+        }
         if (portraitFailures.length) {
           failures.push({ page: page.id, size: `${portraitWidth}x${portraitHeight}`, mode: 'portrait', failures: portraitFailures })
         }
@@ -840,6 +919,9 @@ export async function runPhoneViewportMatrix({
           if (!locked.result?.value?.skipped && !locked.result?.value?.blocked) {
             landscapeFailures.push(`lock does not freeze the map (${locked.result?.value?.overflow} ${locked.result?.value?.touchAction})`)
           }
+        }
+        if (page.id === 'shell') {
+          landscapeFailures.push(...await assertHelpMode(send, landscapeWidth, landscapeHeight))
         }
         if (landscapeFailures.length) {
           failures.push({ page: page.id, size: `${landscapeWidth}x${landscapeHeight}`, mode: 'landscape', failures: landscapeFailures })
