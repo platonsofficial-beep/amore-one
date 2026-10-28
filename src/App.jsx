@@ -1,4 +1,4 @@
-import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { clampOverlayLeft } from './lib/safeInline'
 import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
@@ -197,6 +197,7 @@ import {
   getTimelineEmptyState,
 } from './lib/reservationServiceIntelligence'
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
+import { FloorAreaSelect } from './components/floor/FloorAreaSelect'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
 import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorPlanLegend } from './components/floor/FloorPlanLegend'
@@ -9863,19 +9864,11 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
         ‹
       </button>
 
-      <label className="floor-plan-area-select">
-        <span className="sr-only">Restaurant area</span>
-        <select
-          className="floor-plan-area-select-input"
-          value={activeZoneId}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {zones.map((zone) => (
-            <option key={zone.id} value={zone.id}>{zone.label}</option>
-          ))}
-        </select>
-        <span className="floor-plan-area-select-chevron" aria-hidden="true">▾</span>
-      </label>
+      <FloorAreaSelect
+        zones={zones}
+        value={activeZoneId}
+        onChange={onChange}
+      />
 
       <button
         type="button"
@@ -9983,7 +9976,7 @@ function FloorPlanView({
     return () => window.clearTimeout(timeoutId)
   }, [floorLockToast])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!floorMoreOpen) return undefined
     const place = () => {
       const button = floorMoreButtonRef.current
@@ -11464,7 +11457,7 @@ function FloorPlanView({
                 >
                   More
                 </button>
-                {floorMoreOpen ? createPortal(
+                {floorMoreOpen && floorMoreStyle ? createPortal(
                   <div
                     className="floor-plan-toolbar-more-menu is-portaled"
                     role="menu"
@@ -11496,6 +11489,23 @@ function FloorPlanView({
                       aria-label="Dining timers"
                     >
                       ⏱ Timers
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className={`floor-plan-dining-timers-btn${floorInteractionLocked ? ' is-active' : ''}`}
+                      aria-pressed={floorInteractionLocked}
+                      onClick={() => {
+                        setFloorMoreOpen(false)
+                        setFloorInteractionLocked((current) => {
+                          const next = !current
+                          writeHostFloorLockPreference(next)
+                          setFloorLockToast(next ? 'Map locked' : 'Map unlocked')
+                          return next
+                        })
+                      }}
+                    >
+                      {floorInteractionLocked ? 'Map locked' : 'Map unlocked'}
                     </button>
                   </div>,
                   document.body,

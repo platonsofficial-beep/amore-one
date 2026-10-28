@@ -30,9 +30,11 @@ const inbox = [
 ]
 
 describe('chat helpers', () => {
-  it('keeps the same chat structure rules for phone landscape and portrait', () => {
-    expect(shouldUseWideChatLayout(852, 393)).toBe(true)
-    expect(shouldUseWideChatLayout(700, 360)).toBe(true)
+  it('uses one pane on phone landscape and two panes on tablet and desktop', () => {
+    expect(shouldUseWideChatLayout(852, 393)).toBe(false)
+    expect(shouldUseWideChatLayout(932, 430)).toBe(false)
+    expect(shouldUseWideChatLayout(700, 360)).toBe(false)
+    expect(shouldUseWideChatLayout(1180, 820)).toBe(true)
     expect(shouldUseWideChatLayout(667, 375)).toBe(false)
     expect(shouldUseWideChatLayout(393, 852)).toBe(false)
     expect(filterInboxByName(inbox, 'team').map((row) => row.conversation_id)).toEqual(['t1'])

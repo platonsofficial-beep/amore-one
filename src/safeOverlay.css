@@ -187,6 +187,74 @@ body.is-keyboard-open .stock-item-more-menu-panel.is-sheet {
   max-height: calc(var(--vvh, 100dvh) - 16px);
 }
 
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  .host-operations-canvas {
+    grid-template-columns: minmax(10rem, 0.82fr) minmax(0, 1.18fr);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'list floor';
+  }
+
+  .host-operations-floor,
+  .host-operations-floor .floor-plan-workspace.is-host-floor,
+  .host-operations-floor .floor-plan-host-shell,
+  .host-operations-floor .floor-plan-host-main {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .floor-plan-viewport.is-host-viewport,
+  .mobile-host-reservations.is-landscape .floor-plan-viewport.is-host-viewport,
+  .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
+    flex: 1 1 0;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .floor-plan-layout-space.is-published-layout,
+  .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport .floor-plan-layout-space.is-published-layout {
+    aspect-ratio: auto;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .reservations-command-sticky {
+    gap: 4px;
+    padding-bottom: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    min-height: 0;
+    max-height: calc(var(--ui-control, 40px) + 6px);
+    overflow: hidden;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-workspace.is-host-floor .floor-plan-toolbar,
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
+    gap: 4px;
+    padding: 2px 4px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+    min-height: var(--ui-control, 40px);
+    height: var(--ui-control, 40px);
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-host-main {
+    min-height: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-viewport.is-host-viewport {
+    flex: 1 1 0;
+    min-height: 0;
+    height: auto;
+  }
+}
+
 @media (hover: none) and (pointer: coarse) {
   .chat-composer textarea,
   .chat-search input,
