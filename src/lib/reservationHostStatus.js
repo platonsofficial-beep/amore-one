@@ -167,6 +167,11 @@ export function normalizeReservationStatus(status) {
   const raw = `${status || 'Pending'}`.trim()
   if (STATUS_BY_ID[raw]) return raw
   if (LEGACY_STATUS_ALIASES[raw]) return LEGACY_STATUS_ALIASES[raw]
+  const folded = raw.toLowerCase()
+  const alias = Object.entries(LEGACY_STATUS_ALIASES).find(([key]) => key.toLowerCase() === folded)
+  if (alias) return alias[1]
+  const canonical = HOST_RESERVATION_STATUSES.find((entry) => entry.id.toLowerCase() === folded)
+  if (canonical) return canonical.id
   return 'Pending'
 }
 

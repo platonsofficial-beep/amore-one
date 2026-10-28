@@ -136,11 +136,11 @@ describe('FloorSeatingSelector', () => {
         details.dispatchEvent(new Event('toggle', { bubbles: true }))
       })
 
-      const chips = container.querySelectorAll('.floor-seating-legend-popover .floor-plan-legend-chip')
+      const chips = document.querySelectorAll('.floor-seating-legend-popover .floor-plan-legend-chip')
       expect(chips).toHaveLength(2)
       expect([...chips].map((chip) => chip.textContent)).toEqual(['Available', 'Reserved'])
       expect(container.querySelector('.floor-seating-selector-legend')).toBeNull()
-      expect(container.querySelectorAll('.floor-plan-legend')).toHaveLength(1)
+      expect(document.querySelectorAll('.floor-plan-legend')).toHaveLength(1)
     } finally {
       window.matchMedia = originalMatchMedia
     }

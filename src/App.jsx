@@ -92,6 +92,8 @@ import { resolveAreaIdForReservation, toggleAssignedUnit } from './lib/reservati
 import {
   buildReservationLinkGroups,
   buildReservationLinkTableMeta,
+  clampHostFloorPan,
+  computeHostFloorContainBox,
   computeHostFloorFit,
   computeHostFloorReadableBox,
   HOST_FLOOR_MAX_ZOOM,
@@ -105,6 +107,10 @@ import {
   findHostFloorTableFromEvent,
   getHostFloorPanOffset,
   HOST_FLOOR_POINTER_MODE,
+  readHostFloorAreaPreference,
+  readHostFloorLockPreference,
+  writeHostFloorAreaPreference,
+  writeHostFloorLockPreference,
   isInteractiveHostFloorTarget,
   resolveHostFloorTableState,
   shouldCaptureHostFloorPointer,
@@ -7729,7 +7735,14 @@ function ReservationWorkspaceProvider({
   const [selectionPulseKey, setSelectionPulseKey] = useState(0)
   const [workspaceFocus, setWorkspaceFocus] = useState('operations')
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true)
-  const [activeFloorAreaId, setActiveFloorAreaId] = useState(null)
+  const [activeFloorAreaId, setActiveFloorAreaIdState] = useState(() => readHostFloorAreaPreference())
+  const setActiveFloorAreaId = useCallback((value) => {
+    setActiveFloorAreaIdState((current) => {
+      const next = typeof value === 'function' ? value(current) : value
+      writeHostFloorAreaPreference(next)
+      return next
+    })
+  }, [])
   const [draggingReservationId, setDraggingReservationId] = useState(null)
   const [seatingDraftUnitIds, setSeatingDraftUnitIds] = useState([])
   const [seatingExtraChairs, setSeatingExtraChairs] = useState(0)
@@ -9954,7 +9967,14 @@ function FloorPlanView({
   const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
   const [scheduleCardAssignmentSeatingId, setScheduleCardAssignmentSeatingId] = useState(null)
   const [showDiningTimers, setShowDiningTimers] = useState(false)
-  const [floorInteractionLocked, setFloorInteractionLocked] = useState(true)
+  const [floorInteractionLocked, setFloorInteractionLocked] = useState(() => readHostFloorLockPreference())
+  const [floorLockToast, setFloorLockToast] = useState('')
+
+  useEffect(() => {
+    if (!floorLockToast) return undefined
+    const timeoutId = window.setTimeout(() => setFloorLockToast(''), 1600)
+    return () => window.clearTimeout(timeoutId)
+  }, [floorLockToast])
   const isHeatmap = viewMode === 'heatmap'
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
@@ -10032,6 +10052,10 @@ function FloorPlanView({
     if (!viewport) return undefined
 
     const onWheel = (event) => {
+      if (viewport.classList.contains('is-floor-interaction-locked')) {
+        event.preventDefault()
+        return
+      }
       if (scheduleCardTableIdRef.current) return
       dismissFloorTooltips()
       if (!event.ctrlKey && !event.metaKey) return
@@ -10042,8 +10066,28 @@ function FloorPlanView({
       setFloorZoom((current) => clampFloorZoom(current + direction * 0.12))
     }
 
+    const clampScroll = () => {
+      const maxTop = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+      const maxLeft = Math.max(0, viewport.scrollWidth - viewport.clientWidth)
+      if (viewport.scrollTop < 0 || viewport.scrollTop > maxTop) {
+        viewport.scrollTop = Math.min(maxTop, Math.max(0, viewport.scrollTop))
+      }
+      if (viewport.scrollLeft < 0 || viewport.scrollLeft > maxLeft) {
+        viewport.scrollLeft = Math.min(maxLeft, Math.max(0, viewport.scrollLeft))
+      }
+    }
+    const blockLockedGesture = (event) => {
+      if (!readHostFloorLockPreference() && !viewport.classList.contains('is-floor-interaction-locked')) return
+      event.preventDefault()
+    }
     viewport.addEventListener('wheel', onWheel, { passive: false })
-    return () => viewport.removeEventListener('wheel', onWheel)
+    viewport.addEventListener('scroll', clampScroll, { passive: true })
+    viewport.addEventListener('touchmove', blockLockedGesture, { passive: false })
+    return () => {
+      viewport.removeEventListener('wheel', onWheel)
+      viewport.removeEventListener('scroll', clampScroll)
+      viewport.removeEventListener('touchmove', blockLockedGesture)
+    }
   }, [clampFloorZoom, dismissFloorTooltips, isCompact])
 
   const resetFloorPointerState = useCallback(() => {
@@ -10322,7 +10366,7 @@ function FloorPlanView({
       aspectHeight: aspect.aspectHeight,
     })
 
-    if (layoutSpace && box.width > 0 && box.height > 0) {
+      if (layoutSpace && box.width > 0 && box.height > 0) {
       layoutSpace.style.width = `${box.width}px`
       layoutSpace.style.height = `${box.height}px`
       layoutSpace.style.maxWidth = 'none'
@@ -10333,9 +10377,7 @@ function FloorPlanView({
         return node.getBoundingClientRect().top < nearest.getBoundingClientRect().top ? node : nearest
       }, null)
       if (firstTable) {
-        const viewportTop = viewport.getBoundingClientRect().top
-        const tableTop = firstTable.getBoundingClientRect().top
-        const delta = tableTop - viewportTop
+        const delta = firstTable.getBoundingClientRect().top - viewport.getBoundingClientRect().top
         if (delta > 12) viewport.scrollTop += delta - 8
       }
     }
@@ -10352,8 +10394,26 @@ function FloorPlanView({
 
   const handleFloorZoomFit = useCallback(() => {
     closeScheduleCardTable('zoom-fit')
-    applyHostFloorAutoFit()
-  }, [applyHostFloorAutoFit, closeScheduleCardTable])
+    const viewport = viewportRef.current
+    const layoutSpace = viewport?.querySelector('.floor-plan-layout-space')
+    if (!viewport || !layoutSpace) return
+    const aspect = readHostFloorAspect(layoutSpace)
+    const box = computeHostFloorContainBox({
+      viewportWidth: viewport.clientWidth,
+      viewportHeight: viewport.clientHeight,
+      aspectWidth: aspect.aspectWidth,
+      aspectHeight: aspect.aspectHeight,
+    })
+    layoutSpace.style.width = `${box.width}px`
+    layoutSpace.style.height = `${box.height}px`
+    layoutSpace.style.maxWidth = 'none'
+    layoutSpace.style.maxHeight = 'none'
+    isManualFloorZoomRef.current = true
+    setFloorZoom(1)
+    setFloorPan({ x: 0, y: 0 })
+    viewport.scrollTop = 0
+    viewport.scrollLeft = 0
+  }, [closeScheduleCardTable])
 
   const hostFloorContextRef = useRef(null)
 
@@ -10377,9 +10437,15 @@ function FloorPlanView({
       )
     }
 
+    const areaChanged = hostFloorContextRef.current?.areaId
+      && hostFloorContextRef.current.areaId !== nextContext.areaId
     hostFloorContextRef.current = nextContext
     isManualFloorZoomRef.current = false
     applyHostFloorAutoFit()
+    if (areaChanged) {
+      setFloorPan({ x: 0, y: 0 })
+      setFloorZoom(1)
+    }
   }, [
     activeFloorAreaId,
     applyHostFloorAutoFit,
@@ -10868,9 +10934,16 @@ function FloorPlanView({
     }
 
     const panOffset = floorInteractionLocked ? null : getHostFloorPanOffset(nextState, event)
-    if (panOffset) {
+    if (panOffset && event.pointerType !== 'touch') {
       event.preventDefault()
-      setFloorPan(panOffset)
+      const viewport = viewportRef.current
+      const content = viewport?.querySelector('.floor-plan-layout-space')
+      setFloorPan(clampHostFloorPan(panOffset, {
+        viewportWidth: viewport?.clientWidth || 0,
+        viewportHeight: viewport?.clientHeight || 0,
+        contentWidth: content?.offsetWidth || 0,
+        contentHeight: content?.offsetHeight || 0,
+      }))
     }
   }, [dismissFloorTooltips, floorInteractionLocked, isCompact, isHeatmap])
 
@@ -11347,9 +11420,17 @@ function FloorPlanView({
               <button
                 type="button"
                 className={`floor-plan-zoom-btn floor-plan-zoom-lock${floorInteractionLocked ? ' is-active' : ''}`}
-                onClick={() => setFloorInteractionLocked((current) => !current)}
+                onClick={() => {
+                  setFloorInteractionLocked((current) => {
+                    const next = !current
+                    writeHostFloorLockPreference(next)
+                    setFloorLockToast(next ? 'Map locked' : 'Map unlocked')
+                    return next
+                  })
+                }}
                 aria-pressed={floorInteractionLocked}
-                aria-label={floorInteractionLocked ? 'Unlock floor plan pan' : 'Lock floor plan pan'}
+                aria-label={floorInteractionLocked ? 'Map locked. Tap to unlock the floor plan' : 'Map unlocked. Tap to lock the floor plan'}
+                title={floorInteractionLocked ? 'Map locked' : 'Map unlocked'}
                 data-testid="host-floor-interaction-lock"
               >
                 {floorInteractionLocked ? '🔒' : '🔓'}
@@ -11424,6 +11505,9 @@ function FloorPlanView({
         onTouchStart={isCompact ? handleViewportTouchStart : undefined}
         onTouchEnd={isCompact ? handleViewportTouchEnd : undefined}
       >
+        {floorLockToast ? (
+          <p className="floor-plan-lock-toast" role="status">{floorLockToast}</p>
+        ) : null}
         {isCompact && isHostFloorDebugEnabled() ? <HostFloorDebugOverlay /> : null}
         {isCompact ? (
           <div className="floor-plan-canvas-area-title" aria-label={`Area: ${activeZone?.label ?? 'Floor'}`}>

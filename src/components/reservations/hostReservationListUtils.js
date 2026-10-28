@@ -145,6 +145,23 @@ export function formatHostWorkspaceDateNavLabel(
   return longLabel
 }
 
+export function formatHostWorkspaceCompactDateNavLabel(
+  selectedDateKey = '',
+  workspaceTodayKey = '',
+) {
+  const selected = normalizeReservationDateKey(selectedDateKey)
+  const today = normalizeReservationDateKey(workspaceTodayKey)
+  if (!selected) return ''
+  if (selected === today) return 'Today'
+  if (selected === shiftHostWorkspaceDateKey(today, -1)) return 'Yesterday'
+  if (selected === shiftHostWorkspaceDateKey(today, 1)) return 'Tomorrow'
+
+  const date = parseLocalDate(selected)
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'short' })
+  const month = date.toLocaleDateString('en-US', { month: 'short' })
+  return `${weekday} ${date.getDate()} ${month}`
+}
+
 export const HOST_WORKSPACE_CALENDAR_WEEKDAY_LABELS = [
   'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su',
 ]

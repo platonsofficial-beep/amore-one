@@ -125,6 +125,48 @@ export function getTablesBoundingBox(tables, halfPercent = DEFAULT_HALF_PERCENT)
   }
 }
 
+/** Scale the published plan so the whole floor fits inside the visible viewport. */
+export function computeHostFloorContainBox({
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+} = {}) {
+  const safeAspectHeight = aspectHeight > 0 ? aspectHeight : 1400
+  const aspect = (aspectWidth > 0 ? aspectWidth : 2200) / safeAspectHeight
+  const widthLimit = Math.max(1, viewportWidth)
+  const heightLimit = Math.max(1, viewportHeight)
+  let width = widthLimit
+  let height = width / aspect
+  if (height > heightLimit) {
+    height = heightLimit
+    width = height * aspect
+  }
+  return {
+    width: Math.max(1, Math.round(width)),
+    height: Math.max(1, Math.round(height)),
+  }
+}
+
+export function clampHostFloorPan(
+  pan = { x: 0, y: 0 },
+  {
+    viewportWidth = 0,
+    viewportHeight = 0,
+    contentWidth = 0,
+    contentHeight = 0,
+  } = {},
+) {
+  const maxX = Math.max(0, contentWidth - viewportWidth)
+  const maxY = Math.max(0, contentHeight - viewportHeight)
+  const x = Number(pan?.x) || 0
+  const y = Number(pan?.y) || 0
+  return {
+    x: Math.min(0, Math.max(-maxX, x)),
+    y: Math.min(0, Math.max(-maxY, y)),
+  }
+}
+
 export function computeHostFloorFit({
   viewportWidth,
   viewportHeight,

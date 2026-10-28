@@ -3,6 +3,7 @@ export function FloorPlanLegend({
   variant = 'default',
   className = '',
   ariaLabel = 'Table status legend',
+  style = undefined,
 }) {
   if (!items.length) return null
 
@@ -13,6 +14,7 @@ export function FloorPlanLegend({
       className={`floor-plan-legend${isCompact ? ' is-compact' : ''}${className ? ` ${className}` : ''}`}
       aria-label={ariaLabel}
       role="list"
+      style={style}
     >
       {items.map((item) => (
         <span

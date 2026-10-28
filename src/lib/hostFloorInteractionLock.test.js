@@ -6,8 +6,10 @@ const appSource = readFileSync(resolve(process.cwd(), 'src/App.jsx'), 'utf8')
 const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
 describe('host floor interaction lock', () => {
-  it('defaults the host floor to locked on initial load', () => {
-    expect(appSource).toContain('const [floorInteractionLocked, setFloorInteractionLocked] = useState(true)')
+  it('defaults the host floor to unlocked so a finger pan works immediately', () => {
+    expect(appSource).toContain('useState(() => readHostFloorLockPreference())')
+    expect(appSource).toContain('Map locked')
+    expect(appSource).toContain('Map unlocked')
   })
 
   it('replaces reset with a touch-friendly lock toggle in zoom controls', () => {
@@ -28,7 +30,8 @@ describe('host floor interaction lock', () => {
     expect(appSource).not.toMatch(/floorInteractionLocked[\s\S]{0,240}floor-plan-viewport[\s\S]{0,240}floor-plan-viewport/)
   })
 
-  it('allows page scroll and pinch zoom touch actions while locked', () => {
-    expect(appCss).toMatch(/\.floor-plan-viewport\.is-host-viewport\.is-floor-interaction-locked[\s\S]*touch-action:\s*pan-y pinch-zoom/)
+  it('freezes pan and scroll while the map is locked', () => {
+    expect(appCss).toMatch(/\.floor-plan-viewport\.is-host-viewport\.is-floor-interaction-locked[\s\S]*overflow:\s*hidden/)
+    expect(appCss).toMatch(/\.floor-plan-viewport\.is-host-viewport\.is-floor-interaction-locked[\s\S]*touch-action:\s*none/)
   })
 })

@@ -35,6 +35,12 @@ describe('hostTableInspectorUtils', () => {
       expect(shouldUseHostTableInspectorDrawer()).toBe(false)
     })
 
+    it('uses the side drawer for every phone landscape width', () => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: 667 })
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 375 })
+      expect(shouldUseHostTableInspectorDrawer()).toBe(true)
+    })
+
     it('returns true on landscape tablet/desktop widths', () => {
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1180 })
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: 820 })
