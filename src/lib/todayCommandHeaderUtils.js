@@ -103,7 +103,7 @@ export function buildTodayCommandHeaderChips({
   chips.push({
     id: 'tasks',
     icon: '✅',
-    label: 'Tasks',
+      label: 'Operations',
     value: taskChip.value,
     detail: taskChip.detail,
     tone: taskChip.tone,

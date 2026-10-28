@@ -121,7 +121,7 @@ export function MobileMenuView({
             ) : null}
             {onOpenTasks ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
-                My tasks
+                Operations
               </button>
             ) : null}
             {onOpenClock ? (
@@ -308,7 +308,7 @@ export function MobileMenuView({
           ) : null}
           {onOpenTasks ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
-              My tasks
+              Operations
             </button>
           ) : null}
           {onOpenClock ? (
