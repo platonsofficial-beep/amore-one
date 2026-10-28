@@ -9,6 +9,7 @@ import { MobileMenuView } from './MobileMenuView'
 import { MobileProfileView } from './MobileProfileView'
 import { MobileScheduleView } from './MobileScheduleView'
 import { MobileTasksView } from './MobileTasksView'
+import { OperationsUnifiedScreen } from '../operations/OperationsUnifiedScreen'
 
 const STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
@@ -64,6 +65,12 @@ export function MobileStaffApp({
   canUseChat = true,
   chatUnread = 0,
   chatContent = null,
+  operationsSection = 'dashboard',
+  onOperationsSectionChange,
+  operationsSections = [],
+  operationsBoards = null,
+  operationsChecklists = null,
+  operationsExecution = null,
   embeddedSchedule = false,
 }) {
   const isStaffShell = shellVariant === 'staff'
@@ -357,7 +364,17 @@ export function MobileStaffApp({
         {resolvedActiveTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {resolvedActiveTab === 'schedule' || resolvedActiveTab === 'availability' ? scheduleBody : null}
         {resolvedActiveTab === 'chat' ? chatContent : null}
-        {resolvedActiveTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
+        {resolvedActiveTab === 'tasks' ? (
+          <OperationsUnifiedScreen
+            sections={operationsSections}
+            section={operationsSection}
+            onSectionChange={onOperationsSectionChange}
+            today={<MobileTasksView {...tasksProps} />}
+            boards={operationsBoards}
+            checklists={operationsChecklists}
+            execution={operationsExecution}
+          />
+        ) : null}
         {resolvedActiveTab === 'menu' ? (
           menuProps?.screen === 'profile' ? (
             <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />

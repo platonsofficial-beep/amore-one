@@ -11,6 +11,7 @@ import { PwaShell } from './components/pwa/PwaShell.jsx'
 import { registerPwaServiceWorker } from './pwaRegister.js'
 import App from './App.jsx'
 import './safeOverlay.css'
+import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 
 registerPwaServiceWorker()
 
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')).render(
             </PwaShell>
           </ManagerLandscapeGate>
         </AuthGate>
+        <ColdStartSplash />
       </AvatarDirectoryProvider>
     </AuthProvider>
   </StrictMode>,

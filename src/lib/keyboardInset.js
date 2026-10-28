@@ -43,10 +43,45 @@ export function publishKeyboardInset() {
   return inCount ? { kb: 0, vvh: metrics.vvh, top: metrics.top } : metrics
 }
 
+let chatPinGeneration = 0
+
+/** Keep a pinned chat on the newest message after the iOS keyboard moves the viewport. */
+export function keepChatPinned(win = typeof window === 'undefined' ? undefined : window) {
+  if (!win?.document) return undefined
+  win.scrollTo?.(0, 0)
+  const node = win.document.querySelector('.app-shell.is-chat-thread .chat-messages')
+  if (!node || node.dataset.chatStick !== '1') return undefined
+  const generation = ++chatPinGeneration
+  node.dataset.chatHold = '1'
+  const pin = () => {
+    if (generation !== chatPinGeneration) return
+    win.scrollTo?.(0, 0)
+    node.scrollTop = node.scrollHeight
+  }
+  pin()
+  const frame = win.requestAnimationFrame?.(pin)
+  const timer = win.setTimeout(() => {
+    if (generation !== chatPinGeneration) return
+    pin()
+    delete node.dataset.chatHold
+  }, 300)
+  return () => {
+    if (frame != null) win.cancelAnimationFrame?.(frame)
+    win.clearTimeout?.(timer)
+    if (generation === chatPinGeneration) delete node.dataset.chatHold
+  }
+}
+
 function bindKeyboardViewport() {
   const viewport = window.visualViewport
-  const onViewport = () => publishKeyboardInset()
-  const onFocus = () => publishKeyboardInset()
+  const onViewport = () => {
+    publishKeyboardInset()
+    keepChatPinned()
+  }
+  const onFocus = () => {
+    publishKeyboardInset()
+    keepChatPinned()
+  }
   const onBlur = () => window.setTimeout(publishKeyboardInset, 60)
   viewport?.addEventListener('resize', onViewport)
   viewport?.addEventListener('scroll', onViewport)

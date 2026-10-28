@@ -85,15 +85,18 @@ function injectThread() {
   shell.classList.add('is-mobile-shell', 'is-chat-thread')
   const screen = document.createElement('div')
   screen.className = 'chat-screen'
+  const lines = Array.from({ length: 40 }, (_, index) => `<p>Message ${index + 1} at 12:${String(index).padStart(2, '0')}</p>`).join('')
   screen.innerHTML = `
     <section class="chat-thread-pane" aria-label="Conversation">
       <header class="chat-thread-header"><h2 class="chat-thread-title"><span>eviesamaridi</span></h2></header>
-      <div class="chat-messages"><p>Latest message</p></div>
+      <div class="chat-messages" data-chat-stick="1">${lines}</div>
       <form class="chat-composer">
         <textarea aria-label="Message" placeholder="Message"></textarea>
       </form>
     </section>`
   shell.appendChild(screen)
+  const scroller = screen.querySelector('.chat-messages')
+  scroller.scrollTop = scroller.scrollHeight
   return 'ready'
 }
 
@@ -112,6 +115,45 @@ try {
   await page.waitForSelector('.app-shell', { timeout: 45000 })
   const injected = await page.evaluate(injectThread)
   if (injected !== 'ready') failures.push(injected)
+  const overflow = await page.evaluate(() => {
+    const node = document.querySelector('.chat-messages')
+    node.dataset.chatStick = '1'
+    node.scrollTop = node.scrollHeight
+    return { scrollHeight: node.scrollHeight, clientHeight: node.clientHeight }
+  })
+  if (overflow.scrollHeight <= overflow.clientHeight + 40) {
+    failures.push(`message list did not overflow (${overflow.scrollHeight} inside ${overflow.clientHeight})`)
+  }
+  for (let cycle = 1; cycle <= 5; cycle += 1) {
+    await page.evaluate(() => {
+      window.__setVisualViewport({ height: window.innerHeight - 320, offsetTop: 0 })
+    })
+    await page.waitForTimeout(360)
+    const open = await page.evaluate(() => {
+      const node = document.querySelector('.chat-messages')
+      const distance = node.scrollHeight - node.scrollTop - node.clientHeight
+      return {
+        distance: Math.round(distance),
+        windowY: Math.round(window.scrollY),
+      }
+    })
+    if (open.distance > 120) failures.push(`cycle ${cycle} open left the bottom by ${open.distance}px`)
+    if (open.windowY !== 0) failures.push(`cycle ${cycle} open scrolled the window to ${open.windowY}`)
+    await page.evaluate(() => {
+      window.__setVisualViewport({ height: window.innerHeight, offsetTop: 0 })
+    })
+    await page.waitForTimeout(360)
+    const closed = await page.evaluate(() => {
+      const node = document.querySelector('.chat-messages')
+      const distance = node.scrollHeight - node.scrollTop - node.clientHeight
+      return {
+        distance: Math.round(distance),
+        windowY: Math.round(window.scrollY),
+      }
+    })
+    if (closed.distance > 120) failures.push(`cycle ${cycle} close left the bottom by ${closed.distance}px`)
+    if (closed.windowY !== 0) failures.push(`cycle ${cycle} close scrolled the window to ${closed.windowY}`)
+  }
   await page.evaluate(() => {
     window.__setVisualViewport({ height: window.innerHeight - 320, offsetTop: 0 })
   })

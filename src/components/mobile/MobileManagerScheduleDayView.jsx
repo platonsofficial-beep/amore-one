@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { HourMinuteField } from '../HourMinuteField'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { portraitShiftSubtitle } from '../../lib/managerPortrait'
+import { buildShiftDisplayNames, lookupShiftDisplayName } from '../../lib/shiftDisplayName'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 
@@ -43,6 +44,11 @@ export function MobileManagerScheduleDayView({
     })
     return names
   }, [employees])
+
+  const shiftDisplayNames = useMemo(
+    () => buildShiftDisplayNames(employees),
+    [employees],
+  )
 
   const dayShifts = useMemo(() => (
     (shifts ?? [])
@@ -111,9 +117,10 @@ export function MobileManagerScheduleDayView({
       ) : null}
       <ul className="manager-portrait-shift-list">
         {dayShifts.map((shift) => {
-          const name = `${shift.employeeName ?? ''}`.trim()
+          const fullName = `${shift.employeeName ?? ''}`.trim()
             || employeeNames.get(`${shift.employeeId ?? ''}`)
             || 'Unassigned'
+          const name = lookupShiftDisplayName(shiftDisplayNames, shift.employeeId, fullName)
           const isEditing = editingId === `${shift.id}`
           return (
             <li key={shift.id} className="manager-portrait-shift">
@@ -123,6 +130,7 @@ export function MobileManagerScheduleDayView({
                 onClick={() => openEditor(shift)}
                 disabled={!canEdit}
                 aria-expanded={canEdit ? isEditing : undefined}
+                title={fullName}
               >
                 <span className="manager-portrait-reservation-time">
                   {formatTime24(shift.startTime, '—')}–{formatTime24(shift.endTime, '—')}

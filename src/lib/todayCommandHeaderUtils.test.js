@@ -57,7 +57,7 @@ describe('buildTodayCommandHeaderChips', () => {
       {
         id: 'tasks',
         icon: '✅',
-        label: 'Tasks',
+        label: 'Operations',
         value: '3 Open',
         detail: '3 board',
         tone: 'warning',

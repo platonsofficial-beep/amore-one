@@ -188,7 +188,7 @@ export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'chat', label: 'Chat', icon: '💬' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'tasks', label: 'Operations', icon: '✓' },
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
@@ -204,7 +204,7 @@ export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'today', label: 'Today', icon: '◈' },
   { id: 'reservations', label: 'Reservations', icon: '▣' },
   { id: 'chat', label: 'Chat', icon: '💬' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'tasks', label: 'Operations', icon: '✓' },
   { id: 'more', label: 'More', icon: '≡' },
 ]
 

@@ -1501,6 +1501,25 @@
   width: 100%;
 }
 
+.profile-photo-remove {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-photo-remove:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .profile-photo-caption,
 .profile-photo-toast {
   margin: 0;
@@ -10174,4 +10193,30 @@ body:not(:has(.inventory-count-session)) :is(
     flex: 0 1 auto;
     min-width: 0;
   }
+}
+
+.operations-unified-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 12px 0;
+}
+
+.operations-unified-tab {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: transparent;
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.operations-unified-tab.is-active {
+  background: rgba(212, 175, 55, 0.18);
+  color: #f3e3b0;
 }

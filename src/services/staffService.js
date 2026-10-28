@@ -1,4 +1,5 @@
 import { isPaletteColorId } from '../lib/identity/identityColorPalette'
+import { formatProfileSaveError } from '../lib/profileSaveError'
 import { supabase } from '../lib/supabaseClient'
 import { EMPLOYEE_PUBLIC_COLUMNS } from './employeeReadColumns'
 import { ensurePositionByName, getPositions } from './positionsService'
@@ -458,7 +459,7 @@ export async function updateLinkedEmployeePhone(workspaceId, employeeId, phone) 
       throw new Error('Employees table is not ready yet.')
     }
 
-    throw new Error(error.message || 'Unable to update phone right now.')
+    throw new Error(formatProfileSaveError(error, 'Unable to update phone right now.'))
   }
 
   return mapEmployee(data)

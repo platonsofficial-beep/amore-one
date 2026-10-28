@@ -46,6 +46,8 @@ export function WorkspaceView({
                 key={section.id}
                 type="button"
                 className={`workspace-nav-link${resolvedSection === section.id ? ' active' : ''}`}
+                data-help={`settings.${section.id}`}
+                data-help-nav=""
                 onClick={() => onSectionChange(section.id)}
               >
                 <span className="workspace-nav-icon" aria-hidden="true">{section.icon}</span>

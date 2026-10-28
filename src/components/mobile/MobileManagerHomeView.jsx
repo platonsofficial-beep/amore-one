@@ -73,7 +73,7 @@ function MobileManagerQuickActions({
         ) : null}
         {canOpenTasks ? (
           <button type="button" className="mobile-manager-action-btn" onClick={onOpenTasks}>
-            Tasks
+            Operations
           </button>
         ) : null}
         {canOpenStock ? (

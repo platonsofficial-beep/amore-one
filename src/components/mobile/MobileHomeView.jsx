@@ -56,8 +56,8 @@ export function MobileHomeView({
       </section>
 
       {onOpenTasks ? (
-        <button type="button" className="mobile-card mobile-home-tasks-link" onClick={onOpenTasks} aria-label={`My tasks, ${active} active`}>
-          <p className="mobile-card-label">My tasks · {tasksNeedsLink ? '—' : active}</p>
+        <button type="button" className="mobile-card mobile-home-tasks-link" onClick={onOpenTasks} aria-label={`Operations, ${active} active`}>
+          <p className="mobile-card-label">Operations · {tasksNeedsLink ? '—' : active}</p>
           {tasksNeedsLink ? (
             <p className="mobile-card-detail">Link your employee profile to view your tasks.</p>
           ) : showEmptyToday ? (

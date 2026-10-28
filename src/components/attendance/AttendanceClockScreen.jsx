@@ -319,15 +319,15 @@ export function AttendanceClockScreen({
 
       <div className="attendance-clock-actions">
         {!openEntry ? (
-          <button type="button" className="attendance-action attendance-action-in" onClick={() => beginClock('in')} disabled={busy || !settingsLoaded}>
+          <button type="button" className="attendance-action attendance-action-in" data-help="timeclock.clock-in" onClick={() => beginClock('in')} disabled={busy || !settingsLoaded}>
             ▶ Clock in
           </button>
         ) : (
           <>
-            <button type="button" className="attendance-action attendance-action-break" onClick={toggleBreak} disabled={busy || !settingsLoaded}>
+            <button type="button" className="attendance-action attendance-action-break" data-help="timeclock.break" onClick={toggleBreak} disabled={busy || !settingsLoaded}>
               {openBreak ? '▶ End break' : '☕ Start break'}
             </button>
-            <button type="button" className="attendance-action attendance-action-out" onClick={() => beginClock('out')} disabled={busy || !settingsLoaded}>
+            <button type="button" className="attendance-action attendance-action-out" data-help="timeclock.clock-out" onClick={() => beginClock('out')} disabled={busy || !settingsLoaded}>
               ■ Clock out
             </button>
           </>
