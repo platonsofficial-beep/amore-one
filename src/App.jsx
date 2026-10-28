@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { clampOverlayLeft } from './lib/safeInline'
 import { formatProfileSaveError } from './lib/profileSaveError'
 import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
