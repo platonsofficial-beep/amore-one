@@ -10,6 +10,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { webkit } from 'playwright'
+import { enableViewportAuthBypass } from './viewportAuthBypass.mjs'
 
 const VIEWPORT_BOOT = `(() => {
   const listeners = { resize: new Set(), scroll: new Set() }
@@ -56,7 +57,7 @@ async function resolveBaseUrl() {
     await waitForHttp(preferred)
     return { url: preferred, close: async () => {} }
   }
-  process.env.VITE_AUTH_DISABLED = 'true'
+  enableViewportAuthBypass()
   const envDir = await mkdtemp(join(tmpdir(), 'one-keyboard-env-'))
   const { build, preview } = await import('vite')
   await build({ logLevel: 'warn', mode: 'production', envDir })
