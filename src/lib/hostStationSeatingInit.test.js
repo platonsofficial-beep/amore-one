@@ -72,16 +72,16 @@ describe('resolveHostStationInitialSeatingId', () => {
     expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(9))).toBe('brunch')
   })
 
-  it('selects Lunch at 11:20', () => {
-    expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(11, 20))).toBe('lunch')
+  it('stays on Brunch at 11:20 while that service is still running', () => {
+    expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(11, 20))).toBe('brunch')
   })
 
   it('selects Dinner 1 at 18:20', () => {
     expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(18, 20))).toBe('dinner-1')
   })
 
-  it('selects Dinner 2 at 20:30', () => {
-    expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(20, 30))).toBe('dinner-2')
+  it('stays on Dinner 1 at 20:30 while that service is still running', () => {
+    expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(20, 30))).toBe('dinner-1')
   })
 
   it('selects the final seating after the final seating start time', () => {
@@ -135,7 +135,21 @@ describe('Host Station seating initialization policy', () => {
     expect(shouldRunHostStationTimeBasedSeatingInit(true, false, true)).toBe(false)
   })
 
-  it('selects the closest seating when initialization runs for today', () => {
-    expect(pickHostStationInitialSeating(activeSeatings, minutesAt(20, 30), true)).toBe('dinner-2')
+  it('selects the service still in progress when initialization runs for today', () => {
+    expect(pickHostStationInitialSeating(activeSeatings, minutesAt(20, 30), true)).toBe('dinner-1')
+  })
+
+  it('prefers a service that still has in-house guests over the next service', () => {
+    expect(resolveHostStationInitialSeatingId(activeSeatings, minutesAt(12, 30), {
+      dateKey: SERVICE_DATE,
+      reservations: [{
+        id: 'brunch-party',
+        date: SERVICE_DATE,
+        time: '10:30',
+        status: 'Checked In',
+        seatingId: 'brunch',
+        guests: 5,
+      }],
+    })).toBe('brunch')
   })
 })
