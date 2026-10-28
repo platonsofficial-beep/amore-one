@@ -108,6 +108,7 @@ export function FloorSeatingSelector({
                     ref={legendButtonRef}
                     className="floor-seating-legend-disclosure-btn"
                     aria-label="Table colors"
+                    data-help="reservations.legend"
                   >
                     i
                   </summary>

@@ -616,12 +616,12 @@ export function ChatScreen({
         <section className="chat-list" aria-label="Chats">
           <header className="chat-list-header">
             <h2>Chat</h2>
-            <button type="button" className="chat-icon-btn" onClick={() => setSheet('direct')}>New</button>
+            <button type="button" className="chat-icon-btn" data-help="chat.new" onClick={() => setSheet('direct')}>New</button>
             {canManage ? (
-              <button type="button" className="chat-icon-btn" onClick={() => setSheet('channel')}>Channel</button>
+              <button type="button" className="chat-icon-btn" data-help="chat.channel" onClick={() => setSheet('channel')}>Channel</button>
             ) : null}
           </header>
-          <label className="chat-search">
+          <label className="chat-search" data-help="chat.search">
             <span className="sr-only">Search chats</span>
             <input
               type="search"
@@ -687,7 +687,7 @@ export function ChatScreen({
         <section className="chat-thread-pane" aria-label="Conversation">
           <header className="chat-thread-header">
             {resolvedLayout !== 'split' ? (
-              <button type="button" className="chat-icon-btn chat-back-btn" aria-label="Back" onClick={() => setOpenId('')}>
+              <button type="button" className="chat-icon-btn chat-back-btn" aria-label="Back" data-help="chat.back" onClick={() => setOpenId('')}>
                 <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                   <path fill="currentColor" d="M15.4 19.4 8 12l7.4-7.4 1.4 1.4L10.8 12l6 6z" />
                 </svg>
@@ -697,6 +697,7 @@ export function ChatScreen({
               <button
                 type="button"
                 className="chat-thread-title-btn"
+                data-help="chat.info"
                 disabled={!openId}
                 onClick={() => openId && setSheet('info')}
               >
@@ -720,6 +721,7 @@ export function ChatScreen({
                 className="chat-icon-btn chat-mute-btn"
                 aria-label="Mute"
                 aria-pressed={Boolean(openRow?.muted)}
+                data-help="chat.mute"
                 onClick={() => setSheet('mute')}
               >
                 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -949,17 +951,18 @@ export function ChatScreen({
                 hidden
                 onChange={onPhoto}
               />
-              <button type="button" className="chat-composer-photo" aria-label="Photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
+              <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
                 <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                   <path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
                 </svg>
               </button>
-              <button type="button" className="chat-composer-emoji" aria-label="Emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
+              <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
                 ☺
               </button>
               <textarea
                 ref={draftRef}
                 aria-label="Message"
+                data-help="chat.message"
                 value={draft}
                 maxLength={4000}
                 rows={1}
@@ -973,7 +976,7 @@ export function ChatScreen({
                   }
                 }}
               />
-              <button type="submit" className="chat-send" aria-label="Send" disabled={busy || cannotPost || !draft.trim()}>
+              <button type="submit" className="chat-send" aria-label="Send" data-help="chat.send" disabled={busy || cannotPost || !draft.trim()}>
                 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
                 </svg>
@@ -1115,7 +1118,7 @@ export function ChatScreen({
                     {membersById[person.member_id]?.name || aliases[person.member_id] || 'Member'}
                   </p>
                 ))}
-                <button type="button" onClick={() => setSheet('mute')}>Mute</button>
+                <button type="button" data-help="chat.mute" onClick={() => setSheet('mute')}>Mute</button>
                 {canManage && openRow.kind === 'group' ? (
                   <button
                     type="button"

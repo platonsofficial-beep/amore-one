@@ -1,4 +1,5 @@
 import { UserMenu } from '../auth/UserMenu'
+import { HelpModeToggle } from '../../help/HelpMode'
 
 export function TodayCommandHeader({
   greeting = '',
@@ -51,6 +52,7 @@ export function TodayCommandHeader({
             </div>
 
             <div className="today-command-header-aside">
+              <HelpModeToggle />
               {notificationBell}
               <UserMenu
                 profileChipDisplay={profileChipDisplay}
@@ -97,6 +99,7 @@ export function TodayCommandHeader({
                   key={action.id}
                   type="button"
                   className="today-command-action-pill"
+                  data-help={`home.${action.id.replace('add-', '').replace('create-', '')}`}
                   onClick={() => onQuickAction?.(action.id)}
                 >
                   <span className="today-command-action-plus" aria-hidden="true">+</span>

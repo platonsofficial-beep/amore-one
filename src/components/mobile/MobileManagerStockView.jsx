@@ -317,6 +317,7 @@ export function MobileManagerStockView({
         type="button"
         className="mobile-manager-stock-quick-btn"
         onClick={onCountStock}
+        data-help="stock.count-now"
         disabled={!isWorkspaceReady}
       >
         Count
@@ -328,6 +329,7 @@ export function MobileManagerStockView({
           onClick={() => { void onPrepareDrafts() }}
           disabled={!isWorkspaceReady || isSavingOrders || isPreparingDrafts}
           aria-busy={isPreparingDrafts || undefined}
+          data-help="stock.suggest"
         >
           {isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : (
             <>
@@ -341,6 +343,7 @@ export function MobileManagerStockView({
         type="button"
         className="mobile-manager-stock-quick-btn"
         onClick={openCreateOrderModal}
+        data-help="stock.create-order"
         disabled={!isWorkspaceReady}
       >
         Create order
