@@ -5,6 +5,13 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const auth = { isBootstrapping: false, isLoading: false, isAuthDisabled: true }
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => auth,
+}))
+
 import { ColdStartSplash, resetColdStartSplashForTests } from './ColdStartSplash'
 
 function renderSplash() {
@@ -26,30 +33,102 @@ function renderSplash() {
 describe('ColdStartSplash', () => {
   beforeEach(() => {
     resetColdStartSplashForTests()
+    auth.isBootstrapping = false
+    auth.isLoading = false
+    auth.isAuthDisabled = true
+    window.matchMedia = (query) => ({
+      matches: false,
+      media: query,
+      addEventListener() {},
+      removeEventListener() {},
+    })
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('shows the logo and leaves after the intro', () => {
-    vi.useFakeTimers()
+  it('assembles the three triangles, the wordmark, and the tagline on navy', () => {
     const view = renderSplash()
-    expect(view.container.querySelector('[data-testid="cold-start-splash"] img')?.getAttribute('src'))
-      .toBe('/brand/one-full-logo.svg')
+    const splash = view.container.querySelector('[data-testid="cold-start-splash"]')
+    expect(splash).toBeTruthy()
+    expect(view.container.querySelectorAll('.cold-start-tri')).toHaveLength(3)
+    expect(view.container.querySelector('.is-gold path')?.getAttribute('d')).toContain('M217.2,222.0')
+    expect(view.container.querySelector('.is-blue path')?.getAttribute('d')).toContain('M277.0,490.0')
+    expect(view.container.querySelector('.is-taupe path')?.getAttribute('d')).toContain('M426.4,240.0')
+    expect(view.container.textContent).toContain('HOSPITALITY OPERATING SYSTEM')
+    view.unmount()
+  })
+
+  it('leaves at the 1.5s cap even while auth is still loading', () => {
+    vi.useFakeTimers()
+    auth.isAuthDisabled = false
+    auth.isBootstrapping = true
+    const view = renderSplash()
     act(() => {
-      vi.advanceTimersByTime(1200)
+      vi.advanceTimersByTime(1490)
+    })
+    expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeTruthy()
+    act(() => {
+      vi.advanceTimersByTime(20)
     })
     expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
     view.unmount()
   })
 
-  it('skips immediately when tapped', () => {
+  it('skips on tap or a key, then fades', () => {
+    vi.useFakeTimers()
     const view = renderSplash()
-    const splash = view.container.querySelector('[data-testid="cold-start-splash"]')
     act(() => {
-      splash?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     })
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-fading')).toBe(true)
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+    expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
+    view.unmount()
+  })
+
+  it('does not play again after this cold start', () => {
+    vi.useFakeTimers()
+    const first = renderSplash()
+    act(() => {
+      vi.advanceTimersByTime(1500)
+    })
+    first.unmount()
+    const second = renderSplash()
+    expect(second.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
+    second.unmount()
+  })
+
+  it('uses a 200ms fade when motion is reduced and the app is not ready yet', () => {
+    vi.useFakeTimers()
+    auth.isAuthDisabled = false
+    auth.isBootstrapping = true
+    window.matchMedia = () => ({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener() {},
+      removeEventListener() {},
+    })
+    const view = renderSplash()
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-reduced')).toBe(true)
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+    expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
+    view.unmount()
+  })
+
+  it('skips the reduced-motion splash when the app is already ready', () => {
+    window.matchMedia = () => ({
+      matches: true,
+      media: '(prefers-reduced-motion: reduce)',
+      addEventListener() {},
+      removeEventListener() {},
+    })
+    const view = renderSplash()
     expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
     view.unmount()
   })

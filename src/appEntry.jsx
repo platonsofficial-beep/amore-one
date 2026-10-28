@@ -22,12 +22,12 @@ createRoot(document.getElementById('root')).render(
         <AuthGate>
           <ManagerLandscapeGate>
             <PwaShell>
-              <ColdStartSplash />
               <KeyboardInset />
               <App />
             </PwaShell>
           </ManagerLandscapeGate>
         </AuthGate>
+        <ColdStartSplash />
       </AvatarDirectoryProvider>
     </AuthProvider>
   </StrictMode>,
