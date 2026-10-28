@@ -17,7 +17,7 @@ import {
 } from '../../lib/stockDepartmentGroups'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import { formatItemsBelowPar } from '../../lib/stockStoragePar'
-import { getWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
+import { getWorkspaceStorageSummaries, peekWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
 import {
   assignWorkspaceStorageDepartment,
   createWorkspaceDepartment,
@@ -405,9 +405,12 @@ export function StockStorageCenter({
   renameStorage = renameWorkspaceStorage,
   timeZone = '',
 } = {}) {
-  const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
+  const cachedSummaries = peekWorkspaceStorageSummaries(workspaceId)
+  const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ (
+    cachedSummaries ? (cachedSummaries.storages?.length ? 'ready' : 'empty') : 'loading'
+  ))
   const [errorMessage, setErrorMessage] = useState('')
-  const [payload, setPayload] = useState(/** @type {Awaited<ReturnType<typeof getWorkspaceStorageSummaries>>|null} */ (null))
+  const [payload, setPayload] = useState(/** @type {Awaited<ReturnType<typeof getWorkspaceStorageSummaries>>|null} */ (cachedSummaries))
   const [departmentCatalog, setDepartmentCatalog] = useState(
     /** @type {{ available: boolean, departments: Array<{ id: string, name: string, active: boolean, sortOrder: number }> }|null} */ (null),
   )
@@ -437,7 +440,7 @@ export function StockStorageCenter({
 
     const workspaceChanged = loadedWorkspaceRef.current !== workspaceKey
     loadedWorkspaceRef.current = workspaceKey
-    if (workspaceChanged) {
+    if (workspaceChanged && !peekWorkspaceStorageSummaries(workspaceKey)) {
       setStatus('loading')
       setPayload(null)
       setDepartmentCatalog(null)
@@ -678,6 +681,12 @@ export function StockStorageCenter({
         </div>
       ) : null}
 
+      {status === 'ready' ? (
+        <p className="stock-storage-par-note">
+          Below storage par is this shelf only. To order uses each product’s total target, so the two counts can differ.
+        </p>
+      ) : null}
+
       {status === 'ready' && summary ? (
         <div className="stock-storage-center-overview" role="status">
           <div className="stock-storage-center-overview-stat">
@@ -705,8 +714,10 @@ export function StockStorageCenter({
       ) : null}
 
       {status === 'loading' ? (
-        <div className="stock-storage-center-state" role="status" data-testid="stock-storage-center-loading">
-          Loading storages…
+        <div className="stock-storage-center-state stock-storage-center-skeleton" role="status" data-testid="stock-storage-center-loading" aria-label="Loading storages">
+          <span className="stock-storage-skeleton-card" />
+          <span className="stock-storage-skeleton-card" />
+          <span className="stock-storage-skeleton-card" />
         </div>
       ) : null}
 

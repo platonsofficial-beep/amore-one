@@ -17,6 +17,7 @@ import {
   filterStockDashboardItems,
   getStockStatusFilterLabel,
   groupStockDashboardItems,
+  groupStockItemsByCategoryStatus,
   sortStockDashboardItems,
   STOCK_GROUP_BY_OPTIONS,
   STOCK_LAYOUT_MODES,
@@ -1122,7 +1123,10 @@ export function StockDashboardView({
   )
   const [sortKey, setSortKey] = useState(() => readStockBrowsePreferences().sortKey)
   const [layoutMode, setLayoutMode] = useState(() => readStockBrowsePreferences().layoutMode)
-  const [groupBy, setGroupBy] = useState(() => readStockBrowsePreferences().groupBy)
+  const [groupBy, setGroupBy] = useState(() => {
+    const saved = readStockBrowsePreferences().groupBy
+    return !saved || saved === 'none' ? 'category' : saved
+  })
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [bulkModalField, setBulkModalField] = useState(null)
@@ -1216,6 +1220,9 @@ export function StockDashboardView({
   }, [catalogItems, categoryFilter, effectiveVisibilityFilter, searchTerm])
 
   const itemGroups = useMemo(() => {
+    if (!groupBy || groupBy === 'none' || groupBy === 'category') {
+      return groupStockItemsByCategoryStatus(visibleItems)
+    }
     return groupStockDashboardItems(visibleItems, groupBy)
   }, [visibleItems, groupBy])
 

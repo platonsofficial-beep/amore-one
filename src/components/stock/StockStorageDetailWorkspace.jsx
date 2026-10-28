@@ -1023,7 +1023,7 @@ export function StockStorageDetailWorkspace({
 
       {status === 'ready' && visibleProducts.length === 0 ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-no-matches">
-          {belowParOnly ? 'No products are below par on this shelf.' : 'No products match this search.'}
+          {belowParOnly ? 'No products are below storage par on this shelf.' : 'No products match this search.'}
         </div>
       ) : null}
 

@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react'
 import { updateSupplyOrderDraftReviewQuantity } from '../../lib/stockSupplyOrderDraft'
 
 export function SupplyOrderDraftPreviewDialog({
+  isOpen = false,
+  isLoading = false,
   lines = [],
   review = [],
   summary = '',
+  message = '',
   isSaving = false,
   onCancel,
   onConfirm,
@@ -16,7 +19,7 @@ export function SupplyOrderDraftPreviewDialog({
   }, [review])
 
   useEffect(() => {
-    if (!lines.length && !groups.length) return undefined
+    if (!isOpen) return undefined
     const handleKeyDown = (event) => {
       if (event.key !== 'Escape' || isSaving) return
       event.preventDefault()
@@ -24,10 +27,10 @@ export function SupplyOrderDraftPreviewDialog({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [groups.length, isSaving, lines.length, onCancel])
+  }, [isOpen, isSaving, onCancel])
 
   const usingReview = Array.isArray(review)
-  if (!lines.length && !groups.length) return null
+  if (!isOpen) return null
 
   const handleQuantity = (groupIndex, itemIndex, value) => {
     setGroups((current) => updateSupplyOrderDraftReviewQuantity(current, groupIndex, itemIndex, value))
@@ -58,10 +61,14 @@ export function SupplyOrderDraftPreviewDialog({
           </button>
         </header>
         <div className="supply-draft-preview-scroll">
+        {isLoading ? (
+          <p className="supply-draft-preview-summary" role="status">Preparing the suggested order…</p>
+        ) : null}
         {`${summary ?? ''}`.trim() ? (
           <p className="supply-draft-preview-summary">{`${summary}`.trim()}</p>
         ) : null}
-        <p>Check each supplier, product, and quantity. Nothing is saved until you confirm.</p>
+        {message && !isLoading ? <p role="status">{message}</p> : null}
+        {!isLoading ? <p>Check each supplier, product, and quantity. Nothing is saved until you confirm.</p> : null}
         {groups.length > 0 ? (
           <div className="supply-draft-review">
             {groups.map((group, groupIndex) => (
@@ -106,7 +113,7 @@ export function SupplyOrderDraftPreviewDialog({
             type="button"
             className="primary-btn"
             onClick={() => onConfirm?.(usingReview ? groups : undefined)}
-            disabled={isSaving || (usingReview ? groups.length === 0 : lines.length === 0)}
+            disabled={isSaving || isLoading || (usingReview ? groups.length === 0 : lines.length === 0)}
           >
             {isSaving ? 'Saving…' : 'Save order'}
           </button>
