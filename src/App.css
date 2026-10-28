@@ -17312,8 +17312,10 @@
 
 .schedule-assigned-pill {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  height: auto;
 }
 
 .schedule-assigned-pill--identity {
@@ -17345,18 +17347,18 @@
 
 .schedule-assigned-pill-name {
   display: block;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   white-space: normal;
-  overflow-wrap: normal;
+  overflow: visible;
+  overflow-wrap: break-word;
   word-break: normal;
   hyphens: none;
   line-height: 1.25;
   color: #f7efe1;
-  overflow: visible;
-  text-overflow: clip;
+  text-overflow: unset;
 }
 
 .schedule-assigned-pill-hours {
@@ -17377,12 +17379,14 @@
 
 .schedule-assigned-pill-custom {
   display: block;
+  width: 100%;
   margin-top: 2px;
   color: #e2c48a;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 650;
   letter-spacing: 0.01em;
-  line-height: 1.2;
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .schedule-day-grid.is-fluid-day-columns .schedule-shift-assigned-item,
@@ -18199,11 +18203,12 @@
     "name name"
     "time time"
     "ratio add";
-  align-items: center;
+  align-items: start;
   column-gap: 4px;
   row-gap: 2px;
   min-height: 0;
-  overflow: hidden;
+  height: auto;
+  overflow: visible;
   padding: 4px 4px 4px 6px;
 }
 
@@ -18215,13 +18220,22 @@
 
 .schedule-workspace.is-compact-landscape .schedule-shift-instance-dept,
 .schedule-workspace.is-compact-landscape .schedule-shift-instance-name,
-.schedule-workspace.is-compact-landscape .schedule-shift-instance-time,
-.schedule-workspace.is-compact-landscape .schedule-assigned-pill-name {
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-time {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   overflow-wrap: normal;
   word-break: normal;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-assigned-pill-name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: break-word;
+  word-break: normal;
+  font-size: 0.72rem;
+  line-height: 1.15;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-shift-instance-dept {
@@ -18305,10 +18319,12 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
+  height: auto;
   min-height: 28px;
   padding: 3px 6px;
   font-size: 0.72rem;
   justify-content: flex-start;
+  align-items: stretch;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-shift-coverage-status:not(.tone-conflict) {

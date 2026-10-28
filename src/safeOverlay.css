@@ -132,12 +132,29 @@
     background: #0b1018;
   }
 
+  /* Closed keyboard: fill the layout viewport so the nav is not left floating
+     over a short visual-viewport box. */
+  body:not(.is-keyboard-open):not(.is-composer-focused) .app-shell.is-chat-thread .chat-screen {
+    top: 0;
+    bottom: 0;
+    height: auto;
+    max-height: none;
+  }
+
+  .app-shell.is-chat-thread .mobile-shell-bell {
+    display: none;
+  }
+
   .app-shell.is-chat-thread .chat-thread-pane {
     display: flex;
     flex-direction: column;
     height: 100%;
     min-height: 0;
-    padding-bottom: var(--one-mobile-bottom-inset, 72px);
+    padding-bottom: calc(
+      var(--one-mobile-bottom-nav-height, 64px)
+      + var(--one-mobile-nav-float-gap, 0px)
+      + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px))
+    );
   }
 
   body.is-keyboard-open .app-shell.is-chat-thread .chat-thread-pane,
@@ -185,6 +202,13 @@ body.is-keyboard-open .employee-modal.reservation-smart-modal.is-responsive-shee
 body.is-keyboard-open .stock-item-more-menu-panel.is-sheet {
   bottom: calc(var(--kb, 0px) + 8px);
   max-height: calc(var(--vvh, 100dvh) - 16px);
+}
+
+/* The short-landscape icon rail paints above the fixed chat column. */
+@media (orientation: landscape) and (max-height: 460px) and (max-width: 1024px) {
+  .app-shell:not(.is-mobile-shell).is-chat-thread .chat-screen {
+    left: calc(var(--safe-l, 0px) + 78px);
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {

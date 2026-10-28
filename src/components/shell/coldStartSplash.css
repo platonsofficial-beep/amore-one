@@ -1,0 +1,192 @@
+.cold-start-splash {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding:
+    max(16px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+    max(16px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px))))
+    max(16px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
+    max(16px, var(--safe-l, var(--one-safe-area-left, env(safe-area-inset-left, 0px))));
+  border: 0;
+  background: #0B1220;
+  perspective: 900px;
+  cursor: pointer;
+}
+
+.cold-start-stage {
+  position: relative;
+  width: min(60vw, 420px);
+  aspect-ratio: 660 / 800;
+  max-height: 100%;
+  transform-style: preserve-3d;
+}
+
+.cold-start-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.cold-start-tri {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+  animation: cold-start-tri 700ms cubic-bezier(.16, 1, .3, 1) forwards;
+}
+
+.cold-start-tri.is-gold { animation-delay: 0ms; }
+.cold-start-tri.is-blue { animation-delay: 300ms; }
+.cold-start-tri.is-taupe { animation-delay: 600ms; }
+
+.cold-start-word {
+  opacity: 0;
+  transform-origin: center;
+  animation: cold-start-pop 400ms cubic-bezier(.34, 1.56, .64, 1) 1300ms both;
+}
+
+.cold-start-tagline {
+  opacity: 0;
+  animation: cold-start-tag 400ms ease-out 1700ms both;
+}
+
+.cold-start-tagline text {
+  letter-spacing: 6px;
+}
+
+.cold-start-shimmer-band {
+  animation: cold-start-shimmer 400ms linear 2000ms both;
+}
+
+.cold-start-stage {
+  animation:
+    cold-start-glow 250ms ease-out 700ms,
+    cold-start-glow 250ms ease-out 1000ms,
+    cold-start-glow 250ms ease-out 1300ms;
+}
+
+@keyframes cold-start-tri {
+  0% {
+    opacity: 0;
+    transform: translateZ(700px) rotateY(-35deg) scale(1.6);
+    filter: blur(14px);
+  }
+  35% {
+    opacity: 0.6;
+  }
+  78% {
+    opacity: 1;
+    transform: translateZ(0) rotateY(0) scale(1.035);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes cold-start-tri-sharp {
+  0% {
+    opacity: 0;
+    transform: translateZ(700px) rotateY(-35deg) scale(1.6);
+  }
+  35% {
+    opacity: 0.6;
+  }
+  78% {
+    opacity: 1;
+    transform: translateZ(0) rotateY(0) scale(1.035);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cold-start-pop {
+  from { opacity: 0; transform: scale(0.72); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes cold-start-tag {
+  from { opacity: 0; transform: translateY(8px) scaleX(1.12); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes cold-start-shimmer {
+  from { transform: translateX(-40px); }
+  to { transform: translateX(760px); }
+}
+
+@keyframes cold-start-glow {
+  0% { filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
+  50% { filter: drop-shadow(0 0 18px rgba(212, 175, 55, 0.6)); }
+  100% { filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
+}
+
+@keyframes cold-start-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cold-start-splash.is-fading {
+  animation: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.cold-start-splash.is-fading .cold-start-tri,
+.cold-start-splash.is-fading .cold-start-word,
+.cold-start-splash.is-fading .cold-start-tagline {
+  animation: none;
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+.cold-start-splash.is-no-blur .cold-start-tri {
+  animation-name: cold-start-tri-sharp;
+}
+
+.cold-start-splash.is-reduced,
+.cold-start-splash.is-reduced .cold-start-tri,
+.cold-start-splash.is-reduced .cold-start-word,
+.cold-start-splash.is-reduced .cold-start-tagline,
+.cold-start-splash.is-reduced .cold-start-shimmer-band,
+.cold-start-splash.is-reduced .cold-start-stage {
+  animation: cold-start-fade 200ms ease both;
+  transform: none;
+  filter: none;
+}
+
+@supports not (filter: blur(1px)) {
+  .cold-start-tri {
+    animation-name: cold-start-tri-sharp;
+  }
+}
+
+@media (orientation: landscape) {
+  .cold-start-stage {
+    width: auto;
+    height: min(62dvh, 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cold-start-splash,
+  .cold-start-splash .cold-start-tri,
+  .cold-start-splash .cold-start-word,
+  .cold-start-splash .cold-start-tagline,
+  .cold-start-splash .cold-start-shimmer-band,
+  .cold-start-splash .cold-start-stage {
+    animation: cold-start-fade 200ms ease both;
+    transform: none;
+    filter: none;
+  }
+}

@@ -7,6 +7,7 @@ import { act } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sendChatMessage = vi.fn(async () => 'new-id')
+const chatLive = { handlers: null }
 
 vi.mock('../../services/chatService', () => ({
   fetchChatMembers: vi.fn(async () => [
@@ -38,7 +39,10 @@ vi.mock('../../services/chatService', () => ({
   addChatReaction: vi.fn(),
   removeChatReaction: vi.fn(),
   uploadChatPhoto: vi.fn(),
-  subscribeToChatConversation: vi.fn(() => () => {}),
+  subscribeToChatConversation: vi.fn((_id, handlers) => {
+    chatLive.handlers = handlers
+    return () => {}
+  }),
   subscribeToChatTyping: vi.fn(() => ({ setTyping() {}, stop() {} })),
   chatAttachmentUrl: vi.fn(async () => ''),
 }))
@@ -250,6 +254,173 @@ describe('ChatScreen', () => {
     })
     const titles = [...view.container.querySelectorAll('.chat-row strong')].map((node) => node.textContent)
     expect(titles).toEqual(['Alex'])
+    view.unmount()
+  })
+
+  it('scrolls with the thread instead of a Latest chip', async () => {
+    const scrollTo = vi.fn(function scrollTo(options = {}) {
+      this.scrollTop = options.top || 0
+      this.dataset.scrollBehavior = options.behavior || 'auto'
+    })
+    const previousScrollTo = HTMLElement.prototype.scrollTo
+    HTMLElement.prototype.scrollTo = scrollTo
+    const message = (id, createdAt, body) => ({
+      id,
+      author_member_id: 'alex',
+      body,
+      created_at: createdAt,
+      deleted_at: null,
+    })
+    fetchChatMessages.mockResolvedValueOnce([message('m1', '2026-10-27T10:00:00Z', 'Hello')])
+    const view = renderChat({ initialConversationId: 'team-1' })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const scroller = view.container.querySelector('.chat-messages')
+    scroller.scrollTo = scrollTo
+    Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 2000 })
+    Object.defineProperty(scroller, 'clientHeight', { configurable: true, value: 400 })
+
+    scroller.scrollTop = 2000 - 400 - 40
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    })
+    scrollTo.mockClear()
+    fetchChatMessages.mockResolvedValueOnce([
+      message('m2', '2026-10-27T10:01:00Z', 'Just in'),
+      message('m1', '2026-10-27T10:00:00Z', 'Hello'),
+    ])
+    await act(async () => {
+      chatLive.handlers.onMessage()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(view.container.textContent).toContain('Just in')
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }))
+    expect(view.container.querySelector('[data-testid="chat-scroll-bottom"]')).toBeNull()
+    expect(view.container.textContent).not.toContain('Latest')
+
+    scroller.scrollTop = 2000 - 400 - 280
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    })
+    scrollTo.mockClear()
+    fetchChatMessages.mockResolvedValueOnce([
+      message('m3', '2026-10-27T10:02:00Z', 'While you read'),
+      message('m2', '2026-10-27T10:01:00Z', 'Just in'),
+      message('m1', '2026-10-27T10:00:00Z', 'Hello'),
+    ])
+    await act(async () => {
+      chatLive.handlers.onMessage()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(scrollTo).not.toHaveBeenCalled()
+    expect(view.container.querySelector('[data-testid="chat-scroll-badge"]')?.textContent).toBe('1')
+
+    await act(async () => {
+      view.container.querySelector('[data-testid="chat-scroll-bottom"]').click()
+    })
+    expect(view.container.querySelector('[data-testid="chat-scroll-bottom"]')).toBeNull()
+    expect(view.container.querySelector('[data-testid="chat-scroll-badge"]')).toBeNull()
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'auto' }))
+
+    scroller.scrollTop = 2000 - 400 - 20
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    })
+    scroller.scrollTop = 2000 - 400 - 900
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+    })
+    expect(view.container.querySelector('[data-testid="chat-scroll-bottom"]')).toBeTruthy()
+    expect(view.container.querySelector('[data-testid="chat-scroll-badge"]')).toBeNull()
+    expect(view.container.textContent).not.toContain('Latest')
+
+    const field = view.container.querySelector('textarea')
+    const setValue = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set
+    scrollTo.mockClear()
+    await act(async () => {
+      setValue.call(field, 'On my way')
+      field.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'auto' }))
+    expect(view.container.querySelector('[data-testid="chat-scroll-bottom"]')).toBeNull()
+
+    HTMLElement.prototype.scrollTo = previousScrollTo
+    view.unmount()
+  })
+
+  it('opens a chat on the first unread message', async () => {
+    const previous = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = function scrollIntoView() {
+      this.dataset.landed = 'unread'
+    }
+    fetchChatParticipants.mockResolvedValueOnce([
+      { member_id: 'me', last_read_at: '2026-10-27T09:00:00Z' },
+    ])
+    fetchChatMessages.mockResolvedValueOnce([
+      { id: 'read', author_member_id: 'alex', body: 'Earlier', created_at: '2026-10-27T08:00:00Z', deleted_at: null },
+      { id: 'unread', author_member_id: 'alex', body: 'Since you left', created_at: '2026-10-27T10:00:00Z', deleted_at: null },
+    ])
+    const view = renderChat({ initialConversationId: 'direct-1' })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(view.container.querySelector('#chat-message-unread')?.dataset.landed).toBe('unread')
+    expect(view.container.querySelector('#chat-message-read')?.dataset.landed).toBeUndefined()
+    HTMLElement.prototype.scrollIntoView = previous
+    view.unmount()
+  })
+
+  it('stays pinned when the message log resizes and stays put when reading history', async () => {
+    const observers = []
+    const previous = globalThis.ResizeObserver
+    globalThis.ResizeObserver = class {
+      constructor(callback) {
+        this.callback = callback
+        observers.push(this)
+      }
+      observe() {}
+      disconnect() {}
+    }
+    fetchChatMessages.mockResolvedValueOnce([
+      { id: 'm1', author_member_id: 'alex', body: 'Hello', created_at: '2026-10-27T10:00:00Z', deleted_at: null },
+    ])
+    const view = renderChat({ initialConversationId: 'team-1' })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const scroller = view.container.querySelector('.chat-messages')
+    Object.defineProperty(scroller, 'scrollHeight', { configurable: true, value: 900 })
+    scroller.scrollTop = 20
+    await act(async () => {
+      observers.at(-1)?.callback()
+    })
+    expect(scroller.scrollTop).toBe(900)
+
+    Object.defineProperty(scroller, 'clientHeight', { configurable: true, value: 300 })
+    scroller.scrollTop = 900 - 300 - 500
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll', { bubbles: true }))
+      observers.at(-1)?.callback()
+    })
+    expect(scroller.scrollTop).toBe(100)
+    globalThis.ResizeObserver = previous
     view.unmount()
   })
 

@@ -85,8 +85,23 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-anchor: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+.chat-messages-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .chat-row,
@@ -646,8 +661,7 @@
 }
 
 .app-shell.is-mobile-shell.is-chat-thread .mobile-shell-bell {
-  top: calc(env(safe-area-inset-top, 0px) + 2px);
-  right: max(8px, var(--safe-r, 0px));
+  display: none;
 }
 
 .app-shell:not(.is-mobile-shell) .chat-list-header,
@@ -827,19 +841,38 @@
   gap: 10px;
 }
 
-.chat-jump {
+.chat-scroll-bottom {
   position: absolute;
   right: 12px;
-  bottom: 72px;
+  bottom: 12px;
   z-index: 4;
-  min-height: 36px;
-  padding: 0 12px;
-  border: 0;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(230, 194, 122, 0.55);
+  background: rgba(12, 18, 28, 0.94);
+  color: #f7efe1;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+
+.chat-scroll-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   background: #e6c27a;
   color: #1b1408;
+  font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
+  line-height: 18px;
+  text-align: center;
 }
 
 .chat-photo-preview {
