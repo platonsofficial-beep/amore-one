@@ -46,7 +46,7 @@ import { canApproveLeave, canCreateLeave, canViewLeaveQueue } from './leave/leav
 const OPERATIONS_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'checklists', label: 'Checklists' },
-  { id: 'tasks', label: 'Tasks' },
+  { id: 'tasks', label: 'Operations' },
 ]
 
 function tabIds(tabs) {
@@ -309,7 +309,7 @@ describe('permissions', () => {
       expect(tabIds(getMobileBottomTabs('host', 'host'))).not.toContain('stock')
     })
 
-    it('gives managers Today, Reservations, Chat, Tasks and More', () => {
+    it('gives managers Today, Reservations, Chat, Operations and More', () => {
       expect(tabIds(getMobileBottomTabs('manager', 'manager'))).toEqual([
         'today',
         'reservations',

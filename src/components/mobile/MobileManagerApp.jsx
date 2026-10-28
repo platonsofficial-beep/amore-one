@@ -7,6 +7,7 @@ import { MobileManagerReservationsView } from './MobileManagerReservationsView'
 import { MobileManagerScheduleDayView } from './MobileManagerScheduleDayView'
 import { MobileManagerStockView } from './MobileManagerStockView'
 import { MobileManagerTasksView } from './MobileManagerTasksView'
+import { OperationsUnifiedScreen } from '../operations/OperationsUnifiedScreen'
 import { MobileMenuView } from './MobileMenuView'
 import { MobileProfileView } from './MobileProfileView'
 
@@ -34,6 +35,12 @@ export function MobileManagerApp({
   bottomTabs,
   notificationBell = null,
   chatContent = null,
+  operationsSection = 'dashboard',
+  onOperationsSectionChange,
+  operationsSections = [],
+  operationsBoards = null,
+  operationsChecklists = null,
+  operationsExecution = null,
   portraitScreen = 'today',
   moreOpen = false,
   moreItems = [],
@@ -130,7 +137,17 @@ export function MobileManagerApp({
           <MobileManagerReservationsView {...reservationsProps} />
         ) : null}
         {screen === 'chat' ? chatContent : null}
-        {screen === 'tasks' ? <MobileManagerTasksView {...managerTasksProps} /> : null}
+        {screen === 'tasks' ? (
+          <OperationsUnifiedScreen
+            sections={operationsSections}
+            section={operationsSection}
+            onSectionChange={onOperationsSectionChange}
+            today={<MobileManagerTasksView {...managerTasksProps} />}
+            boards={operationsBoards}
+            checklists={operationsChecklists}
+            execution={operationsExecution}
+          />
+        ) : null}
         {screen === 'stock' ? (
           <div className="manager-portrait-stock">
             <ManagerPortraitBanner area="stock" />

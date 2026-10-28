@@ -23747,7 +23747,7 @@ function App() {
       else if (tab === 'chat') handleActiveViewChange('chat')
       else if (tab === 'tasks') {
         handleActiveViewChange('operations')
-        handleOperationsSectionChange('tasks')
+        handleOperationsSectionChange('dashboard')
       } else if (tab === 'stock') {
         handleActiveViewChange('stock')
         handleStockSectionChange('dashboard')
@@ -23904,7 +23904,7 @@ function App() {
     if (!canAccessMobileExpandedModule(permissionAccess, 'operations')) return
 
     handleActiveViewChange('operations')
-    handleOperationsSectionChange('tasks')
+    handleOperationsSectionChange('dashboard')
     setMobileMenuScreen('main')
     setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
   }, [permissionAccess, handleActiveViewChange, handleOperationsSectionChange, role, useMobileExperience])
@@ -25464,6 +25464,61 @@ function App() {
                             ? handleMobileManagerOpenChecklist
                             : undefined,
                         }}
+                        operationsSection={operationsSection}
+                        onOperationsSectionChange={handleOperationsSectionChange}
+                        operationsSections={visibleOperationsSections}
+                        operationsBoards={operationsSection === 'tasks' ? (
+                          <TasksView
+                            tasks={taskBoardTasks}
+                            taskTemplates={taskTemplates}
+                            templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
+                            checklistItemsByTaskId={checklistItemsByTaskId}
+                            employees={scheduleEmployees}
+                            isLoading={isTasksLoading}
+                            isTemplatesLoading={isTaskTemplatesLoading}
+                            isSaving={isSavingTask}
+                            isSavingTemplate={isSavingTaskTemplate}
+                            isGeneratingTasks={isGeneratingTasksFromTemplates}
+                            errorMessage={tasksError}
+                            templatesErrorMessage={taskTemplatesError}
+                            noticeMessage={tasksNotice}
+                            templatesNoticeMessage={taskTemplatesNotice}
+                            onCreateTask={handleCreateTask}
+                            onUpdateTask={handleUpdateTask}
+                            onDeleteTask={handleDeleteTask}
+                            onCompleteTask={handleCompleteTask}
+                            onReopenTask={handleReopenTask}
+                            onCreateTemplate={handleCreateTaskTemplate}
+                            onUpdateTemplate={handleUpdateTaskTemplate}
+                            onDeleteTemplate={handleDeleteTaskTemplate}
+                            onGenerateToday={handleGenerateTasksFromTemplates}
+                            onToggleChecklistItem={handleToggleChecklistItem}
+                            onDeleteCustomDepartment={handleDeleteCustomDepartment}
+                            currentEmployeeId={currentTaskEmployeeId}
+                            currentEmployeeName={workspaceProfile.managerName}
+                            todayKey={currentDateKey}
+                            isMobileLayout
+                            canManage={canManageOperationsRole}
+                          />
+                        ) : null}
+                        operationsChecklists={operationsSection === 'checklists' ? (
+                          <OperationsChecklistsView
+                            templates={operationsChecklistTemplates}
+                            isLoading={isOperationsLoading}
+                            noticeMessage={operationsNotice}
+                            isSaving={isSavingOperations}
+                            isWorkspaceReady={isOperationsWorkspaceReady}
+                            workspaceSetupMessage={operationsWorkspaceSetupMessage}
+                            searchTerm={searchTerm}
+                            onCreateTemplate={handleCreateOperationsChecklistTemplate}
+                            onUpdateTemplate={handleUpdateOperationsChecklistTemplate}
+                            onDeleteTemplate={handleDeleteOperationsChecklistTemplate}
+                            onCreateItem={handleCreateOperationsChecklistItem}
+                            onUpdateItem={handleUpdateOperationsChecklistItem}
+                            onDeleteItem={handleDeleteOperationsChecklistItem}
+                            onSaveItemOrder={handleSaveOperationsChecklistItemOrder}
+                          />
+                        ) : null}
                         menuProps={sharedMenuProps}
                         expandedView={mobileExpandedView}
                         expandedTitle={mobileExpandedTitle}
