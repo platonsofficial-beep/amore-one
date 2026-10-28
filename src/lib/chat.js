@@ -1,4 +1,8 @@
 export const CHAT_EMOJIS = ['👍', '❤️', '😂', '✅', '👀', '🙏']
+export const CHAT_COMPOSER_EMOJIS = [
+  '😀', '😁', '😂', '😊', '😍', '😘', '😎', '🤔', '😴', '👍',
+  '👏', '🙏', '❤️', '🔥', '✅', '🎉', '⭐', '😢', '😡', '👀',
+]
 export const CHAT_EDIT_WINDOW_MS = 15 * 60 * 1000
 export const CHAT_BODY_LIMIT = 4000
 export const CHAT_ATTACHMENT_BUCKET = 'chat-attachments'
@@ -155,6 +159,41 @@ export function groupReactions(rows, memberId) {
     grouped.set(emoji, current)
   }
   return [...grouped.values()]
+}
+
+export function shouldUseWideChatLayout(width = 0, height = 0) {
+  if (width >= 980) return true
+  return width > height && width >= 700
+}
+
+export function filterInboxByName(rows, query, membersById = {}, aliases = {}) {
+  const needle = `${query ?? ''}`.trim().toLowerCase()
+  if (!needle) return rows ?? []
+  return (rows ?? []).filter((row) => conversationTitle(row, membersById, aliases).toLowerCase().includes(needle))
+}
+
+export function messageGroupPosition(messages, index) {
+  const current = messages?.[index]
+  if (!current) return 'single'
+  const sameRun = (left, right) => {
+    if (!left || !right || left.deleted_at || right.deleted_at) return false
+    if (`${left.author_member_id ?? ''}` !== `${right.author_member_id ?? ''}`) return false
+    if (dayLabel(left.created_at) !== dayLabel(right.created_at)) return false
+    const gap = Math.abs(Date.parse(left.created_at) - Date.parse(right.created_at))
+    return Number.isFinite(gap) && gap <= 5 * 60 * 1000
+  }
+  const withPrevious = sameRun(messages[index - 1], current)
+  const withNext = sameRun(current, messages[index + 1])
+  if (withPrevious && withNext) return 'middle'
+  if (withPrevious) return 'last'
+  if (withNext) return 'first'
+  return 'single'
+}
+
+export function readTickState(message, memberId, participants) {
+  if (!message || message.deleted_at) return ''
+  if (`${message.author_member_id ?? ''}` !== `${memberId ?? ''}`) return ''
+  return seenByText(participants, message) ? 'read' : 'sent'
 }
 
 export function dayLabel(iso, now = new Date()) {

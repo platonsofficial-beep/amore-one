@@ -51444,7 +51444,8 @@ summary:focus-visible {
     gap: 0;
   }
 
-  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip > div:not(.profile-avatar) {
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .profile-chip > div:not(.profile-avatar),
+  .app-shell.is-chat-view:not(.is-mobile-shell) .topbar .user-menu-role-badge {
     position: absolute;
     width: 1px;
     height: 1px;

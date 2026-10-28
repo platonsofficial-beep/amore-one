@@ -39,6 +39,7 @@ vi.mock('../../services/chatService', () => ({
   removeChatReaction: vi.fn(),
   uploadChatPhoto: vi.fn(),
   subscribeToChatConversation: vi.fn(() => () => {}),
+  subscribeToChatTyping: vi.fn(() => ({ setTyping() {}, stop() {} })),
   chatAttachmentUrl: vi.fn(async () => ''),
 }))
 
@@ -202,5 +203,28 @@ describe('ChatScreen', () => {
     expect(onThreadChange).toHaveBeenCalledWith(true)
     view.unmount()
     expect(onThreadChange).toHaveBeenCalledWith(false)
+  })
+
+  it('filters the list by name', async () => {
+    const view = renderChat()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    const search = view.container.querySelector('[data-testid="chat-search"]')
+    const setValue = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    await act(async () => {
+      setValue.call(search, 'Alex')
+      search.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    const titles = [...view.container.querySelectorAll('.chat-row strong')].map((node) => node.textContent)
+    expect(titles).toEqual(['Alex'])
+    view.unmount()
+  })
+
+  it('uses a split layout when asked', () => {
+    const view = renderChat({ layout: 'split' })
+    expect(view.container.querySelector('.chat-screen')?.classList.contains('is-split')).toBe(true)
+    expect(view.container.querySelector('.chat-bubble')?.style.userSelect || getComputedStyle(view.container.querySelector('.chat-bubble') || document.body).userSelect).not.toBe('text')
+    view.unmount()
   })
 })
