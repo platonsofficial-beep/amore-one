@@ -598,6 +598,7 @@ import {
   shouldUseFluidScheduleDayColumns,
 } from './lib/mobileScheduleUtils'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
+import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
 import {
   isMobileScrollDebugEnabled,
   scheduleMobileReservationsScrollDebug,
@@ -4518,6 +4519,11 @@ function ScheduleView({
     [activeStaffMembers],
   )
 
+  const shiftDisplayNames = useMemo(
+    () => buildShiftDisplayNames(employees),
+    [employees],
+  )
+
   const employeeWeeklyHoursMap = useMemo(
     () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
     [visibleWeekShifts],
@@ -6163,8 +6169,10 @@ function ScheduleView({
                                   ?? shift.employees?.id
                                   ?? '',
                               )
-                              const displayNameLabel = (
-                                staffAvailabilityDisplayLabels.get(employeeKey) || employeeName
+                              const displayNameLabel = lookupShiftDisplayName(
+                                shiftDisplayNames,
+                                employeeKey,
+                                employeeName,
                               )
                               const identityEmployee = resolveScheduleIdentityEmployee(shift, employeeName)
                               const identityPresentation = getEmployeeIdentityColor(identityEmployee)
