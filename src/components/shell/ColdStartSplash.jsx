@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import './coldStartSplash.css'
 
-const PLAY_MS = 1500
+const MIN_MS = 2600
+const CAP_MS = 4000
 const REDUCED_MS = 200
 const SKIP_FADE_MS = 150
 let playedThisLoad = false
@@ -41,26 +42,32 @@ export function ColdStartSplash() {
     if (phase === 'gone') playedThisLoad = true
   }, [phase])
 
+  const readyRef = useRef(ready)
+  readyRef.current = ready
+  const minReachedRef = useRef(false)
+
   useEffect(() => {
     if (phase !== 'play') return undefined
-    const cap = reduced ? REDUCED_MS : PLAY_MS
-    const started = performance.now()
-    let frame = 0
-    const tick = () => {
-      const elapsed = performance.now() - started
-      const animationDone = elapsed >= cap
-      if (elapsed >= cap || (animationDone && ready)) {
-        setPhase('gone')
-        return
-      }
-      frame = window.requestAnimationFrame(tick)
-    }
-    const capTimer = window.setTimeout(() => setPhase('gone'), cap)
-    frame = window.requestAnimationFrame(tick)
+    const minMs = reduced ? REDUCED_MS : MIN_MS
+    const capMs = reduced ? REDUCED_MS : CAP_MS
+    const minTimer = window.setTimeout(() => {
+      minReachedRef.current = true
+      if (reduced) setPhase('gone')
+      else if (readyRef.current) setPhase('fading')
+    }, minMs)
+    const capTimer = window.setTimeout(() => {
+      setPhase(reduced ? 'gone' : 'fading')
+    }, capMs)
     return () => {
+      window.clearTimeout(minTimer)
       window.clearTimeout(capTimer)
-      window.cancelAnimationFrame(frame)
     }
+  }, [phase, reduced])
+
+  useEffect(() => {
+    if (phase !== 'play' || reduced || !ready || !minReachedRef.current) return undefined
+    setPhase('fading')
+    return undefined
   }, [phase, ready, reduced])
 
   useEffect(() => {

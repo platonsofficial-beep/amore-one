@@ -23,6 +23,11 @@ function renderSplash() {
   })
   return {
     container,
+    rerender: () => {
+      act(() => {
+        root.render(createElement(ColdStartSplash))
+      })
+    },
     unmount: () => {
       act(() => root.unmount())
       container.remove()
@@ -60,19 +65,59 @@ describe('ColdStartSplash', () => {
     view.unmount()
   })
 
-  it('leaves at the 1.5s cap even while auth is still loading', () => {
+  it('keeps the full intro for at least 2.6s when the app is already ready', () => {
+    vi.useFakeTimers()
+    const view = renderSplash()
+    act(() => {
+      vi.advanceTimersByTime(2500)
+    })
+    expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeTruthy()
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-fading')).toBe(true)
+    act(() => {
+      vi.advanceTimersByTime(150)
+    })
+    expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
+    view.unmount()
+  })
+
+  it('holds the finished logo while loading, then leaves at the 4s cap', () => {
     vi.useFakeTimers()
     auth.isAuthDisabled = false
     auth.isBootstrapping = true
     const view = renderSplash()
     act(() => {
-      vi.advanceTimersByTime(1490)
+      vi.advanceTimersByTime(2600)
     })
     expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeTruthy()
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-fading')).toBe(false)
     act(() => {
-      vi.advanceTimersByTime(20)
+      vi.advanceTimersByTime(1400)
+    })
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-fading')).toBe(true)
+    act(() => {
+      vi.advanceTimersByTime(150)
     })
     expect(view.container.querySelector('[data-testid="cold-start-splash"]')).toBeNull()
+    view.unmount()
+  })
+
+  it('leaves once loading finishes after the minimum', () => {
+    vi.useFakeTimers()
+    auth.isAuthDisabled = false
+    auth.isBootstrapping = true
+    const view = renderSplash()
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
+    expect(view.container.querySelector('.is-fading')).toBeNull()
+    auth.isBootstrapping = false
+    act(() => {
+      view.rerender()
+    })
+    expect(view.container.querySelector('.cold-start-splash')?.classList.contains('is-fading')).toBe(true)
     view.unmount()
   })
 
@@ -94,7 +139,10 @@ describe('ColdStartSplash', () => {
     vi.useFakeTimers()
     const first = renderSplash()
     act(() => {
-      vi.advanceTimersByTime(1500)
+      vi.advanceTimersByTime(2600)
+    })
+    act(() => {
+      vi.advanceTimersByTime(150)
     })
     first.unmount()
     const second = renderSplash()
