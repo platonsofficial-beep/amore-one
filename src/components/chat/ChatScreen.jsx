@@ -607,7 +607,7 @@ export function ChatScreen({
                   />
                 </span>
               ) : null}
-              <span>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
+              <span className={openRow ? '' : 'chat-thread-placeholder'}>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
               </button>
             </h2>
             {openId ? (

@@ -7171,8 +7171,22 @@
 .mobile-host-form-field .reservation-phone-field {
   display: flex;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
   width: 100%;
+}
+
+.mobile-host-form-field .reservation-phone-field .phone-country-picker {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-host-form-field .reservation-phone-field-input,
+.mobile-host-form-field .reservation-phone-field .phone-country-picker-trigger {
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 .mobile-host-form-field .reservation-phone-field-country-picker {

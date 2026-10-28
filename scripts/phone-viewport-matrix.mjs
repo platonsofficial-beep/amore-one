@@ -762,7 +762,9 @@ function assertMeasurement(page, width, height, measurement) {
     if (!measurement.chatList) failures.push('chat list did not render')
     if (!measurement.chatSearch) failures.push('chat search did not render')
     const split = Boolean(measurement.chatSplit)
-    if (width > height && width >= 700 && !split) failures.push('chat landscape is not split')
+    const phoneLandscape = width > height && height <= 520 && width < 1100
+    if (phoneLandscape && split) failures.push('chat phone landscape is split')
+    if (!phoneLandscape && width > height && width >= 700 && !split) failures.push('chat landscape is not split')
     if (height > width && split) failures.push('chat portrait is split')
   }
   if (page.id === 'schedule' && width > height && height <= 460 && width <= 1100 && measurement.scheduleDayName) {

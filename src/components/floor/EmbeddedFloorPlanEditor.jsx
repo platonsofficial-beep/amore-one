@@ -11,6 +11,7 @@ import { getResetCameraForEditorWorkspace } from '../../floor-plan-builder/lib/e
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
+import { FloorAreaSelect } from './FloorAreaSelect'
 import { recordPublishBreadcrumb } from '../../lib/publishFloorPlanDiagnostics'
 import { validatePublishReturnToHostReadiness } from '../../lib/publishReturnToHost'
 import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
@@ -55,19 +56,11 @@ function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
         ‹
       </button>
 
-      <label className="floor-plan-area-select">
-        <span className="sr-only">Restaurant area</span>
-        <select
-          className="floor-plan-area-select-input"
-          value={activeFloorId}
-          onChange={(event) => onChange(event.target.value)}
-        >
-          {floors.map((floor) => (
-            <option key={floor.id} value={floor.id}>{floor.label}</option>
-          ))}
-        </select>
-        <span className="floor-plan-area-select-chevron" aria-hidden="true">▾</span>
-      </label>
+      <FloorAreaSelect
+        zones={floors}
+        value={activeFloorId}
+        onChange={onChange}
+      />
 
       <button
         type="button"

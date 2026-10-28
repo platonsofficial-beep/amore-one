@@ -693,7 +693,13 @@
 }
 
 .chat-row.is-pinned {
-  background: rgba(255, 255, 255, 0.03);
+  background: transparent;
+  box-shadow: inset 2px 0 0 #e6c27a;
+}
+
+.chat-thread-placeholder {
+  color: #f7efe6;
+  font-weight: 650;
 }
 
 .chat-bubble-meta {
@@ -751,9 +757,22 @@
   border: 0;
   background: transparent;
   color: inherit;
-  min-width: 36px;
-  min-height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   cursor: pointer;
+}
+
+.chat-composer .chat-composer-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
 }
 
 .chat-emoji-picker {

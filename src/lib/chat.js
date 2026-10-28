@@ -164,6 +164,9 @@ export function groupReactions(rows, memberId) {
 }
 
 export function shouldUseWideChatLayout(width = 0, height = 0) {
+  // Phone landscape stays one pane, like WhatsApp: the list, then the thread.
+  // Tablet and desktop keep the two-pane layout.
+  if (height > 0 && height <= 520 && width < 1100) return false
   if (width >= 980) return true
   return width > height && width >= 700
 }
