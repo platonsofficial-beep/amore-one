@@ -14,7 +14,6 @@
   background: #0B1220;
   perspective: 900px;
   cursor: pointer;
-  animation: cold-start-hold 1500ms linear forwards;
 }
 
 .cold-start-stage {
@@ -38,22 +37,22 @@
   transform-origin: center;
   opacity: 0;
   will-change: transform, opacity, filter;
-  animation: cold-start-tri 480ms cubic-bezier(.16, 1, .3, 1) forwards;
+  animation: cold-start-tri 700ms cubic-bezier(.16, 1, .3, 1) forwards;
 }
 
 .cold-start-tri.is-gold { animation-delay: 0ms; }
-.cold-start-tri.is-blue { animation-delay: 150ms; }
-.cold-start-tri.is-taupe { animation-delay: 300ms; }
+.cold-start-tri.is-blue { animation-delay: 300ms; }
+.cold-start-tri.is-taupe { animation-delay: 600ms; }
 
 .cold-start-word {
   opacity: 0;
   transform-origin: center;
-  animation: cold-start-pop 380ms cubic-bezier(.34, 1.56, .64, 1) 780ms both;
+  animation: cold-start-pop 400ms cubic-bezier(.34, 1.56, .64, 1) 1300ms both;
 }
 
 .cold-start-tagline {
   opacity: 0;
-  animation: cold-start-tag 450ms ease-out 950ms both;
+  animation: cold-start-tag 400ms ease-out 1700ms both;
 }
 
 .cold-start-tagline text {
@@ -61,14 +60,14 @@
 }
 
 .cold-start-shimmer-band {
-  animation: cold-start-shimmer 350ms linear 1050ms both;
+  animation: cold-start-shimmer 400ms linear 2000ms both;
 }
 
 .cold-start-stage {
   animation:
-    cold-start-glow 250ms ease-out 480ms,
-    cold-start-glow 250ms ease-out 630ms,
-    cold-start-glow 250ms ease-out 780ms;
+    cold-start-glow 250ms ease-out 700ms,
+    cold-start-glow 250ms ease-out 1000ms,
+    cold-start-glow 250ms ease-out 1300ms;
 }
 
 @keyframes cold-start-tri {
@@ -129,11 +128,6 @@
   0% { filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
   50% { filter: drop-shadow(0 0 18px rgba(212, 175, 55, 0.6)); }
   100% { filter: drop-shadow(0 0 0 rgba(212, 175, 55, 0)); }
-}
-
-@keyframes cold-start-hold {
-  0%, 90% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 @keyframes cold-start-fade {
