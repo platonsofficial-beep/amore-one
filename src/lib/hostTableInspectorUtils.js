@@ -4,7 +4,11 @@ import { getReservationInServiceSinceTimeLabel } from './hostDiningTimer'
 export function shouldUseHostTableInspectorDrawer() {
   if (typeof window === 'undefined') return false
 
-  const isPhone = window.matchMedia?.('(max-width: 720px)')?.matches ?? window.innerWidth <= 720
+  const width = window.innerWidth || 0
+  const height = window.innerHeight || 0
+  if (width > height && height > 0 && height <= 520 && width <= 1100) return true
+
+  const isPhone = window.matchMedia?.('(max-width: 720px)')?.matches ?? width <= 720
   if (isPhone) return false
 
   const isPortrait = window.matchMedia?.('(orientation: portrait)')?.matches

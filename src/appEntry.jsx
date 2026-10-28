@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './mobileShell.css'
+import './uiScale.css'
 import { AuthProvider } from './context/AuthContext'
 import { AvatarDirectoryProvider } from './context/AvatarDirectoryContext'
 import { AuthGate } from './components/auth/AuthGate'

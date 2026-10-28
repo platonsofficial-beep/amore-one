@@ -17,12 +17,19 @@ function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   }
   left = Math.max(MENU_MARGIN, left)
 
-  if (top + menuHeight > viewportHeight - MENU_MARGIN) {
-    top = Math.max(MENU_MARGIN, anchorRect.top - menuHeight - MENU_MARGIN)
+  const maxHeight = Math.max(120, viewportHeight - MENU_MARGIN * 2)
+  const usedHeight = Math.min(menuHeight, maxHeight)
+
+  if (top + usedHeight > viewportHeight - MENU_MARGIN) {
+    top = Math.max(MENU_MARGIN, viewportHeight - MENU_MARGIN - usedHeight)
   }
   top = Math.max(MENU_MARGIN, top)
 
-  return { top, left }
+  return {
+    top,
+    left,
+    maxHeight: Math.max(80, viewportHeight - top - MENU_MARGIN),
+  }
 }
 
 function HostQueueToolbarMenu({
@@ -121,7 +128,7 @@ function HostQueueToolbarMenu({
     <div
       ref={panelRef}
       className={`host-queue-toolbar-menu${isPositioned ? ' is-visible' : ''}`}
-      style={{ top: position.top, left: position.left, zIndex: MENU_Z_INDEX }}
+      style={{ top: position.top, left: position.left, maxHeight: position.maxHeight, zIndex: MENU_Z_INDEX }}
       role="dialog"
       aria-label={ariaLabel}
     >

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeHostFloorFit, computeHostFloorReadableBox } from './hostFloorPlanViewport'
+import { clampHostFloorPan, computeHostFloorContainBox, computeHostFloorFit, computeHostFloorReadableBox } from './hostFloorPlanViewport'
 
 describe('computeHostFloorFit', () => {
   it('does not apply a second fit-to-table-bounds zoom on published layouts', () => {
@@ -16,6 +16,35 @@ describe('computeHostFloorFit', () => {
       zoom: 1,
       pan: { x: 0, y: 0 },
     })
+  })
+})
+
+describe('computeHostFloorContainBox', () => {
+  it('fits the whole plan inside the visible area', () => {
+    const box = computeHostFloorContainBox({
+      viewportWidth: 480,
+      viewportHeight: 160,
+      aspectWidth: 1000,
+      aspectHeight: 700,
+    })
+    expect(box.width).toBeLessThanOrEqual(480)
+    expect(box.height).toBeLessThanOrEqual(160)
+    expect(box.width / box.height).toBeCloseTo(1000 / 700, 1)
+  })
+
+  it('does not pan the map past its edges', () => {
+    expect(clampHostFloorPan({ x: 20, y: 30 }, {
+      viewportWidth: 200,
+      viewportHeight: 100,
+      contentWidth: 400,
+      contentHeight: 300,
+    })).toEqual({ x: 0, y: 0 })
+    expect(clampHostFloorPan({ x: -500, y: -400 }, {
+      viewportWidth: 200,
+      viewportHeight: 100,
+      contentWidth: 400,
+      contentHeight: 300,
+    })).toEqual({ x: -200, y: -200 })
   })
 })
 

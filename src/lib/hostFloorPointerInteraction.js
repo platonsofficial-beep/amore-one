@@ -1,4 +1,40 @@
 export const HOST_FLOOR_TAP_MOVE_THRESHOLD_PX = 10
+const HOST_FLOOR_LOCK_KEY = 'one.hostFloor.locked'
+const HOST_FLOOR_AREA_KEY = 'one.hostFloor.areaId'
+
+export function readHostFloorLockPreference() {
+  try {
+    return sessionStorage.getItem(HOST_FLOOR_LOCK_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function writeHostFloorLockPreference(locked) {
+  try {
+    sessionStorage.setItem(HOST_FLOOR_LOCK_KEY, locked ? '1' : '0')
+  } catch {
+    // Private mode can reject storage. The in-memory toggle still works.
+  }
+}
+
+export function readHostFloorAreaPreference() {
+  try {
+    return `${sessionStorage.getItem(HOST_FLOOR_AREA_KEY) ?? ''}`.trim() || null
+  } catch {
+    return null
+  }
+}
+
+export function writeHostFloorAreaPreference(areaId) {
+  try {
+    const value = `${areaId ?? ''}`.trim()
+    if (!value) sessionStorage.removeItem(HOST_FLOOR_AREA_KEY)
+    else sessionStorage.setItem(HOST_FLOOR_AREA_KEY, value)
+  } catch {
+    // Ignore storage failures.
+  }
+}
 
 export const HOST_FLOOR_POINTER_MODE = {
   IDLE: 'idle',

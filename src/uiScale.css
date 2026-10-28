@@ -1,0 +1,95 @@
+/*
+  Phone UI scale. Reference layout is a medium iPhone Pro:
+  landscape 852×393, portrait 393×852.
+
+  --ui-scale is 1 at that size. Smaller phones get the same rows and the
+  same controls, drawn a bit tighter. Larger phones get the same chrome
+  and the extra pixels go to the flexible regions (the floor plan).
+
+  Tablet and desktop leave --ui-scale at 1. Stock, Schedule, and the shell
+  can read these tokens later; Reservations landscape uses them now.
+
+  Phone-landscape choices that differ from desktop, and apply at every
+  phone size rather than per breakpoint:
+  - Edit layout and Timers stay in More (the floor toolbar is two rows:
+    area switcher, then More + zoom + lock).
+  - Seating chips omit the start time; the row scrolls.
+  - Service stats are icon + number.
+  - The date is the short form (Today, Wed 28 Oct).
+  - Table colours sit behind the info button.
+*/
+
+:root {
+  --ui-ref-landscape-width: 852;
+  --ui-ref-landscape-height: 393;
+  --ui-scale: 1;
+  --ui-font: calc(16px * var(--ui-scale));
+  --ui-gap: calc(8px * var(--ui-scale));
+  --ui-pad: calc(8px * var(--ui-scale));
+  --ui-control: clamp(36px, calc(38px * var(--ui-scale)), 44px);
+  --ui-radius: calc(10px * var(--ui-scale));
+}
+
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  :root {
+    --ui-scale: clamp(0.74, min(100vw / 852, 100dvh / 393), 1.14);
+  }
+
+  .mobile-host-reservations.is-landscape {
+    --ui-font: calc(15px * var(--ui-scale));
+    font-size: var(--ui-font);
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar,
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell,
+  .mobile-host-reservations.is-landscape .mobile-host-list-controls,
+  .mobile-host-reservations.is-landscape .host-queue-toolbar {
+    gap: var(--ui-gap);
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-more-summary,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-btn,
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-walk-in-btn,
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-add-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    min-height: var(--ui-control);
+    height: var(--ui-control);
+    font-size: calc(13px * var(--ui-scale));
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    min-width: var(--ui-control);
+    width: var(--ui-control);
+  }
+
+  .employee-modal-backdrop:has(.reservation-smart-modal.is-responsive-sheet) {
+    align-items: stretch;
+    padding: 0;
+  }
+
+  .employee-modal.reservation-smart-modal.is-responsive-sheet {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    zoom: var(--ui-scale);
+  }
+
+  .employee-modal.reservation-smart-modal.is-responsive-sheet .modal-actions {
+    flex-direction: row;
+    position: sticky;
+    bottom: 0;
+    background: #10141c;
+  }
+}

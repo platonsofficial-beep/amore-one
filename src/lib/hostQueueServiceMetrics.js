@@ -1,6 +1,6 @@
-import { findLayoutUnit } from './reservationTableOptions'
 import {
   getReservationSeatingAssignment,
+  seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
 import {
   isReservationInHouseStatus,
@@ -62,9 +62,10 @@ function getAssignedTableIdsForScope(
 
   const assignment = getReservationSeatingAssignment(reservation)
   const tableIds = new Set()
+  const layoutUnits = layout?.tables ?? layout?.units ?? []
 
   ;(assignment?.assignedUnits ?? []).forEach((unit) => {
-    const layoutUnit = findLayoutUnit(layout, unit.id)
+    const layoutUnit = layoutUnits.find((entry) => seatingUnitMatchesFloorUnit(unit, entry))
     if (!layoutUnit?.id) return
 
     if (

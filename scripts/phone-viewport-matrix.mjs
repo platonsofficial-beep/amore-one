@@ -429,6 +429,42 @@ const MEASURE_SOURCE = `(() => {
       const el = document.querySelector('.blend-grid-header-day-name')
       return el ? el.textContent.trim() : ''
     })(),
+    dateLabel: (() => {
+      const el = document.querySelector('[data-testid="mobile-host-date-label"]')
+      if (!el || el.clientWidth < 1) return null
+      return {
+        text: el.textContent.trim(),
+        clipped: el.scrollWidth > el.clientWidth + 2,
+      }
+    })(),
+    toolbarSignature: (() => {
+      const toolbar = document.querySelector('.floor-plan-toolbar')
+      if (!toolbar) return ''
+      return [...toolbar.querySelectorAll('button, summary, select')].flatMap((el) => {
+        const style = getComputedStyle(el)
+        if (style.display === 'none' || style.visibility === 'hidden') return []
+        const rect = el.getBoundingClientRect()
+        if (rect.width < 2 || rect.height < 2) return []
+        const name = el.getAttribute('aria-label') || el.tagName
+        return [name]
+      }).join('|')
+    })(),
+    toolbarOverlaps: (() => {
+      const toolbar = document.querySelector('.floor-plan-toolbar')
+      if (!toolbar) return false
+      const rects = [...toolbar.querySelectorAll('button, summary, select')].flatMap((el) => {
+        const style = getComputedStyle(el)
+        if (style.display === 'none' || style.visibility === 'hidden') return []
+        const rect = el.getBoundingClientRect()
+        if (rect.width < 2 || rect.height < 2) return []
+        return [rect]
+      })
+      return rects.some((rect, index) => rects.slice(index + 1).some((other) => {
+        const overlapW = Math.min(rect.right, other.right) - Math.max(rect.left, other.left)
+        const overlapH = Math.min(rect.bottom, other.bottom) - Math.max(rect.top, other.top)
+        return overlapW > 4 && overlapH > 4
+      }))
+    })(),
     nextArea: nextAreaRect && nextAreaRect.width > 1 ? {
       left: Math.round(nextAreaRect.left),
       right: Math.round(nextAreaRect.right),
@@ -593,6 +629,9 @@ function assertMeasurement(page, width, height, measurement) {
       failures.push('next area arrow is missing or clipped')
     }
     if (height <= 520) {
+      if (measurement.toolbarOverlaps) failures.push('floor toolbar controls overlap')
+      if (!measurement.dateLabel?.text) failures.push('header date is missing')
+      else if (measurement.dateLabel.clipped) failures.push(`header date is truncated (${measurement.dateLabel.text})`)
       if (measurement.searchPlaceholderClipped) failures.push('search placeholder is clipped')
       if (measurement.sortVisibleLabel !== 'Sort') {
         failures.push(`sort control shows "${measurement.sortVisibleLabel}"`)
@@ -742,6 +781,7 @@ export async function runPhoneViewportMatrix({
         }
       }
 
+      const layoutSignatures = new Map()
       for (const [portraitWidth, portraitHeight] of sizes) {
         const landscapeWidth = portraitHeight
         const landscapeHeight = portraitWidth
@@ -776,6 +816,31 @@ export async function runPhoneViewportMatrix({
           await writeFile(join(screenshotDir, landscapeName), Buffer.from(shot.data, 'base64'))
           shots.push(landscapeName)
         }
+        if (page.id === 'reservations' && workspaceFloorExpected(landscapeWidth, landscapeHeight)) {
+          const signatureKey = `${landscapeWidth}x${landscapeHeight}`
+          if (['667x375', '844x390', '852x393', '932x430', '956x440'].includes(signatureKey)) {
+            layoutSignatures.set(signatureKey, landscapeResult.toolbarSignature || '')
+          }
+          const locked = await send('Runtime.evaluate', {
+            expression: `(async () => {
+              const button = document.querySelector('[data-testid="host-floor-interaction-lock"]')
+              const viewport = document.querySelector('.floor-plan-viewport.is-host-viewport')
+              if (!button || !viewport) return { skipped: true }
+              const wasLocked = button.getAttribute('aria-pressed') === 'true'
+              if (!wasLocked) button.click()
+              await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+              const style = getComputedStyle(viewport)
+              const blocked = style.overflow === 'hidden' && !String(style.touchAction).includes('pan')
+              if (!wasLocked) button.click()
+              return { blocked, overflow: style.overflow, touchAction: style.touchAction }
+            })()`,
+            awaitPromise: true,
+            returnByValue: true,
+          })
+          if (!locked.result?.value?.skipped && !locked.result?.value?.blocked) {
+            landscapeFailures.push(`lock does not freeze the map (${locked.result?.value?.overflow} ${locked.result?.value?.touchAction})`)
+          }
+        }
         if (landscapeFailures.length) {
           failures.push({ page: page.id, size: `${landscapeWidth}x${landscapeHeight}`, mode: 'landscape', failures: landscapeFailures })
         }
@@ -805,6 +870,19 @@ export async function runPhoneViewportMatrix({
         }
         if (rotatedFailures.length) {
           failures.push({ page: page.id, size: `${portraitWidth}x${portraitHeight} → ${landscapeWidth}x${landscapeHeight}`, mode: 'rotate', failures: rotatedFailures })
+        }
+      }
+
+      const referenceSignature = layoutSignatures.get('852x393')
+      if (referenceSignature) {
+        for (const [size, signature] of layoutSignatures) {
+          if (size === '852x393' || signature === referenceSignature) continue
+          failures.push({
+            page: page.id,
+            size,
+            mode: 'landscape',
+            failures: [`toolbar structure differs from 852×393 (${signature || 'empty'} vs ${referenceSignature})`],
+          })
         }
       }
 

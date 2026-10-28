@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
+import { getHostListCompactStatusLabel } from '../../lib/reservationHostStatus'
 import { formatTime24, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
@@ -117,7 +118,7 @@ export function MobileManagerReservationsView({
                   <span>
                     {Number(reservation.guests) || 0} guests
                     {reservation.tableNumber ? ` · ${reservation.tableNumber}` : ''}
-                    {reservation.status ? ` · ${reservation.status}` : ''}
+                    {reservation.status ? ` · ${getHostListCompactStatusLabel(reservation.status)}` : ''}
                   </span>
                 </span>
               </button>

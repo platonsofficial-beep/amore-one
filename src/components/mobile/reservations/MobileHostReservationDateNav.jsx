@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { HostWorkspaceDatePicker } from '../../reservations/HostWorkspaceDatePicker'
 import { ReservationCalendarIcon } from '../../reservations/ReservationCalendarIcon'
-import { formatHostWorkspaceDateNavLabel, shiftHostWorkspaceDateKey } from '../../reservations/hostReservationListUtils'
+import { formatHostWorkspaceCompactDateNavLabel, formatHostWorkspaceDateNavLabel, shiftHostWorkspaceDateKey } from '../../reservations/hostReservationListUtils'
+import { useMediaQuery } from '../../../lib/useMediaQuery'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
 
 export function MobileHostReservationDateNav({
@@ -13,7 +14,10 @@ export function MobileHostReservationDateNav({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const normalizedSelectedDateKey = normalizeReservationDateKey(selectedDateKey)
   const normalizedWorkspaceTodayKey = normalizeReservationDateKey(workspaceTodayKey) || normalizedSelectedDateKey
-  const label = formatHostWorkspaceDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
+  const compactDate = useMediaQuery('(orientation: landscape) and (max-height: 520px)')
+  const label = compactDate
+    ? formatHostWorkspaceCompactDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
+    : formatHostWorkspaceDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
 
   useEffect(() => {
     if (!isPickerOpen) return undefined
