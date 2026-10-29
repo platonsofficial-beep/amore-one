@@ -107,14 +107,16 @@ export function NewVenueSheet({ onClose, onCreated }) {
           <h3 id="venue-sheet-title">Νέο venue</h3>
           <button type="button" className="venue-sheet-close" aria-label="Κλείσιμο" disabled={isSaving} onClick={onClose}>✕</button>
         </header>
-        <label className="venue-field">
-          <span>Όνομα</span>
-          <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder="π.χ. SENTIO.LIMASSOL" />
-        </label>
-        <label className="venue-field">
-          <span>Πόλη</span>
-          <input value={form.city} onChange={update('city')} maxLength={80} />
-        </label>
+        <div className="venue-sheet-place">
+          <label className="venue-field">
+            <span>Όνομα</span>
+            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder="π.χ. SENTIO.LIMASSOL" />
+          </label>
+          <label className="venue-field">
+            <span>Πόλη</span>
+            <input value={form.city} onChange={update('city')} maxLength={80} />
+          </label>
+        </div>
         <div className="venue-field-row">
           <label className="venue-field">
             <span>Χώρα</span>
@@ -141,8 +143,8 @@ export function NewVenueSheet({ onClose, onCreated }) {
         </div>
         {error ? <p className="venue-sheet-error" role="alert">{error}</p> : null}
         <footer className="venue-sheet-actions">
-          <button type="button" className="ghost-button" disabled={isSaving} onClick={onClose}>Ακύρωση</button>
-          <button type="submit" className="primary-button" disabled={isSaving || form.name.trim().length < 2}>
+          <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>Ακύρωση</button>
+          <button type="submit" className="primary-btn" disabled={isSaving || form.name.trim().length < 2}>
             {isSaving ? 'Δημιουργία…' : 'Δημιουργία'}
           </button>
         </footer>
@@ -164,7 +166,7 @@ export function VenueManager() {
   return (
     <div className="venue-manager">
       <VenueSwitcher className="venue-manager-switcher" />
-      <button type="button" className="primary-button venue-manager-new" onClick={() => setIsSheetOpen(true)}>
+      <button type="button" className="primary-btn venue-manager-new" onClick={() => setIsSheetOpen(true)}>
         ＋ Νέο venue
       </button>
       {isSheetOpen ? (
