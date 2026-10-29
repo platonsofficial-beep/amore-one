@@ -4,6 +4,7 @@ import { WorkspaceVenueSetupSection } from './WorkspaceVenueSetupSection'
 import { WorkspaceReservationSeatingsSection } from './WorkspaceReservationSeatingsSection'
 import { WorkspaceTeamSection } from './WorkspaceTeamSection'
 import { WorkspaceSystemSection } from './WorkspaceSystemSection'
+import { PrivacySettingsSection } from '../privacy/PrivacySections'
 
 export const WORKSPACE_SECTIONS = [
   { id: 'profile', label: 'Business Profile', icon: '🏢' },
@@ -13,6 +14,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'team', label: 'Team', icon: '👥' },
   { id: 'notifications', label: 'Notifications', icon: '🔔' },
   { id: 'system', label: 'System', icon: '⚙️' },
+  { id: 'privacy', label: 'Απόρρητο', icon: '🔒' },
 ]
 
 export function WorkspaceView({
@@ -77,6 +79,7 @@ export function WorkspaceView({
           {resolvedSection === 'system' ? (
             <WorkspaceSystemSection {...systemProps} />
           ) : null}
+          {resolvedSection === 'privacy' ? <PrivacySettingsSection /> : null}
         </div>
       </div>
     </section>

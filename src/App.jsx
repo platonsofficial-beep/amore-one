@@ -25151,7 +25151,7 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
-            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications']}
+            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications', 'privacy']}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,

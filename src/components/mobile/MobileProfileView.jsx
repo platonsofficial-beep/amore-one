@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { ProfilePhotoBlock } from '../profile/ProfilePhotoBlock'
 import { VenueSwitcher } from '../workspace/VenueManager'
+import { PrivacyAccountSection } from '../privacy/PrivacySections'
 
 export function MobileProfileView({
   displayName = '',
@@ -125,6 +126,8 @@ export function MobileProfileView({
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
       </form>
+
+      <PrivacyAccountSection />
     </div>
   )
 }

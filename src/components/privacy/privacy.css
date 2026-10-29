@@ -1,0 +1,61 @@
+.privacy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.privacy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.privacy-actions button {
+  min-height: 42px;
+}
+
+.privacy-danger-text {
+  color: #ff8a80;
+}
+
+.privacy-danger {
+  background: #c62828;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+}
+
+.privacy-notice,
+.privacy-warning {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.privacy-warning {
+  color: #ffb74d;
+}
+
+.privacy-sheet-body p,
+.privacy-sheet-body ul {
+  margin: 0 0 8px;
+}
+
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.legal-links a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.auth-legal-links {
+  justify-content: center;
+  margin-top: 14px;
+}
