@@ -20,6 +20,8 @@
   --one-safe-top-gap: min(20px, calc(var(--one-safe-area-top) * 100));
   /* Where readable chrome may start: status bar + gap. Opaque above this. */
   --one-safe-top-chrome: calc(var(--one-safe-area-top) + var(--one-safe-top-gap));
+  /* Shared top for the fixed bell and Help buttons so they sit on one line. */
+  --one-top-buttons-top: max(8px, var(--one-safe-top-chrome));
   /* Portrait and desktop use the real side insets. Phone landscape
      overrides both with the symmetric island inset. */
   --safe-l: var(--one-safe-area-left);

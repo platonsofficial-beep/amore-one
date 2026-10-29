@@ -46,6 +46,15 @@ describe('on shift board', () => {
     expect(extra.inNow[0]).toMatchObject({ scheduledLabel: 'Χωρίς βάρδια', isScheduled: false })
   })
 
+  it('names a not-in person from the shift when the employee list misses them', () => {
+    const solo = buildOnShiftBoard({
+      employees: [],
+      todayShifts: [{ id: 's9', employeeId: 'e9', date: '2026-10-29', startTime: '18:00', endTime: '23:00', employeeName: 'Anna Georgiou', role: 'Host' }],
+      now, timeZone: tz,
+    })
+    expect(solo.notIn[0]).toMatchObject({ name: 'Anna G.', position: 'Host', status: 'late', lateMinutes: 90 })
+  })
+
   it('groups by shift, department and name', () => {
     expect(groupOnShiftRows(board.inNow, 'shift').map((g) => [g.title, g.subtitle])).toEqual([
       ['Bartender', '17:00–01:00'], ['Waiter', '18:00–23:00'],

@@ -52028,9 +52028,10 @@ summary:focus-visible {
 
 .app-shell.is-mobile-shell .mobile-shell-bell {
   position: fixed;
-  top: max(8px, env(safe-area-inset-top));
-  right: 8px;
-  z-index: 40;
+  /* Same line as the Help "?" button, below the status bar and its gap. */
+  top: var(--one-top-buttons-top, max(8px, env(safe-area-inset-top)));
+  right: max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
+  z-index: 45;
 }
 
 .app-shell.is-mobile-shell .mobile-shell-bell .icon-btn {
