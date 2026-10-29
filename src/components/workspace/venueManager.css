@@ -1,0 +1,127 @@
+.venue-manager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+
+.venue-switcher {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.venue-switcher-label {
+  font-size: 0.72rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.venue-switcher-select {
+  min-height: 40px;
+  max-width: 100%;
+}
+
+.venue-manager-new {
+  min-height: 40px;
+}
+
+.venue-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+}
+
+.venue-sheet {
+  width: min(520px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  box-sizing: border-box;
+}
+
+@media (orientation: landscape) {
+  .venue-sheet-backdrop {
+    align-items: center;
+  }
+}
+
+.venue-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.venue-sheet-header h3 {
+  margin: 0;
+}
+
+.venue-sheet-close {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.venue-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.venue-field input,
+.venue-field select {
+  min-height: 42px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+.venue-field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.venue-field-short {
+  flex: 0 0 96px;
+}
+
+.venue-sheet-error {
+  margin: 0;
+  color: #ff8a80;
+}
+
+.venue-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.venue-sheet-actions button {
+  min-height: 42px;
+}
+
+.brand-block .venue-switcher,
+.account-venue-switcher {
+  margin-top: 8px;
+  width: 100%;
+}

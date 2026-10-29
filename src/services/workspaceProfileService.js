@@ -106,11 +106,12 @@ function mapWorkspaceProfile(record) {
   })
 }
 
-function serializeWorkspaceProfile(profile) {
+function serializeWorkspaceProfile(profile, workspaceId = '') {
   const normalized = normalizeProfile(profile)
 
   return {
     workspace_key: WORKSPACE_KEY,
+    ...(workspaceId ? { workspace_id: workspaceId } : {}),
     business_name: normalized.businessName,
     manager_name: normalized.managerName,
     manager_role: normalized.managerRole,
@@ -133,12 +134,36 @@ export function buildWorkspaceProfileDraft() {
   })
 }
 
-export async function getWorkspaceProfile() {
-  const { data, error } = await supabase
-    .from(WORKSPACE_PROFILES_TABLE)
-    .select('*')
-    .eq('workspace_key', WORKSPACE_KEY)
-    .maybeSingle()
+function normalizeWorkspaceId(workspaceId) {
+  return `${workspaceId ?? ''}`.trim()
+}
+
+/**
+ * The venue's profile row: by workspace_id first, then the legacy 'default'
+ * singleton (only when it belongs to this venue or has no workspace_id yet).
+ */
+export function pickWorkspaceProfileRecord(rows = [], workspaceId = '') {
+  const list = Array.isArray(rows) ? rows.filter(Boolean) : []
+  const id = normalizeWorkspaceId(workspaceId)
+  if (!id) return list.find((row) => row.workspace_key === WORKSPACE_KEY) ?? null
+  return list.find((row) => `${row.workspace_id ?? ''}` === id)
+    ?? list.find((row) => row.workspace_key === WORKSPACE_KEY && !row.workspace_id)
+    ?? null
+}
+
+async function fetchWorkspaceProfileRecord(workspaceId, columns = '*') {
+  const id = normalizeWorkspaceId(workspaceId)
+  const query = supabase.from(WORKSPACE_PROFILES_TABLE).select(columns)
+  const { data, error } = id
+    ? await query.or(`workspace_id.eq.${id},workspace_key.eq.${WORKSPACE_KEY}`)
+    : await query.eq('workspace_key', WORKSPACE_KEY)
+  if (error) return { data: null, error }
+  const rows = Array.isArray(data) ? data : (data ? [data] : [])
+  return { data: pickWorkspaceProfileRecord(rows, id), error: null }
+}
+
+export async function getWorkspaceProfile(workspaceId = '') {
+  const { data, error } = await fetchWorkspaceProfileRecord(workspaceId)
 
   if (error) {
     console.error('[workspaceProfileService] getWorkspaceProfile error:', error)
@@ -157,15 +182,16 @@ export async function getWorkspaceProfile() {
   return buildWorkspaceProfileDraft()
 }
 
-export async function saveWorkspaceProfile(profile) {
+export async function saveWorkspaceProfile(profile, workspaceId = '') {
   const normalized = normalizeProfile(profile)
-  const payload = serializeWorkspaceProfile(normalized)
-
-  const { data: existing, error: existingError } = await supabase
-    .from(WORKSPACE_PROFILES_TABLE)
-    .select('id')
-    .eq('workspace_key', WORKSPACE_KEY)
-    .maybeSingle()
+  const id = normalizeWorkspaceId(workspaceId)
+  const { data: existing, error: existingError } = await fetchWorkspaceProfileRecord(id, 'id, workspace_key, workspace_id')
+  const payload = serializeWorkspaceProfile(normalized, id)
+  if (existing?.workspace_key) {
+    payload.workspace_key = existing.workspace_key
+  } else if (id) {
+    payload.workspace_key = id
+  }
 
   if (existingError) {
     console.error('[workspaceProfileService] saveWorkspaceProfile lookup error:', existingError)

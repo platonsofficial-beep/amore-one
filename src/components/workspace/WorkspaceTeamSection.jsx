@@ -95,7 +95,7 @@ export function WorkspaceTeamSection({
 
     let isMounted = true
 
-    getWorkspaceProfile()
+    getWorkspaceProfile(workspace?.id ?? authWorkspace?.id)
       .then((profile) => {
         if (isMounted) {
           setWorkspaceProfile(profile)
@@ -161,7 +161,7 @@ export function WorkspaceTeamSection({
     setLinkEmployeeError('')
 
     try {
-      await linkMembershipEmployee(authUserId, employeeId)
+      await linkMembershipEmployee(authUserId, employeeId, membership?.workspaceId ?? workspace?.id ?? null)
 
       const refreshedMembership = await refreshMembership().catch(() => getCurrentMembership(user?.id))
       const nextEmployeeId = resolveMembershipEmployeeId(refreshedMembership) ?? employeeId

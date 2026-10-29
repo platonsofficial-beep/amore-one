@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ProfilePhotoBlock } from '../profile/ProfilePhotoBlock'
+import { VenueSwitcher } from '../workspace/VenueManager'
 
 export function MobileProfileView({
   displayName = '',
@@ -81,6 +82,8 @@ export function MobileProfileView({
           </div>
         </dl>
       </section>
+
+      <VenueSwitcher className="account-venue-switcher mobile-card" />
 
       <form className="mobile-profile-form" onSubmit={handleSubmit}>
         <section className="mobile-card" aria-label="Editable profile fields">

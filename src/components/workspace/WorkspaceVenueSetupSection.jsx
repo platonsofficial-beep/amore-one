@@ -1,3 +1,4 @@
+import { VenueManager } from './VenueManager'
 function WorkspaceVenueCard({ title, icon, items, fallbackNote }) {
   const hasItems = Array.isArray(items) && items.length > 0
 
@@ -31,6 +32,7 @@ export function WorkspaceVenueSetupSection({
 }) {
   return (
     <>
+      <VenueManager />
       <div className="workspace-section-header">
         <div>
           <p className="eyebrow">Venue</p>

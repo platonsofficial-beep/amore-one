@@ -9,7 +9,7 @@ import { AuthGate } from './components/auth/AuthGate'
 import { ManagerLandscapeGate } from './components/shell/ManagerLandscapeGate.jsx'
 import { PwaShell } from './components/pwa/PwaShell.jsx'
 import { registerPwaServiceWorker } from './pwaRegister.js'
-import App from './App.jsx'
+import { WorkspaceKeyedApp } from './components/workspace/WorkspaceKeyedApp.jsx'
 import './safeOverlay.css'
 import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 
@@ -23,7 +23,7 @@ createRoot(document.getElementById('root')).render(
           <ManagerLandscapeGate>
             <PwaShell>
               <KeyboardInset />
-              <App />
+              <WorkspaceKeyedApp />
             </PwaShell>
           </ManagerLandscapeGate>
         </AuthGate>
