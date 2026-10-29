@@ -62,7 +62,11 @@ function minutesOfDayInZone(isoValue, timeZone) {
 }
 
 function personBase(employee, employeeId, labels, shift) {
-  const fullName = clean(employee?.name ?? employee?.full_name ?? employee?.fullName)
+  const joined = Array.isArray(shift?.employees) ? shift.employees[0] : shift?.employees
+  const fullName = clean(
+    employee?.name ?? employee?.full_name ?? employee?.fullName
+    ?? joined?.full_name ?? joined?.name ?? shift?.employeeName,
+  )
   const times = shiftTimes(shift)
   return {
     employeeId,

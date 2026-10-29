@@ -126,7 +126,7 @@ export function OnShiftSheet({
   const [graceMinutes, setGraceMinutes] = useState(DEFAULT_LATE_GRACE_MINUTES)
   const [state, setState] = useState('loading')
   const [error, setError] = useState('')
-  const [tab, setTab] = useState('in')
+  const [chosenFilter, setFilter] = useState('')
   const [sort, setSort] = useState('shift')
   const [selected, setSelected] = useState(null)
   const [now, setNow] = useState(() => new Date())
@@ -175,8 +175,26 @@ export function OnShiftSheet({
     entries, breaks, employees, todayShifts, now, timeZone, graceMinutes,
   }), [entries, breaks, employees, todayShifts, now, timeZone, graceMinutes])
 
-  const rows = tab === 'in' ? board.inNow : board.notIn
-  const groups = useMemo(() => groupOnShiftRows(rows, sort), [rows, sort])
+  // Default: who is in, or the not-in list when nobody has clocked in.
+  const filter = chosenFilter || (state === 'ready' && board.counts.inNow === 0 ? 'not-in' : 'in')
+  const rows = useMemo(() => {
+    if (filter === 'break') return board.inNow.filter((row) => row.onBreak)
+    if (filter === 'not-in') return board.notIn
+    return board.inNow
+  }, [board, filter])
+  const groups = useMemo(() => {
+    const list = groupOnShiftRows(rows, sort)
+    if (filter !== 'not-in') return list
+    // Late people first, inside each group and across groups.
+    const lateFirst = (a, b) => Number(b.status === 'late') - Number(a.status === 'late')
+    list.forEach((group) => group.rows.sort(lateFirst))
+    return list.sort((a, b) => lateFirst(a.rows[0], b.rows[0]))
+  }, [rows, sort, filter])
+  const emptyText = {
+    in: 'Κανείς δεν έχει χτυπήσει κάρτα τώρα.',
+    break: 'Κανείς δεν είναι σε διάλειμμα τώρα.',
+    'not-in': 'Όλοι όσοι έχουν βάρδια σήμερα έχουν έρθει.',
+  }[filter]
 
   const sheet = (
     <div className="on-shift-backdrop" onClick={onClose}>
@@ -196,22 +214,29 @@ export function OnShiftSheet({
           <button type="button" className="on-shift-close" onClick={onClose} aria-label="Κλείσιμο">✕</button>
         </header>
 
-        <div className="on-shift-summary" role="group" aria-label="Σύνοψη">
-          <div className="is-in"><strong>{board.counts.inNow}</strong><span>Μέσα τώρα</span></div>
-          <div className="is-break"><strong>{board.counts.onBreak}</strong><span>Διάλειμμα</span></div>
-          <div className={board.counts.late ? 'is-late' : ''}>
-            <strong>{board.counts.notIn}</strong>
-            <span>{board.counts.late ? `Δεν ήρθαν · ${board.counts.late} αργούν` : 'Δεν ήρθαν'}</span>
-          </div>
-        </div>
-
-        <div className="on-shift-tabs" role="tablist" aria-label="Κατάσταση">
-          <button type="button" role="tab" aria-selected={tab === 'in'} className={tab === 'in' ? 'is-active' : ''} onClick={() => setTab('in')}>
-            Μέσα τώρα <em>{board.counts.inNow}</em>
-          </button>
-          <button type="button" role="tab" aria-selected={tab === 'not-in'} className={tab === 'not-in' ? 'is-active' : ''} onClick={() => setTab('not-in')}>
-            Δεν ήρθαν ακόμα <em>{board.counts.notIn}</em>
-          </button>
+        <div className="on-shift-summary" role="tablist" aria-label="Φίλτρο">
+          {[
+            { id: 'in', tone: 'is-in', value: board.counts.inNow, label: 'Μέσα τώρα' },
+            { id: 'break', tone: 'is-break', value: board.counts.onBreak, label: 'Διάλειμμα' },
+            {
+              id: 'not-in',
+              tone: board.counts.late ? 'is-late' : '',
+              value: board.counts.notIn,
+              label: board.counts.late ? `Δεν ήρθαν · ${board.counts.late} αργούν` : 'Δεν ήρθαν',
+            },
+          ].map((card) => (
+            <button
+              key={card.id}
+              type="button"
+              role="tab"
+              aria-selected={filter === card.id}
+              className={`${card.tone}${filter === card.id ? ' is-active' : ''}`}
+              onClick={() => setFilter(card.id)}
+            >
+              <strong>{card.value}</strong>
+              <span>{card.label}</span>
+            </button>
+          ))}
         </div>
 
         <div className="on-shift-sort" role="radiogroup" aria-label="Ταξινόμηση">
@@ -235,7 +260,7 @@ export function OnShiftSheet({
           {state === 'error' ? <p className="on-shift-empty is-alert" role="alert">{error}</p> : null}
           {state === 'ready' && groups.length === 0 ? (
             <p className="on-shift-empty">
-              {tab === 'in' ? 'Κανείς δεν έχει χτυπήσει κάρτα τώρα.' : 'Όλοι όσοι έχουν βάρδια σήμερα έχουν έρθει.'}
+              {emptyText}
             </p>
           ) : null}
           {state === 'ready' ? groups.map((group) => (

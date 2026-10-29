@@ -31,7 +31,8 @@
   display: inline-flex;
   position: fixed;
   z-index: 45;
-  top: max(8px, var(--one-safe-top-chrome));
+  /* 36px button centred on the 44px bell line. */
+  top: calc(var(--one-top-buttons-top, max(8px, var(--one-safe-top-chrome))) + 4px);
   right: calc(52px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
 }
 
