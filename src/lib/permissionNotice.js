@@ -51,11 +51,11 @@ export function explainBeforePermission(kind, { doc = globalThis.document, stora
     actions.className = 'permission-notice-actions'
     const cancel = doc.createElement('button')
     cancel.type = 'button'
-    cancel.className = 'ghost-button'
+    cancel.className = 'ghost-btn'
     cancel.textContent = 'Όχι τώρα'
     const ok = doc.createElement('button')
     ok.type = 'button'
-    ok.className = 'primary-button'
+    ok.className = 'primary-btn'
     ok.textContent = 'Συνέχεια'
     const finish = (accepted) => {
       backdrop.remove()

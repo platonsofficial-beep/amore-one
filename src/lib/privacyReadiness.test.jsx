@@ -82,7 +82,7 @@ describe('permission notice', () => {
 
   it('shows once, then remembers acceptance', async () => {
     const pending = explainBeforePermission('location')
-    const ok = document.querySelector('.permission-notice .primary-button')
+    const ok = document.querySelector('.permission-notice .primary-btn')
     expect(document.querySelector('.permission-notice h3').textContent).toMatch(/Τοποθεσία/)
     ok.click()
     await expect(pending).resolves.toBe(true)
@@ -93,7 +93,7 @@ describe('permission notice', () => {
 
   it('resolves false when the user declines', async () => {
     const pending = explainBeforePermission('push')
-    document.querySelector('.permission-notice .ghost-button').click()
+    document.querySelector('.permission-notice .ghost-btn').click()
     await expect(pending).resolves.toBe(false)
     expect(hasSeenPermissionNotice('push')).toBe(false)
   })
@@ -123,6 +123,16 @@ describe('legal pages', () => {
 })
 
 describe('privacy UI', () => {
+  it('keeps privacy controls at 44px inside the safe area', () => {
+    const css = readFileSync(join(__dirname, '../components/privacy/privacy.css'), 'utf8')
+    const legal = readFileSync(join(__dirname, '../legal/legal.css'), 'utf8')
+    expect(css).toContain('min-height: 44px')
+    expect(css).toContain('--safe-l')
+    expect(css).toContain('calc(var(--safe-l, 0px) + 78px)')
+    expect(legal).toContain('--one-safe-area-top')
+    expect(legal).toContain('--safe-l')
+  })
+
   it('shows legal links', () => {
     const container = render(<LegalLinks />)
     expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/privacy', '/terms'])

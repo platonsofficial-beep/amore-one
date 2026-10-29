@@ -36,6 +36,7 @@ const VALID_SETTINGS_SECTIONS = new Set([
   'team',
   'notifications',
   'system',
+  'privacy',
 ])
 
 function normalizeTeamSection(value) {
