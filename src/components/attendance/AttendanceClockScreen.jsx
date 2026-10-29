@@ -26,7 +26,7 @@ import {
   toDateTimeLocalValue,
   venueLocationIsSet,
 } from '../../lib/attendance'
-import { readCurrentPosition } from '../../lib/attendanceLocation'
+import { readCurrentPositionWithNotice } from '../../lib/attendanceLocation'
 import {
   attendanceRange,
   clockIn,
@@ -136,7 +136,7 @@ export function AttendanceClockScreen({
 
   async function locateOrOfferRequest(action) {
     try {
-      return await readCurrentPosition()
+      return await readCurrentPositionWithNotice()
     } catch (error) {
       setRequest({
         action,

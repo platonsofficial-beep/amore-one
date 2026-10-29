@@ -25151,7 +25151,7 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
-            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications']}
+            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications', 'privacy']}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
@@ -26438,6 +26438,7 @@ function App() {
                 <label className="form-field full-width">
                   <span>Notes</span>
                   <textarea rows="4" value={reservationForm.notes} onChange={(event) => setReservationForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
+                  <small className="sensitive-field-hint">Μην γράφεις στοιχεία υγείας. Αλλεργίες μόνο αν χρειάζονται για την κράτηση — είναι ευαίσθητο δεδομένο.</small>
                 </label>
 
                 <div className="modal-actions">

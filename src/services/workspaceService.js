@@ -8,6 +8,8 @@ const WORKSPACE_SELECT_COLUMNS = [
   'slug',
   'created_at',
   'updated_at',
+  'closed_at',
+  'purge_after',
 ].join(', ')
 
 function isTableUnavailableError(error) {
@@ -32,6 +34,8 @@ export function mapWorkspace(record) {
     slug,
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
+    closedAt: record.closed_at ?? record.closedAt ?? null,
+    purgeAfter: record.purge_after ?? record.purgeAfter ?? null,
   }
 }
 

@@ -224,7 +224,7 @@ async function fetchMembershipContext(authUserId) {
   if (workspaceId) {
     const { data: workspaceData, error: workspaceError } = await supabase
       .from('workspaces')
-      .select('id, name, slug, created_at, updated_at')
+      .select('id, name, slug, created_at, updated_at, closed_at, purge_after')
       .eq('id', workspaceId)
       .maybeSingle()
 
@@ -250,6 +250,11 @@ export function summarizeMemberships(rows = [], workspaceRecords = []) {
       .filter(Boolean)
       .map((record) => [`${record.id}`, `${record.name ?? ''}`.trim()]),
   )
+  const closed = new Set(
+    (Array.isArray(workspaceRecords) ? workspaceRecords : [])
+      .filter((record) => record?.closed_at ?? record?.closedAt)
+      .map((record) => `${record.id}`),
+  )
   const byWorkspace = new Map()
   for (const row of Array.isArray(rows) ? rows : []) {
     const workspaceId = `${row?.workspace_id ?? row?.workspaceId ?? ''}`.trim()
@@ -262,6 +267,7 @@ export function summarizeMemberships(rows = [], workspaceRecords = []) {
       workspaceId,
       workspaceName: names.get(workspaceId) || '',
       role: normalizeWorkspaceRole(row?.role),
+      closed: closed.has(workspaceId),
     }))
     .sort((left, right) => left.workspaceName.localeCompare(right.workspaceName))
 }
@@ -271,7 +277,7 @@ async function buildMembershipList(rows, joinedWorkspaceRecord) {
   let records = joinedWorkspaceRecord ? [joinedWorkspaceRecord] : []
   if (ids.length > 1) {
     try {
-      const { data } = await supabase.from('workspaces').select('id, name').in('id', ids)
+      const { data } = await supabase.from('workspaces').select('id, name, closed_at').in('id', ids)
       if (Array.isArray(data)) records = [...records, ...data]
     } catch (error) {
       console.error('[membershipService] workspace names error:', error)

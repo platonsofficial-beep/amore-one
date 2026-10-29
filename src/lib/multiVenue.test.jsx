@@ -73,8 +73,8 @@ describe('active membership selection', () => {
       [{ id: 'ws-a', name: 'Alpha' }, { id: 'ws-b', name: 'Beta' }],
     )
     expect(list).toEqual([
-      { workspaceId: 'ws-a', workspaceName: 'Alpha', role: 'staff' },
-      { workspaceId: 'ws-b', workspaceName: 'Beta', role: 'owner' },
+      { workspaceId: 'ws-a', workspaceName: 'Alpha', role: 'staff', closed: false },
+      { workspaceId: 'ws-b', workspaceName: 'Beta', role: 'owner', closed: false },
     ])
   })
 })

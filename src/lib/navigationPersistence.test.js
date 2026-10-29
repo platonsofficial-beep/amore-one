@@ -68,6 +68,21 @@ describe('navigationPersistence', () => {
     expect(saved.settingsSection).toBe('notifications')
   })
 
+  it('keeps the privacy settings section', () => {
+    const setItem = vi.fn()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: () => null,
+        setItem,
+        removeItem: vi.fn(),
+      },
+    })
+
+    persistNavigation({ activeView: 'settings', settingsSection: 'privacy' })
+    const saved = JSON.parse(setItem.mock.calls.at(-1)[1])
+    expect(saved.settingsSection).toBe('privacy')
+  })
+
   it('opens the schedule on the current week instead of a stored previous week', () => {
     const store = new Map([
       ['one.navigation.v2', JSON.stringify({

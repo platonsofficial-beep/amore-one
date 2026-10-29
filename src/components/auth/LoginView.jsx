@@ -1,3 +1,4 @@
+import { LegalLinks } from '../privacy/PrivacySections'
 import { useEffect, useState } from 'react'
 import { OneFullLogo } from '../brand/OneFullLogo'
 import { useAuth } from '../../context/AuthContext'
@@ -236,6 +237,7 @@ export function LoginView() {
             </button>
           )}
         </div>
+        <LegalLinks className="auth-legal-links" />
       </div>
     </div>
   )

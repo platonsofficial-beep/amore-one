@@ -3,7 +3,7 @@
  */
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOCATION_CONSENT_STORAGE_KEY } from '../../lib/attendance'
 import { AttendanceClockScreen } from './AttendanceClockScreen'
 
@@ -65,6 +65,11 @@ function renderClock() {
 }
 
 describe('AttendanceClockScreen', () => {
+  beforeEach(() => {
+    // The one-time location explanation was already accepted on this device.
+    localStorage.setItem('one.permissionNotice.location', 'accepted')
+  })
+
   afterEach(() => {
     document.body.innerHTML = ''
     localStorage.clear()
