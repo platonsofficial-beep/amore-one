@@ -1,3 +1,5 @@
+import { explainBeforePermission } from './permissionNotice'
+
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
 
 export function readCurrentPosition(geolocation = globalThis.navigator?.geolocation) {
@@ -24,4 +26,13 @@ export function readCurrentPosition(geolocation = globalThis.navigator?.geolocat
       GEO_OPTIONS,
     )
   })
+}
+
+/** Explains the location check once, then reads the position (used by clock-in/out). */
+export async function readCurrentPositionWithNotice(geolocation = globalThis.navigator?.geolocation) {
+  const accepted = await explainBeforePermission('location')
+  if (!accepted) {
+    throw Object.assign(new Error('no_location'), { code: 'no_location' })
+  }
+  return readCurrentPosition(geolocation)
 }

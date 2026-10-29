@@ -5,7 +5,7 @@ import { stripSeatingAssignmentFromNotes } from './seatingAssignment'
 const NOTE_BADGE_RULES = [
   { id: 'extra-chair-note', label: '🪑 Extra chair', patterns: [/extra\s+chair/i, /additional\s+chair/i] },
   { id: 'baby-chair', label: 'Baby chair', patterns: [/high\s+chair/i, /baby\s+chair/i] },
-  { id: 'allergy', label: '⚠ Allergy', patterns: [/allerg/i] },
+  { id: 'allergy', label: '⚠ Allergy', patterns: [/allerg/i], sensitive: true, title: 'Ευαίσθητο δεδομένο υγείας' },
   { id: 'birthday', label: '🎂 Birthday', patterns: [/birthday/i] },
   { id: 'anniversary', label: 'Occasion', patterns: [/anniversary/i] },
   { id: 'accessibility', label: '♿ Accessibility', patterns: [/wheelchair/i, /accessibility/i, /accessible/i] },

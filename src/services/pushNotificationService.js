@@ -1,3 +1,5 @@
+import { explainBeforePermission } from '../lib/permissionNotice'
+import '../components/privacy/privacy.css'
 import { supabase } from '../lib/supabaseClient'
 import { urlBase64ToUint8Array } from '../lib/pushNotifications'
 
@@ -68,6 +70,7 @@ export async function enableWebPush({ workspaceId, requestPermission = true }) {
   if (permission === 'denied') return { ok: false, permission: 'denied', subscription: null }
   if (permission !== 'granted') {
     if (!requestPermission) return { ok: false, permission, subscription: null }
+    if (!(await explainBeforePermission('push'))) return { ok: false, permission, subscription: null }
     permission = await Notification.requestPermission()
     if (permission !== 'granted') return { ok: false, permission, subscription: null }
   }

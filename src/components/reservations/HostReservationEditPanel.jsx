@@ -1,3 +1,4 @@
+import '../privacy/privacy.css'
 import { useEffect, useMemo, useState } from 'react'
 import {
   buildSeatingAssignment,
@@ -392,6 +393,7 @@ export function HostReservationEditPanel({
                     value={form.notes}
                     onChange={(event) => updateField({ notes: event.target.value })}
                   />
+                  <small className="sensitive-field-hint">Μην γράφεις στοιχεία υγείας. Αλλεργίες μόνο αν χρειάζονται για την κράτηση — είναι ευαίσθητο δεδομένο.</small>
                 </label>
               </>
             ) : (

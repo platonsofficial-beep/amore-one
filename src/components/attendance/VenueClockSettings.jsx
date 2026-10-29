@@ -6,7 +6,7 @@ import {
   attendanceErrorMessage,
   validateVenueSettings,
 } from '../../lib/attendance'
-import { readCurrentPosition } from '../../lib/attendanceLocation'
+import { readCurrentPositionWithNotice } from '../../lib/attendanceLocation'
 import { loadAttendanceSettings, setAttendanceSettings } from '../../services/attendanceService'
 
 export function VenueClockSettings({
@@ -47,7 +47,7 @@ export function VenueClockSettings({
     setError('')
     setMessage('')
     try {
-      const position = await readCurrentPosition()
+      const position = await readCurrentPositionWithNotice()
       if (position.lat == null || position.lng == null) {
         setError('We could not read this device’s location.')
         return
