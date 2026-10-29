@@ -29,6 +29,37 @@ const ROLE_PRIORITY = {
   staff: 4,
 }
 
+export const ACTIVE_WORKSPACE_STORAGE_KEY = 'one.activeWorkspaceId'
+
+export function getStoredActiveWorkspaceId() {
+  try {
+    return `${globalThis.localStorage?.getItem(ACTIVE_WORKSPACE_STORAGE_KEY) ?? ''}`.trim()
+  } catch {
+    return ''
+  }
+}
+
+export function setStoredActiveWorkspaceId(workspaceId) {
+  try {
+    const id = `${workspaceId ?? ''}`.trim()
+    if (id) globalThis.localStorage?.setItem(ACTIVE_WORKSPACE_STORAGE_KEY, id)
+    else globalThis.localStorage?.removeItem(ACTIVE_WORKSPACE_STORAGE_KEY)
+  } catch {
+    // storage unavailable (private mode); fall back to role-priority pick
+  }
+}
+
+/** Pick the active membership: stored workspace first, else role priority. */
+export function selectActiveMembershipRow(rows = [], preferredWorkspaceId = '') {
+  const list = Array.isArray(rows) ? rows : []
+  const preferred = `${preferredWorkspaceId ?? ''}`.trim()
+  if (preferred) {
+    const inPreferred = list.filter((row) => `${row?.workspace_id ?? row?.workspaceId ?? ''}` === preferred)
+    if (inPreferred.length > 0) return pickPreferredMembershipRow(inPreferred)
+  }
+  return pickPreferredMembershipRow(list)
+}
+
 function pickPreferredMembershipRow(rows = []) {
   if (!Array.isArray(rows) || rows.length === 0) return null
   if (rows.length === 1) return rows[0]
@@ -171,10 +202,14 @@ async function fetchMembershipContext(authUserId) {
   }
 
   const rows = Array.isArray(data) ? data : (data ? [data] : [])
-  let selectedRow = pickPreferredMembershipRow(rows)
+  let selectedRow = selectActiveMembershipRow(rows, getStoredActiveWorkspaceId())
+  const selectedWorkspaceKey = `${selectedRow?.workspace_id ?? selectedRow?.workspaceId ?? ''}`
 
   if (selectedRow && !resolveRecordEmployeeId(selectedRow)) {
-    const rowWithEmployee = rows.find((row) => resolveRecordEmployeeId(row))
+    const rowWithEmployee = rows.find((row) => (
+      resolveRecordEmployeeId(row)
+      && `${row?.workspace_id ?? row?.workspaceId ?? ''}` === selectedWorkspaceKey
+    ))
     if (rowWithEmployee) {
       selectedRow = {
         ...selectedRow,
@@ -198,11 +233,51 @@ async function fetchMembershipContext(authUserId) {
     }
   }
 
+  const memberships = await buildMembershipList(rows, joinedWorkspaceRecord)
+
   return {
     membership: mapMembership(selectedRow),
     workspace: mapMembershipWorkspace({ workspaces: joinedWorkspaceRecord }),
     joinedWorkspaceRecord,
+    memberships,
   }
+}
+
+/** One entry per workspace the user belongs to: { workspaceId, workspaceName, role }. */
+export function summarizeMemberships(rows = [], workspaceRecords = []) {
+  const names = new Map(
+    (Array.isArray(workspaceRecords) ? workspaceRecords : [])
+      .filter(Boolean)
+      .map((record) => [`${record.id}`, `${record.name ?? ''}`.trim()]),
+  )
+  const byWorkspace = new Map()
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const workspaceId = `${row?.workspace_id ?? row?.workspaceId ?? ''}`.trim()
+    if (!workspaceId) continue
+    const best = pickPreferredMembershipRow([byWorkspace.get(workspaceId), row].filter(Boolean))
+    byWorkspace.set(workspaceId, best)
+  }
+  return [...byWorkspace.entries()]
+    .map(([workspaceId, row]) => ({
+      workspaceId,
+      workspaceName: names.get(workspaceId) || '',
+      role: normalizeWorkspaceRole(row?.role),
+    }))
+    .sort((left, right) => left.workspaceName.localeCompare(right.workspaceName))
+}
+
+async function buildMembershipList(rows, joinedWorkspaceRecord) {
+  const ids = [...new Set(rows.map((row) => `${row?.workspace_id ?? ''}`.trim()).filter(Boolean))]
+  let records = joinedWorkspaceRecord ? [joinedWorkspaceRecord] : []
+  if (ids.length > 1) {
+    try {
+      const { data } = await supabase.from('workspaces').select('id, name').in('id', ids)
+      if (Array.isArray(data)) records = [...records, ...data]
+    } catch (error) {
+      console.error('[membershipService] workspace names error:', error)
+    }
+  }
+  return summarizeMemberships(rows, records)
 }
 
 export function resolveMembershipEmployeeId(membership) {
@@ -300,7 +375,7 @@ export async function createOwnerMembershipIfMissing(user) {
   return mapMembership(data)
 }
 
-export async function linkMembershipEmployee(authUserId, employeeId) {
+export async function linkMembershipEmployee(authUserId, employeeId, workspaceId = null) {
   authUserId = `${authUserId ?? ''}`.trim()
   employeeId = employeeId ? `${employeeId}`.trim() : null
 
@@ -312,10 +387,10 @@ export async function linkMembershipEmployee(authUserId, employeeId) {
     throw new Error('Employee is required to link.')
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await scopeToWorkspace(supabase
     .from('workspace_members')
     .update({ employee_id: employeeId })
-    .eq('auth_user_id', authUserId)
+    .eq('auth_user_id', authUserId), workspaceId)
     .select('id, workspace_id, auth_user_id, employee_id, display_name, email, role, avatar_path, avatar_updated_at')
 
   if (error) {
@@ -329,7 +404,16 @@ export async function linkMembershipEmployee(authUserId, employeeId) {
   return mapMembership(data[0])
 }
 
-export async function updateMembershipDisplayName(authUserId, displayName) {
+function resolveScopeWorkspaceId(workspaceId) {
+  return `${workspaceId ?? ''}`.trim() || getStoredActiveWorkspaceId()
+}
+
+function scopeToWorkspace(query, workspaceId) {
+  const id = resolveScopeWorkspaceId(workspaceId)
+  return id ? query.eq('workspace_id', id) : query
+}
+
+export async function updateMembershipDisplayName(authUserId, displayName, workspaceId = null) {
   const normalizedUserId = `${authUserId ?? ''}`.trim()
   const normalizedDisplayName = `${displayName ?? ''}`.trim()
 
@@ -341,10 +425,10 @@ export async function updateMembershipDisplayName(authUserId, displayName) {
     throw new Error('Display name is required.')
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await scopeToWorkspace(supabase
     .from(WORKSPACE_MEMBERS_TABLE)
     .update({ display_name: normalizedDisplayName })
-    .eq('auth_user_id', normalizedUserId)
+    .eq('auth_user_id', normalizedUserId), workspaceId)
     .select(MEMBERSHIP_ROW_SELECT)
     .single()
 

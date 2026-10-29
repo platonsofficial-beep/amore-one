@@ -158,3 +158,43 @@ export async function resolveWorkspaceForMembership(workspaceId) {
 
   return getDefaultWorkspace()
 }
+
+const CREATE_VENUE_ERRORS = {
+  not_allowed: 'Μόνο ιδιοκτήτες ή γενικοί διευθυντές μπορούν να δημιουργήσουν νέο venue.',
+  invalid_venue_name: 'Το όνομα πρέπει να έχει 2–80 χαρακτήρες.',
+  invalid_timezone: 'Μη έγκυρη ζώνη ώρας.',
+  not_authenticated: 'Συνδέσου ξανά και δοκίμασε πάλι.',
+}
+
+export function buildCreateVenueParams(input = {}) {
+  return {
+    p_name: `${input.name ?? ''}`.trim(),
+    p_timezone: `${input.timezone ?? ''}`.trim() || 'Europe/Nicosia',
+    p_currency: `${input.currency ?? ''}`.trim().toUpperCase() || 'EUR',
+    p_city: `${input.city ?? ''}`.trim(),
+    p_country_code: `${input.countryCode ?? ''}`.trim().toUpperCase(),
+    p_country_name: `${input.countryName ?? ''}`.trim(),
+  }
+}
+
+export function formatCreateVenueError(error) {
+  const message = `${error?.message ?? ''}`
+  const key = Object.keys(CREATE_VENUE_ERRORS).find((code) => message.includes(code))
+  return key ? CREATE_VENUE_ERRORS[key] : (message || 'Δεν ήταν δυνατή η δημιουργία venue.')
+}
+
+/** Creates a venue via the create_workspace_venue RPC; the caller becomes its owner. */
+export async function createVenue(input = {}) {
+  const params = buildCreateVenueParams(input)
+  if (params.p_name.length < 2) {
+    throw new Error(CREATE_VENUE_ERRORS.invalid_venue_name)
+  }
+  const { data, error } = await supabase.rpc('create_workspace_venue', params)
+  if (error) {
+    console.error('[workspaceService] createVenue error:', error)
+    throw new Error(formatCreateVenueError(error))
+  }
+  const id = `${data ?? ''}`.trim()
+  if (!id) throw new Error('Δεν ήταν δυνατή η δημιουργία venue.')
+  return id
+}

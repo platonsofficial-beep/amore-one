@@ -13,6 +13,7 @@ import {
   getCurrentMembership,
   getCurrentMembershipContext,
   getCurrentMembershipContextWithRetry,
+  setStoredActiveWorkspaceId,
 } from '../services/membershipService'
 import { resolveMemberAccess } from '../lib/memberAccess'
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
@@ -107,6 +108,7 @@ export function AuthProvider({ children }) {
   const [workspace, setWorkspace] = useState(isAuthDisabled ? DEV_MOCK_WORKSPACE : null)
   const [membership, setMembership] = useState(isAuthDisabled ? buildDevMembership() : null)
   const [membershipLoadError, setMembershipLoadError] = useState(null)
+  const [memberships, setMemberships] = useState([])
   const [storedPermissionRows, setStoredPermissionRows] = useState(null)
   const [workspaceLoadError, setWorkspaceLoadError] = useState(null)
   const [isJoiningWorkspace, setIsJoiningWorkspace] = useState(false)
@@ -140,6 +142,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     setWorkspace(null)
     setMembership(null)
+    setMemberships([])
     setMembershipLoadError(null)
     setWorkspaceLoadError(null)
     setStoredPermissionRows(null)
@@ -194,6 +197,7 @@ export function AuthProvider({ children }) {
       if (loadSeq !== authLoadSeqRef.current) return
 
       resolvedMembership = membershipContext.membership
+      setMemberships(Array.isArray(membershipContext.memberships) ? membershipContext.memberships : [])
       joinedWorkspaceRecord = membershipContext.joinedWorkspaceRecord ?? membershipContext.workspace
 
       if (resolvedMembership) {
@@ -228,6 +232,9 @@ export function AuthProvider({ children }) {
     if (loadSeq !== authLoadSeqRef.current) return
 
     setMembership(normalizeMembershipForContext(resolvedMembership))
+    if (resolvedMembership?.workspaceId) {
+      setStoredActiveWorkspaceId(resolvedMembership.workspaceId)
+    }
 
     let resolvedWorkspace = normalizeAuthWorkspace({
       membership: resolvedMembership,
@@ -279,6 +286,9 @@ export function AuthProvider({ children }) {
       const membershipContext = await getCurrentMembershipContext(userId)
       const nextMembership = normalizeMembershipForContext(membershipContext.membership)
       setMembership(nextMembership)
+      if (Array.isArray(membershipContext.memberships)) {
+        setMemberships(membershipContext.memberships)
+      }
       return nextMembership
     } catch (error) {
       console.error('[AuthContext] refreshMembership error:', error)
@@ -405,6 +415,17 @@ export function AuthProvider({ children }) {
     }
   }, [isAuthDisabled, clearAuthenticatedState, finishBootstrapping, loadWorkspaceContext, syncSessionOnly])
 
+  const switchWorkspace = useCallback(async (workspaceId) => {
+    const nextWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!nextWorkspaceId || isAuthDisabled) return
+    setStoredActiveWorkspaceId(nextWorkspaceId)
+    const activeSession = await getSession()
+    const nextUser = activeSession?.user ?? user
+    if (!nextUser) return
+    setStoredPermissionRows(null)
+    await loadWorkspaceContext(nextUser)
+  }, [isAuthDisabled, loadWorkspaceContext, user])
+
   const signIn = useCallback(async (email, password) => {
     const data = await signInWithPassword(email, password)
     const nextUser = data.user ?? data.session?.user ?? null
@@ -530,6 +551,7 @@ export function AuthProvider({ children }) {
     user,
     session,
     membership,
+    memberships,
     workspace,
     role,
     roleLabel,
@@ -547,10 +569,12 @@ export function AuthProvider({ children }) {
     resetPassword,
     syncDevMembershipProfile,
     refreshMembership,
+    switchWorkspace,
   }), [
     user,
     session,
     membership,
+    memberships,
     workspace,
     role,
     roleLabel,
@@ -568,6 +592,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     syncDevMembershipProfile,
     refreshMembership,
+    switchWorkspace,
   ])
 
   return (
@@ -585,4 +610,9 @@ export function useAuth() {
   }
 
   return context
+}
+
+/** Like useAuth, but returns null outside AuthProvider (isolated component tests). */
+export function useOptionalAuth() {
+  return useContext(AuthContext)
 }

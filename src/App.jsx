@@ -558,6 +558,7 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { VenueSwitcher } from './components/workspace/VenueManager'
 import { AttendanceBoard } from './components/attendance/AttendanceBoard'
 import { AttendanceClockScreen } from './components/attendance/AttendanceClockScreen'
 import { VenueClockSettings } from './components/attendance/VenueClockSettings'
@@ -17231,7 +17232,7 @@ function App() {
     setWorkspaceProfileNotice('')
 
     try {
-      const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft)
+      const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft, workspace?.id)
       setWorkspaceProfile(savedProfile)
       setWorkspaceProfileDraft(savedProfile)
       setWorkspaceProfileNotice(savedProfile.reservationAutoClosePending
@@ -17282,7 +17283,7 @@ function App() {
       setWorkspaceProfileNotice('')
 
       try {
-        const remoteProfile = await getWorkspaceProfile()
+        const remoteProfile = await getWorkspaceProfile(workspace?.id)
         if (!isMounted) return
         setWorkspaceProfile(remoteProfile)
         setWorkspaceProfileDraft(remoteProfile)
@@ -17303,7 +17304,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  },[workspace?.id])
 
   useEffect(() => {
     if (!isAuthDisabled) return
@@ -24206,7 +24207,7 @@ function App() {
     setMobileProfileError('')
 
     try {
-      await updateMembershipDisplayName(userId, displayName)
+      await updateMembershipDisplayName(userId, displayName, activeWorkspaceId || null)
       await refreshMembership()
 
       const linkedEmployeeId = `${membership?.employeeId ?? ''}`.trim()
@@ -24412,6 +24413,7 @@ function App() {
           >
             {brandDisplay.businessNameLabel}
           </h1>
+          <VenueSwitcher />
         </div>
 
         <nav className="nav-links" aria-label="Sidebar navigation">
