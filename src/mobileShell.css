@@ -1671,12 +1671,11 @@
   align-items: center;
   gap: 12px;
   position: sticky;
-  top: 0;
+  top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px);
   z-index: 2;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 10, 11, 0.96);
-  backdrop-filter: blur(12px);
+  background: var(--one-bg, #0e0e0f);
 }
 
 @media (max-width: 600px) {
@@ -3397,13 +3396,11 @@
 
 .mobile-manager-stock-sticky-tools {
   position: sticky;
-  top: 0;
+  top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px);
   z-index: 5;
   margin: 0 -16px 6px;
   padding: 0 16px 8px;
-  background: rgba(10, 10, 11, 0.96);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--one-bg, #0e0e0f);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 

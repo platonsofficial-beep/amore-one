@@ -211,6 +211,25 @@ body.is-keyboard-open .stock-item-more-menu-panel.is-sheet {
   }
 }
 
+/* Solid status-bar strip. iOS paints its own edge effect in this band, so
+   readable chrome starts below it and scrolled content cannot show through. */
+body::before {
+  content: "";
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--one-safe-area-top, env(safe-area-inset-top, 0px));
+  background: var(--one-bg, #0e0e0f);
+  pointer-events: none;
+}
+
+.app-shell:has(.help-mode-banner) .mobile-app-content,
+.app-shell:has(.help-mode-banner) .mobile-expanded-scroll {
+  padding-top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px + 48px);
+}
+
 @media (hover: none) and (pointer: coarse) {
   .chat-composer textarea,
   .chat-search input,
