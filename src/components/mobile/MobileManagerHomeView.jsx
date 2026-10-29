@@ -3,6 +3,7 @@ import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtil
 import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 import { StockLiveCard } from '../stock/StockLiveCard'
+import { OnShiftSheet } from '../today/OnShiftSheet'
 
 const ATTENTION_PREVIEW_LIMIT = 3
 
@@ -129,8 +130,13 @@ export function MobileManagerHomeView({
   attentionPermissions = {},
   clockCard = null,
   reminderCard = null,
+  canViewOnShift = false,
+  workspaceId = '',
+  onShiftEmployees = [],
+  onShiftTodayShifts = [],
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
+  const [isOnShiftOpen, setIsOnShiftOpen] = useState(false)
 
   const mergedAttentionItems = useMemo(
     () => sortManagerMobileAttentionFeed(attentionItems),
@@ -172,6 +178,7 @@ export function MobileManagerHomeView({
             <MobileManagerStatusCard
               label="On shift"
               value={statusSummary.onShiftSummary || '—'}
+              onClick={canViewOnShift && workspaceId ? () => setIsOnShiftOpen(true) : undefined}
             />
             <MobileManagerStatusCard
               label="Team"
@@ -297,6 +304,16 @@ export function MobileManagerHomeView({
           onMarkSeen={onMarkAnnouncementSeen}
         />
       </section>
+      {isOnShiftOpen ? (
+        <OnShiftSheet
+          workspaceId={workspaceId}
+          employees={onShiftEmployees}
+          todayShifts={onShiftTodayShifts}
+          timeZone={timeZone}
+          dateLabel={dateLabel}
+          onClose={() => setIsOnShiftOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

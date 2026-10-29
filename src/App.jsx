@@ -536,6 +536,7 @@ import { OperationsChecklistExecutionView } from './components/operations/Operat
 import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
 import { TodayTimeline } from './components/today/TodayServiceTimeline'
 import { TodayCommandHeader } from './components/today/TodayCommandHeader'
+import { OnShiftSheet } from './components/today/OnShiftSheet'
 import { TodayStatusCards } from './components/today/TodayStatusCards'
 import {
   supplierHasHistory,
@@ -15829,6 +15830,10 @@ function App() {
     return publication?.status === 'published'
   }, [isViewingTodayWeekInScheduler, schedulePublication, todayWeekPublication])
 
+  const onShiftTodayShifts = useMemo(() => (
+    (dashboardPublishedShifts ?? []).filter((shift) => `${shift?.date ?? ''}`.slice(0, 10) === currentDateKey)
+  ), [dashboardPublishedShifts, currentDateKey])
+
   const liveFloorState = useMemo(() => buildLiveFloorState({
     publishedShifts: dashboardPublishedShifts,
     isWeekPublished: isTodayWeekPublished,
@@ -21586,12 +21591,18 @@ function App() {
     handleActiveViewChange('reservations')
   }
 
+  const [isTodayOnShiftSheetOpen, setIsTodayOnShiftSheetOpen] = useState(false)
+
   const handleTodayChipSelect = (chipId) => {
     if (chipId === 'schedule' || chipId === 'team') {
       handleDashboardViewSchedule()
       return
     }
     if (chipId === 'on-shift') {
+      if (canManageAttendanceRole && activeWorkspaceId) {
+        setIsTodayOnShiftSheetOpen(true)
+        return
+      }
       if (!canAccessTeamSection(permissionAccess, 'today')) return
       handleActiveViewChange('team')
       handleTeamSectionChange('today')
@@ -25289,6 +25300,10 @@ function App() {
                       onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
                       onOpenCounts: () => handleOpenStockLiveSection('count'),
                       stockLiveSnapshot,
+                      canViewOnShift: canManageAttendanceRole,
+                      workspaceId: activeWorkspaceId,
+                      onShiftEmployees: employees,
+                      onShiftTodayShifts,
                       timeZone: workspaceTimeZone,
                       stockItems,
                       stockOrders,
@@ -25693,6 +25708,16 @@ function App() {
               ) : null}
               {!useDedicatedShell ? (
                 <>
+                  {isTodayOnShiftSheetOpen && canManageAttendanceRole ? (
+                    <OnShiftSheet
+                      workspaceId={activeWorkspaceId}
+                      employees={employees}
+                      todayShifts={onShiftTodayShifts}
+                      timeZone={workspaceTimeZone}
+                      dateLabel={dashboardHeroDateLabel}
+                      onClose={() => setIsTodayOnShiftSheetOpen(false)}
+                    />
+                  ) : null}
                   {!hideStandardTopbar ? (
                   useCommandTopbar ? (
                   <TodayCommandHeader

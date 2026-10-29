@@ -31,7 +31,7 @@
   display: inline-flex;
   position: fixed;
   z-index: 45;
-  top: max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)));
+  top: max(8px, var(--one-safe-top-chrome));
   right: calc(52px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
 }
 
@@ -51,7 +51,7 @@
 .help-mode-banner {
   position: fixed;
   z-index: 90;
-  top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px);
+  top: var(--one-safe-top-chrome);
   left: var(--safe-l, env(safe-area-inset-left, 0px));
   right: var(--safe-r, env(safe-area-inset-right, 0px));
   display: flex;

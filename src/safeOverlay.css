@@ -220,14 +220,14 @@ body::before {
   top: 0;
   right: 0;
   left: 0;
-  height: var(--one-safe-area-top, env(safe-area-inset-top, 0px));
+  height: var(--one-safe-top-chrome);
   background: var(--one-bg, #0e0e0f);
   pointer-events: none;
 }
 
 .app-shell:has(.help-mode-banner) .mobile-app-content,
 .app-shell:has(.help-mode-banner) .mobile-expanded-scroll {
-  padding-top: calc(var(--one-safe-area-top, env(safe-area-inset-top, 0px)) + 6px + 48px);
+  padding-top: calc(var(--one-safe-top-chrome) + 6px + 48px);
 }
 
 @media (hover: none) and (pointer: coarse) {
