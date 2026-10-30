@@ -63,7 +63,8 @@ describe('stock order send', () => {
       language: 'en',
     })
     expect(text.startsWith('Hello,\n\nSupplier: Directory name')).toBe(true)
-    expect(text).toContain('Expected: 28 Oct 2026')
+    expect(text).not.toContain('Expected:')
+    expect(text.match(/Requested delivery: 28 Oct 2026/g)).toHaveLength(1)
     expect(text).toContain('4 Bottles KETEL ONE — €20.00 each (€80.00)')
     expect(text).toContain('2 kg Ice')
     expect(text).not.toContain('Ice —')
@@ -221,5 +222,52 @@ describe('stock order send', () => {
     expect(html).toContain('<title>Order &lt;1&gt;</title>')
     expect(html).toContain('Notes: 2 &lt; 3 &amp; &quot;cold&quot;')
     expect(html).not.toContain('2 < 3')
+  })
+})
+
+describe('send links encode spaces as %20, never "+" (iOS Mail)', () => {
+  const subject = 'SENTIO.NICOSIA – Order #0011'
+  const body = 'Καλησπέρα,\n\n2 × Rum — €10.50 each\nRequested delivery: 31 Oct 2026'
+
+  it('mailto uses percent-encoding with CRLF line breaks', async () => {
+    const { buildStockOrderMailtoUrl } = await import('./stockOrderSend.js')
+    const url = buildStockOrderMailtoUrl('orders@lanitis.com.cy', { subject, body })
+    const query = url.split('?')[1]
+    expect(query).not.toContain('+')
+    expect(query).toContain('subject=SENTIO.NICOSIA%20%E2%80%93%20Order%20%230011')
+    expect(query).toContain('%0D%0A')
+    const params = Object.fromEntries(query.split('&').map((p) => p.split('=')))
+    expect(decodeURIComponent(params.subject)).toBe(subject)
+    expect(decodeURIComponent(params.body)).toBe(body.replace(/\n/g, '\r\n'))
+  })
+
+  it('WhatsApp and Viber links have no "+" for spaces', async () => {
+    const { buildStockOrderWhatsAppUrl, buildStockOrderViberUrl } = await import('./stockOrderSend.js')
+    for (const url of [buildStockOrderWhatsAppUrl('+357 99 123456', body), buildStockOrderViberUrl(body)]) {
+      const text = url.split('text=')[1]
+      expect(text).not.toContain('+')
+      expect(decodeURIComponent(text)).toBe(body)
+    }
+  })
+
+  it('prints the delivery date once, as "Requested delivery", only when set', async () => {
+    const { formatStockOrderSendText } = await import('./stockOrderSend.js')
+    const withDate = formatStockOrderSendText({ expectedDeliveryDate: '2026-10-31', items: [] }, { venueName: 'SENTIO.NICOSIA' })
+    expect(withDate).not.toContain('Expected:')
+    expect(withDate.match(/Requested delivery:/g)).toHaveLength(1)
+    const noDate = formatStockOrderSendText({ items: [] }, { venueName: 'SENTIO.NICOSIA' })
+    expect(noDate).not.toMatch(/Requested delivery|Expected/)
+  })
+})
+
+describe('product lines spacing', () => {
+  it('puts one blank line between product lines', async () => {
+    const { formatStockOrderSendText } = await import('./stockOrderSend.js')
+    const text = formatStockOrderSendText({ items: [
+      { itemName: 'Rum', quantity: 2, unit: 'bottle' },
+      { itemName: 'Gin', quantity: 1, unit: 'bottle' },
+    ] })
+    expect(text).toMatch(/Rum\n\n[^\n]*Gin/)
+    expect(text).not.toMatch(/Rum\n\n\n/)
   })
 })

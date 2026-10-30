@@ -97,7 +97,7 @@ export function formatStockOrderSendText(order, {
     order?.expectedDeliveryDate ?? order?.expected_delivery_date,
   )
   const lines = [stockOrderGreeting(language), '', `Supplier: ${supplier}`]
-  if (delivery) lines.push(`Expected: ${delivery}`)
+  // The date is printed once, as "Requested delivery" in the sign-off.
   lines.push('')
 
   const items = Array.isArray(order?.items) ? order.items : []
@@ -105,7 +105,9 @@ export function formatStockOrderSendText(order, {
   if (items.length === 0) {
     lines.push('No products listed.')
   } else {
-    items.forEach((item) => {
+    items.forEach((item, index) => {
+      // One blank line between products so long orders are easy to read.
+      if (index > 0) lines.push('')
       const name = `${item?.itemName ?? item?.item_name ?? ''}`.trim() || 'Item'
       const quantity = formatStockQuantity(item?.quantity, item?.unit)
       const cost = Number(item?.costPrice ?? item?.cost_price) || 0
@@ -144,13 +146,19 @@ export function buildStockOrderSendMessage(order, options = {}) {
   return `${subject}\n\n${body}`
 }
 
+export function encodeMailtoComponent(value = '') {
+  return encodeURIComponent(`${value ?? ''}`.replace(/\r?\n/g, '\r\n'))
+}
+
 export function buildStockOrderMailtoUrl(email, { subject = '', body = '' } = {}) {
   const to = `${email ?? ''}`.trim()
   if (!isSupplierEmail(to)) return ''
-  const params = new URLSearchParams()
-  if (subject) params.set('subject', subject)
-  if (body) params.set('body', body)
-  const query = params.toString()
+  // URLSearchParams uses form encoding (space -> "+"), which iOS Mail shows
+  // literally. mailto needs RFC 6068 percent-encoding: %20 and CRLF line breaks.
+  const parts = []
+  if (subject) parts.push(`subject=${encodeMailtoComponent(subject)}`)
+  if (body) parts.push(`body=${encodeMailtoComponent(body)}`)
+  const query = parts.join('&')
   return query ? `mailto:${to}?${query}` : `mailto:${to}`
 }
 

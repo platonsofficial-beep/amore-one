@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { OverlayPortal } from './OverlayPortal'
 import {
@@ -7,6 +7,49 @@ import {
   UNASSIGNED_SUPPLIER,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
+
+const UNDO_TOAST_MS = 6000
+
+function RemoveFromOrderConfirm({ title, body, onCancel, onConfirm }) {
+  useEscapeToClose(onCancel)
+  return (
+    <OverlayPortal>
+      <div
+        className="employee-modal-backdrop inventory-count-correction-confirm-overlay stock-create-order-remove-confirm-overlay"
+        role="presentation"
+        onClick={(event) => {
+          // React bubbles portal clicks to the sheet's backdrop; keep the sheet open.
+          event.stopPropagation()
+          onCancel()
+        }}
+      >
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="stock-create-order-remove-title"
+          aria-describedby="stock-create-order-remove-body"
+          className="inventory-count-correction-confirm-dialog stock-create-order-remove-confirm"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <h2 id="stock-create-order-remove-title" className="inventory-count-correction-confirm-title">
+            {title}
+          </h2>
+          <div id="stock-create-order-remove-body" className="inventory-count-correction-confirm-body">
+            <p>{body}</p>
+          </div>
+          <div className="inventory-count-correction-confirm-actions">
+            <button type="button" className="ghost-btn" onClick={onCancel} autoFocus>
+              Cancel
+            </button>
+            <button type="button" className="primary-btn stock-create-order-remove-confirm-btn" onClick={onConfirm}>
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </OverlayPortal>
+  )
+}
 
 function SupplierOrderGroup({
   group,
@@ -40,7 +83,7 @@ function SupplierOrderGroup({
         <button
           type="button"
           className="ghost-btn stock-create-order-remove-group"
-          onClick={() => onRemoveGroup(groupKey)}
+          onClick={() => onRemoveGroup(groupKey, supplier, items.length)}
         >
           Remove supplier
         </button>
@@ -73,7 +116,7 @@ function SupplierOrderGroup({
               <button
                 type="button"
                 className="icon-btn stock-create-order-remove-item"
-                onClick={() => onRemoveItem(groupKey, item.stockItemId)}
+                onClick={() => onRemoveItem(groupKey, item.stockItemId, item.itemName)}
                 aria-label={`Remove ${item.itemName}`}
               >
                 ✕
@@ -162,7 +205,16 @@ export function StockCreateOrderModal({
     }))
   }
 
-  const handleRemoveItem = (groupKey, stockItemId) => {
+  const [pendingRemoval, setPendingRemoval] = useState(null)
+  const [undoState, setUndoState] = useState(null)
+
+  useEffect(() => {
+    if (!undoState) return undefined
+    const timer = window.setTimeout(() => setUndoState(null), UNDO_TOAST_MS)
+    return () => window.clearTimeout(timer)
+  }, [undoState])
+
+  const removeItemNow = (groupKey, stockItemId) => {
     updateGroup(groupKey, (group) => ({
       ...group,
       items: group.items.filter((item) => item.stockItemId !== stockItemId),
@@ -171,10 +223,45 @@ export function StockCreateOrderModal({
     setGroups((current) => current.filter((group) => group.items.length > 0))
   }
 
-  const handleRemoveGroup = (groupKey) => {
+  const removeGroupNow = (groupKey) => {
     setGroups((current) => current.filter((group) => (
       (group.groupKey ?? group.supplier) !== groupKey
     )))
+  }
+
+  // Removing is a one-tap mistake waiting to happen: ask first, then offer Undo.
+  const handleRemoveItem = (groupKey, stockItemId, itemName = '') => {
+    const name = `${itemName ?? ''}`.trim() || 'this product'
+    setPendingRemoval({
+      title: `Remove ${name} from this order?`,
+      body: 'You can add it again from Stock later.',
+      toast: `Removed ${name}`,
+      apply: () => removeItemNow(groupKey, stockItemId),
+    })
+  }
+
+  const handleRemoveGroup = (groupKey, supplierName = '', productCount = 0) => {
+    const name = `${supplierName ?? ''}`.trim() || 'this supplier'
+    const count = Number(productCount) || 0
+    setPendingRemoval({
+      title: `Remove ${name}?`,
+      body: `Its ${count} product${count === 1 ? '' : 's'} will be removed from this order.`,
+      toast: `Removed ${name}`,
+      apply: () => removeGroupNow(groupKey),
+    })
+  }
+
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return
+    setUndoState({ message: pendingRemoval.toast, snapshot: groups })
+    pendingRemoval.apply()
+    setPendingRemoval(null)
+  }
+
+  const handleUndo = () => {
+    if (!undoState) return
+    setGroups(undoState.snapshot)
+    setUndoState(null)
   }
 
   const handleUpdateNotes = (groupKey, notes) => {
@@ -291,7 +378,21 @@ export function StockCreateOrderModal({
           </button>
         </footer>
       </form>
+      {undoState ? (
+        <div className="stock-create-order-undo-toast" role="status" onClick={(event) => event.stopPropagation()}>
+          <span>{undoState.message}</span>
+          <button type="button" className="ghost-btn" onClick={handleUndo}>Undo</button>
+        </div>
+      ) : null}
     </div>
+    {pendingRemoval ? (
+      <RemoveFromOrderConfirm
+        title={pendingRemoval.title}
+        body={pendingRemoval.body}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={confirmRemoval}
+      />
+    ) : null}
     </OverlayPortal>
   )
 }
