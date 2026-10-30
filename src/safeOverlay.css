@@ -395,3 +395,45 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   padding: 10px 2px 6px;
   background: var(--one-bg, #0e0e0f);
 }
+
+/* Create supplier orders: remove confirmation and Undo toast. */
+.stock-create-order-remove-confirm-overlay {
+  z-index: 12100;
+}
+
+.stock-create-order-remove-confirm-btn {
+  border-color: rgba(255, 120, 104, 0.55);
+  background: linear-gradient(180deg, #e0604f, #b8402f);
+  color: #fff;
+}
+
+.stock-create-order-undo-toast {
+  position: fixed;
+  z-index: 12090;
+  left: 50%;
+  /* Above the sheet's Cancel / Create footer. */
+  bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - var(--safe-l, 0px) - var(--safe-r, 0px) - 32px);
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
+  border-radius: 14px;
+  background: #16151a;
+  color: #fff7e8;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.stock-create-order-undo-toast span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stock-create-order-undo-toast .ghost-btn {
+  min-height: 40px;
+  color: var(--one-gold-light, #f3d27a);
+  font-weight: 700;
+}

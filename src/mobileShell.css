@@ -1681,13 +1681,27 @@
 }
 
 @media (max-width: 600px) {
+  /* Solid lid: Back + title sit on their own row and page content
+     (e.g. the Orders status chips) scrolls underneath, never through it. */
   .mobile-manager-app .mobile-expanded-header {
-    background: transparent;
+    background: var(--one-mobile-app-bg, #0a1628);
     border-bottom: 0;
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+}
+
+.mobile-manager-app .mobile-expanded-header::before {
+  /* Covers the safe-area/top-gap band above the sticky header too. */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--one-safe-top-chrome, 0px);
+  background: inherit;
+  pointer-events: none;
 }
 
 .mobile-expanded-header h1 {
