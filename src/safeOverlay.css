@@ -371,3 +371,27 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
     border-radius: 999px;
   }
 }
+
+/* Stock quick list: the search + chips block is a solid lid over the list
+   and each category title sticks just under it while its rows scroll. */
+.mobile-manager-stock-sticky-tools {
+  margin-bottom: 0;
+  background: var(--one-bg, #0e0e0f);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.07),
+    0 8px 12px -10px rgba(0, 0, 0, 0.7);
+}
+
+.mobile-manager-stock-scroll-body {
+  position: relative;
+  overscroll-behavior: contain;
+}
+
+.mobile-manager-stock-group-title {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 10px 2px 6px;
+  background: var(--one-bg, #0e0e0f);
+}

@@ -31,3 +31,14 @@ describe('sheet and sub-page tops', () => {
     expect(safeOverlay).toMatch(/input\[type="date"\],[\s\S]*?min-width: 0;/)
   })
 })
+
+describe('stock quick list', () => {
+  const css = readFileSync(new URL('../safeOverlay.css', import.meta.url), 'utf8')
+  it('keeps category titles sticky and opaque under the search block', () => {
+    const start = css.indexOf('.mobile-manager-stock-group-title {')
+    const block = css.slice(start, css.indexOf('}', start))
+    expect(block).toContain('position: sticky')
+    expect(block).toContain('top: 0')
+    expect(block).toContain('background: var(--one-bg')
+  })
+})
