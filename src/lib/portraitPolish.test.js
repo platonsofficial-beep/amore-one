@@ -67,7 +67,7 @@ describe('portrait polish layout', () => {
   })
 
   it('clears the portrait banner, header strip, stock bar, and chat bell', () => {
-    expect(mobileShellCss).toContain('margin: 52px 0 8px')
+    expect(mobileShellCss).toContain('margin: 40px 0 8px')
     expect(mobileShellCss).toMatch(/\.manager-portrait-module-header\s*\{[^}]*background:\s*transparent/)
     expect(mobileShellCss).toContain('.mobile-manager-app .manager-portrait-module .module-section-tabs ~ .module-section-tabs')
     expect(mobileShellCss).toContain('-webkit-line-clamp: 2')

@@ -9463,7 +9463,8 @@ body:not(:has(.inventory-count-session)) :is(
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  margin: 52px 0 8px;
+  /* Clear the 44px bell row (content already pads 12px past the top gap). */
+  margin: 40px 0 8px;
   padding: 8px 8px 8px 12px;
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 14px;
