@@ -72,7 +72,7 @@ describe('personal compact layout', () => {
 
   it('caps the portaled avatar menu to the viewport safe area', () => {
     expect(appCss).toContain('.user-menu-panel-portaled')
-    expect(appCss).toContain('calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))')
+    expect(appCss).toContain('calc(100dvh - 16px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px))')
     expect(appCss).toContain('z-index: 1320')
     expect(appCss).toContain('overscroll-behavior: contain')
   })

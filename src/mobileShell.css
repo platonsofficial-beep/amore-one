@@ -1671,7 +1671,9 @@
   align-items: center;
   gap: 12px;
   position: sticky;
-  top: var(--one-safe-top-chrome);
+  /* The scroller already pads by --one-safe-top-chrome; Chrome and Safari
+     measure sticky top from inside that padding, so 0 sits right below it. */
+  top: 0;
   z-index: 2;
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -3396,7 +3398,9 @@
 
 .mobile-manager-stock-sticky-tools {
   position: sticky;
-  top: var(--one-safe-top-chrome);
+  /* The scroller already pads by --one-safe-top-chrome; Chrome and Safari
+     measure sticky top from inside that padding, so 0 sits right below it. */
+  top: 0;
   z-index: 5;
   margin: 0 -16px 6px;
   padding: 0 16px 8px;
@@ -4748,7 +4752,7 @@
   max-height: 100%;
   overflow: hidden;
   overflow-x: hidden;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--one-safe-top-chrome);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -4927,7 +4931,7 @@
   align-items: center;
   justify-content: center;
   padding:
-    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-top-chrome))
     max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
     max(16px, env(safe-area-inset-bottom, 0px))
     max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -7289,7 +7293,7 @@
   align-items: center;
   justify-content: center;
   padding:
-    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-top-chrome))
     max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
     max(16px, env(safe-area-inset-bottom, 0px))
     max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -7844,7 +7848,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     bottom: var(--one-mobile-bottom-inset);
     max-height: calc(
       100dvh - var(--one-mobile-bottom-nav-height) - var(--one-mobile-nav-float-gap) -
-      env(safe-area-inset-top, 0px) - 16px
+      var(--one-safe-top-chrome) - 16px
     );
   }
 }
@@ -7868,7 +7872,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   z-index: 50;
   align-items: flex-end;
   padding:
-    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, var(--one-safe-top-chrome))
     12px
     var(--one-mobile-bottom-inset);
 }
@@ -7882,7 +7886,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .app-shell.is-mobile-shell .stock-supplier-form-modal,
 .app-shell.is-mobile-shell .stock-order-receive-confirm-modal {
   max-height: calc(
-    100dvh - env(safe-area-inset-top, 0px) - var(--one-mobile-bottom-inset) - 12px
+    100dvh - var(--one-safe-top-chrome) - var(--one-mobile-bottom-inset) - 12px
   );
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 }
@@ -7900,7 +7904,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 }
 
 .app-shell.is-mobile-shell .mobile-sheet {
-  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+  max-height: calc(100dvh - var(--one-safe-top-chrome) - 12px);
 }
 
 .app-shell.is-mobile-shell .mobile-sheet-actions .primary-btn,
@@ -8075,7 +8079,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   align-items: center;
   justify-content: center;
   padding:
-    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-top-chrome))
     max(20px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
     max(16px, env(safe-area-inset-bottom, 0px))
     max(20px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -8086,7 +8090,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   align-items: center;
   justify-content: center;
   padding:
-    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-top-chrome))
     max(20px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
     var(--one-mobile-bottom-inset)
     max(20px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -8099,7 +8103,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .app-shell.is-host-station-shell .mobile-host-reservation-sheet.mobile-sheet {
   max-height: calc(
-    100dvh - env(safe-area-inset-top, 0px) - var(--one-mobile-bottom-inset) - 8px
+    100dvh - var(--one-safe-top-chrome) - var(--one-mobile-bottom-inset) - 8px
   );
 }
 
@@ -8244,7 +8248,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px)));
+  max-height: min(92dvh, calc(100dvh - var(--one-safe-top-chrome)));
 }
 
 .mobile-host-reservation-sheet .mobile-sheet-body,
@@ -8321,7 +8325,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .app-shell.is-host-station-shell .mobile-host-panel-dialog {
   width: min(100%, 480px);
   max-height: calc(
-    100dvh - env(safe-area-inset-top, 0px) - var(--one-mobile-bottom-inset) - 24px
+    100dvh - var(--one-safe-top-chrome) - var(--one-mobile-bottom-inset) - 24px
   );
 }
 
@@ -8942,7 +8946,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   gap: 14px;
   overflow: hidden;
   padding:
-    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, var(--one-safe-top-chrome))
     16px
     max(12px, env(safe-area-inset-bottom, 0px));
   border-radius: 0;
@@ -9337,7 +9341,7 @@ body:not(:has(.inventory-count-session)) :is(
   ) .app-shell.is-mobile-shell .employee-modal-backdrop,
   body.has-one-overlay:not(:has(.inventory-count-session)) .app-shell.is-mobile-shell .employee-modal-backdrop {
     padding:
-      max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+      max(8px, var(--one-safe-top-chrome))
       max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
       max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
       max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -9897,7 +9901,7 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-manager-app .mobile-manager-stock-scroll-body {
-    max-height: calc(100dvh - 300px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    max-height: calc(100dvh - 300px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px));
     overflow: auto;
   }
 

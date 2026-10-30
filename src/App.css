@@ -384,7 +384,7 @@
      against the padding edge and paints over the Dynamic Island. Match the
      insets so the header and the booking list start inside the content box. */
   inset:
-    var(--one-safe-area-top, env(safe-area-inset-top, 0px))
+    var(--one-safe-top-chrome)
     var(--one-safe-area-right, env(safe-area-inset-right, 0px))
     var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px))
     var(--one-safe-area-left, env(safe-area-inset-left, 0px));
@@ -409,7 +409,7 @@
 
 .app-shell.stock-focus-mode .main-panel-stock {
   padding:
-    max(8px, env(safe-area-inset-top, 0px))
+    max(8px, var(--one-safe-top-chrome))
     20px
     max(16px, env(safe-area-inset-bottom, 0px));
   gap: 6px;
@@ -8475,7 +8475,7 @@
     align-items: center;
     justify-content: center;
     padding:
-      max(20px, env(safe-area-inset-top, 0px))
+      max(20px, var(--one-safe-top-chrome))
       max(28px, env(safe-area-inset-right, 0px))
       max(20px, env(safe-area-inset-bottom, 0px))
       max(28px, env(safe-area-inset-left, 0px));
@@ -14687,7 +14687,7 @@
   position: fixed;
   z-index: 4000;
   left: 50%;
-  top: max(12px, calc(8px + env(safe-area-inset-top, 0px)));
+  top: max(12px, calc(8px + var(--one-safe-top-chrome)));
   transform: translateX(-50%);
   margin: 0;
   padding: 6px 12px;
@@ -16967,7 +16967,7 @@
 }
 
 .schedule-focus-workspace.is-mobile-schedule-shell.is-templates-open .schedule-templates-panel.schedule-templates-overlay.is-overlay-open {
-  top: max(8px, env(safe-area-inset-top, 0px));
+  top: max(8px, var(--one-safe-top-chrome));
   bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   width: min(360px, calc(100vw - 20px));
 }
@@ -18347,7 +18347,7 @@
 
 .schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel.is-overlay-open {
   position: fixed;
-  top: max(4px, env(safe-area-inset-top, 0px));
+  top: max(4px, var(--one-safe-top-chrome));
   right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   width: min(300px, 72vw);
@@ -19434,7 +19434,7 @@
   right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   width: min(420px, calc(100% - var(--one-safe-area-left, env(safe-area-inset-left, 0px)) - var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
   height: 100dvh;
-  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
+  padding: calc(24px + var(--one-safe-top-chrome)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
   background: rgba(11, 15, 23, 0.98);
   border-left: 1px solid rgba(212, 175, 55, 0.16);
   box-shadow: -12px 0 40px rgba(0, 0, 0, 0.3);
@@ -20739,7 +20739,7 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
   .employee-premium-form-backdrop {
     align-items: flex-end;
     padding:
-      max(12px, env(safe-area-inset-top, 0px))
+      max(12px, var(--one-safe-top-chrome))
       12px
       max(12px, env(safe-area-inset-bottom, 0px));
   }
@@ -28627,7 +28627,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   box-sizing: border-box;
   overflow: auto;
   padding:
-    max(16px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+    max(16px, var(--one-safe-top-chrome))
     max(16px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px))))
     max(16px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
     max(16px, var(--safe-l, var(--one-safe-area-left, env(safe-area-inset-left, 0px))));
@@ -28831,7 +28831,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   z-index: 1320;
   width: min(320px, calc(100vw - 32px));
   max-width: min(320px, calc(100vw - 32px));
-  max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 16px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
@@ -30922,7 +30922,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   right: 0;
   bottom: 0;
   min-width: 0;
-  max-height: calc(100dvh - max(8px, env(safe-area-inset-top, 0px)));
+  max-height: calc(100dvh - max(8px, var(--one-safe-top-chrome)));
   overflow: hidden;
   padding: 0 0 max(env(safe-area-inset-bottom), 12px);
   border-radius: 18px 18px 0 0;
@@ -31880,7 +31880,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
-  padding-top: var(--one-safe-area-top, env(safe-area-inset-top, 0px));
+  padding-top: var(--one-safe-top-chrome);
   padding-right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   padding-bottom: var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px));
   padding-left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
@@ -34028,7 +34028,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .stock-order-date-input {
-    max-width: none;
+    max-width: 100%;
   }
 
   .stock-supplier-card-grid {
@@ -42820,7 +42820,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-permanent-delete-backdrop {
   z-index: 12160;
   padding:
-    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, var(--one-safe-top-chrome))
     max(12px, env(safe-area-inset-right, 0px))
     max(12px, env(safe-area-inset-bottom, 0px))
     max(12px, env(safe-area-inset-left, 0px));
@@ -42831,8 +42831,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-permanent-delete-dialog.has-viewport-max-height {
   width: min(94vw, 560px);
   max-width: 560px;
-  max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100vh - 24px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 24px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px));
   padding: 0;
   border-radius: 22px;
   border: 1px solid rgba(255, 138, 128, 0.28);
@@ -44381,7 +44381,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (max-width: 720px) {
   .operations-announcement-form-modal.employee-modal {
-    max-height: min(90vh, calc(100dvh - env(safe-area-inset-top, 0px)));
+    max-height: min(90vh, calc(100dvh - var(--one-safe-top-chrome)));
   }
 
   .operations-announcement-schedule-grid {
@@ -44916,7 +44916,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .employee-modal-backdrop {
     align-items: flex-end;
     padding:
-      max(12px, env(safe-area-inset-top, 0px))
+      max(12px, var(--one-safe-top-chrome))
       12px
       max(12px, env(safe-area-inset-bottom, 0px));
   }
@@ -45467,7 +45467,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     transform: translateX(-50%);
     bottom: calc(62px + env(safe-area-inset-bottom, 0px));
     max-height: calc(
-      100dvh - 70px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+      100dvh - 70px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px)
     );
   }
 }
@@ -45527,7 +45527,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     transform: translate(-50%, -50%);
     max-height: min(
       72dvh,
-      calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+      calc(100dvh - 24px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px))
     );
     border-radius: 14px;
   }
@@ -45691,7 +45691,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .employee-modal-backdrop:has(.workspace-link-employee-modal.is-responsive-sheet) {
     align-items: flex-end;
     padding:
-      max(12px, env(safe-area-inset-top, 0px))
+      max(12px, var(--one-safe-top-chrome))
       12px
       max(12px, env(safe-area-inset-bottom, 0px));
   }
@@ -50242,7 +50242,7 @@ summary:focus-visible {
     align-items: center;
     justify-content: center;
     padding:
-      max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+      max(8px, var(--one-safe-top-chrome))
       max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
       max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
       max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
@@ -50289,7 +50289,7 @@ summary:focus-visible {
 
   .stock-order-date-input {
     width: 100%;
-    max-width: none;
+    max-width: 100%;
   }
 
   .stock-product-history-footer,
@@ -50505,11 +50505,11 @@ summary:focus-visible {
   .inventory-import-wizard,
   .stock-order-cleanup-dialog,
   .stock-order-receive-confirm-modal {
-    max-height: calc(100dvh - var(--one-safe-area-top, env(safe-area-inset-top, 0px)) - var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 16px);
+    max-height: calc(100dvh - var(--one-safe-top-chrome) - var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 16px);
   }
 
   .app-shell.stock-focus-mode.is-mobile-shell .main-panel-stock:has(.stock-dashboard-page) {
-    padding-top: max(4px, env(safe-area-inset-top, 0px));
+    padding-top: max(4px, var(--one-safe-top-chrome));
     padding-bottom: max(4px, env(safe-area-inset-bottom, 0px));
     gap: 4px;
   }
@@ -52063,7 +52063,7 @@ summary:focus-visible {
     left: var(--safe-l, env(safe-area-inset-left, 0px));
     bottom: calc(var(--one-mobile-bottom-nav-height, 64px) + var(--one-mobile-nav-float-gap, 0px) + 8px + env(safe-area-inset-bottom, 0px));
     width: auto;
-    max-height: calc(100dvh - var(--one-mobile-bottom-nav-height, 64px) - var(--one-mobile-nav-float-gap, 0px) - 8px - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) - 12px);
+    max-height: calc(100dvh - var(--one-mobile-bottom-nav-height, 64px) - var(--one-mobile-nav-float-gap, 0px) - 8px - env(safe-area-inset-bottom, 0px) - var(--one-safe-top-chrome) - 12px);
     border-radius: 20px 20px 0 0;
     padding-bottom: 12px;
   }
@@ -52407,7 +52407,7 @@ summary:focus-visible {
     margin: 0;
     border-radius: 0;
     box-sizing: border-box;
-    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-top: max(12px, var(--one-safe-top-chrome));
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     overflow: auto;
     display: flex;
@@ -52696,7 +52696,7 @@ summary:focus-visible {
     border: 0;
     border-radius: 0;
     box-sizing: border-box;
-    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-top: max(12px, var(--one-safe-top-chrome));
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     background: #12141c;
   }

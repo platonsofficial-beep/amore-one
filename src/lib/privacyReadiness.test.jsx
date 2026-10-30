@@ -129,7 +129,7 @@ describe('privacy UI', () => {
     expect(css).toContain('min-height: 44px')
     expect(css).toContain('--safe-l')
     expect(css).toContain('calc(var(--safe-l, 0px) + 78px)')
-    expect(legal).toContain('--one-safe-area-top')
+    expect(legal).toContain('--one-safe-top-chrome')
     expect(legal).toContain('--safe-l')
   })
 
