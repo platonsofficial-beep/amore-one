@@ -159,7 +159,7 @@ describe('venue UI', () => {
   it('keeps the sheet inside the safe area with 44px controls', () => {
     const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/workspace/venueManager.css'), 'utf8')
     expect(css).toContain('min-height: 44px')
-    expect(css).toContain('--one-safe-area-top')
+    expect(css).toContain('--one-safe-top-chrome')
     expect(css).toContain('--safe-l')
     expect(css).toContain('max-height: min(100%, 340px)')
     expect(css).toContain('calc(var(--safe-l, 0px) + 78px)')

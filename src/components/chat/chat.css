@@ -500,7 +500,7 @@
 
 .chat-sheet {
   width: min(480px, 100%);
-  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 24px - var(--one-safe-top-chrome) - env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   padding: 12px;
   border-radius: 18px 18px 0 0;

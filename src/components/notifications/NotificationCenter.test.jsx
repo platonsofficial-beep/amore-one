@@ -63,7 +63,7 @@ describe('notification bell sheet', () => {
     expect(css).toMatch(/\.notification-drawer \{[^}]*z-index: 1310;/s)
     expect(css).toMatch(/\.notification-drawer \{[^}]*box-sizing: border-box;/s)
     expect(sheetRule).toContain('env(safe-area-inset-bottom, 0px)')
-    expect(sheetRule).toContain('env(safe-area-inset-top, 0px)')
+    expect(sheetRule).toContain('var(--one-safe-top-chrome)')
     expect(sheetRule).toContain('env(safe-area-inset-left, 0px)')
     expect(sheetRule).toContain('env(safe-area-inset-right, 0px)')
     expect(sheetRule).toContain('--one-mobile-bottom-nav-height')

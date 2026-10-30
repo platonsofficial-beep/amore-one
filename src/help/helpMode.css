@@ -40,7 +40,7 @@
   display: inline-flex;
   position: fixed;
   z-index: 45;
-  top: max(10px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)));
+  top: max(10px, var(--one-safe-top-chrome));
   right: max(12px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
 }
 
