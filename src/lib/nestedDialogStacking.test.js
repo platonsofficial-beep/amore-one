@@ -13,3 +13,11 @@ describe('App-level dialogs opened from an in-content sheet', () => {
     expect(Number(rule[1])).toBeGreaterThan(Number(lifted[1]))
   })
 })
+
+describe('Add / Edit employee phone sheet', () => {
+  it('is full height below the status bar with a solid footer pinned flush to the bottom', () => {
+    expect(css).toMatch(/\.employee-modal-backdrop\.employee-premium-form-backdrop \{\s*padding: var\(--one-safe-top-chrome\) 0 0;/)
+    expect(css).toMatch(/\.employee-modal\.employee-premium-form-modal \{[^}]*height: calc\(100dvh - var\(--one-safe-top-chrome\)\);[^}]*padding-bottom: 0;/)
+    expect(css).toMatch(/\.employee-premium-form-modal \.employee-premium-form-actions \{[^}]*position: sticky;[^}]*bottom: 0;[^}]*background: #0b0f17;/)
+  })
+})

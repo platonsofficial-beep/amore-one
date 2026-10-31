@@ -9352,6 +9352,37 @@ body:not(:has(.inventory-count-session)) :is(
   z-index: 70;
 }
 
+/* Add / Edit employee is a full-height phone sheet. The shared modal rule
+   above still reserved room for the bottom nav (hidden while a sheet is
+   open) and kept 24px under the sticky footer, so the sheet stopped short,
+   fields and the avatar showed below the floating Save/Cancel card, and an
+   empty band sat under it. Pin the footer flush to the sheet bottom. */
+.app-shell.is-mobile-shell .employee-modal-backdrop.employee-premium-form-backdrop {
+  padding: var(--one-safe-top-chrome) 0 0;
+}
+
+.app-shell.is-mobile-shell .employee-modal.employee-premium-form-modal {
+  width: 100%;
+  height: calc(100dvh - var(--one-safe-top-chrome));
+  max-height: calc(100dvh - var(--one-safe-top-chrome));
+  padding-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.app-shell.is-mobile-shell .employee-premium-form-modal .employee-premium-form-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  margin: 16px -18px 0;
+  padding: 12px 18px calc(12px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: #0b0f17;
+  box-shadow: 0 -12px 24px rgba(0, 0, 0, 0.35);
+}
+
 /* Short landscape: the floating nav is hidden while a dialog is open, so
    stock sheets use the safe viewport instead of the nav inset. The active
    count session is excluded. */
@@ -10244,4 +10275,23 @@ body:not(:has(.inventory-count-session)) :is(
 .operations-unified-tab.is-active {
   background: rgba(212, 175, 55, 0.18);
   color: #f3e3b0;
+}
+
+/* Short landscape phones use the centered dialog; pin its Save/Cancel too. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .employee-modal.employee-premium-form-modal {
+    padding-bottom: 0;
+  }
+
+  .employee-premium-form-modal .employee-premium-form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin: 16px -28px 0;
+    padding: 12px 28px calc(12px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    background: #0b0f17;
+  }
 }
