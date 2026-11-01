@@ -151,7 +151,7 @@ export function buildTeamTodayStatus({
   let coverageTone = 'ok'
 
   if (gapCount > 0) {
-    coverageValue = coverageDetail || (gapCount === 1 ? '1 coverage gap' : `${gapCount} coverage gaps`)
+    coverageValue = coverageDetail || (gapCount === 1 ? '1 uncovered shift' : `${gapCount} uncovered shifts`)
     coverageTone = 'warn'
   }
 

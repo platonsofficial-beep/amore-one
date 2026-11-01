@@ -65,12 +65,40 @@ function emptySnapshot() {
   }
 }
 
+// iOS draws datetime-local pickers in the phone's language (Greek for
+// Platon), so show an English read-back under each field.
+function formatLocalInputPreview(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(`${value ?? ''}`)
+  if (!match) return ''
+  const [, year, month, day, hour, minute] = match
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
+  const dayLabel = date.toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
+  })
+  return `${dayLabel}, ${hour}:${minute}`
+}
+
+function HoursWrapper({ isManager, children }) {
+  if (isManager) {
+    return (
+      <details className="attendance-hours attendance-hours-compact" aria-label="My hours">
+        <summary>My hours</summary>
+        {children}
+      </details>
+    )
+  }
+  return <div className="attendance-hours" aria-label="My hours">{children}</div>
+}
+
 export function AttendanceClockScreen({
   workspaceId = '',
   memberId = '',
   employeeId = '',
   employeeName = '',
   timeZone = 'Europe/Nicosia',
+  // Owners/managers fix hours themselves in Time clock; never ask them to
+  // "send to manager".
+  isManager = false,
 }) {
   const [snapshot, setSnapshot] = useState(emptySnapshot)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -307,6 +335,13 @@ export function AttendanceClockScreen({
   }
 
   const latestEntry = snapshot.entries[0] ?? null
+  // Only offer a change request for an entry that still matters: open,
+  // flagged for review, or worked today. Old closed shifts stay closed.
+  const canRequestChange = !isManager && Boolean(latestEntry) && (
+    !latestEntry.clock_out_at
+    || latestEntry.status === 'needs_review'
+    || toDateTimeLocalValue(latestEntry.clock_in_at, timeZone).slice(0, 10) === todayKey
+  )
 
   return (
     <section className="attendance-clock" aria-label="Clock in and out">
@@ -325,8 +360,10 @@ export function AttendanceClockScreen({
         <div className="attendance-clock-banner is-alert attendance-clock-forgot" role="alert">
           <strong>{ON_SHIFT_TEXT.forgot}</strong>
           <span>
-            You clocked in {formatForgotSince(openEntry.clock_in_at, timeZone)} and never clocked out.
-            Clock out, then request a time change so your manager can fix the hours.
+            You clocked in {formatForgotSince(openEntry.clock_in_at, timeZone)} and never clocked out.{' '}
+            {isManager
+              ? 'Clock out, then correct the hours in Time clock.'
+              : 'Clock out, then request a time change so your manager can fix the hours.'}
           </span>
         </div>
       ) : openEntry ? (
@@ -382,8 +419,8 @@ export function AttendanceClockScreen({
         </form>
       ) : null}
 
-      <div className="attendance-hours" aria-label="My hours">
-        <h3>My hours</h3>
+      <HoursWrapper isManager={isManager}>
+        {isManager ? null : <h3>My hours</h3>}
         <p>This week</p>
         <dl>
           <div>
@@ -399,7 +436,7 @@ export function AttendanceClockScreen({
             <dd>{formatSignedHours(hours.difference)}</dd>
           </div>
         </dl>
-        {latestEntry ? (
+        {canRequestChange ? (
           <button
             type="button"
             className="attendance-text-btn"
@@ -412,16 +449,18 @@ export function AttendanceClockScreen({
             ✎ Request a time change
           </button>
         ) : null}
-        {showEdit && latestEntry ? (
+        {showEdit && canRequestChange ? (
           <form className="attendance-request" onSubmit={submitEdit}>
             <p>Your manager will approve this note before the time changes.</p>
             <label className="attendance-field">
               Clock in
-              <input type="datetime-local" value={editClockIn} onChange={(event) => setEditClockIn(event.target.value)} required />
+              <input type="datetime-local" lang="en-GB" value={editClockIn} onChange={(event) => setEditClockIn(event.target.value)} required />
+              <span className="attendance-field-preview">{formatLocalInputPreview(editClockIn)}</span>
             </label>
             <label className="attendance-field">
               Clock out
-              <input type="datetime-local" value={editClockOut} onChange={(event) => setEditClockOut(event.target.value)} />
+              <input type="datetime-local" lang="en-GB" value={editClockOut} onChange={(event) => setEditClockOut(event.target.value)} />
+              <span className="attendance-field-preview">{formatLocalInputPreview(editClockOut)}</span>
             </label>
             <label className="attendance-field">
               Note
@@ -432,7 +471,7 @@ export function AttendanceClockScreen({
             </button>
           </form>
         ) : null}
-      </div>
+      </HoursWrapper>
 
       {showConsent ? (
         <div className="attendance-consent" role="dialog" aria-modal="true" aria-labelledby="attendance-consent-title">

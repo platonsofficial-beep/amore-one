@@ -53148,3 +53148,21 @@ summary:focus-visible {
   display: grid;
   gap: 4px;
 }
+
+/* Manager/owner clock card: My hours folds away so the card stays compact. */
+.attendance-hours-compact > summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.95rem;
+  list-style: none;
+  padding: 4px 0;
+}
+.attendance-hours-compact > summary::-webkit-details-marker { display: none; }
+.attendance-hours-compact > summary::after { content: ' ▾'; opacity: 0.6; }
+.attendance-hours-compact[open] > summary::after { content: ' ▴'; }
+.attendance-field-preview {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  margin-top: 2px;
+}

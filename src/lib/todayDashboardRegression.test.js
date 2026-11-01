@@ -74,19 +74,19 @@ describe('todayDashboardRegression', () => {
         coverageTone: 'warn',
         coverageDetail: '3 gaps · Kitchen',
       },
-    })).toBe('2 working now · 3 Open shifts · Kitchen')
+    })).toBe('2 working now · 3 uncovered shifts · Kitchen')
   })
 
   it('keeps open-shift warning tone on the Team status card', () => {
     const cards = buildTodayStatusCardsFromSummary({
       onShiftSummary: '4 working now',
-      teamScheduledSummary: '8 scheduled · 3 Open shifts',
+      teamScheduledSummary: '8 scheduled · 3 uncovered shifts',
       reservationsSummaryLine: 'No reservations today',
       tasksSummary: 'No open tasks today',
     })
 
     expect(cards.find((card) => card.id === 'team')).toMatchObject({
-      secondary: '3 Open shifts',
+      secondary: '3 uncovered shifts',
       tone: 'warning',
     })
   })
@@ -116,6 +116,6 @@ describe('todayDashboardRegression', () => {
       snapshot: { scheduledStaff: 5, coverageGaps: 2 },
     })
 
-    expect(summary.teamScheduledSummary).toBe('5 scheduled · 2 Open shifts')
+    expect(summary.teamScheduledSummary).toBe('5 scheduled · 2 uncovered shifts')
   })
 })

@@ -34,10 +34,10 @@ function formatTeamTodayCoverageCopy(label = '') {
   if (!text) return text
 
   return text
-    .replace(/\b(\d+)\s+coverage gaps\b/gi, '$1 Open shifts')
-    .replace(/\b1\s+coverage gap\b/gi, '1 Open shift')
-    .replace(/\b(\d+)\s+gaps\b/gi, '$1 Open shifts')
-    .replace(/\b1\s+gap\b/gi, '1 Open shift')
+    .replace(/\b(\d+)\s+coverage gaps\b/gi, '$1 uncovered shifts')
+    .replace(/\b1\s+coverage gap\b/gi, '1 uncovered shift')
+    .replace(/\b(\d+)\s+gaps\b/gi, '$1 uncovered shifts')
+    .replace(/\b1\s+gap\b/gi, '1 uncovered shift')
 }
 
 function isTimeWithinShift(nowMinutes, startMinutes, endMinutes) {

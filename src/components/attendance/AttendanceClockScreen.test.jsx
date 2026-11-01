@@ -7,14 +7,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOCATION_CONSENT_STORAGE_KEY } from '../../lib/attendance'
 import { AttendanceClockScreen } from './AttendanceClockScreen'
 
-const { clockInMock, settingsMock } = vi.hoisted(() => ({
+const { clockInMock, settingsMock, entriesMock } = vi.hoisted(() => ({
   clockInMock: vi.fn(),
   settingsMock: vi.fn(),
+  entriesMock: vi.fn(async () => []),
 }))
 
 vi.mock('../../services/attendanceService', () => ({
   loadAttendanceSettings: (...args) => settingsMock(...args),
-  loadAttendanceEntries: vi.fn(async () => []),
+  loadAttendanceEntries: (...args) => entriesMock(...args),
   loadAttendanceShifts: vi.fn(async () => [{
     employee_id: 'emp-1',
     shift_date: '2026-10-27',
@@ -36,7 +37,7 @@ vi.mock('../../services/attendanceService', () => ({
   }),
 }))
 
-function renderClock() {
+function renderClock(extraProps = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
@@ -47,6 +48,7 @@ function renderClock() {
       employeeId: 'emp-1',
       employeeName: 'Alex',
       timeZone: 'UTC',
+      ...extraProps,
     }))
   })
   return {
@@ -75,6 +77,8 @@ describe('AttendanceClockScreen', () => {
     localStorage.clear()
     clockInMock.mockReset()
     settingsMock.mockReset()
+    entriesMock.mockReset()
+    entriesMock.mockResolvedValue([])
     delete navigator.geolocation
   })
 
@@ -140,6 +144,44 @@ describe('AttendanceClockScreen', () => {
       note: 'GPS is weak inside',
     }))
     expect(localStorage.getItem(LOCATION_CONSENT_STORAGE_KEY)).toBe('agreed')
+    view.unmount()
+  })
+
+  it('offers a time change to staff for an open entry, never to managers', async () => {
+    settingsMock.mockResolvedValue({ venue_lat: null, venue_lng: null, radius_m: 50, late_grace_minutes: 10 })
+    entriesMock.mockResolvedValue([{
+      id: 'entry-1',
+      employee_id: 'emp-1',
+      clock_in_at: new Date(Date.now() - 20 * 3600 * 1000).toISOString(),
+      clock_out_at: null,
+      status: 'open',
+    }])
+    const staff = renderClock()
+    await staff.flush()
+    expect(staff.container.textContent).toContain('Request a time change')
+    expect(staff.container.textContent).not.toContain('Send to manager')
+    staff.unmount()
+
+    const manager = renderClock({ isManager: true })
+    await manager.flush()
+    expect(manager.container.textContent).not.toContain('Request a time change')
+    expect(manager.container.textContent).toContain('correct the hours in Time clock')
+    expect(manager.container.querySelector('details.attendance-hours-compact')?.open).toBe(false)
+    manager.unmount()
+  })
+
+  it('does not offer a time change for an old closed entry', async () => {
+    settingsMock.mockResolvedValue({ venue_lat: null, venue_lng: null, radius_m: 50, late_grace_minutes: 10 })
+    entriesMock.mockResolvedValue([{
+      id: 'entry-old',
+      employee_id: 'emp-1',
+      clock_in_at: '2020-01-01T08:00:00Z',
+      clock_out_at: '2020-01-01T16:00:00Z',
+      status: 'closed',
+    }])
+    const view = renderClock()
+    await view.flush()
+    expect(view.container.textContent).not.toContain('Request a time change')
     view.unmount()
   })
 })
