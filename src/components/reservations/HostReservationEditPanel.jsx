@@ -393,7 +393,7 @@ export function HostReservationEditPanel({
                     value={form.notes}
                     onChange={(event) => updateField({ notes: event.target.value })}
                   />
-                  <small className="sensitive-field-hint">Μην γράφεις στοιχεία υγείας. Αλλεργίες μόνο αν χρειάζονται για την κράτηση — είναι ευαίσθητο δεδομένο.</small>
+                  <small className="sensitive-field-hint">Don't write health details. Allergies only if needed for the booking — this is sensitive data.</small>
                 </label>
               </>
             ) : (
