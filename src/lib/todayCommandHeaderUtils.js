@@ -23,7 +23,8 @@ function formatTaskChip(boardOpen = 0, operationsOpen = 0) {
 
   return {
     value: `${total} Open`,
-    detail: parts.join(' · '),
+    // One source only: the split repeats the total ("7 Open · 7 ops").
+    detail: parts.length > 1 ? parts.join(' · ') : '',
     tone: 'warning',
   }
 }

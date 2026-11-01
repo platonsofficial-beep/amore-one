@@ -59,7 +59,7 @@ describe('buildTodayCommandHeaderChips', () => {
         icon: '✅',
         label: 'Operations',
         value: '3 Open',
-        detail: '3 board',
+        detail: '',
         tone: 'warning',
       },
     ])
@@ -109,5 +109,12 @@ describe('buildTodayCommandHeaderChips', () => {
     const tasks = chips.find((chip) => chip.id === 'tasks')
     expect(tasks?.value).toBe('5 Open')
     expect(tasks?.detail).toBe('3 board · 2 ops')
+  })
+
+  it('drops the split when every open task comes from one source', () => {
+    const chips = buildTodayCommandHeaderChips({ dashboardTaskOverview: { active: 0 }, operationsOpenCount: 7 })
+    const tasks = chips.find((chip) => chip.id === 'tasks')
+    expect(tasks?.value).toBe('7 Open')
+    expect(tasks?.detail).toBe('')
   })
 })
