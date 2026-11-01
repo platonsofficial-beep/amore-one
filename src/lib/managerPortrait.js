@@ -210,6 +210,7 @@ export const PORTRAIT_TABLE_STATUS_LABELS = {
   available: 'Available',
   seated: 'Seated',
   arrived: 'Arrived',
+  late: 'Late',
   upcoming: 'Upcoming',
   cleaning: 'Cleaning',
   reserved: 'Reserved',

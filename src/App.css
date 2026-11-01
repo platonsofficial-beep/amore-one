@@ -53197,3 +53197,38 @@ summary:focus-visible {
   color: #f4efe6;
   text-align: center;
 }
+
+/* Reservations: keep the guest name readable in the narrow landscape list.
+   Without a floor, the name shrank to one letter next to "Dinner" + the
+   status pill on 844x390; now the purpose label wraps instead. */
+.host-reservation-card-name-purpose > .host-reservation-card-guest {
+  min-width: min(100%, 6.5em);
+}
+.manager-portrait-day-summary {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: rgba(244, 239, 230, 0.75);
+}
+.manager-portrait-status.is-late,
+.manager-portrait-table.is-late .manager-portrait-status {
+  color: #f0b25a;
+}
+
+/* Reservations landscape: the floating Help "?" (and the bell for hosts)
+   sat on top of Exit / Services / Settings. Reserve room for them, the same
+   way the Stock focus header does. */
+.app-shell:has(.help-mode-fallback) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+  padding-inline-end: 48px;
+}
+.app-shell:has(.help-mode-fallback):has(.notification-bell-btn) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+  padding-inline-end: 100px;
+}
+
+/* 568×320: the extra end padding wraps the header onto two rows and
+   squeezes the floor plan under 40px. Wider landscape phones keep the inset. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 640px) {
+  .app-shell:has(.help-mode-fallback) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .app-shell:has(.help-mode-fallback):has(.notification-bell-btn) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    padding-inline-end: 8px;
+  }
+}
