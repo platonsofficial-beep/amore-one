@@ -24484,6 +24484,7 @@ function App() {
               employeeId={membership?.employeeId ?? ''}
               employeeName={mobileLinkedEmployee?.name ?? ''}
               timeZone={workspaceTimeZone}
+              isManager={isManagementMobileRole(role)}
             />
           ) : null
           const accountProfileProps = {

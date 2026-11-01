@@ -37,7 +37,7 @@ export function TeamTodayView({
             {status.coverageValue}
           </span>
         </div>
-        {status.coverageDetail && status.coverageTone !== 'ok' ? (
+        {status.coverageDetail && status.coverageTone !== 'ok' && status.coverageDetail !== status.coverageValue ? (
           <p className="team-today-status-detail">{status.coverageDetail}</p>
         ) : null}
       </section>

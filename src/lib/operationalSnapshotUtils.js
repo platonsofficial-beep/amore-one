@@ -278,33 +278,43 @@ export function selectViewedWeekScheduleIssues({
 }
 
 function formatTemplateAreaLabel(template) {
-  return `${template?.defaultArea ?? template?.default_area ?? template?.name ?? 'Shift'}`.trim() || 'Shift'
+  // Templates without an area used to read "Shift", which said nothing.
+  const label = [template?.defaultArea, template?.default_area, template?.name]
+    .map((value) => `${value ?? ''}`.trim())
+    .find(Boolean)
+  return label || 'No department'
 }
 
 export function formatTeamCoverageSummaryLine(gaps = [], { limit = 3 } = {}) {
   if (!gaps.length) return ''
 
+  // "Uncovered shift" = a scheduled shift slot with nobody assigned.
   const gapCount = gaps.length
-  const areaLabels = gaps
-    .map((gap) => `${gap.area ?? ''}`.trim())
-    .filter(Boolean)
-    .slice(0, limit)
-
-  const areasText = areaLabels.join(', ')
-  const overflow = gapCount > areaLabels.length
-    ? ` +${gapCount - areaLabels.length} more`
+  const areaCounts = new Map()
+  gaps.forEach((gap) => {
+    const area = `${gap.area ?? ''}`.trim()
+    if (area) areaCounts.set(area, (areaCounts.get(area) ?? 0) + 1)
+  })
+  const areaEntries = [...areaCounts.entries()]
+  const shownAreas = areaEntries.slice(0, limit)
+  const areasText = shownAreas
+    .map(([area, count]) => (count > 1 ? `${area} ×${count}` : area))
+    .join(', ')
+  const shownCount = shownAreas.reduce((sum, [, count]) => sum + count, 0)
+  const overflow = gapCount > shownCount
+    ? ` +${gapCount - shownCount} more`
     : ''
 
   if (gapCount === 1) {
     const missing = Number(gaps[0]?.missing) || 0
-    return missing > 0
-      ? `1 gap · ${areasText} missing ${missing}`
-      : `1 gap · ${areasText}`
+    return missing > 1
+      ? `1 uncovered shift · ${areasText} needs ${missing}`
+      : `1 uncovered shift · ${areasText}`
   }
 
   return areasText
-    ? `${gapCount} gaps · ${areasText}${overflow}`
-    : `${gapCount} coverage gaps`
+    ? `${gapCount} uncovered shifts · ${areasText}${overflow}`
+    : `${gapCount} uncovered shifts`
 }
 
 export function buildTeamTodayCoverageBreakdown({
@@ -354,7 +364,7 @@ export function buildScheduleAttentionDetail(snapshot = {}, coverageBreakdown = 
   const issueCount = Number(snapshot.issues) || 0
 
   if (gapCount > 0) {
-    parts.push(coverageBreakdown?.summaryLine || `${gapCount} coverage gap${gapCount === 1 ? '' : 's'}`)
+    parts.push(coverageBreakdown?.summaryLine || `${gapCount} uncovered shift${gapCount === 1 ? '' : 's'}`)
   }
 
   const otherLabels = (snapshot.otherIssueLabels ?? []).map((label) => `${label ?? ''}`.trim()).filter(Boolean)

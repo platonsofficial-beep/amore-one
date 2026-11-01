@@ -192,7 +192,14 @@ export function buildLiveFloorState({
     }
   }
 
+  const nextShiftStartLabel = nextStartMinutes !== null
+    ? formatTime24(`${String(Math.floor(nextStartMinutes / 60)).padStart(2, '0')}:${String(nextStartMinutes % 60).padStart(2, '0')}`)
+    : null
+  const nextShifts = resolveNextShiftMembers()
+
   if (onShift.length > 0) {
+    // Keep the next start while people are working, so Team › Today does not
+    // say "No more shifts today" at 16:00 when the evening starts at 16:30.
     return {
       state: 'live',
       eyebrow: 'LIVE FLOOR',
@@ -201,15 +208,10 @@ export function buildLiveFloorState({
       message: '',
       onShift,
       onShiftCount: onShift.length,
-      nextShiftStartLabel: null,
-      nextShifts: [],
+      nextShiftStartLabel,
+      nextShifts,
     }
   }
-
-  const nextShiftStartLabel = nextStartMinutes !== null
-    ? formatTime24(`${String(Math.floor(nextStartMinutes / 60)).padStart(2, '0')}:${String(nextStartMinutes % 60).padStart(2, '0')}`)
-    : null
-  const nextShifts = resolveNextShiftMembers()
 
   return {
     state: 'idle',
