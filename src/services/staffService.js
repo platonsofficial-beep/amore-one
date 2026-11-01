@@ -107,6 +107,7 @@ const mapEmployee = (record) => {
     notes: record.notes ?? '',
     shift: record.shift ?? 'Evening',
     status: `${record.status ?? ''}`.trim() || 'Working',
+    active: record.active !== false,
     department: record.department ?? effectivePositions[0]?.department ?? 'Service',
     identityColor: record.identity_color ?? null,
   }
@@ -465,14 +466,56 @@ export async function updateLinkedEmployeePhone(workspaceId, employeeId, phone) 
   return mapEmployee(data)
 }
 
+export const EMPLOYEE_DISABLED_STATUS = 'Disabled'
+
+export function isEmployeeDisabled(employee) {
+  if (!employee) return false
+  return employee.active === false
+    || `${employee.status ?? ''}`.trim().toLowerCase() === EMPLOYEE_DISABLED_STATUS.toLowerCase()
+}
+
+function isMissingRpcError(error) {
+  const code = `${error?.code ?? ''}`
+  return code === 'PGRST202' || code === '42883'
+}
+
+// Plain-language message for a failed delete. Before this, the error only
+// went to the console and to a notice hidden behind the confirm dialog.
+export function formatEmployeeDeleteError(error) {
+  const code = `${error?.code ?? ''}`
+  const text = `${error?.message ?? ''} ${error?.details ?? ''}`
+  if (code === '23503' || /foreign key/i.test(text)) {
+    if (/leave_requests/i.test(text)) {
+      return 'This person still has leave requests, so they cannot be deleted yet. Use Disable for now — full delete needs the database update.'
+    }
+    return 'This person is still linked to other records, so they cannot be deleted yet. Use Disable for now.'
+  }
+  if (code === '42501' || /permission|row-level security/i.test(text)) {
+    return 'You do not have permission to delete team members.'
+  }
+  if (/owner/i.test(text)) return 'The venue owner cannot be deleted.'
+  return error?.message || 'Unable to delete employee right now.'
+}
+
 export async function deleteEmployee(workspaceId, id) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
 
-  const { error } = await supabase
+  // Preferred: one server call that removes the employee, closes their venue
+  // access and anonymises the membership while keeping hours history.
+  const rpc = await supabase.rpc('remove_employee_from_venue', { p_employee_id: id })
+  if (!rpc.error) return rpc.data ?? { removed: true }
+  if (!isMissingRpcError(rpc.error)) {
+    console.error('[staffService] remove_employee_from_venue error:', rpc.error)
+    throw new Error(formatEmployeeDeleteError(rpc.error))
+  }
+
+  // Fallback until the database update is applied: plain row delete.
+  const { data, error } = await supabase
     .from('employees')
     .delete()
     .eq('id', id)
     .eq('workspace_id', normalizedWorkspaceId)
+    .select('id')
 
   if (error) {
     console.error('[staffService] deleteEmployee error:', error)
@@ -481,6 +524,42 @@ export async function deleteEmployee(workspaceId, id) {
       throw new Error('Employees table is not ready yet.')
     }
 
-    throw new Error(error.message || 'Unable to delete employee right now.')
+    throw new Error(formatEmployeeDeleteError(error))
   }
+
+  if (Array.isArray(data) && data.length === 0) {
+    // RLS hides a denied delete as "0 rows"; never report that as success.
+    throw new Error('Nothing was deleted. You may not have permission to delete this person.')
+  }
+  return { removed: true }
+}
+
+export async function setEmployeeEnabled(workspaceId, id, enabled) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+
+  const rpc = await supabase.rpc('set_employee_access', { p_employee_id: id, p_enabled: Boolean(enabled) })
+  if (!rpc.error) return rpc.data ?? { enabled: Boolean(enabled) }
+  if (!isMissingRpcError(rpc.error)) {
+    console.error('[staffService] set_employee_access error:', rpc.error)
+    throw new Error(rpc.error.message || 'Unable to change access right now.')
+  }
+
+  // Fallback until the database update is applied: mark the employee only.
+  // The app hides them and blocks their screens, but the server does not
+  // yet refuse their login.
+  const { data, error } = await supabase
+    .from('employees')
+    .update({ active: Boolean(enabled), status: enabled ? 'Working' : EMPLOYEE_DISABLED_STATUS })
+    .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .select('id')
+
+  if (error) {
+    console.error('[staffService] setEmployeeEnabled error:', error)
+    throw new Error(error.message || 'Unable to change access right now.')
+  }
+  if (Array.isArray(data) && data.length === 0) {
+    throw new Error('Nothing changed. You may not have permission to manage this person.')
+  }
+  return { enabled: Boolean(enabled), serverEnforced: false }
 }

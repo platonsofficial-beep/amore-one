@@ -5,7 +5,7 @@ import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
-import { createEmployee, deleteEmployee, getEmployees, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
+import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { updateMembershipDisplayName } from './services/membershipService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, moveShiftTemplatesByDrag, reorderShiftTemplates, sortShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema } from './services/shiftTemplateService'
@@ -508,7 +508,7 @@ import {
 } from './lib/scheduleAreaCollapseUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
-import { employeeMatchesPeopleDepartmentFilter, employeeMatchesPeopleSearch, TeamPeopleView } from './components/team/TeamPeopleView'
+import { employeeMatchesPeopleFilter, employeeMatchesPeopleSearch, TeamPeopleView } from './components/team/TeamPeopleView'
 import { EmployeePostHireInvitePrompt } from './components/team/EmployeePostHireInvitePrompt'
 import { EmployeeDeleteConfirmModal } from './components/team/EmployeeDeleteConfirmModal'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
@@ -15076,6 +15076,8 @@ function App() {
   const [templateChecklistItemsByTemplateId, setTemplateChecklistItemsByTemplateId] = useState({})
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
+  const [deleteEmployeeError, setDeleteEmployeeError] = useState('')
+  const [togglingEmployeeId, setTogglingEmployeeId] = useState('')
   const [localNow, setLocalNow] = useState(() => getLocalNow())
   const [todayWeekShifts, setTodayWeekShifts] = useState([])
   const [todayWeekCapacities, setTodayWeekCapacities] = useState([])
@@ -16430,6 +16432,14 @@ function App() {
   )
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
+  // Disabled team members keep their login but this venue is paused for
+  // them. Server-side refusal comes with the MANUAL SQL update.
+  const isLinkedEmployeeDisabled = useMemo(() => {
+    if (isAuthLoading || role === 'owner') return false
+    const linkedId = `${membership?.employeeId ?? ''}`.trim()
+    if (!linkedId) return false
+    return isEmployeeDisabled(employees.find((employee) => `${employee.id}` === linkedId))
+  }, [isAuthLoading, role, membership?.employeeId, employees])
   const isHostAccount = !isAuthLoading && isHostMobileRole(role)
   const isStaffHostAccount = !isAuthLoading && isStaffOrHostRole(role)
   const isStaffAccount = isStaffHostAccount && !isHostAccount
@@ -17445,7 +17455,7 @@ function App() {
         const remoteEmployees = await getEmployees(activeWorkspaceId)
         if (!isMounted) return
         setEmployees(remoteEmployees)
-        setScheduleEmployees(remoteEmployees)
+        setScheduleEmployees(remoteEmployees.filter((employee) => !isEmployeeDisabled(employee)))
       } catch (error) {
         if (!isMounted) return
 
@@ -17964,7 +17974,7 @@ function App() {
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
       const matchesSearch = employeeMatchesPeopleSearch(employee, searchTerm)
-      const matchesFilter = employeeMatchesPeopleDepartmentFilter(employee.department, activeFilter)
+      const matchesFilter = employeeMatchesPeopleFilter(employee, activeFilter)
       return matchesSearch && matchesFilter
     })
   }, [activeFilter, employees, searchTerm])
@@ -18032,7 +18042,7 @@ function App() {
 
     const remoteEmployees = await getEmployees(activeWorkspaceId)
     setEmployees(remoteEmployees)
-    setScheduleEmployees(remoteEmployees)
+    setScheduleEmployees(remoteEmployees.filter((employee) => !isEmployeeDisabled(employee)))
     return remoteEmployees
   }
 
@@ -19805,6 +19815,23 @@ function App() {
 
   const handleCloseDeleteEmployeeModal = () => {
     setEmployeePendingDelete(null)
+    setDeleteEmployeeError('')
+  }
+
+  const handleToggleEmployeeEnabled = async (employee, enable) => {
+    if (!employee?.id || !activeWorkspaceId) return
+    setTogglingEmployeeId(employee.id)
+    try {
+      await setEmployeeEnabled(activeWorkspaceId, employee.id, enable)
+      const refreshedEmployees = await refreshStaffEmployees()
+      const nextSelected = refreshedEmployees.find((item) => item.id === employee.id) ?? null
+      if (selectedEmployee?.id === employee.id) setSelectedEmployee(nextSelected)
+      setStaffNotice(enable ? `${employee.name} is enabled again.` : `${employee.name} is disabled. History is kept; you can enable them any time.`)
+    } catch (error) {
+      setStaffNotice(error.message || 'Unable to change access right now.')
+    } finally {
+      setTogglingEmployeeId('')
+    }
   }
 
   const handleDeleteEmployee = async () => {
@@ -19815,6 +19842,7 @@ function App() {
     }
 
     setSaveError('')
+    setDeleteEmployeeError('')
     setIsDeletingEmployee(true)
 
     try {
@@ -19832,8 +19860,9 @@ function App() {
       handleCloseDeleteEmployeeModal()
     } catch (error) {
       const message = error.message || 'Unable to delete employee right now. Please try again.'
+      // Show it inside the dialog; the page notice sits behind it.
+      setDeleteEmployeeError(message)
       setStaffNotice(message)
-      setSaveError(message)
     } finally {
       setIsDeletingEmployee(false)
     }
@@ -24465,6 +24494,12 @@ function App() {
       ) : null}
 
       <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${activeView === 'chat' ? ' main-panel-chat' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
+        {isLinkedEmployeeDisabled ? (
+          <div className="employee-access-paused" role="alert">
+            <h2>Access paused</h2>
+            <p>Your access to this venue has been paused by the manager. Your history is kept, and they can turn it back on any time.</p>
+          </div>
+        ) : null}
         {(() => {
           const chatScreen = canUseChatRole && activeWorkspaceId ? (
             <ChatScreen
@@ -24686,6 +24721,8 @@ function App() {
             onOpenAddEmployee={handleOpenAddEmployee}
             onOpenEditEmployee={handleOpenEditEmployee}
             onRequestDeleteEmployee={handleRequestDeleteEmployee}
+            onToggleEmployeeEnabled={handleToggleEmployeeEnabled}
+            togglingEmployeeId={togglingEmployeeId}
             isLoading={isLoadingStaff}
             noticeMessage={staffNotice}
             isSaving={isSavingEmployee}
@@ -26718,6 +26755,7 @@ function App() {
           <EmployeeDeleteConfirmModal
             employee={employeePendingDelete}
             isDeleting={isDeletingEmployee}
+            errorMessage={deleteEmployeeError}
             onCancel={handleCloseDeleteEmployeeModal}
             onConfirm={handleDeleteEmployee}
           />

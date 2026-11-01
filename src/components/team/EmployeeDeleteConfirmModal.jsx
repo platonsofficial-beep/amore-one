@@ -8,6 +8,7 @@ export function getEmployeeDeleteConfirmName(employee) {
 export function EmployeeDeleteConfirmModal({
   employee = null,
   isDeleting = false,
+  errorMessage = '',
   onCancel,
   onConfirm,
 }) {
@@ -36,8 +37,15 @@ export function EmployeeDeleteConfirmModal({
           <strong>{employeeName}</strong>
           ?
           {' '}
-          This action cannot be undone.
+          This removes them from the team and closes their access to this venue.
+          Past hours are kept without their name. This action cannot be undone.
+          {' '}
+          To pause someone who may come back, use Disable instead.
         </p>
+
+        {errorMessage ? (
+          <p className="employee-delete-error" role="alert">{errorMessage}</p>
+        ) : null}
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={onCancel} disabled={isDeleting}>

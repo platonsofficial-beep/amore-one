@@ -12,6 +12,7 @@ import {
   isResolvedEmployeeOnLeaveToday,
 } from '../../lib/employeeTodayStatusPresentation'
 import { findDepartment } from '../../lib/venueCatalogTemplates'
+import { isEmployeeDisabled } from '../../services/staffService'
 import {
   formatEmployeeSalaryDisplay,
   formatEmployeeWeeklyHoursDisplay,
@@ -19,6 +20,16 @@ import {
 } from '../../lib/teamPeopleDisplay'
 
 export const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
+export const DISABLED_PEOPLE_FILTER = 'Disabled'
+
+// Disabled people only show under the "Disabled" chip; every other chip
+// (including All) lists the active team.
+export function employeeMatchesPeopleFilter(employee, activeFilter) {
+  const disabled = isEmployeeDisabled(employee)
+  if (activeFilter === DISABLED_PEOPLE_FILTER) return disabled
+  if (disabled) return false
+  return employeeMatchesPeopleDepartmentFilter(employee?.department, activeFilter)
+}
 
 /**
  * People department chip matching via catalog key/label/alias resolution.
@@ -107,7 +118,10 @@ export function buildPeopleDepartmentFilters(employeeList = []) {
   const extraSeen = new Set()
   const knownFilters = DEPARTMENT_FILTERS.filter((filter) => filter !== 'All')
 
-  ;(employeeList ?? []).forEach((employee) => {
+  const list = employeeList ?? []
+  const hasDisabled = list.some((employee) => isEmployeeDisabled(employee))
+
+  ;list.filter((employee) => !isEmployeeDisabled(employee)).forEach((employee) => {
     const raw = `${employee?.department ?? ''}`.trim()
     if (!raw) return
 
@@ -127,11 +141,13 @@ export function buildPeopleDepartmentFilters(employeeList = []) {
     'All',
     ...knownFilters.filter((filter) => matched.has(filter)),
     ...extras.sort((left, right) => left.localeCompare(right)),
+    ...(hasDisabled ? [DISABLED_PEOPLE_FILTER] : []),
   ]
 }
 
 export function countPeopleDepartmentsWithStaff(employeeList = []) {
-  return Math.max(0, buildPeopleDepartmentFilters(employeeList).length - 1)
+  const activeOnly = (employeeList ?? []).filter((employee) => !isEmployeeDisabled(employee))
+  return Math.max(0, buildPeopleDepartmentFilters(activeOnly).length - 1)
 }
 
 function formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount) {
@@ -245,6 +261,8 @@ export function TeamPeopleView({
   onOpenAddEmployee,
   onOpenEditEmployee,
   onRequestDeleteEmployee,
+  onToggleEmployeeEnabled,
+  togglingEmployeeId = '',
   isLoading,
   noticeMessage,
   isSaving,
@@ -380,7 +398,12 @@ export function TeamPeopleView({
                     <PersonAvatar employeeId={employee.id} name={employee.name} fallback={getInitials(employee.name)} />
                   </div>
                   <div className="team-people-card-identity">
-                    <h4 className="team-people-card-name">{employee.name}</h4>
+                    <h4 className="team-people-card-name">
+                      {employee.name}
+                      {isEmployeeDisabled(employee) ? (
+                        <span className="status-pill disabled team-people-disabled-badge">Disabled</span>
+                      ) : null}
+                    </h4>
                     <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
                     <p className="team-people-card-department">{employee.department}</p>
                   </div>
@@ -534,6 +557,18 @@ export function TeamPeopleView({
             >
               Edit
             </button>
+            {typeof onToggleEmployeeEnabled === 'function' ? (
+              <button
+                type="button"
+                className="ghost-btn employee-profile-drawer-disable-btn"
+                disabled={togglingEmployeeId === selectedEmployee.id}
+                onClick={() => onToggleEmployeeEnabled(selectedEmployee, isEmployeeDisabled(selectedEmployee))}
+              >
+                {togglingEmployeeId === selectedEmployee.id
+                  ? 'Saving…'
+                  : isEmployeeDisabled(selectedEmployee) ? 'Enable' : 'Disable'}
+              </button>
+            ) : null}
             <button
               type="button"
               className="ghost-btn employee-profile-drawer-delete-btn"
