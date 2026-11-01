@@ -1,5 +1,5 @@
 // Emojis plus words (Platon t370u):
-// "👥 75 guests · 🍽 3 tables booked · 🪑 0 seated · 👤 0 in house"
+// "👥 75 guests · 🍽 3/49 tables · 🪑 0 seated · 👤 0 in house"
 export function HostQueueServiceSummary({
   expectedGuests = 0,
   reservedTables = 0,
@@ -21,8 +21,8 @@ export function HostQueueServiceSummary({
       </span>
       <span className="host-queue-metric" title={tablesTitle}>
         <span className="host-queue-metric-icon" aria-hidden="true">🍽</span>
-        <strong>{reservedTables}</strong>
-        <span className="host-queue-metric-label">{reservedTables === 1 ? 'table booked' : 'tables booked'}</span>
+        <strong>{totalPublishedTables ? `${reservedTables}/${totalPublishedTables}` : reservedTables}</strong>
+        <span className="host-queue-metric-label">tables</span>
       </span>
       <span className="host-queue-metric">
         <span className="host-queue-metric-icon" aria-hidden="true">🪑</span>

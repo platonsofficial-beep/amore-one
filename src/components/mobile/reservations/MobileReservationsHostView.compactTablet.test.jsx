@@ -151,7 +151,7 @@ describe('MobileReservationsHostView compact tablet list', () => {
     expect(summary).not.toBeNull()
     expect(summary?.querySelectorAll('.host-queue-metric-icon')).toHaveLength(4)
     expect(summary?.textContent).toContain('guests')
-    expect(summary?.textContent).toContain('tables booked')
+    expect(summary?.textContent).toMatch(/\d+(\/\d+)?tables/)
     expect(summary?.textContent).toContain('seated')
     expect(summary?.textContent).toContain('in house')
 
