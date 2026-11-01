@@ -25,7 +25,9 @@ import {
   summarizeHours,
   toDateTimeLocalValue,
   venueLocationIsSet,
+  isForgottenClockIn,
 } from '../../lib/attendance'
+import { ON_SHIFT_TEXT } from '../../lib/onShiftText'
 import { readCurrentPositionWithNotice } from '../../lib/attendanceLocation'
 import {
   attendanceRange,
@@ -40,6 +42,19 @@ import {
   startBreak,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
+
+function formatForgotSince(isoValue, timeZone) {
+  const date = new Date(isoValue)
+  if (Number.isNaN(date.getTime())) return 'earlier'
+  try {
+    return new Intl.DateTimeFormat('en-GB', {
+      weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
+      ...(timeZone ? { timeZone } : {}),
+    }).format(date)
+  } catch {
+    return date.toISOString().slice(0, 16).replace('T', ' ')
+  }
+}
 
 function emptySnapshot() {
   return {
@@ -131,6 +146,7 @@ export function AttendanceClockScreen({
     breaksByEntryId: breaksByEntry,
     now,
   })
+  const isForgotten = isForgottenClockIn(openEntry, now)
   const worked = openEntry ? actualWorkedMinutes(openEntry, breaksByEntry[openEntry.id] ?? [], now) : 0
   const venueReady = venueLocationIsSet(snapshot.settings)
 
@@ -305,7 +321,15 @@ export function AttendanceClockScreen({
         <p className="attendance-clock-shift">{shiftSummary.label}</p>
       </header>
 
-      {openEntry ? (
+      {openEntry && isForgotten ? (
+        <div className="attendance-clock-banner is-alert attendance-clock-forgot" role="alert">
+          <strong>{ON_SHIFT_TEXT.forgot}</strong>
+          <span>
+            You clocked in {formatForgotSince(openEntry.clock_in_at, timeZone)} and never clocked out.
+            Clock out, then request a time change so your manager can fix the hours.
+          </span>
+        </div>
+      ) : openEntry ? (
         <p className="attendance-clock-timer" aria-live="polite">
           {openBreak ? '☕ On break' : formatWorkingLabel(worked)}
         </p>

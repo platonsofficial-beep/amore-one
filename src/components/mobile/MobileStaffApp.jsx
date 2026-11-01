@@ -12,7 +12,7 @@ import { MobileTasksView } from './MobileTasksView'
 import { OperationsUnifiedScreen } from '../operations/OperationsUnifiedScreen'
 
 const STAFF_BOTTOM_TABS = [
-  { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'home', label: 'Today', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
@@ -20,7 +20,7 @@ const STAFF_BOTTOM_TABS = [
 ]
 
 const HOST_BOTTOM_TABS = [
-  { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'home', label: 'Today', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'chat', label: 'Chat', icon: '💬' },
   { id: 'reservations', label: 'Bookings', ariaLabel: 'Reservations', icon: '▣' },

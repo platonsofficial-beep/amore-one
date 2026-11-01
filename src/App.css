@@ -53143,3 +53143,8 @@ summary:focus-visible {
   }
 }
 
+
+.attendance-clock-forgot {
+  display: grid;
+  gap: 4px;
+}

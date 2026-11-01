@@ -7,8 +7,10 @@ import {
   formatHoursMinutes,
   indexBreaksByEntry,
   isOpenBreak,
+  isForgottenClockIn,
   isOpenEntry,
 } from './attendance'
+import { ON_SHIFT_TEXT as T } from './onShiftText'
 import { getWorkspaceNowMinutes } from './employeeTodayStatusUtils'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from './shiftDisplayName'
 
@@ -16,6 +18,16 @@ export const ON_SHIFT_SORTS = ['shift', 'department', 'name']
 
 // ONE's own muted jewel tones, picked by a stable hash of the group name.
 const GROUP_TONES = ['gold', 'teal', 'rose', 'violet', 'copper', 'sage', 'sky', 'amber']
+
+function formatDayLabel(isoValue, timeZone) {
+  const date = new Date(isoValue)
+  if (Number.isNaN(date.getTime())) return ''
+  try {
+    return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(timeZone ? { timeZone } : {}) }).format(date)
+  } catch {
+    return ''
+  }
+}
 
 function clean(value) {
   return `${value ?? ''}`.trim()
@@ -70,13 +82,13 @@ function personBase(employee, employeeId, labels, shift) {
   const times = shiftTimes(shift)
   return {
     employeeId,
-    name: fullName ? lookupShiftDisplayName(labels, employeeId, fullName) : 'Μέλος ομάδας',
-    fullName: fullName || 'Μέλος ομάδας',
+    name: fullName ? lookupShiftDisplayName(labels, employeeId, fullName) : T.teamMember,
+    fullName: fullName || T.teamMember,
     department: clean(employee?.department) || clean(shift?.area),
     position: employeePosition(employee, shift),
     shiftStart: times.start,
     shiftEnd: times.end,
-    scheduledLabel: times.label || 'Χωρίς βάρδια',
+    scheduledLabel: times.label || T.noShift,
     isScheduled: Boolean(times.start),
   }
 }
@@ -111,14 +123,29 @@ export function buildOnShiftBoard({
   }
 
   const inNow = []
+  const forgotten = []
   const seenIn = new Set()
   const touchedToday = new Set()
   for (const entry of entries ?? []) {
     const employeeId = clean(entry?.employee_id)
-    if (employeeId && (isOpenEntry(entry) || clean(entry?.work_date).slice(0, 10) === todayKey)) {
+    const isForgotten = isForgottenClockIn(entry, now)
+    if (employeeId && ((isOpenEntry(entry) && !isForgotten) || clean(entry?.work_date).slice(0, 10) === todayKey)) {
       touchedToday.add(employeeId)
     }
     if (!isOpenEntry(entry) || !entry?.clock_in_at) continue
+    if (isForgotten) {
+      // Open for more than 16h or flagged by the server: not "in now".
+      const shifts = shiftsByEmployee.get(employeeId) ?? []
+      forgotten.push({
+        ...personBase(employeesById.get(employeeId), employeeId, labels, shifts[0] ?? null),
+        id: `forgot-${clean(entry.id)}`,
+        memberId: clean(entry.member_id),
+        status: 'forgot',
+        clockInAt: entry.clock_in_at,
+        clockInLabel: `${formatDayLabel(entry.clock_in_at, timeZone)} ${formatClockTime(entry.clock_in_at, timeZone)}`.trim(),
+      })
+      continue
+    }
     const personKey = employeeId || clean(entry.member_id) || clean(entry.id)
     if (seenIn.has(personKey)) continue
     seenIn.add(personKey)
@@ -173,7 +200,9 @@ export function buildOnShiftBoard({
   return {
     inNow,
     notIn,
+    forgotten,
     counts: {
+      forgotten: forgotten.length,
       inNow: inNow.length,
       onBreak: inNow.filter((row) => row.onBreak).length,
       notIn: notIn.length,
@@ -187,14 +216,14 @@ function compareShift(a, b) {
   const right = toMinutes(b.shiftStart)
   if (left === null && right !== null) return 1
   if (right === null && left !== null) return -1
-  return (left ?? 0) - (right ?? 0) || a.name.localeCompare(b.name, 'el')
+  return (left ?? 0) - (right ?? 0) || a.name.localeCompare(b.name, 'en')
 }
 
 /** Groups rows for display: by department then position, by shift time, or a flat A–Z list. */
 export function groupOnShiftRows(rows = [], sort = 'shift') {
   if (sort === 'name') {
-    const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name, 'el'))
-    return sorted.length ? [{ key: 'all', title: 'Όλοι', subtitle: '', tone: 'gold', rows: sorted }] : []
+    const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name, 'en'))
+    return sorted.length ? [{ key: 'all', title: T.everyone, subtitle: '', tone: 'gold', rows: sorted }] : []
   }
 
   const groups = new Map()
@@ -206,11 +235,11 @@ export function groupOnShiftRows(rows = [], sort = 'shift') {
       groups.set(key, {
         key,
         title: sort === 'department'
-          ? [row.department, row.position].filter(Boolean).join(' · ') || 'Χωρίς τμήμα'
-          : row.position || row.department || 'Χωρίς πόστο',
+          ? [row.department, row.position].filter(Boolean).join(' · ') || T.noDepartment
+          : row.position || row.department || T.noPosition,
         subtitle: sort === 'department'
           ? ''
-          : row.isScheduled ? row.scheduledLabel : 'Χωρίς βάρδια',
+          : row.isScheduled ? row.scheduledLabel : T.noShift,
         tone: onShiftGroupTone(row.department || row.position),
         rows: [],
       })
@@ -221,7 +250,7 @@ export function groupOnShiftRows(rows = [], sort = 'shift') {
   const list = [...groups.values()]
   list.forEach((group) => group.rows.sort(compareShift))
   if (sort === 'department') {
-    return list.sort((a, b) => a.title.localeCompare(b.title, 'el'))
+    return list.sort((a, b) => a.title.localeCompare(b.title, 'en'))
   }
-  return list.sort((a, b) => compareShift(a.rows[0], b.rows[0]) || a.title.localeCompare(b.title, 'el'))
+  return list.sort((a, b) => compareShift(a.rows[0], b.rows[0]) || a.title.localeCompare(b.title, 'en'))
 }

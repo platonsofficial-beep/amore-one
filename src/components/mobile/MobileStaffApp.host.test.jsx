@@ -80,7 +80,7 @@ describe('MobileStaffApp host shell', () => {
     const { container, unmount } = renderHostApp()
 
     expect(navLabels(container)).toEqual([
-      'Home',
+      'Today',
       'Schedule',
       'Chat',
       'Bookings',
@@ -99,7 +99,7 @@ describe('MobileStaffApp host shell', () => {
     const { container, unmount } = renderHostApp({ onTabChange })
 
     const home = Array.from(container.querySelectorAll('.mobile-bottom-nav-item'))
-      .find((node) => node.textContent.includes('Home'))
+      .find((node) => node.textContent.includes('Today'))
     act(() => {
       home.click()
     })
@@ -138,7 +138,7 @@ describe('MobileStaffApp host shell', () => {
     })
 
     expect(navLabels(container)).toEqual([
-      'Home',
+      'Today',
       'Schedule',
       'Chat',
       'Tasks',

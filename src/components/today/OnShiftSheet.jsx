@@ -9,28 +9,29 @@ import {
   loadAttendanceSettings,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
+import { ON_SHIFT_TEXT as T, formatOnShiftSummary } from '../../lib/onShiftText'
 import './onShiftSheet.css'
 
 const SORT_OPTIONS = [
-  { id: 'shift', label: 'Βάρδια' },
-  { id: 'department', label: 'Τμήμα' },
-  { id: 'name', label: 'Όνομα' },
+  { id: 'shift', label: T.sortShift },
+  { id: 'department', label: T.sortDepartment },
+  { id: 'name', label: T.sortName },
 ]
 
 function ArrivalBadge({ row }) {
   if (row.status === 'late') {
-    return <span className="on-shift-badge is-late">Καθυστέρηση {formatHoursMinutes(row.lateMinutes)}</span>
+    return <span className="on-shift-badge is-late">{T.late} {formatHoursMinutes(row.lateMinutes)}</span>
   }
   if (row.status === 'upcoming') {
     return row.startsInMinutes > 0
-      ? <span className="on-shift-badge is-soft">Σε {formatHoursMinutes(row.startsInMinutes)}</span>
+      ? <span className="on-shift-badge is-soft">{T.startsIn} {formatHoursMinutes(row.startsInMinutes)}</span>
       : null
   }
   if (row.arrival?.kind === 'late') {
-    return <span className="on-shift-badge is-late">Αργά {formatHoursMinutes(row.arrival.minutes)}</span>
+    return <span className="on-shift-badge is-late">{T.lateArrival} {formatHoursMinutes(row.arrival.minutes)}</span>
   }
   if (row.arrival?.kind === 'early') {
-    return <span className="on-shift-badge is-early">Νωρίς {formatHoursMinutes(row.arrival.minutes)}</span>
+    return <span className="on-shift-badge is-early">{T.early} {formatHoursMinutes(row.arrival.minutes)}</span>
   }
   return null
 }
@@ -47,14 +48,16 @@ function PersonRow({ row, tone, onOpen }) {
         <span className="on-shift-person-copy">
           <strong>{row.name}</strong>
           <span className="on-shift-person-meta">
-            {isIn
-              ? <>Μέσα {row.clockInLabel} · <b>{row.workedLabel}</b></>
-              : <>Βάρδια {row.scheduledLabel}</>}
+            {row.status === 'forgot'
+              ? <>{T.forgotSince(row.clockInLabel)}</>
+              : isIn
+                ? <>{T.inSince} {row.clockInLabel} · <b>{row.workedLabel}</b></>
+                : <>{T.shift} {row.scheduledLabel}</>}
           </span>
         </span>
         <span className="on-shift-person-badges">
-          {row.onBreak ? <span className="on-shift-badge is-break">☕ Διάλειμμα</span> : null}
-          <ArrivalBadge row={row} />
+          {row.onBreak ? <span className="on-shift-badge is-break">{T.breakBadge}</span> : null}
+          {row.status === 'forgot' ? <span className="on-shift-badge is-late">{T.forgot}</span> : <ArrivalBadge row={row} />}
         </span>
         <span className="on-shift-chevron" aria-hidden="true">›</span>
       </button>
@@ -64,13 +67,14 @@ function PersonRow({ row, tone, onOpen }) {
 
 function DetailSheet({ row, onClose }) {
   const isIn = row.status === 'in'
+  const isForgot = row.status === 'forgot'
   const items = [
-    ['Τμήμα', row.department || '—'],
-    ['Πόστο', row.position || '—'],
-    ['Βάρδια σήμερα', row.scheduledLabel],
-    ['Είσοδος', isIn ? row.clockInLabel : 'Δεν έχει χτυπήσει κάρτα'],
-    ['Δουλεύει', isIn ? row.workedLabel : '—'],
-    ['Διαλείμματα', isIn ? (row.breakCount ? `${row.breakCount} · ${row.breakLabel}` : 'Κανένα') : '—'],
+    [T.department, row.department || '—'],
+    [T.position, row.position || '—'],
+    [T.shiftToday, row.scheduledLabel],
+    [T.clockIn, isIn || isForgot ? row.clockInLabel : T.notClockedIn],
+    [T.working, isIn ? row.workedLabel : '—'],
+    [T.breaks, isIn ? (row.breakCount ? `${row.breakCount} · ${row.breakLabel}` : T.none) : '—'],
   ]
   return (
     <div
@@ -94,10 +98,10 @@ function DetailSheet({ row, onClose }) {
           <div>
             <h3 id="on-shift-detail-title">{row.fullName}</h3>
             <p className="on-shift-detail-status">
-              {isIn ? (row.onBreak ? '☕ Σε διάλειμμα' : '● Μέσα τώρα') : row.status === 'late' ? 'Δεν ήρθε ακόμα · καθυστέρηση' : 'Δεν ήρθε ακόμα'}
+              {isForgot ? T.forgot : isIn ? (row.onBreak ? T.statusOnBreak : T.statusIn) : row.status === 'late' ? T.statusLate : T.statusNotIn}
             </p>
           </div>
-          <button type="button" className="on-shift-close" onClick={onClose} aria-label="Κλείσιμο">✕</button>
+          <button type="button" className="on-shift-close" onClick={onClose} aria-label={T.close}>✕</button>
         </header>
         <dl className="on-shift-detail-grid">
           {items.map(([label, value]) => (
@@ -117,6 +121,7 @@ export function OnShiftSheet({
   workspaceId = '',
   employees = [],
   todayShifts = [],
+  scheduledNowCount = 0,
   timeZone = '',
   dateLabel = '',
   onClose,
@@ -180,6 +185,7 @@ export function OnShiftSheet({
   const rows = useMemo(() => {
     if (filter === 'break') return board.inNow.filter((row) => row.onBreak)
     if (filter === 'not-in') return board.notIn
+    if (filter === 'forgot') return board.forgotten
     return board.inNow
   }, [board, filter])
   const groups = useMemo(() => {
@@ -191,9 +197,10 @@ export function OnShiftSheet({
     return list.sort((a, b) => lateFirst(a.rows[0], b.rows[0]))
   }, [rows, sort, filter])
   const emptyText = {
-    in: 'Κανείς δεν έχει χτυπήσει κάρτα τώρα.',
-    break: 'Κανείς δεν είναι σε διάλειμμα τώρα.',
-    'not-in': 'Όλοι όσοι έχουν βάρδια σήμερα έχουν έρθει.',
+    in: T.emptyIn,
+    break: T.emptyBreak,
+    'not-in': T.emptyNotIn,
+    forgot: T.emptyForgot,
   }[filter]
 
   const sheet = (
@@ -209,21 +216,28 @@ export function OnShiftSheet({
         <header className="on-shift-head">
           <div>
             {dateLabel ? <p className="on-shift-eyebrow">{dateLabel}</p> : null}
-            <h2 id="on-shift-title">Σε βάρδια</h2>
+            <h2 id="on-shift-title">{T.title}</h2>
+            {state === 'ready' ? <p className="on-shift-summary-line">{formatOnShiftSummary(scheduledNowCount, board.counts.inNow)}</p> : null}
           </div>
-          <button type="button" className="on-shift-close" onClick={onClose} aria-label="Κλείσιμο">✕</button>
+          <button type="button" className="on-shift-close" onClick={onClose} aria-label={T.close}>✕</button>
         </header>
 
-        <div className="on-shift-summary" role="tablist" aria-label="Φίλτρο">
+        <div className="on-shift-summary" role="tablist" aria-label={T.filter}>
           {[
-            { id: 'in', tone: 'is-in', value: board.counts.inNow, label: 'Μέσα τώρα' },
-            { id: 'break', tone: 'is-break', value: board.counts.onBreak, label: 'Διάλειμμα' },
+            { id: 'in', tone: 'is-in', value: board.counts.inNow, label: T.inNow },
+            { id: 'break', tone: 'is-break', value: board.counts.onBreak, label: T.onBreak },
             {
               id: 'not-in',
               tone: board.counts.late ? 'is-late' : '',
               value: board.counts.notIn,
-              label: board.counts.late ? `Δεν ήρθαν · ${board.counts.late} αργούν` : 'Δεν ήρθαν',
+              label: board.counts.late ? `${T.notIn} · ${T.lateCount(board.counts.late)}` : T.notIn,
             },
+            ...(board.counts.forgotten ? [{
+              id: 'forgot',
+              tone: 'is-late',
+              value: board.counts.forgotten,
+              label: T.forgot,
+            }] : []),
           ].map((card) => (
             <button
               key={card.id}
@@ -239,8 +253,8 @@ export function OnShiftSheet({
           ))}
         </div>
 
-        <div className="on-shift-sort" role="radiogroup" aria-label="Ταξινόμηση">
-          <span>Ταξινόμηση</span>
+        <div className="on-shift-sort" role="radiogroup" aria-label={T.sortLabel}>
+          <span>{T.sortLabel}</span>
           {SORT_OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -256,7 +270,7 @@ export function OnShiftSheet({
         </div>
 
         <div className="on-shift-body">
-          {state === 'loading' ? <p className="on-shift-empty">Φόρτωση…</p> : null}
+          {state === 'loading' ? <p className="on-shift-empty">{T.loading}</p> : null}
           {state === 'error' ? <p className="on-shift-empty is-alert" role="alert">{error}</p> : null}
           {state === 'ready' && groups.length === 0 ? (
             <p className="on-shift-empty">

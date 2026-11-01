@@ -4,6 +4,7 @@ export function MobileHomeView({
   venueName = '',
   greeting = '',
   dateLabel = '',
+  roleLabel = '',
   shiftSummary = {},
   tasksSummary = {},
   needsEmployeeLink = false,
@@ -27,13 +28,19 @@ export function MobileHomeView({
 
   const shiftNeedsLink = needsEmployeeLink || shiftSummary?.needsEmployeeLink
   const tasksNeedsLink = needsEmployeeLink || tasksNeedEmployeeLink
+  const workspaceContext = [venueName, roleLabel].filter(Boolean).join(' · ')
 
   return (
     <div className="mobile-screen mobile-home">
-      <header className="mobile-screen-header">
-        <p className="mobile-screen-eyebrow">{dateLabel}</p>
-        <h1 className="mobile-screen-title">{greeting || 'Welcome'}</h1>
-        {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
+      {/* Same Today header as managers: greeting, then date and venue · role. */}
+      <header className="mobile-manager-command-header">
+        <h1 className="mobile-manager-command-greeting">{greeting || 'Welcome'}</h1>
+        <p className="mobile-manager-command-meta">
+          <span className="mobile-manager-command-date">{dateLabel}</span>
+          {workspaceContext ? (
+            <span className="mobile-manager-command-workspace">{workspaceContext}</span>
+          ) : null}
+        </p>
       </header>
 
       {reminderCard}

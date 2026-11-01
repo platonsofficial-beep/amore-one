@@ -39,6 +39,7 @@ export function buildTodayCommandHeaderChips({
   reservationsConnected = false,
   liveFloorState = {},
   showStock = false,
+  clockedInCount = null,
 } = {}) {
   const chips = []
 
@@ -60,6 +61,7 @@ export function buildTodayCommandHeaderChips({
     icon: '👥',
     label: 'On Shift',
     value: String(onShiftCount),
+    ...(Number.isFinite(clockedInCount) ? { detail: `${clockedInCount} clocked in` } : {}),
     tone: onShiftCount > 0 ? 'live' : 'muted',
   })
 
