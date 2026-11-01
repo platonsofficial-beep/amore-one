@@ -38,7 +38,7 @@ export function EmployeeDeleteConfirmModal({
           ?
           {' '}
           This removes them from the team and closes their access to this venue.
-          Past hours are kept without their name. This action cannot be undone.
+          Past hours and messages are kept with their name. This action cannot be undone.
           {' '}
           To pause someone who may come back, use Disable instead.
         </p>

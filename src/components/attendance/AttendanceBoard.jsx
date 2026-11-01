@@ -53,9 +53,12 @@ function personName(employees, employeeId, fallback = 'Team member') {
   return name || fallback
 }
 
-function entryPersonName(entry, employees) {
-  if (entry?.employee_id) return personName(employees, entry.employee_id)
-  return 'Team member'
+// Deleted employees keep their name on the membership row, so their kept
+// hours still say who it was (the employee link is gone after delete).
+export function entryPersonName(entry, employees) {
+  const memberName = `${entry?.member?.display_name ?? ''}`.trim()
+  if (entry?.employee_id) return personName(employees, entry.employee_id, memberName || 'Team member')
+  return memberName || 'Team member'
 }
 
 export function AttendanceBoard({
