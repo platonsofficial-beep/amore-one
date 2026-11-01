@@ -654,6 +654,7 @@ export function MobileReservationsHostView({
     // (Platon t370u) instead of a "Rotate your device" wall.
     return (
       <MobileManagerReservationsView
+        className="is-host-portrait"
         reservations={reservations}
         todayKey={workspaceTodayKey || todayKey}
         dateKey={todayKey}

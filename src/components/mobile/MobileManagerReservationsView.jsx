@@ -46,6 +46,7 @@ export function summarizePortraitDay(dayReservations = []) {
 const tableLabelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
 export function MobileManagerReservationsView({
+  className = '',
   reservations = [],
   todayKey = '',
   dateKey = '',
@@ -120,7 +121,7 @@ export function MobileManagerReservationsView({
   }
 
   return (
-    <div className="mobile-screen manager-portrait-reservations">
+    <div className={`mobile-screen manager-portrait-reservations${className ? ` ${className}` : ''}`}>
       <ManagerPortraitBanner area="floor" />
       <header className="manager-portrait-screen-header">
         <div>
