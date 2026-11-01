@@ -102,7 +102,7 @@ describe('todayViewUtils', () => {
       hasStockModuleData: true,
     })
 
-    expect(summary.onShiftSummary).toBe('3 working now')
+    expect(summary.onShiftSummary).toBe('3 on shift')
     expect(summary.reservationsSummaryLine).toContain('4 bookings')
     expect(summary.reservationsSummaryLine).toContain('18 covers')
     expect(summary.tasksSummary).toContain('5 open tasks')

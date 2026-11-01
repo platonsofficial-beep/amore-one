@@ -562,6 +562,7 @@ import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { VenueSwitcher } from './components/workspace/VenueManager'
 import { AttendanceBoard } from './components/attendance/AttendanceBoard'
 import { AttendanceClockScreen } from './components/attendance/AttendanceClockScreen'
+import { useClockedInNow } from './hooks/useClockedInNow'
 import { VenueClockSettings } from './components/attendance/VenueClockSettings'
 import { createDefaultSeatingForm } from './components/workspace/WorkspaceReservationSeatingsSection'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
@@ -1229,7 +1230,7 @@ function CommandCenterView({
 
       <TodayStatusCards
         statusSummary={statusSummary}
-        showStock={showStockStatus}
+        showStock={showStockStatus && !stockLive}
         onSelect={onStatusCardSelect}
       />
 
@@ -16255,6 +16256,7 @@ function App() {
 
   const canAccessStockModule = canAccessModule(permissionAccess, 'stock')
 
+  const clockedInNowCount = useClockedInNow(activeWorkspaceId, workspaceTimeZone, canManageAttendanceRole)
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
     snapshot: operationalSnapshot,
@@ -16271,7 +16273,9 @@ function App() {
     hasStockModuleData: stockItems.length > 0,
     parsReady: stockLiveSnapshot.parsReady === true,
     belowParCount: stockLiveSnapshot.belowParCount,
+    clockedInCount: clockedInNowCount,
   }), [
+    clockedInNowCount,
     liveFloorState,
     operationalSnapshot,
     todayReservationsSummary,
@@ -16605,8 +16609,11 @@ function App() {
     todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
     liveFloorState,
-    showStock: canAccessStockModule,
+    // Stock shows once on Today: the Stock live card below the header (D5).
+    showStock: canAccessStockModule && !canAccessModule(permissionAccess, 'stock'),
+    clockedInCount: clockedInNowCount,
   }), [
+    clockedInNowCount,
     dashboardLiveStatus,
     operationalSnapshot.issues,
     todayStatusSummary,
@@ -16616,6 +16623,7 @@ function App() {
     isReservationsModuleConnected,
     liveFloorState,
     canAccessStockModule,
+    permissionAccess,
   ])
 
   const todayWorkspaceBadge = useMemo(
@@ -25321,6 +25329,7 @@ function App() {
                       venueName: workspaceProfile.businessName,
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
+                      roleLabel,
                       shiftSummary: mobileShiftSummary,
                       tasksSummary: mobileTaskOverview,
                       needsEmployeeLink: mobileNeedsEmployeeLink,
@@ -25714,6 +25723,7 @@ function App() {
                       employees={employees}
                       todayShifts={onShiftTodayShifts}
                       timeZone={workspaceTimeZone}
+                      scheduledNowCount={todayStatusSummary.onShiftScheduledCount}
                       dateLabel={dashboardHeroDateLabel}
                       onClose={() => setIsTodayOnShiftSheetOpen(false)}
                     />

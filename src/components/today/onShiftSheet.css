@@ -62,6 +62,17 @@
   font-weight: 700;
 }
 
+.on-shift-summary-line {
+  margin: 2px 0 0;
+  color: var(--one-text-muted, #a9a39a);
+  font-size: 13px;
+}
+
+/* A fourth card (Forgot to clock out?) spans the full row. */
+.on-shift-summary > button:nth-child(4) {
+  grid-column: 1 / -1;
+}
+
 .on-shift-close {
   min-width: 44px;
   min-height: 44px;

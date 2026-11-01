@@ -1,3 +1,5 @@
+import { countClockedInNow, isForgottenClockIn } from './attendance'
+import { formatOnShiftSummary } from './onShiftText'
 import { describe, expect, it } from 'vitest'
 import { buildOnShiftBoard, groupOnShiftRows, onShiftGroupTone } from './onShiftNowRows'
 
@@ -25,7 +27,7 @@ describe('on shift board', () => {
   const board = buildOnShiftBoard({ entries, breaks, employees, todayShifts, now, timeZone: tz })
 
   it('lists clocked-in people with shift, times, break and arrival', () => {
-    expect(board.counts).toEqual({ inNow: 2, onBreak: 1, notIn: 2, late: 1 })
+    expect(board.counts).toEqual({ forgotten: 0, inNow: 2, onBreak: 1, notIn: 2, late: 1 })
     const [giorgos, maria] = board.inNow
     expect(giorgos).toMatchObject({ name: 'Giorgos P.', department: 'Bar', position: 'Bartender', scheduledLabel: '17:00–01:00', clockInLabel: '16:50', workedLabel: '2h 40m', onBreak: false })
     expect(giorgos.arrival).toEqual({ kind: 'early', minutes: 10 })
@@ -43,7 +45,7 @@ describe('on shift board', () => {
       entries: [{ id: 'x', employee_id: 'e4', work_date: '2026-10-29', clock_in_at: '2026-10-29T17:00:00Z', clock_out_at: null }],
       employees, todayShifts: [], now, timeZone: tz,
     })
-    expect(extra.inNow[0]).toMatchObject({ scheduledLabel: 'Χωρίς βάρδια', isScheduled: false })
+    expect(extra.inNow[0]).toMatchObject({ scheduledLabel: 'No shift', isScheduled: false })
   })
 
   it('names a not-in person from the shift when the employee list misses them', () => {
@@ -62,5 +64,33 @@ describe('on shift board', () => {
     expect(groupOnShiftRows(board.inNow, 'department').map((g) => g.title)).toEqual(['Bar · Bartender', 'Floor · Waiter'])
     expect(groupOnShiftRows(board.inNow, 'name')[0].rows.map((r) => r.employeeId)).toEqual(['e1', 'e2'])
     expect(onShiftGroupTone('Bar')).toBe(onShiftGroupTone('bar'))
+  })
+})
+
+describe('forgotten clock-outs (D2)', () => {
+  const now = new Date('2026-11-01T13:00:00Z')
+  const people = [{ id: 'p1', full_name: 'Platon Sachinis' }, { id: 'p2', full_name: 'Maria Ioannou' }]
+  const entries = [
+    { id: 'old', employee_id: 'p1', work_date: '2026-10-29', clock_in_at: '2026-10-29T16:05:00Z', clock_out_at: null, status: 'open' },
+    { id: 'now', employee_id: 'p2', work_date: '2026-11-01', clock_in_at: '2026-11-01T09:00:00Z', clock_out_at: null, status: 'open' },
+  ]
+
+  it('keeps clock-ins older than 16h out of "in now" and lists them as forgotten', () => {
+    const board = buildOnShiftBoard({ entries, employees: people, todayShifts: [], now, timeZone: 'Europe/Nicosia' })
+    expect(board.inNow.map((row) => row.employeeId)).toEqual(['p2'])
+    expect(board.forgotten).toHaveLength(1)
+    expect(board.forgotten[0]).toMatchObject({ employeeId: 'p1', status: 'forgot' })
+    expect(board.counts.forgotten).toBe(1)
+  })
+
+  it('treats a server-flagged entry as forgotten even when it is recent', () => {
+    expect(isForgottenClockIn({ clock_in_at: '2026-11-01T12:00:00Z', clock_out_at: null, status: 'needs_review' }, now)).toBe(true)
+    expect(isForgottenClockIn({ clock_in_at: '2026-11-01T12:00:00Z', clock_out_at: null, status: 'open' }, now)).toBe(false)
+    expect(countClockedInNow(entries, now)).toBe(1)
+  })
+
+  it('formats the same on shift line for the card and the sheet', () => {
+    expect(formatOnShiftSummary(3, 1)).toBe('3 on shift · 1 clocked in')
+    expect(formatOnShiftSummary(3, null)).toBe('3 on shift')
   })
 })

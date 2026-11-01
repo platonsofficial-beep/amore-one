@@ -54,7 +54,7 @@ const names = () => [...document.querySelectorAll('.on-shift-person strong')].ma
 describe('OnShiftSheet summary filters', () => {
   it('filters the list by the tapped summary card', async () => {
     await render()
-    expect(cards().map((c) => c.textContent)).toEqual(['2Μέσα τώρα', '1Διάλειμμα', '8Δεν ήρθαν · 4 αργούν'])
+    expect(cards().map((c) => c.textContent)).toEqual(['2Clocked in', '1On break', '8Not in yet · 4 late'])
     expect(cards()[0].classList.contains('is-active')).toBe(true)
     expect(names()).toHaveLength(2)
 
@@ -75,9 +75,9 @@ describe('OnShiftSheet summary filters', () => {
     await render(todayShifts.slice(0, 2))
     await act(async () => { cards()[2].click() })
     expect(names()).toHaveLength(0)
-    expect(document.body.textContent).toContain('Όλοι όσοι έχουν βάρδια σήμερα έχουν έρθει.')
+    expect(document.body.textContent).toContain('Everyone with a shift today has arrived.')
     await act(async () => { cards()[1].click() })
-    expect(document.body.textContent).not.toContain('Κανείς δεν είναι σε διάλειμμα')
+    expect(document.body.textContent).not.toContain('Nobody is on a break')
   })
 
   it('has no separate tabs; the cards are the filter', async () => {

@@ -145,6 +145,9 @@ export function MobileManagerHomeView({
 
   const stockStatusLine = statusSummary.stockSummaryLine || '—'
 
+  // Stock appears once: the live card (health, below par, drafts, counts) when
+  // it is available, otherwise the compact status tile.
+  const hasStockLiveCard = canOpenStock && Boolean(stockLiveSnapshot)
   const showStockStatus = canOpenStock && (hasStockModuleData || stockOrdersSummary?.pendingCount > 0)
   const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)
     + (Number(stockOrdersSummary?.partialCount) || 0)
@@ -200,7 +203,7 @@ export function MobileManagerHomeView({
                 onClick={canOpenTasks ? onOpenTasks : undefined}
               />
             ) : null}
-            {showStockStatus ? (
+            {showStockStatus && !hasStockLiveCard ? (
               <MobileManagerStatusCard
                 label="Stock"
                 value={stockStatusLine}
@@ -215,7 +218,7 @@ export function MobileManagerHomeView({
               />
             ) : null}
           </div>
-          {canOpenStock && stockLiveSnapshot ? (
+          {hasStockLiveCard ? (
             <StockLiveCard
               stockSummary={stockSummary}
               belowParCount={stockLiveSnapshot.belowParCount}
@@ -309,6 +312,7 @@ export function MobileManagerHomeView({
           workspaceId={workspaceId}
           employees={onShiftEmployees}
           todayShifts={onShiftTodayShifts}
+          scheduledNowCount={statusSummary.onShiftScheduledCount}
           timeZone={timeZone}
           dateLabel={dateLabel}
           onClose={() => setIsOnShiftOpen(false)}

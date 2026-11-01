@@ -1,3 +1,4 @@
+import { formatOnShiftSummary } from './onShiftText'
 import { formatSharedStockHealthLine } from './stockUtils'
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
@@ -201,17 +202,18 @@ export function buildTodayStatusSummary({
   hasStockModuleData = false,
   parsReady: _parsReady = false,
   belowParCount: _belowParCount = 0,
+  clockedInCount = null,
 } = {}) {
   void _parsReady
   void _belowParCount
   const workingCount = liveFloor.state === 'live' ? Number(liveFloor.onShiftCount) || 0 : 0
-  let onShiftSummary = 'No one working now'
+  // Scheduled now and actually clocked in, side by side ("3 on shift · 1 clocked in").
+  const clockedIn = Number.isFinite(clockedInCount) ? clockedInCount : null
+  let onShiftSummary = 'No one on shift now'
   if (liveFloor.state === 'unpublished') {
-    onShiftSummary = 'Schedule not published'
-  } else if (workingCount === 1) {
-    onShiftSummary = '1 working now'
-  } else if (workingCount > 1) {
-    onShiftSummary = `${workingCount} working now`
+    onShiftSummary = clockedIn ? `Schedule not published · ${clockedIn} clocked in` : 'Schedule not published'
+  } else if (workingCount > 0 || clockedIn) {
+    onShiftSummary = formatOnShiftSummary(workingCount, clockedIn)
   }
 
   const scheduledStaff = Number(snapshot.scheduledStaff) || 0
@@ -297,6 +299,7 @@ export function buildTodayStatusSummary({
 
   return {
     onShiftSummary,
+    onShiftScheduledCount: workingCount,
     teamScheduledSummary,
     reservationsSummaryLine,
     tasksSummary,

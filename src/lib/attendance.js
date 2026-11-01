@@ -201,6 +201,28 @@ export function isOpenEntry(entry) {
   return Boolean(entry) && !entry.clock_out_at
 }
 
+// Same rule as the server job attendance_flag_missed_clock_outs (16h).
+export const FORGOTTEN_CLOCK_OUT_HOURS = 16
+
+/** An open clock-in that is flagged for review or older than 16 hours. */
+export function isForgottenClockIn(entry, now = new Date()) {
+  if (!isOpenEntry(entry) || !entry?.clock_in_at) return false
+  if (entry.status === 'needs_review') return true
+  const startedAt = new Date(entry.clock_in_at).getTime()
+  if (!Number.isFinite(startedAt)) return false
+  return now.getTime() - startedAt > FORGOTTEN_CLOCK_OUT_HOURS * 60 * 60 * 1000
+}
+
+/** People clocked in right now; forgotten clock-ins do not count. */
+export function countClockedInNow(entries = [], now = new Date()) {
+  const people = new Set()
+  for (const entry of entries ?? []) {
+    if (!isOpenEntry(entry) || !entry?.clock_in_at || isForgottenClockIn(entry, now)) continue
+    people.add(`${entry.employee_id || entry.member_id || entry.id}`)
+  }
+  return people.size
+}
+
 export function isOpenBreak(item) {
   return Boolean(item) && !item.end_at
 }
