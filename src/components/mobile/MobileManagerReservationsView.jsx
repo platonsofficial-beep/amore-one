@@ -7,6 +7,8 @@ import { getHostListCompactStatusLabel, normalizeReservationStatus } from '../..
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
+import { buildHostQueueServiceMetrics } from '../../lib/hostQueueServiceMetrics'
+import { HostQueueServiceSummary } from './reservations/HostQueueServiceSummary'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
 
 function reservationOnDate(reservation, dateKey) {
@@ -14,6 +16,10 @@ function reservationOnDate(reservation, dateKey) {
 }
 
 const NOT_COMING_STATUSES = new Set(['Cancelled', 'Not Shown', 'Rejected'])
+
+export function isNotComingReservation(reservation) {
+  return NOT_COMING_STATUSES.has(normalizeReservationStatus(reservation?.status))
+}
 
 // "19 bookings · 75 guests · 1 cancelled" — same rule as the database count:
 // cancelled, no-show and rejected bookings are not expected guests.
@@ -40,6 +46,7 @@ export function summarizePortraitDay(dayReservations = []) {
 const tableLabelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
 export function MobileManagerReservationsView({
+  className = '',
   reservations = [],
   todayKey = '',
   dateKey = '',
@@ -61,9 +68,16 @@ export function MobileManagerReservationsView({
   const isToday = selectedDate === todayKey
 
   const dayReservations = useMemo(
-    () => sortMobileHostReservations(
-      (reservations ?? []).filter((reservation) => reservationOnDate(reservation, selectedDate)),
-    ),
+    () => {
+      const sorted = sortMobileHostReservations(
+        (reservations ?? []).filter((reservation) => reservationOnDate(reservation, selectedDate)),
+      )
+      // Cancelled / no-show / rejected go to the bottom of the day.
+      return [
+        ...sorted.filter((reservation) => !isNotComingReservation(reservation)),
+        ...sorted.filter((reservation) => isNotComingReservation(reservation)),
+      ]
+    },
     [reservations, selectedDate],
   )
 
@@ -82,6 +96,12 @@ export function MobileManagerReservationsView({
     [tables],
   )
   const daySummary = useMemo(() => summarizePortraitDay(dayReservations), [dayReservations])
+  // Same emoji + word metrics as the landscape header, for the whole day.
+  const dayMetrics = useMemo(() => buildHostQueueServiceMetrics(dayReservations, {
+    layout,
+    dateKey: selectedDate,
+    nowMinutes: isToday ? nowMinutes : null,
+  }), [dayReservations, layout, selectedDate, isToday, nowMinutes])
 
   const shiftDate = (days) => {
     onDateChange?.(addCalendarDays(selectedDate, days))
@@ -101,7 +121,7 @@ export function MobileManagerReservationsView({
   }
 
   return (
-    <div className="mobile-screen manager-portrait-reservations">
+    <div className={`mobile-screen manager-portrait-reservations${className ? ` ${className}` : ''}`}>
       <ManagerPortraitBanner area="floor" />
       <header className="manager-portrait-screen-header">
         <div>
@@ -109,6 +129,9 @@ export function MobileManagerReservationsView({
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
           {!isLoading ? <p className="manager-portrait-day-summary">{daySummary}</p> : null}
+          {!isLoading ? (
+            <HostQueueServiceSummary {...dayMetrics} className="manager-portrait-day-metrics" />
+          ) : null}
         </div>
         {canManage ? (
           <button type="button" className="manager-portrait-add" onClick={() => setCreateOpen(true)}>
@@ -138,7 +161,7 @@ export function MobileManagerReservationsView({
             <li key={reservation.id}>
               <button
                 type="button"
-                className="manager-portrait-reservation"
+                className={`manager-portrait-reservation${isNotComingReservation(reservation) ? ' is-not-coming' : ''}`}
                 onClick={() => {
                   if (canManage) setEditingReservation(reservation)
                 }}

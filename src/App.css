@@ -53232,3 +53232,95 @@ summary:focus-visible {
     padding-inline-end: 8px;
   }
 }
+.manager-portrait-reservation.is-not-coming {
+  opacity: 0.45;
+}
+.manager-portrait-reservation.is-not-coming strong {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Phone landscape Reservations list (Platon t370u): the full guest name gets
+   its own line and wraps; service / guests / table and the status pill sit
+   below it instead of squeezing the name. */
+.mobile-host-reservations.is-landscape .host-reservation-card-main,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 4px;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-main .host-reservation-card-body,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped .host-reservation-card-body {
+  grid-column: 1;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-main .host-reservation-card-trailing,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped .host-reservation-card-trailing {
+  grid-column: 1;
+  justify-self: end;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-name-purpose > .host-reservation-card-guest {
+  flex: 1 1 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.manager-portrait-day-metrics.host-queue-service-summary {
+  justify-content: flex-start;
+  margin-top: 6px;
+  gap: 4px 12px;
+}
+
+/* Reservations portrait header (Platon t372u): Add sits at the right edge next
+   to the title, and the day summary + metrics use the full width below. */
+.manager-portrait-reservations .manager-portrait-screen-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: start;
+}
+.manager-portrait-reservations .manager-portrait-screen-header > div {
+  display: contents;
+}
+.manager-portrait-reservations .manager-portrait-screen-header > div > :not(.manager-portrait-day-summary):not(.manager-portrait-day-metrics) {
+  grid-column: 1;
+}
+.manager-portrait-reservations .manager-portrait-screen-header > .manager-portrait-add {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+}
+.manager-portrait-reservations .manager-portrait-day-summary,
+.manager-portrait-reservations .manager-portrait-day-metrics {
+  grid-column: 1 / -1;
+}
+/* The floating ?/bell sit above the banner, not beside this header, so the
+   header's reserved right padding only squeezed Add into the middle. */
+.app-shell.is-mobile-shell .manager-portrait-reservations .manager-portrait-screen-header,
+.mobile-manager-app .manager-portrait-reservations .manager-portrait-screen-header,
+.manager-portrait-reservations .manager-portrait-screen-header {
+  padding-right: 0;
+}
+.manager-portrait-reservations .manager-portrait-day-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(0.78rem, 3.6vw, 0.85rem);
+}
+.manager-portrait-reservations .manager-portrait-day-metrics.host-queue-service-summary {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  gap: 0 8px;
+  font-size: clamp(0.7rem, 3.3vw, 0.85rem);
+}
+.manager-portrait-reservations .manager-portrait-day-metrics .host-queue-metric {
+  gap: 2px;
+}
+.manager-portrait-reservations .manager-portrait-day-metrics .host-queue-metric-label {
+  font-size: 0.85em;
+}
+/* Host portrait reuses the owner list but sits outside the owner shell's
+   16px side padding; give it the same breathing room. */
+.manager-portrait-reservations.is-host-portrait {
+  padding-inline: 16px;
+  box-sizing: border-box;
+}

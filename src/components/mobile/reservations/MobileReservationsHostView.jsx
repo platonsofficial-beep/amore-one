@@ -45,6 +45,7 @@ import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
 import { MobileHostReservationDateNav } from './MobileHostReservationDateNav'
+import { MobileManagerReservationsView } from '../MobileManagerReservationsView'
 
 export function MobileReservationsHostView({
   reservations = [],
@@ -424,6 +425,11 @@ export function MobileReservationsHostView({
 
   const listControls = (
     <div className="mobile-host-list-controls">
+      {isSplitLayout ? (
+        // Emoji + words live above the list in landscape (Platon t370u), so the
+        // one-row header never overflows on narrow phones (568x320).
+        <HostQueueServiceSummary {...visibleServiceMetrics} className="host-queue-list-metrics" />
+      ) : null}
       <div className="mobile-host-reservations-toolbar host-queue-search-row">
         <label className="mobile-host-reservations-search">
           <span className="sr-only">Search reservations</span>
@@ -644,15 +650,24 @@ export function MobileReservationsHostView({
   )
 
   if (shouldShowHostStationPortraitFallback()) {
+    // Upright phone: hosts get the same simple list as owners and managers
+    // (Platon t370u) instead of a "Rotate your device" wall.
     return (
-      <div className="mobile-host-reservations is-host-mode is-portrait-fallback" role="status">
-        <div className="mobile-host-reservations-portrait-fallback">
-          <p className="mobile-host-reservations-portrait-fallback-title">Rotate your device</p>
-          <p className="mobile-host-reservations-portrait-fallback-copy">
-            Host Station works best in landscape. Turn your phone sideways to continue.
-          </p>
-        </div>
-      </div>
+      <MobileManagerReservationsView
+        className="is-host-portrait"
+        reservations={reservations}
+        todayKey={workspaceTodayKey || todayKey}
+        dateKey={todayKey}
+        nowMinutes={nowMinutes}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        noticeMessage={noticeMessage}
+        canManage={typeof onCreateReservation === 'function'}
+        seatings={reservationSeatings}
+        onDateChange={onSelectDate}
+        onCreateReservation={onCreateReservation}
+        onEditReservation={onHostEditSave}
+      />
     )
   }
 
@@ -668,9 +683,7 @@ export function MobileReservationsHostView({
           />
         </div>
         <div className="mobile-host-sticky-center" aria-label="Service summary">
-          {isSplitLayout ? (
-            <HostQueueServiceSummary {...visibleServiceMetrics} />
-          ) : (
+          {isSplitLayout ? null : (
             <>
               <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
               <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>

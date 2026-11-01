@@ -18,6 +18,11 @@ describe('reservations audit fixes', () => {
     expect(state.floorStatus).toBe('late')
   })
 
+  it('a late booking holds its table for 45 minutes, then frees it', () => {
+    expect(getReservationOperationalPhase(booking('20:00'), at('20:45'), today)).toBe(FLOOR_TABLE_OPERATIONAL_PHASES.LATE)
+    expect(getReservationOperationalPhase(booking('20:00'), at('20:46'), today)).toBe(FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE)
+  })
+
   it('a morning booking no longer holds the table in the evening', () => {
     expect(getReservationOperationalPhase(booking('10:00'), at('20:30'), today)).toBe(FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE)
   })
