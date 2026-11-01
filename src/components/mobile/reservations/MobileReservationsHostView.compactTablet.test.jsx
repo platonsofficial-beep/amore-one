@@ -150,10 +150,9 @@ describe('MobileReservationsHostView compact tablet list', () => {
     const summary = container.querySelector('.host-queue-service-summary')
     expect(summary).not.toBeNull()
     expect(summary?.querySelectorAll('.host-queue-metric-icon')).toHaveLength(4)
-    expect(summary?.textContent).toContain('expected')
-    expect(summary?.textContent).toMatch(/\d+\/\d+/)
-    expect(summary?.textContent).toContain('free')
-    expect(summary?.textContent).toContain('seated tables')
+    expect(summary?.textContent).toContain('guests')
+    expect(summary?.textContent).toContain('tables booked')
+    expect(summary?.textContent).toContain('seated')
     expect(summary?.textContent).toContain('in house')
 
     unmount()

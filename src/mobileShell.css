@@ -10295,3 +10295,13 @@ body:not(:has(.inventory-count-session)) :is(
     background: #0b0f17;
   }
 }
+
+/* Landscape metrics row above the guest list: emoji + words, wraps cleanly. */
+.mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary {
+  justify-content: flex-start;
+  gap: 2px 10px;
+  padding: 2px 2px 6px;
+}
+.mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric-label {
+  display: inline;
+}

@@ -53232,3 +53232,40 @@ summary:focus-visible {
     padding-inline-end: 8px;
   }
 }
+.manager-portrait-reservation.is-not-coming {
+  opacity: 0.45;
+}
+.manager-portrait-reservation.is-not-coming strong {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* Phone landscape Reservations list (Platon t370u): the full guest name gets
+   its own line and wraps; service / guests / table and the status pill sit
+   below it instead of squeezing the name. */
+.mobile-host-reservations.is-landscape .host-reservation-card-main,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 4px;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-main .host-reservation-card-body,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped .host-reservation-card-body {
+  grid-column: 1;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-main .host-reservation-card-trailing,
+.mobile-host-reservations.is-landscape .host-reservation-card-main.is-time-grouped .host-reservation-card-trailing {
+  grid-column: 1;
+  justify-self: end;
+}
+.mobile-host-reservations.is-landscape .host-reservation-card-name-purpose > .host-reservation-card-guest {
+  flex: 1 1 100%;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+.manager-portrait-day-metrics.host-queue-service-summary {
+  justify-content: flex-start;
+  margin-top: 6px;
+  gap: 4px 12px;
+}
