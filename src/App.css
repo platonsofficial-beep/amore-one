@@ -53223,3 +53223,12 @@ summary:focus-visible {
 .app-shell:has(.help-mode-fallback):has(.notification-bell-btn) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
   padding-inline-end: 100px;
 }
+
+/* 568×320: the extra end padding wraps the header onto two rows and
+   squeezes the floor plan under 40px. Wider landscape phones keep the inset. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 640px) {
+  .app-shell:has(.help-mode-fallback) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .app-shell:has(.help-mode-fallback):has(.notification-bell-btn) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    padding-inline-end: 8px;
+  }
+}
