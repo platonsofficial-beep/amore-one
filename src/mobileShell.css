@@ -1843,10 +1843,10 @@
   text-transform: uppercase;
 }
 
-.mobile-manager-command-workspace::before {
-  content: '·';
-  margin-right: 8px;
-  color: #6f675c;
+/* The venue · role line wraps under the date on phones, so a leading
+   separator dot was left dangling at the start of the line. */
+.mobile-manager-command-workspace {
+  flex-basis: 100%;
 }
 
 .mobile-manager-command-primary {
