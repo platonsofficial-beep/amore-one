@@ -179,6 +179,7 @@ export function computeHostFloorTablesFit({
   aspectWidth = 2200,
   aspectHeight = 1400,
   paddingPx = 12,
+  minTablePx = HOST_FLOOR_MIN_TABLE_PX,
 } = {}) {
   const safeAspectHeight = aspectHeight > 0 ? aspectHeight : 1400
   const aspect = (aspectWidth > 0 ? aspectWidth : 2200) / safeAspectHeight
@@ -204,14 +205,24 @@ export function computeHostFloorTablesFit({
     aspectWidth,
     aspectHeight,
   })
-  const width = Math.max(1, Math.min(widthFromBoundsWidth, widthFromBoundsHeight, contain.width))
+  const fitWidth = Math.max(1, Math.min(widthFromBoundsWidth, widthFromBoundsHeight, contain.width))
+  // Never shrink the smallest table below a readable size (Platon: Fit made
+  // 21px dots on a 956x440 phone). If everything cannot fit readably, the
+  // plan keeps the readable size and scrolls, starting at the tables.
+  const percents = tables
+    .map((table) => Number(table?.widthPercent))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const minPercent = percents.length ? Math.min(...percents) : 12
+  const readableWidth = minTablePx > 0 ? minTablePx / (minPercent / 100) : 0
+  const width = Math.max(fitWidth, readableWidth)
   const height = Math.max(1, width / aspect)
+  const scrolls = width > fitWidth + 0.5
 
   return {
     width: Math.round(width),
     height: Math.round(height),
-    scrollLeft: 0,
-    scrollTop: 0,
+    scrollLeft: scrolls ? Math.max(0, Math.round((Math.max(0, bounds.minX) / 100) * width - paddingPx)) : 0,
+    scrollTop: scrolls ? Math.max(0, Math.round((Math.max(0, bounds.minY) / 100) * height - paddingPx)) : 0,
     zoom: 1,
   }
 }

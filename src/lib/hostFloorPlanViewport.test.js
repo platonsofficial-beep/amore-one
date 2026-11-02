@@ -70,6 +70,7 @@ describe('computeHostFloorTablesFit', () => {
       aspectWidth: 1000,
       aspectHeight: 700,
       paddingPx: 8,
+      minTablePx: 0,
     })
 
     tables.forEach((table) => {
@@ -84,6 +85,26 @@ describe('computeHostFloorTablesFit', () => {
       expect(right).toBeLessThanOrEqual(viewportWidth + 1)
       expect(bottom).toBeLessThanOrEqual(viewportHeight + 1)
     })
+  })
+})
+
+describe('computeHostFloorTablesFit readable minimum', () => {
+  it('keeps the smallest table readable on a 956x440 phone and scrolls to the tables', () => {
+    const tables = [
+      { id: 'a', x: 20, y: 15, widthPercent: 4, heightPercent: 6 },
+      { id: 'b', x: 80, y: 85, widthPercent: 4, heightPercent: 6 },
+    ]
+    const fit = computeHostFloorTablesFit({
+      tables,
+      viewportWidth: 495,
+      viewportHeight: 233,
+      aspectWidth: 2200,
+      aspectHeight: 1400,
+    })
+    expect(fit.width * 0.04).toBeGreaterThanOrEqual(43.5)
+    expect(fit.scrollLeft).toBeGreaterThan(0)
+    expect(fit.scrollLeft).toBeLessThanOrEqual(fit.width * 0.18)
+    expect(fit.scrollTop).toBeLessThanOrEqual(fit.height * 0.12)
   })
 })
 

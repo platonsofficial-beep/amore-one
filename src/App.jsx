@@ -10436,6 +10436,11 @@ function FloorPlanView({
       layoutSpace.style.height = `${box.height}px`
       layoutSpace.style.maxWidth = 'none'
       layoutSpace.style.maxHeight = 'none'
+      // A plan wider than the view starts at the left edge (T10 was out of
+      // scroll reach because the centred canvas pushed it left).
+      if (layoutSpace.parentElement) {
+        layoutSpace.parentElement.style.justifyContent = box.width > viewport.clientWidth ? 'flex-start' : ''
+      }
       const tableNodes = [...layoutSpace.querySelectorAll('.floor-table-node')]
       const firstTable = tableNodes.reduce((nearest, node) => {
         if (!nearest) return node
@@ -10481,6 +10486,11 @@ function FloorPlanView({
     layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
     layoutSpace.style.maxHeight = 'none'
+    // A plan wider than the view starts at the left edge: the centred canvas
+    // otherwise pushed its left tables out of scroll reach.
+    if (layoutSpace.parentElement) {
+      layoutSpace.parentElement.style.justifyContent = box.width > viewport.clientWidth ? 'flex-start' : ''
+    }
     isManualFloorZoomRef.current = true
     suppressFloorAutoFitRef.current = true
     setFloorZoom(1)
