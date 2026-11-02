@@ -25657,6 +25657,7 @@ function App() {
                           onOpenChecklist: canAccessMobileExpandedModule(permissionAccess, 'operations')
                             ? handleMobileManagerOpenChecklist
                             : undefined,
+                          onCreateAnnouncement: canManageAnnouncementsRole ? handleCreateOperationsAnnouncement : undefined,
                         }}
                         operationsSection={operationsSection}
                         onOperationsSectionChange={handleOperationsSectionChange}
