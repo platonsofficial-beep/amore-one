@@ -4,6 +4,9 @@ import './index.css'
 import './App.css'
 import { DeploySetupError } from './components/DeploySetupError.jsx'
 import { getSupabaseSetupError } from './lib/supabaseEnv.js'
+import { bindIslandSide } from './lib/islandInsets.js'
+
+bindIslandSide()
 
 const LEGAL_PATHS = ['/privacy', '/terms', '/delete-account']
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)

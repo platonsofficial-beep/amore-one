@@ -115,6 +115,22 @@ export function restorePageScroll(win = typeof window === 'undefined' ? undefine
   return true
 }
 
+/**
+ * The app never scrolls sideways. iOS still pans the page left while it
+ * reveals a focused field (t404u: layout moved ~75px under the island and
+ * stayed there). Keep x at 0 on every keyboard event, without waiting for blur.
+ */
+export function pinPageX(win = typeof window === 'undefined' ? undefined : window) {
+  if (!win) return false
+  const x = Number(win.scrollX ?? win.pageXOffset) || 0
+  const root = win.document?.scrollingElement
+  const rootX = root ? Number(root.scrollLeft) || 0 : 0
+  if (!x && !rootX) return false
+  win.scrollTo?.(0, Number(win.scrollY ?? win.pageYOffset) || 0)
+  if (root) root.scrollLeft = 0
+  return true
+}
+
 let restoreTimer = 0
 function scheduleScrollRestore() {
   window.clearTimeout(restoreTimer)
@@ -137,6 +153,7 @@ function bindKeyboardViewport() {
   let lastKb = 0
   const onViewport = () => {
     const { kb } = publishKeyboardInset()
+    pinPageX()
     keepChatPinned()
     if (Math.abs(kb - lastKb) >= 60) scheduleSheetReveal()
     if (lastKb >= 60 && kb < 60) scheduleScrollRestore()
@@ -144,11 +161,14 @@ function bindKeyboardViewport() {
   }
   const onFocus = () => {
     publishKeyboardInset()
+    pinPageX()
+    window.setTimeout(pinPageX, 300)
     keepChatPinned()
     scheduleSheetReveal()
   }
   const onBlur = () => window.setTimeout(() => {
     publishKeyboardInset()
+    pinPageX()
     scheduleScrollRestore()
   }, 60)
   viewport?.addEventListener('resize', onViewport)
