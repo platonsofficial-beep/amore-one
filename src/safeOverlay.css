@@ -187,6 +187,25 @@ body.is-keyboard-open .mobile-host-date-picker-backdrop {
   box-sizing: border-box;
 }
 
+/* iOS keeps fixed layers on the layout viewport while the keyboard is open,
+   so a bottom sheet ended behind the keyboard with its focused field off
+   screen. Pin the sheet layer to the visible (visualViewport) area. */
+body.is-keyboard-open .mobile-sheet-backdrop {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vvh, 100dvh);
+  padding-top: var(--one-safe-area-top, env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: 0 !important;
+  align-items: flex-end;
+}
+
+/* The booking sheet uses dvh, which iOS does not shrink for the keyboard. */
+body.is-keyboard-open .mobile-sheet-backdrop > .mobile-sheet {
+  max-height: calc(
+    var(--vvh, 100dvh) - var(--one-safe-area-top, env(safe-area-inset-top, 0px))
+  ) !important;
+}
+
 body.is-keyboard-open .mobile-sheet,
 body.is-keyboard-open .chat-sheet,
 body.is-keyboard-open .employee-modal.is-responsive-sheet,

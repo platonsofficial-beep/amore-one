@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyboardOverlap, keepChatPinned } from './keyboardInset'
+import { keyboardOverlap, keepChatPinned, revealFocusedSheetField } from './keyboardInset'
 import { clampOverlayLeft } from './safeInline'
 
 describe('keyboardOverlap', () => {
@@ -51,6 +51,25 @@ describe('keyboardOverlap', () => {
     node.scrollTop = 100
     keepChatPinned(win)
     expect(node.scrollTop).toBe(100)
+  })
+
+  it('does not touch the page scroll outside a pinned chat', () => {
+    const pins = []
+    const win = { document: { querySelector: () => null }, scrollTo: () => pins.push('window') }
+    expect(keepChatPinned(win)).toBeUndefined()
+    expect(pins).toEqual([])
+  })
+
+  it('centres the focused field of a bottom sheet', () => {
+    const calls = []
+    const field = {
+      matches: () => true,
+      closest: (sel) => (sel === '.chat-composer' ? null : {}),
+      scrollIntoView: (opts) => calls.push(opts),
+    }
+    expect(revealFocusedSheetField({ document: { activeElement: field } })).toBe(true)
+    expect(calls[0]).toMatchObject({ block: 'center' })
+    expect(revealFocusedSheetField({ document: { activeElement: { matches: () => false } } })).toBe(false)
   })
 })
 
