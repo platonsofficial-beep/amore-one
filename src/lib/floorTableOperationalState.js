@@ -6,12 +6,13 @@ import {
   reservationOccupiesFloorTables,
 } from './reservationHostStatus'
 import { formatTime24 } from './timeFormatUtils'
+import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationConstants'
 
 const SERVICE_DAY_EARLY_MORNING_CUTOFF = 360
 // A booking whose time has passed but was never checked in is "late", not
-// "arrived". A late booking holds its table for 45 minutes (Platon t370u);
-// after that the table is free and the booking stays in the list as Late.
-export const LATE_TABLE_HOLD_MINUTES = 45
+// "arrived". After its normal length it no longer holds the table, so a 10:00
+// booking does not block (or count as seated on) the 20:00 floor.
+export const LATE_TABLE_HOLD_MINUTES = DEFAULT_RESERVATION_DURATION_MINUTES
 
 export const FLOOR_TABLE_OPERATIONAL_PHASES = {
   AVAILABLE: 'available',
