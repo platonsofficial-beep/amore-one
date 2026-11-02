@@ -53467,3 +53467,42 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
     display: none;
   }
 }
+
+/* Landscape booking form (live re-test RT-C-03): fields showed through the
+   strip under the sticky Cancel/Save footer (the scroll area's bottom
+   padding) and through the host shell's fading footer. The footer is solid
+   and its colour also covers that strip below it. */
+.mobile-host-reservation-inline-panel .mobile-host-reservation-form-actions,
+.app-shell.is-host-station-shell .mobile-host-reservation-form > .mobile-host-reservation-form-actions {
+  background: #12141c;
+  box-shadow: 0 24px 0 0 #12141c;
+}
+
+/* Tablet portrait (768-834 wide, live re-test RT-D-01): the list column is
+   ~240-300px, so "in house" was clipped and Search shrank to "Searc".
+   Search gets its own full-width row above Walk-in / + Reservation, and the
+   totals show icon + number on one line like on phones. */
+@media (orientation: portrait) and (min-width: 700px) and (max-width: 900px) {
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-toolbar.host-queue-search-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-toolbar .mobile-host-reservations-create-actions {
+    justify-content: flex-start;
+  }
+  .mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary {
+    flex-wrap: nowrap;
+    gap: 0 10px;
+  }
+  .mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary .host-queue-metric-label {
+    display: none;
+  }
+}
+
+/* Host-only tablet station (p12 matrix, iPad 1180x820 host): the host-station
+   rule "height: 100%" beat the dedicated shell's inset, so the panel started
+   44px down but stayed full height and Cancel/Save sat below the screen.
+   Let the inset decide the height, as it does for the owner. */
+.app-shell.is-reservations-dedicated-shell.is-host-station-shell .main-panel.main-panel-reservations {
+  height: auto;
+  max-height: none;
+}

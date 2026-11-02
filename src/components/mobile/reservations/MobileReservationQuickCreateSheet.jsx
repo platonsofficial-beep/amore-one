@@ -360,7 +360,15 @@ function HostReservationQuickCreateFields({
         </p>
       ) : null}
 
-      <div className="mobile-host-reservation-form-actions">
+      {/* Keep focus in the field on press: blurring it removed is-composer-focused,
+          the host bottom bar came back and moved Save up mid-tap, so the first
+          tap on Save landed on the bar (p12 matrix, host 956x440). */}
+      <div
+        className="mobile-host-reservation-form-actions"
+        onMouseDown={(event) => {
+          if (event.target instanceof Element && event.target.closest('button')) event.preventDefault()
+        }}
+      >
         <button
           type="button"
           className="mobile-secondary-btn"

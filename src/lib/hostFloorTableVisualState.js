@@ -1,4 +1,4 @@
-import { FLOOR_TABLE_OPERATIONAL_PHASES } from './floorTableOperationalState'
+import { FLOOR_TABLE_OPERATIONAL_PHASES, getReservationOperationalPhase } from './floorTableOperationalState'
 import { getConflictingUnitIds } from './reservationTableOptions'
 import { resolveSeatingFloorStatus } from './tableAvailability'
 import { isReservationInHouseStatus, isTerminalReservationStatus, normalizeReservationStatus } from './reservationHostStatus'
@@ -70,6 +70,11 @@ export function resolveHostFloorTableStatusClass(
   return `${presentation.hostIndicatorClass} ${presentation.semanticClass}`.trim()
 }
 
+function localDateKey(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 export function applyHostFloorSelectedSeatingContext(
   tableStates,
   {
@@ -79,6 +84,8 @@ export function applyHostFloorSelectedSeatingContext(
     seatingsById,
     layout,
     selectedReservation = null,
+    nowMinutes = null,
+    liveDateKey = localDateKey(),
   },
 ) {
   if (!selectedSeating) return tableStates
@@ -202,7 +209,20 @@ export function applyHostFloorSelectedSeatingContext(
       return tableState
     }
 
-    if (!conflict) {
+    // Agreed rule: a booking that hasn't arrived holds its table for 45
+    // minutes after its time; after that the table shows free on the plan
+    // (the booking stays in the list as "Late" until marked No show/Arrived).
+    // Only on the live day: nowMinutes is today's clock, so it must not free
+    // tables on a future (or past) day being browsed.
+    const conflictHoldExpired = conflict && nowMinutes !== null
+      && todayKey === liveDateKey
+      && getReservationOperationalPhase(
+        enrichedReservations.find((entry) => String(entry.id) === String(conflict.reservationId)),
+        nowMinutes,
+        todayKey,
+      ) === FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE
+
+    if (!conflict || conflictHoldExpired) {
       return {
         ...tableState,
         reservation: null,

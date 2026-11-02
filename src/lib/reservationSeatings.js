@@ -392,7 +392,13 @@ export function resolveReservationBlockedInterval(
     fallbackDurationMinutes = DEFAULT_RESERVATION_DURATION_MINUTES,
   } = {},
 ) {
-  const seatingId = reservation?.seatingId ?? reservation?.seating_id ?? null
+  // Seating follows the time (same rule as the list): a 15:15 booking stored
+  // as Dinner 1 blocks its table in Lunch, the nearest seating, not 19:00.
+  const storedSeatingId = reservation?.seatingId ?? reservation?.seating_id ?? null
+  const seatingsList = [...seatingsById.values()]
+  const seatingId = (seatingsList.length > 0
+    ? resolveHostQueueSeatingId(reservation, seatingsList)
+    : null) ?? storedSeatingId
   const seating = seatingId ? seatingsById.get(seatingId) : null
   const timeValue = normalizeReservationTimeValue(
     seating?.startTime ?? reservation?.time ?? reservation?.reservation_time,

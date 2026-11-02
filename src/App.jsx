@@ -9221,6 +9221,7 @@ function buildFloorPlanSnapshot({
       seatingsById,
       layout,
       selectedReservation,
+      nowMinutes,
     })
   }
 
