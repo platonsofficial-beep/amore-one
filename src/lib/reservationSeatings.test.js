@@ -11,6 +11,7 @@ import {
   resolveHostQueueSeatingId,
   resolveReservationSeatingId,
   reservationMatchesTableDayViewSeating,
+  resolveReservationBlockedInterval,
   serializeReservationSeatingRow,
   sortReservationSeatings,
   validateReservationSeatingForm,
@@ -412,5 +413,18 @@ describe('reservationSeatings', () => {
     expect(listSeating).toBe('lunch')
     expect(reservationMatchesTableDayViewSeating(reservation, seatings[0], '2026-11-02', seatings)).toBe(true)
     expect(reservationMatchesTableDayViewSeating(reservation, seatings[1], '2026-11-02', seatings)).toBe(false)
+  })
+
+  it('blocks a 15:15 booking stored as Dinner 1 in the Lunch window (live re-test RT-A-08)', () => {
+    const seatings = sortReservationSeatings([
+      { id: 'lunch', name: 'Lunch', start_time: '12:00', duration_minutes: 120, days_of_week: [0, 1, 2, 3, 4, 5, 6], sort_order: 1, is_active: true },
+      { id: 'dinner-1', name: 'Dinner 1', start_time: '19:00', duration_minutes: 120, days_of_week: [0, 1, 2, 3, 4, 5, 6], sort_order: 2, is_active: true },
+    ])
+    const blocked = resolveReservationBlockedInterval(
+      { date: '2026-11-02', time: '15:15', status: 'Pending', seatingId: 'dinner-1' },
+      buildSeatingsById(seatings),
+    )
+    expect(blocked.seatingId).toBe('lunch')
+    expect(blocked.timeValue).toBe('12:00')
   })
 })
