@@ -495,3 +495,14 @@ body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reserv
   min-height: 40px;
   height: 40px;
 }
+
+/* Platon t388u: the floating ? and bell sat on top of form boxes. While a
+   bottom sheet or the landscape booking form is open, hide them; they come
+   back as soon as it closes. */
+body:has(.mobile-sheet-backdrop) .help-mode-fallback,
+body:has(.mobile-sheet-backdrop) .notification-bell-btn,
+body:has(.mobile-host-reservation-inline-panel .mobile-host-reservation-form) .help-mode-fallback,
+body:has(.mobile-host-reservation-inline-panel .mobile-host-reservation-form) .notification-bell-btn {
+  visibility: hidden;
+  pointer-events: none;
+}
