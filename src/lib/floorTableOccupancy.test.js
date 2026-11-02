@@ -57,7 +57,8 @@ describe('floor table occupancy', () => {
       nowMinutes: 20 * 60,
     })
     expect(metrics.inHouseGuests).toBe(3)
-    expect(metrics.seatedTables).toBe(1)
+    // Arrived guests are in house, not seated (Platon, Nov 2026).
+    expect(metrics.seatedTables).toBe(0)
     expect(metrics.freeTables).toBe(1)
   })
 

@@ -164,15 +164,12 @@ export function buildHostQueueServiceMetrics(
       reservation,
       layout,
       areaFilterId,
-      {
-        includeReservation: (entry) => (
-          isReservationSeatedForTableMetrics(entry)
-          || getReservationOperationalPhase(entry, nowMinutes, dateKey) === 'waiting'
-        ),
-      },
+      // Arrived (stored Waiting) guests are in the venue but not yet at their
+      // table, so they count as in house below, not as seated (Platon, Nov 2026).
+      { includeReservation: isReservationSeatedForTableMetrics },
     )
     seatedIds.forEach((tableId) => seatedTableIds.add(tableId))
-    if ((isReservationSeatedForTableMetrics(reservation) || arrivedNow) && seatedIds.size === 0) {
+    if (isReservationSeatedForTableMetrics(reservation) && seatedIds.size === 0) {
       const seatedAnywhere = areaFilterId !== HOST_QUEUE_ALL_AREAS
         ? getSeatedTableIdsForScope(reservation, layout, HOST_QUEUE_ALL_AREAS)
         : seatedIds
