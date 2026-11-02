@@ -938,6 +938,8 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: none;
   background: var(--one-surface-raised);
+  /* Sticky footers inside paint this same colour (no dark box). */
+  --one-form-surface: var(--one-surface-raised);
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   min-width: 0;
 }
@@ -8238,6 +8240,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   height: 100%;
   overflow: hidden;
   background: #0f0f11;
+  --one-form-surface: #0f0f11;
 }
 
 .mobile-host-reservation-inline-panel .mobile-host-reservation-inline-body {
@@ -8255,7 +8258,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin-top: 8px;
   padding-top: 10px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  background: #12141c;
+  background: var(--one-form-surface, #12141c);
 }
 
 .mobile-host-reservation-sheet.mobile-sheet {
@@ -9972,7 +9975,8 @@ body:not(:has(.inventory-count-session)) :is(
     border-right: 0;
     border-bottom: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.18);
-    background: #12141c;
+    /* Same colour as the screen behind it, so no dark box around the buttons. */
+    background: var(--one-bg);
     box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.5);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
