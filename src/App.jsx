@@ -1,4 +1,6 @@
-import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { FloorEdgeScrollbars } from './components/floor/FloorEdgeScrollbars.jsx'
+import { anchorScrollDelta, pinchZoom, touchDistance, touchMidpoint } from './lib/floorPinch.js'
 import { clampOverlayLeft } from './lib/safeInline'
 import { formatProfileSaveError } from './lib/profileSaveError'
 import { useMediaQuery } from './lib/useMediaQuery'
@@ -10155,6 +10157,100 @@ function FloorPlanView({
     }
   }, [clampFloorZoom, dismissFloorTooltips, isCompact])
 
+  // Two-finger pinch (Platon t405u): scale around the fingers' midpoint,
+  // clamped like −/+, sharing floorZoom with the toolbar. One finger still
+  // scrolls natively and taps tables.
+  const floorZoomValueRef = useRef(1)
+  floorZoomValueRef.current = floorZoom
+  const floorPinchRef = useRef(null)
+  const floorPinchAnchorRef = useRef(null)
+  useEffect(() => {
+    if (!isCompact) return undefined
+    const viewport = viewportRef.current
+    if (!viewport) return undefined
+    const layoutRect = () => viewport.querySelector('.floor-plan-layout-space')?.getBoundingClientRect() || null
+    const isLocked = () => readHostFloorLockPreference() || viewport.classList.contains('is-floor-interaction-locked')
+    const onStart = (event) => {
+      if (event.touches.length !== 2 || isLocked()) return
+      const [a, b] = event.touches
+      floorPinchRef.current = {
+        startDistance: touchDistance(a, b),
+        startZoom: floorZoomValueRef.current,
+      }
+      // A second finger means pinch, never a table tap or a pan.
+      floorPointerRef.current = { mode: HOST_FLOOR_POINTER_MODE.IDLE }
+      dismissFloorTooltips()
+    }
+    const onMove = (event) => {
+      const pinch = floorPinchRef.current
+      if (!pinch || event.touches.length !== 2) return
+      event.preventDefault()
+      const [a, b] = event.touches
+      const next = pinchZoom({
+        startZoom: pinch.startZoom,
+        startDistance: pinch.startDistance,
+        distance: touchDistance(a, b),
+        min: HOST_FLOOR_MIN_ZOOM,
+        max: HOST_FLOOR_MAX_ZOOM,
+      })
+      const current = floorZoomValueRef.current
+      if (Math.abs(next - current) < 0.005) return
+      const rect = layoutRect()
+      if (rect) {
+        floorPinchAnchorRef.current = {
+          mid: touchMidpoint(a, b),
+          before: { left: rect.left, top: rect.top },
+          fromZoom: current,
+          toZoom: next,
+        }
+      }
+      isManualFloorZoomRef.current = true
+      floorZoomValueRef.current = next
+      setFloorZoom(next)
+    }
+    const onEnd = (event) => {
+      if (event.touches.length < 2) floorPinchRef.current = null
+    }
+    // iOS Safari: stop its own page pinch on the plan.
+    const blockGesture = (event) => event.preventDefault()
+    viewport.addEventListener('touchstart', onStart, { passive: true })
+    viewport.addEventListener('touchmove', onMove, { passive: false })
+    viewport.addEventListener('touchend', onEnd, { passive: true })
+    viewport.addEventListener('touchcancel', onEnd, { passive: true })
+    viewport.addEventListener('gesturestart', blockGesture, { passive: false })
+    viewport.addEventListener('gesturechange', blockGesture, { passive: false })
+    return () => {
+      viewport.removeEventListener('touchstart', onStart)
+      viewport.removeEventListener('touchmove', onMove)
+      viewport.removeEventListener('touchend', onEnd)
+      viewport.removeEventListener('touchcancel', onEnd)
+      viewport.removeEventListener('gesturestart', blockGesture)
+      viewport.removeEventListener('gesturechange', blockGesture)
+    }
+  }, [dismissFloorTooltips, isCompact])
+
+  useLayoutEffect(() => {
+    const anchor = floorPinchAnchorRef.current
+    floorPinchAnchorRef.current = null
+    const viewport = viewportRef.current
+    if (!anchor || !viewport || Math.abs(anchor.toZoom - floorZoom) > 0.001) return
+    const rect = viewport.querySelector('.floor-plan-layout-space')?.getBoundingClientRect()
+    if (!rect) return
+    const { dx, dy } = anchorScrollDelta({ ...anchor, after: { left: rect.left, top: rect.top } })
+    const startLeft = viewport.scrollLeft
+    const startTop = viewport.scrollTop
+    viewport.scrollLeft = startLeft + dx
+    viewport.scrollTop = startTop + dy
+    // The stage scales from its centre, so part of the zoomed plan can sit
+    // left of / above scroll 0. Whatever scrolling cannot absorb goes to the
+    // pan offset, so the point under the fingers stays put.
+    const restX = dx - (viewport.scrollLeft - startLeft)
+    const restY = dy - (viewport.scrollTop - startTop)
+    if (Math.abs(restX) > 0.5 || Math.abs(restY) > 0.5) {
+      setFloorPan((pan) => ({ x: pan.x - restX, y: pan.y - restY }))
+    }
+  }, [floorZoom])
+
   const resetFloorPointerState = useCallback(() => {
     floorPointerRef.current = { mode: HOST_FLOOR_POINTER_MODE.IDLE }
     viewportRef.current?.classList.remove('is-panning')
@@ -11620,6 +11716,7 @@ function FloorPlanView({
         </div>
       ) : null}
 
+      {isCompact ? <FloorEdgeScrollbars viewportRef={viewportRef} epoch={`${resolvedFloorAreaId}:${floorLayoutEpoch}`} /> : null}
       <div
         className={`floor-plan-viewport${isCompact ? ' is-host-viewport' : ''}${isCompact && floorInteractionLocked ? ' is-floor-interaction-locked' : ''}${floorZoom > 1.01 || Math.abs(floorPan.x) > 1 || Math.abs(floorPan.y) > 1 ? ' is-zoomed' : ''}`}
         ref={isCompact ? viewportRef : undefined}
