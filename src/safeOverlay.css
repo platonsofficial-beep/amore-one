@@ -471,6 +471,7 @@ body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reserv
   flex-direction: column;
   box-sizing: border-box;
   background: #12141c;
+  --one-form-surface: #12141c;
   border-radius: 0;
 }
 body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-inline-body {

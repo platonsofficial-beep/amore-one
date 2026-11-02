@@ -19530,6 +19530,7 @@
   padding: 24px;
   border-radius: 24px;
   background: rgba(11, 15, 23, 0.98);
+  --one-form-surface: rgb(11, 15, 23);
   border: 1px solid rgba(212, 175, 55, 0.16);
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
 }
@@ -33442,6 +33443,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 22px;
   border: 1px solid rgba(212, 175, 55, 0.22);
   background: linear-gradient(165deg, rgba(18, 18, 20, 0.98), rgba(10, 10, 11, 0.98));
+  /* Bottom of the gradient, for the sticky footer (no dark box). */
+  --one-form-surface: rgb(10, 10, 11);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   display: flex;
@@ -52471,7 +52474,7 @@ summary:focus-visible {
   .staff-shelf-count-actions {
     flex: 0 0 auto;
     margin-top: 0;
-    background: #12141c;
+    background: var(--one-form-surface, #12141c);
     position: sticky;
     bottom: 0;
     z-index: 2;
@@ -52684,6 +52687,7 @@ summary:focus-visible {
     padding-top: max(12px, var(--one-safe-top-chrome));
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     background: #12141c;
+    --one-form-surface: #12141c;
   }
 
   .app-shell.is-mobile-shell .stock-item-form-modal,
@@ -52716,7 +52720,7 @@ summary:focus-visible {
     flex: 0 0 auto;
     margin-top: 0;
     padding-top: 8px;
-    background: #12141c;
+    background: var(--one-form-surface, #12141c);
   }
 
   .stock-supplier-form .form-grid {
@@ -52916,7 +52920,7 @@ summary:focus-visible {
     z-index: 2;
     margin-top: 0;
     padding: 8px 0;
-    background: #12141c;
+    background: var(--one-form-surface, #12141c);
   }
 
   .inventory-count-wizard {
@@ -53474,8 +53478,8 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
    and its colour also covers that strip below it. */
 .mobile-host-reservation-inline-panel .mobile-host-reservation-form-actions,
 .app-shell.is-host-station-shell .mobile-host-reservation-form > .mobile-host-reservation-form-actions {
-  background: #12141c;
-  box-shadow: 0 24px 0 0 #12141c;
+  background: var(--one-form-surface, #12141c);
+  box-shadow: 0 24px 0 0 var(--one-form-surface, #12141c);
 }
 
 /* Tablet portrait (768-834 wide, live re-test RT-D-01): the list column is
