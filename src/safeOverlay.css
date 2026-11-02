@@ -517,3 +517,68 @@ body.is-keyboard-open .mobile-sheet.mobile-host-reservation-sheet .mobile-host-r
   background-image: none !important;
   box-shadow: 0 24px 0 0 var(--one-surface-raised) !important;
 }
+
+/* Platon t404u: after typing in the landscape booking form the whole app
+   stayed shifted left under the Dynamic Island. Inputs were 14.4-14.7px, and
+   iOS zooms into any focused field under 16px, then pans the page to it.
+   16px on touch screens stops that zoom; the page also can never scroll
+   sideways. */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+@media (hover: none), (pointer: coarse), (max-height: 520px), (max-width: 500px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Edge to edge in phone landscape: the safe-area margin only on the island
+   side (data-island from src/lib/islandInsets.js), a small 8px margin on the
+   other side. Unknown orientation keeps the symmetric fallback above. */
+@media (orientation: landscape) and (max-height: 520px) {
+  :root {
+    --one-island-inset: max(
+      var(--one-safe-area-left, env(safe-area-inset-left, 0px)),
+      var(--one-safe-area-right, env(safe-area-inset-right, 0px)),
+      12px
+    );
+    --one-far-inset: 8px;
+  }
+  :root[data-island='left'] {
+    --one-inset-left: var(--one-island-inset);
+    --one-inset-right: var(--one-far-inset);
+    --safe-l: var(--one-inset-left);
+    --safe-r: var(--one-inset-right);
+  }
+  :root[data-island='right'] {
+    --one-inset-left: var(--one-far-inset);
+    --one-inset-right: var(--one-island-inset);
+    --safe-l: var(--one-inset-left);
+    --safe-r: var(--one-inset-right);
+  }
+
+  /* The panel's own 20px side padding doubled the gap. */
+  .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  /* The bell and ? sit inside the header bar (it reserves 100px for them),
+     vertically centred on it, instead of floating above and outside it. */
+  html body .app-shell.is-reservations-dedicated-shell .help-mode-fallback {
+    /* Beats helpMode.css's :not()/:has() fallback rule (higher specificity). */
+    top: calc(var(--one-safe-top-chrome) + var(--one-res-header-top, 20px) + 6px) !important;
+    right: calc(var(--safe-r) + 16px) !important;
+  }
+  .app-shell.is-reservations-dedicated-shell .mobile-shell-bell.is-reservations-dedicated-bell {
+    top: calc(var(--one-safe-top-chrome) + var(--one-res-header-top, 20px) + 2px);
+    right: calc(var(--safe-r) + 16px + 36px + 6px);
+  }
+}
