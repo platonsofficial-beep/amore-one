@@ -11,6 +11,7 @@ import {
   preventReservationFormSubmit,
 } from '../../../lib/reservationFormNavigation'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
+import { validateReservationFormFields } from '../../../lib/reservationFormValidation'
 import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
 import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
 import { getLayoutUnitsForArea } from '../../../lib/reservationTableOptions'
@@ -39,6 +40,7 @@ function HostReservationQuickCreateFields({
   nameError,
   onNameValidationError,
   todayKey,
+  minDateKey = '',
   isSaving,
   onClose,
   onSubmit,
@@ -53,6 +55,12 @@ function HostReservationQuickCreateFields({
   useEffect(() => {
     formRef.current = form
   }, [form])
+
+  // Save sits at the bottom of a long form: bring the error into view.
+  const errorRef = useRef(null)
+  useEffect(() => {
+    if (nameError) errorRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [nameError])
 
   const activeSeatings = useMemo(
     () => getActiveSeatingsForDate(seatings, form.date || todayKey),
@@ -129,10 +137,22 @@ function HostReservationQuickCreateFields({
       return
     }
 
-    onNameValidationError?.('')
     const guestName = trimmedLastName
       ? `${trimmedFirstName} ${trimmedLastName}`.trim()
       : trimmedFirstName
+
+    // Same checks the save handler runs, shown here inside the form instead
+    // of on the page behind it (past date, party size 0, missing time).
+    const validation = validateReservationFormFields(
+      { ...formRef.current, guestName },
+      { dateFallback: todayKey, minDateKey },
+    )
+    if (!validation.ok) {
+      onNameValidationError?.(validation.error)
+      return
+    }
+
+    onNameValidationError?.('')
 
     await onSubmit?.({
       ...formRef.current,
@@ -179,7 +199,7 @@ function HostReservationQuickCreateFields({
       </div>
 
       {nameError ? (
-        <div className="mobile-host-reservations-notice" role="alert">{nameError}</div>
+        <div className="mobile-host-reservations-notice" role="alert" ref={errorRef}>{nameError}</div>
       ) : null}
 
       <label className="mobile-host-form-field">
@@ -195,8 +215,12 @@ function HostReservationQuickCreateFields({
         <span>Date</span>
         <ReservationDateField
           value={form.date}
-          onChange={(date) => updateForm({ date })}
+          onChange={(date) => {
+            onNameValidationError?.('')
+            updateForm({ date })
+          }}
           todayKey={todayKey}
+          minDateKey={minDateKey}
           required
         />
       </label>
@@ -216,7 +240,10 @@ function HostReservationQuickCreateFields({
             type="number"
             min="1"
             value={form.guests}
-            onChange={(event) => updateForm({ guests: event.target.value })}
+            onChange={(event) => {
+              onNameValidationError?.('')
+              updateForm({ guests: event.target.value })
+            }}
             required
           />
         </label>
@@ -378,6 +405,12 @@ export function MobileReservationQuickCreateSheet({
   const openSessionRef = useRef(null)
   const isEditMode = mode === 'edit'
   const isWalkInMode = mode === 'walk-in'
+  // New bookings start today; an existing booking may keep its own past date.
+  const normalizedTodayKey = normalizeReservationDateKey(todayKey)
+  const originalDateKey = isEditMode ? normalizeReservationDateKey(reservation?.date) : ''
+  const minDateKey = originalDateKey && originalDateKey < normalizedTodayKey
+    ? originalDateKey
+    : normalizedTodayKey
 
   const availabilityReservations = useMemo(() => {
     if (!isEditMode || !reservation?.id) return reservations
@@ -521,6 +554,7 @@ export function MobileReservationQuickCreateSheet({
       nameError={nameError}
       onNameValidationError={handleNameValidationError}
       todayKey={todayKey}
+      minDateKey={minDateKey}
       isSaving={isSaving}
       onClose={handleClose}
       onSubmit={handleSubmit}

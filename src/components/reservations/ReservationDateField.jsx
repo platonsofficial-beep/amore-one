@@ -28,6 +28,7 @@ export function ReservationDateField({
   value,
   onChange,
   todayKey = '',
+  minDateKey = '',
   required = false,
   className = 'reservation-date-field',
   id,
@@ -102,6 +103,7 @@ export function ReservationDateField({
         <HostWorkspaceDatePicker
           selectedDateKey={normalizedValue || workspaceTodayKey}
           workspaceTodayKey={workspaceTodayKey}
+          minDateKey={minDateKey}
           onSelectDate={handleSelectDate}
           onClose={closePicker}
         />

@@ -60,4 +60,19 @@ describe('validateReservationFormFields', () => {
     expect(result.ok).toBe(false)
     expect(result.error).toBe('Please select a reservation time.')
   })
+
+  it('blocks a date before minDateKey but allows it without one (existing past bookings)', () => {
+    const form = { guestName: 'Alex', date: '2026-11-01', time: '19:30' }
+    expect(validateReservationFormFields(form, { minDateKey: '2026-11-02' }).error)
+      .toBe('That date has passed. Pick today or a later date.')
+    expect(validateReservationFormFields(form, { minDateKey: '2026-11-01' }).ok).toBe(true)
+    expect(validateReservationFormFields(form).ok).toBe(true)
+  })
+
+  it('requires a party size of at least 1 when the form has one', () => {
+    const base = { guestName: 'Alex', date: '2026-11-02', time: '19:30' }
+    expect(validateReservationFormFields({ ...base, guests: '0' }).error).toBe('Party size must be at least 1.')
+    expect(validateReservationFormFields({ ...base, guests: '' }).ok).toBe(false)
+    expect(validateReservationFormFields({ ...base, guests: '3' }).ok).toBe(true)
+  })
 })

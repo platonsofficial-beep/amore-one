@@ -8,7 +8,8 @@ export const HOST_RESERVATION_STATUSES = [
   },
   {
     id: 'Waiting',
-    label: 'Waiting',
+    // Stored as 'Waiting'; the host menu, floor plan and list call it Arrived.
+    label: 'Arrived',
     icon: '◴',
     tone: 'waiting',
     groupId: 'upcoming',

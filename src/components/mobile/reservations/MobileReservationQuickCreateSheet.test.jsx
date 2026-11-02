@@ -247,7 +247,7 @@ describe('MobileReservationQuickCreateSheet guest name fields', () => {
 
   it('combines first and last name into guestName on save', async () => {
     const onSubmit = vi.fn(async () => true)
-    const { container, unmount } = renderSheet({ onSubmit })
+    const { container, unmount } = renderSheet({ onSubmit, prefill: { time: '21:00' } })
 
     fillGuestName(container, 'Maria', 'Costa')
     await clickSaveReservation(container)
@@ -344,7 +344,7 @@ describe('MobileReservationQuickCreateSheet guest type', () => {
 
   it('submits selected guest type with create payload', async () => {
     const onSubmit = vi.fn(async () => true)
-    const { container, unmount } = renderSheet({ onSubmit })
+    const { container, unmount } = renderSheet({ onSubmit, prefill: { time: '21:00' } })
 
     selectGuestType(container, 'House Guest')
     fillGuestName(container)
@@ -380,7 +380,7 @@ describe('MobileReservationQuickCreateSheet reservation purpose', () => {
 
   it('submits selected drinks purpose with create payload', async () => {
     const onSubmit = vi.fn(async () => true)
-    const { container, unmount } = renderSheet({ onSubmit })
+    const { container, unmount } = renderSheet({ onSubmit, prefill: { time: '21:00' } })
 
     selectPurpose(container, 'drinks')
     fillGuestName(container)
@@ -390,6 +390,46 @@ describe('MobileReservationQuickCreateSheet reservation purpose', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1)
     expect(onSubmit.mock.calls[0][0].reservationPurpose).toBe('drinks')
 
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet inline validation (Nov 2026 scenario tests)', () => {
+  const notice = (container) => container.querySelector('.mobile-host-reservations-notice')?.textContent
+
+  it('blocks a new booking on a past date with an inline message', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      onSubmit,
+      prefill: { date: '2026-07-09', time: '21:00' },
+    })
+    fillGuestName(container, 'Maria', 'Costa')
+    await clickSaveReservation(container)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(notice(container)).toBe('That date has passed. Pick today or a later date.')
+    unmount()
+  })
+
+  it('blocks party size 0 instead of saving it as 2', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit, prefill: { time: '21:00' } })
+    fillGuestName(container, 'Maria', 'Costa')
+    act(() => {
+      setInputValue(container.querySelector('input[type="number"]'), '0')
+    })
+    await clickSaveReservation(container)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(notice(container)).toBe('Party size must be at least 1.')
+    unmount()
+  })
+
+  it('shows a missing time inside the form', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit })
+    fillGuestName(container, 'Maria', 'Costa')
+    await clickSaveReservation(container)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(notice(container)).toBe('Please select a reservation time.')
     unmount()
   })
 })

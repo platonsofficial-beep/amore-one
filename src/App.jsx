@@ -247,6 +247,7 @@ import {
   matchReservationTimeToSeating,
   resolveHostStationInitialSeatingId,
   resolveReservationSeatingId,
+  resolveHostQueueSeatingId,
   validateReservationSeatingForm,
 } from './lib/reservationSeatings'
 import { getConflictingUnitIds } from './lib/reservationTableOptions'
@@ -21816,7 +21817,13 @@ function App() {
   const handleHostEditSave = async (reservation, form, selectedDateKey) => {
     if (!canManageReservationsRole) return { saved: false }
 
-    const validation = validateReservationFormFields(form, { dateFallback: selectedDateKey })
+    // An existing booking may stay on its own (past) date; moving it to
+    // another day that has passed is blocked.
+    const originalDateKey = normalizeReservationDateKey(reservation?.date)
+    const validation = validateReservationFormFields(form, {
+      dateFallback: selectedDateKey,
+      minDateKey: originalDateKey && originalDateKey < currentDateKey ? originalDateKey : currentDateKey,
+    })
     if (!validation.ok) {
       setReservationNotice(validation.error)
       return { saved: false }
@@ -21844,7 +21851,7 @@ function App() {
         extraChairs: form.extraChairs,
         standingGuests: form.standingGuests,
         seatingId: form.seatingId
-          ?? matchReservationTimeToSeating(validation.time, validation.date, reservationSeatings)?.id
+          ?? resolveHostQueueSeatingId({ date: validation.date, time: validation.time }, reservationSeatings, validation.date)
           ?? null,
       }
       const optimisticReservation = mergeOptimisticReservationUpdate(reservation, patch)
@@ -24036,7 +24043,11 @@ function App() {
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false
 
-    const validation = validateReservationFormFields(form, { dateFallback: currentDateKey })
+    // A new booking cannot be made for a day that has passed.
+    const validation = validateReservationFormFields(form, {
+      dateFallback: currentDateKey,
+      minDateKey: currentDateKey,
+    })
     if (!validation.ok) {
       setReservationNotice(validation.error)
       return false
@@ -24073,7 +24084,10 @@ function App() {
         notes: resolveHostQuickCreateCreateNotes(form),
         customerType: form.customerType ?? 'Regular',
         reservationPurpose: form.reservationPurpose ?? 'dinner',
-        seatingId: form.seatingId ?? null,
+        // Blank seating follows the time (nearest seating between windows).
+        seatingId: form.seatingId
+          ?? resolveHostQueueSeatingId({ date: validation.date, time: validation.time }, reservationSeatings, validation.date)
+          ?? null,
         seatingAssignment,
       }, user?.id ?? null)
 
@@ -24434,6 +24448,11 @@ function App() {
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       <HelpModeChrome />
+      {/* The owner's landscape Reservations screen hides the topbar that
+          normally holds the bell, so it floats here like on the phone shell. */}
+      {useReservationsHostDedicatedShell && !useDedicatedShell && hideStandardTopbar && notificationBell ? (
+        <div className="mobile-shell-bell is-reservations-dedicated-bell">{notificationBell}</div>
+      ) : null}
       {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
         <div className="notification-settings-overlay" role="presentation">
           <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label="Notifications">

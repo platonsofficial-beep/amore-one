@@ -11,6 +11,7 @@ import {
 export function HostWorkspaceDatePicker({
   selectedDateKey,
   workspaceTodayKey,
+  minDateKey = '',
   onSelectDate,
   onClose,
 }) {
@@ -27,7 +28,12 @@ export function HostWorkspaceDatePicker({
 
   const normalizedTodayKey = normalizeReservationDateKey(workspaceTodayKey)
 
+  // Days before minDateKey (e.g. past days for a new booking) can't be picked.
+  const normalizedMinDateKey = normalizeReservationDateKey(minDateKey)
+  const isBeforeMin = (dateKey) => Boolean(normalizedMinDateKey) && dateKey < normalizedMinDateKey
+
   const handleSelectDay = (dateKey) => {
+    if (isBeforeMin(dateKey)) return
     onSelectDate(dateKey)
     onClose?.()
   }
@@ -79,8 +85,10 @@ export function HostWorkspaceDatePicker({
                   cell.inMonth ? '' : 'is-outside',
                   cell.isSelected ? 'is-selected' : '',
                   cell.isToday ? 'is-today' : '',
+                  isBeforeMin(cell.dateKey) ? 'is-disabled' : '',
                 ].filter(Boolean).join(' ')}
                 onClick={() => handleSelectDay(cell.dateKey)}
+                disabled={isBeforeMin(cell.dateKey)}
                 aria-label={cell.dateKey}
                 aria-current={cell.isSelected ? 'date' : undefined}
               >
