@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const COUNT_SELECTOR = '.inventory-count-session, .is-inventory-count-session-lock'
 const FIELD_SELECTOR = 'input, textarea, select, [contenteditable="true"]'
-const SHEET_FIELD_SELECTOR = '.chat-composer, .chat-sheet, .mobile-sheet, .employee-modal, .stock-item-more-menu-panel, .notification-drawer, .supply-draft-preview'
+const SHEET_FIELD_SELECTOR = '.chat-composer, .chat-sheet, .mobile-sheet, .mobile-host-reservation-inline-panel, .employee-modal, .stock-item-more-menu-panel, .notification-drawer, .supply-draft-preview'
 
 /**
  * Keyboard overlap from the visual viewport.
@@ -48,9 +48,13 @@ let chatPinGeneration = 0
 /** Keep a pinned chat on the newest message after the iOS keyboard moves the viewport. */
 export function keepChatPinned(win = typeof window === 'undefined' ? undefined : window) {
   if (!win?.document) return undefined
-  win.scrollTo?.(0, 0)
+  // Only an open, pinned chat thread may reset the page scroll. Doing it on
+  // every screen fought iOS while it scrolled a focused field (e.g. the
+  // booking sheet) into view: each visualViewport scroll snapped back to 0,
+  // so typing froze in the home-screen app.
   const node = win.document.querySelector('.app-shell.is-chat-thread .chat-messages')
   if (!node || node.dataset.chatStick !== '1') return undefined
+  win.scrollTo?.(0, 0)
   const generation = ++chatPinGeneration
   node.dataset.chatHold = '1'
   const pin = () => {
@@ -72,15 +76,39 @@ export function keepChatPinned(win = typeof window === 'undefined' ? undefined :
   }
 }
 
+/**
+ * Keep the focused field of a bottom sheet in view while the iOS keyboard is
+ * open. The sheet is the scroller, so centre the field inside it.
+ */
+export function revealFocusedSheetField(win = typeof window === 'undefined' ? undefined : window) {
+  const active = win?.document?.activeElement
+  if (!active?.matches?.(FIELD_SELECTOR)) return false
+  if (!active.closest?.(SHEET_FIELD_SELECTOR)) return false
+  if (active.closest?.('.chat-composer')) return false
+  active.scrollIntoView?.({ block: 'center', inline: 'nearest' })
+  return true
+}
+
+let revealTimer = 0
+function scheduleSheetReveal() {
+  window.clearTimeout(revealTimer)
+  // Wait for the keyboard animation, which resizes the visual viewport.
+  revealTimer = window.setTimeout(() => revealFocusedSheetField(), 280)
+}
+
 function bindKeyboardViewport() {
   const viewport = window.visualViewport
+  let lastKb = 0
   const onViewport = () => {
-    publishKeyboardInset()
+    const { kb } = publishKeyboardInset()
     keepChatPinned()
+    if (Math.abs(kb - lastKb) >= 60) scheduleSheetReveal()
+    lastKb = kb
   }
   const onFocus = () => {
     publishKeyboardInset()
     keepChatPinned()
+    scheduleSheetReveal()
   }
   const onBlur = () => window.setTimeout(publishKeyboardInset, 60)
   viewport?.addEventListener('resize', onViewport)
@@ -97,6 +125,7 @@ function bindKeyboardViewport() {
 }
 
 function unbindKeyboardViewport() {
+  window.clearTimeout(revealTimer)
   cleanups.forEach((fn) => fn())
   cleanups = []
   const root = document.documentElement

@@ -187,6 +187,25 @@ body.is-keyboard-open .mobile-host-date-picker-backdrop {
   box-sizing: border-box;
 }
 
+/* iOS keeps fixed layers on the layout viewport while the keyboard is open,
+   so a bottom sheet ended behind the keyboard with its focused field off
+   screen. Pin the sheet layer to the visible (visualViewport) area. */
+body.is-keyboard-open .mobile-sheet-backdrop {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vvh, 100dvh);
+  padding-top: var(--one-safe-area-top, env(safe-area-inset-top, 0px)) !important;
+  padding-bottom: 0 !important;
+  align-items: flex-end;
+}
+
+/* The booking sheet uses dvh, which iOS does not shrink for the keyboard. */
+body.is-keyboard-open .mobile-sheet-backdrop > .mobile-sheet {
+  max-height: calc(
+    var(--vvh, 100dvh) - var(--one-safe-area-top, env(safe-area-inset-top, 0px))
+  ) !important;
+}
+
 body.is-keyboard-open .mobile-sheet,
 body.is-keyboard-open .chat-sheet,
 body.is-keyboard-open .employee-modal.is-responsive-sheet,
@@ -436,4 +455,54 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   min-height: 40px;
   color: var(--one-gold-light, #f3d27a);
   font-weight: 700;
+}
+
+/* Landscape booking panel (Platon t386u): with the keyboard up only about
+   200px stay visible, so the open form lifts into that visible band, inside
+   the side safe areas, with Save/Cancel pinned to its bottom. */
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within {
+  position: fixed;
+  z-index: 1300;
+  top: var(--vv-top, 0px);
+  height: var(--vvh, 100dvh);
+  left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
+  right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: #12141c;
+  border-radius: 0;
+}
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-inline-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+/* Only ~170–210px are left: drop the title row, slim Save/Cancel, and keep
+   the focused field centred above them rather than under them. */
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-panel-header {
+  display: none;
+}
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-inline-body {
+  padding-top: 8px;
+  scroll-padding-bottom: 64px;
+}
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-form-actions {
+  padding: 6px 0 6px;
+}
+body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-form-actions button {
+  min-height: 40px;
+  height: 40px;
+}
+
+/* Platon t388u: the floating ? and bell sat on top of form boxes. While a
+   bottom sheet or the landscape booking form is open, hide them; they come
+   back as soon as it closes. */
+body:has(.mobile-sheet-backdrop) .help-mode-fallback,
+body:has(.mobile-sheet-backdrop) .notification-bell-btn,
+body:has(.mobile-host-reservation-inline-panel .mobile-host-reservation-form) .help-mode-fallback,
+body:has(.mobile-host-reservation-inline-panel .mobile-host-reservation-form) .notification-bell-btn {
+  visibility: hidden;
+  pointer-events: none;
 }
