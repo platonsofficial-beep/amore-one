@@ -507,3 +507,13 @@ body:has(.mobile-host-reservation-inline-panel .mobile-host-reservation-form) .n
   visibility: hidden;
   pointer-events: none;
 }
+
+/* Platon t398u (portrait, keyboard open): a dark box still showed behind
+   Cancel / Save in the booking sheet. Whatever shell or keyboard rule
+   matches, the sheet footer paints the sheet's own colour, no dark band. */
+.mobile-sheet.mobile-host-reservation-sheet .mobile-host-reservation-form-actions,
+body.is-keyboard-open .mobile-sheet.mobile-host-reservation-sheet .mobile-host-reservation-form-actions {
+  background: var(--one-surface-raised) !important;
+  background-image: none !important;
+  box-shadow: 0 24px 0 0 var(--one-surface-raised) !important;
+}
