@@ -3,17 +3,22 @@ import { readFileSync } from 'node:fs'
 import { islandSide } from './islandInsets.js'
 import { pinPageX } from './keyboardInset.js'
 
-const win = (orientation, w = 956, h = 440) => ({ innerWidth: w, innerHeight: h, orientation })
+const IPHONE = { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)' }
+const win = (orientation, w = 956, h = 440, navigator = IPHONE) => ({ innerWidth: w, innerHeight: h, orientation, navigator })
 
 describe('islandSide (t404u)', () => {
   it('90 puts the island on the left, -90 / 270 on the right', () => {
     expect(islandSide(win(90))).toBe('left')
     expect(islandSide(win(-90))).toBe('right')
-    expect(islandSide({ innerWidth: 956, innerHeight: 440, screen: { orientation: { angle: 270 } } })).toBe('right')
+    expect(islandSide({ innerWidth: 956, innerHeight: 440, navigator: IPHONE, screen: { orientation: { angle: 270 } } })).toBe('right')
   })
   it('portrait and unknown keep the symmetric fallback', () => {
     expect(islandSide(win(0, 440, 956))).toBe('none')
-    expect(islandSide({ innerWidth: 956, innerHeight: 440 })).toBe('none')
+    expect(islandSide({ innerWidth: 956, innerHeight: 440, navigator: IPHONE })).toBe('none')
+  })
+  it('non-iPhone browsers (CI Chrome, Android) keep symmetric insets', () => {
+    expect(islandSide(win(90, 956, 440, { userAgent: 'Mozilla/5.0 (X11; Linux x86_64) Chrome/140' }))).toBe('none')
+    expect(islandSide({ innerWidth: 956, innerHeight: 440, screen: { orientation: { angle: 90 } } })).toBe('none')
   })
 })
 

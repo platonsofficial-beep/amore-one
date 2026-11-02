@@ -4,13 +4,18 @@
  * far side got a big empty gap. window.orientation 90 (screen angle 90) means
  * the top of the phone, and the island, is on the left; -90 (angle 270) is on
  * the right. Exposed as <html data-island="left|right">, which safeOverlay.css
- * turns into --one-inset-left/right. Unknown keeps the symmetric fallback.
+ * turns into --one-inset-left/right. Unknown, or not an iPhone, keeps the
+ * symmetric fallback.
  */
 export function islandSide(win = typeof window === 'undefined' ? undefined : window) {
   if (!win) return 'none'
   const width = Number(win.innerWidth) || 0
   const height = Number(win.innerHeight) || 0
   if (!(width > height)) return 'none'
+  // Only iPhones have the island. Other browsers (desktop Chrome device
+  // emulation, Android, CI) report an angle too but keep symmetric insets.
+  const ua = `${win.navigator?.userAgent ?? ''}`
+  if (!/iPhone/.test(ua)) return 'none'
   let angle = null
   if (typeof win.orientation === 'number') angle = win.orientation
   else if (typeof win.screen?.orientation?.angle === 'number') angle = win.screen.orientation.angle
