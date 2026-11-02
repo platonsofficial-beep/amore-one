@@ -89,6 +89,42 @@ export function revealFocusedSheetField(win = typeof window === 'undefined' ? un
   return true
 }
 
+/**
+ * iOS scrolls the whole page (window, not a scroller) to show a focused field.
+ * The app shell never scrolls, so once the keyboard is gone any leftover
+ * window offset only shifts the layout: gap on one side, content under the
+ * Dynamic Island on the other (Platon t398u). Put it back to 0,0.
+ */
+export function restorePageScroll(win = typeof window === 'undefined' ? undefined : window) {
+  if (!win) return false
+  const active = win.document?.activeElement
+  if (active?.matches?.(FIELD_SELECTOR)) return false
+  const x = Number(win.scrollX ?? win.pageXOffset) || 0
+  const y = Number(win.scrollY ?? win.pageYOffset) || 0
+  const root = win.document?.scrollingElement
+  // The shell containers never scroll by design (overflow hidden), but
+  // iOS can still offset them while revealing a field.
+  const frames = [root, ...(win.document?.querySelectorAll?.('#root, .app-shell, .main-panel') || [])]
+    .filter((node) => node && (node.scrollLeft || node.scrollTop))
+  if (!x && !y && !frames.length) return false
+  win.scrollTo?.(0, 0)
+  frames.forEach((node) => {
+    node.scrollLeft = 0
+    node.scrollTop = 0
+  })
+  return true
+}
+
+let restoreTimer = 0
+function scheduleScrollRestore() {
+  window.clearTimeout(restoreTimer)
+  // After the keyboard close animation, and again once it has settled.
+  restoreTimer = window.setTimeout(() => {
+    restorePageScroll()
+    restoreTimer = window.setTimeout(() => restorePageScroll(), 250)
+  }, 120)
+}
+
 let revealTimer = 0
 function scheduleSheetReveal() {
   window.clearTimeout(revealTimer)
@@ -103,6 +139,7 @@ function bindKeyboardViewport() {
     const { kb } = publishKeyboardInset()
     keepChatPinned()
     if (Math.abs(kb - lastKb) >= 60) scheduleSheetReveal()
+    if (lastKb >= 60 && kb < 60) scheduleScrollRestore()
     lastKb = kb
   }
   const onFocus = () => {
@@ -110,7 +147,10 @@ function bindKeyboardViewport() {
     keepChatPinned()
     scheduleSheetReveal()
   }
-  const onBlur = () => window.setTimeout(publishKeyboardInset, 60)
+  const onBlur = () => window.setTimeout(() => {
+    publishKeyboardInset()
+    scheduleScrollRestore()
+  }, 60)
   viewport?.addEventListener('resize', onViewport)
   viewport?.addEventListener('scroll', onViewport)
   window.addEventListener('focusin', onFocus)
