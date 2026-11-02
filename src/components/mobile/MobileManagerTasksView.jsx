@@ -16,6 +16,7 @@ import {
 } from '../../lib/operationsUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { OperationsTaskFormModal } from '../operations/OperationsTaskFormModal'
+import { OperationsAnnouncementFormModal } from '../operations/OperationsAnnouncementFormModal'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
 
 const RECENT_NOTES_LIMIT = 2
@@ -182,8 +183,10 @@ export function MobileManagerTasksView({
   onCreateTask,
   onCompleteTask,
   onOpenChecklist,
+  onCreateAnnouncement,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
+  const [isAnnouncementFormOpen, setIsAnnouncementFormOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState(null)
 
   const {
@@ -351,6 +354,23 @@ export function MobileManagerTasksView({
             </section>
           ) : null}
 
+          {onCreateAnnouncement ? (
+            <section className="mobile-manager-tasks-section" aria-label="Announcements">
+              <div className="mobile-manager-tasks-section-header">
+                <p className="mobile-manager-tasks-block-label">Announcements</p>
+                <button
+                  type="button"
+                  className="mobile-manager-tasks-inline-new-btn"
+                  onClick={() => setIsAnnouncementFormOpen(true)}
+                  disabled={isSaving}
+                  data-testid="mobile-manager-new-announcement"
+                >
+                  + Announcement
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <section className="mobile-manager-tasks-section" aria-label="Today's checklist">
             <p className="mobile-manager-tasks-block-label">Start a checklist</p>
             {checklistRows.length > 0 ? (
@@ -391,6 +411,17 @@ export function MobileManagerTasksView({
             setIsTaskFormOpen(false)
           }}
           onSubmit={handleTaskSubmit}
+        />
+      ) : null}
+
+      {isAnnouncementFormOpen ? (
+        <OperationsAnnouncementFormModal
+          isOpen
+          isSaving={isSaving}
+          onClose={() => {
+            if (!isSaving) setIsAnnouncementFormOpen(false)
+          }}
+          onSubmit={onCreateAnnouncement}
         />
       ) : null}
 
