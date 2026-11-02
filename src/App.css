@@ -53226,18 +53226,10 @@ summary:focus-visible {
 
 /* 568×320: the extra end padding wraps the header onto two rows and
    squeezes the floor plan under 40px. Wider landscape phones keep the inset. */
-/* iPhone check (Nov 2026): on landscape phones up to ~820px wide the
-   "⚙ Settings" text made the header wider than the room left of the floating
-   ? and bell, so they covered Settings (host) and Exit (owner). Settings
-   becomes icon-only there (it keeps aria-label "Host settings"), which lets
-   568×320 keep the same end inset as wider phones without wrapping. */
-@media (orientation: landscape) and (max-height: 520px) and (max-width: 820px) {
-  .mobile-host-reservations.is-landscape .mobile-host-settings-label {
-    display: none;
-  }
-  .mobile-host-reservations.is-landscape .mobile-host-settings-btn {
-    min-width: 44px;
-    padding-inline: 10px;
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 640px) {
+  .app-shell:has(.help-mode-fallback) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .app-shell:has(.help-mode-fallback):has(.notification-bell-btn) .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    padding-inline-end: 8px;
   }
 }
 .manager-portrait-reservation.is-not-coming {
@@ -53331,28 +53323,4 @@ summary:focus-visible {
 .manager-portrait-reservations.is-host-portrait {
   padding-inline: 16px;
   box-sizing: border-box;
-}
-
-/* Very short landscape (568×320, iPhone SE 1st gen): the two-line metrics
-   block pushed the first bookings below the fold. Keep the emoji numbers on
-   one compact row there; the words still show on every larger phone. */
-@media (orientation: landscape) and (max-height: 340px) {
-  .mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary .host-queue-metric-label {
-    display: none;
-  }
-  .mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary {
-    flex-wrap: nowrap;
-    gap: 0 8px;
-    padding-bottom: 2px;
-  }
-}
-
-/* iOS Safari zooms the page when a field under 16px gets focus. The booking
-   sheet's date and dropdowns were 14.7px; keep them at 16px on touch phones. */
-@media (pointer: coarse) {
-  .mobile-sheet-body:has(.reservation-date-field-input) input,
-  .mobile-sheet-body:has(.reservation-date-field-input) select,
-  .mobile-sheet-body:has(.reservation-date-field-input) textarea {
-    font-size: max(16px, 1em);
-  }
 }

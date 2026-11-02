@@ -709,8 +709,7 @@ export function MobileReservationsHostView({
               onClick={() => setIsSettingsOpen(true)}
               aria-label="Host settings"
             >
-              <span aria-hidden="true">⚙</span>
-              <span className="mobile-host-settings-label"> Settings</span>
+              ⚙ Settings
             </button>
           ) : null}
           {onExitHostMode ? (

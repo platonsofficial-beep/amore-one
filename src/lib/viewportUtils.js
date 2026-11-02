@@ -143,28 +143,6 @@ export function getViewportDimensions() {
  * visualViewport or the orientation media query has already updated.
  * Landscape uses the larger width so a stale portrait measurement cannot stick.
  */
-/**
- * iOS keyboard: the layout viewport stays portrait while visualViewport
- * loses only height (same width). That is not a rotation, so it must not
- * flip an upright phone into the landscape layout and close an open sheet.
- */
-export function isSoftKeyboardShrink(win = globalThis.window) {
-  if (!win) return false
-  const innerWidth = Number(win.innerWidth) || 0
-  const innerHeight = Number(win.innerHeight) || 0
-  const visual = win.visualViewport
-  const visualWidth = Number(visual?.width) || 0
-  const visualHeight = Number(visual?.height) || 0
-  if (!innerWidth || !innerHeight || !visualWidth || !visualHeight) return false
-  if (innerHeight <= innerWidth) return false
-  if (Math.abs(visualWidth - innerWidth) > 2) return false
-  if (visualHeight >= innerHeight) return false
-  const active = win.document?.activeElement
-  if (!active) return false
-  const tag = String(active.tagName || '').toLowerCase()
-  return tag === 'input' || tag === 'textarea' || tag === 'select' || Boolean(active.isContentEditable)
-}
-
 export function readLiveViewportBox(win = globalThis.window) {
   if (!win) {
     return { width: 0, height: 0 }
@@ -172,9 +150,6 @@ export function readLiveViewportBox(win = globalThis.window) {
 
   const innerWidth = Number(win.innerWidth) || 0
   const innerHeight = Number(win.innerHeight) || 0
-  if (isSoftKeyboardShrink(win)) {
-    return { width: innerWidth, height: innerHeight }
-  }
   const visual = win.visualViewport
   const visualWidth = Number(visual?.width) || 0
   const visualHeight = Number(visual?.height) || 0

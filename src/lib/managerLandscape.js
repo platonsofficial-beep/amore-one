@@ -1,5 +1,4 @@
 import { isManagerRole } from './permissions'
-import { isSoftKeyboardShrink } from './viewportUtils'
 
 /**
  * Management roles (owner, general manager, manager).
@@ -58,8 +57,6 @@ export function readPortraitOrientation(win = globalThis.window) {
   if (!win) return false
   const width = Number(win.innerWidth) || 0
   const height = Number(win.innerHeight) || 0
-  // Keyboard open on an upright phone: visualViewport lost height only.
-  if (isSoftKeyboardShrink(win)) return true
   const visual = win.visualViewport
   const visualWidth = Number(visual?.width) || 0
   const visualHeight = Number(visual?.height) || 0
