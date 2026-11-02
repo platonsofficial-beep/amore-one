@@ -10481,6 +10481,11 @@ function FloorPlanView({
     layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
     layoutSpace.style.maxHeight = 'none'
+    // A plan wider than the view starts at the left edge: the centred canvas
+    // otherwise pushed its left tables out of scroll reach.
+    if (layoutSpace.parentElement) {
+      layoutSpace.parentElement.style.justifyContent = box.width > viewport.clientWidth ? 'flex-start' : ''
+    }
     isManualFloorZoomRef.current = true
     suppressFloorAutoFitRef.current = true
     setFloorZoom(1)

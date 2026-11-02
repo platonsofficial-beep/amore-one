@@ -1101,10 +1101,18 @@ export async function runPhoneViewportMatrix({
                     || rect.right > viewRect.right + 2
                     || rect.bottom > viewRect.bottom + 2
                 })
-                if (tables.length > 0 && outside.length > 0) {
+                // Fit keeps every table readable (>= 44px). When the whole
+                // area cannot fit at that size, the plan scrolls instead.
+                const widths = tables.map((node) => node.getBoundingClientRect().width).filter((width) => width >= 2)
+                const smallest = widths.length ? Math.min(...widths) : 0
+                if (widths.length && smallest < 43) {
+                  failures.push('Fit shrinks tables to ' + Math.round(smallest) + 'px')
+                }
+                const scrolls = viewport.scrollWidth > viewport.clientWidth + 2 || viewport.scrollHeight > viewport.clientHeight + 2
+                if (tables.length > 0 && outside.length > 0 && !scrolls) {
                   failures.push('Fit leaves ' + outside.length + ' tables outside the plan')
                 }
-                if (viewport.scrollWidth > viewport.clientWidth + 2 || viewport.scrollHeight > viewport.clientHeight + 2) {
+                if (tables.length > 0 && outside.length === 0 && scrolls && smallest > 46) {
                   failures.push('Fit still shows plan scrollbars')
                 }
               }
