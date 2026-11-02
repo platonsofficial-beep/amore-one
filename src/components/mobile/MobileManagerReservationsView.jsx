@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
@@ -41,6 +41,17 @@ export function summarizePortraitDay(dayReservations = []) {
   ]
   if (cancelled) parts.push(`${cancelled} cancelled`)
   return parts.join(' · ')
+}
+
+/** "Mon 2 Nov" for the sticky day bar (the app is English for now). */
+export function formatPortraitStickyDay(dateKey) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(`${dateKey ?? ''}`)
+  if (!match) return ''
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  if (Number.isNaN(date.getTime())) return ''
+  const weekday = date.toLocaleDateString('en-GB', { weekday: 'short' })
+  const month = date.toLocaleDateString('en-GB', { month: 'short' })
+  return `${weekday} ${date.getDate()} ${month}`
 }
 
 const tableLabelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
@@ -103,6 +114,26 @@ export function MobileManagerReservationsView({
     nowMinutes: isToday ? nowMinutes : null,
   }), [dayReservations, layout, selectedDate, isToday, nowMinutes])
 
+  // Platon t409u: once the day header scrolls away, a small bar under the
+  // top band keeps showing which day this is, with the same ‹ › buttons.
+  const headerRef = useRef(null)
+  const [showStickyDay, setShowStickyDay] = useState(false)
+  useEffect(() => {
+    const header = headerRef.current
+    if (!header || typeof IntersectionObserver !== 'function') return undefined
+    const band = Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--one-portrait-band'),
+    )
+    // The band is a calc() token; fall back to where the header starts (8px under it).
+    const top = Number.isFinite(band) && band > 0 ? band : Math.max(0, header.getBoundingClientRect().top - 8)
+    const observer = new IntersectionObserver(
+      ([entry]) => setShowStickyDay(!entry.isIntersecting && entry.boundingClientRect.top < top),
+      { rootMargin: `-${Math.round(top)}px 0px 0px 0px`, threshold: 0 },
+    )
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [])
+
   const shiftDate = (days) => {
     onDateChange?.(addCalendarDays(selectedDate, days))
   }
@@ -123,7 +154,16 @@ export function MobileManagerReservationsView({
   return (
     <div className={`mobile-screen manager-portrait-reservations${className ? ` ${className}` : ''}`}>
       <ManagerPortraitBanner area="floor" />
-      <header className="manager-portrait-screen-header">
+      <div
+        className={`manager-portrait-sticky-day${showStickyDay ? ' is-visible' : ''}`}
+        aria-hidden={showStickyDay ? undefined : 'true'}
+        data-testid="portrait-sticky-day"
+      >
+        <button type="button" onClick={() => shiftDate(-1)} aria-label="Previous day" tabIndex={showStickyDay ? 0 : -1}>‹</button>
+        <span className="manager-portrait-sticky-day-label">{formatPortraitStickyDay(selectedDate)}</span>
+        <button type="button" onClick={() => shiftDate(1)} aria-label="Next day" tabIndex={showStickyDay ? 0 : -1}>›</button>
+      </div>
+      <header className="manager-portrait-screen-header" ref={headerRef}>
         <div>
           <p className="mobile-screen-eyebrow">Reservations</p>
           <h1>{dayLabel.weekdayLabel}</h1>

@@ -154,7 +154,9 @@ export function HostReservationStatusPicker({
             left: `${anchorRect.left}px`,
             width: `${anchorRect.width}px`,
             minHeight: `${Math.max(anchorRect.height, 44)}px`,
-            zIndex: PICKER_Z_INDEX + 1,
+            // Under the picker (t409u: "LATE 42M" sat on top of the options
+            // in landscape), above the backdrop so it still shows beside it.
+            zIndex: PICKER_Z_INDEX - 1,
             pointerEvents: 'none',
           }}
         >
