@@ -15258,6 +15258,7 @@ function App() {
   const useMobileExperience = isManagementMobileRole(role)
     ? managerPhoneShell
     : deviceMobileExperience
+  const isPhoneLandscapeHeader = useMediaQuery('(orientation: landscape) and (max-height: 520px) and (max-width: 1100px)')
   const [mobileStaffTab, setMobileStaffTab] = useState(() => readPersistedMobileTab())
   const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
@@ -23835,6 +23836,8 @@ function App() {
   const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
   const hideStandardTopbar = shouldHideStandardTopbar(activeView, teamSection)
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
+  // Phone landscape: Operations folds title + section tabs + ? / bell into one compact row.
+  const operationsCompactHeader = isPhoneLandscapeHeader && activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection, stockSection)
 
   const mobileExpandedTitle = useMemo(() => {
@@ -24737,7 +24740,7 @@ function App() {
           </div>
         ) : null}
 
-        {activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience ? (
+        {activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience && !operationsCompactHeader ? (
           <ModuleSectionTabs
             sections={visibleOperationsSections}
             activeSection={operationsSection}
@@ -25915,9 +25918,18 @@ function App() {
                     onAccountAction={handleStaffHostAccountAction}
                   />
                   ) : (
-                  <header className="topbar">
+                  <header className={`topbar${operationsCompactHeader ? ' topbar-operations-compact' : ''}`}>
                     <div className="topbar-title-block">
-                      <h2>{moduleTitle}</h2>
+                      <h2>{operationsCompactHeader ? 'Operations' : moduleTitle}</h2>
+                      {operationsCompactHeader ? (
+                        <ModuleSectionTabs
+                          sections={visibleOperationsSections}
+                          activeSection={operationsSection}
+                          onSectionChange={handleOperationsSectionChange}
+                          ariaLabel="Operations sections"
+                          helpPrefix="operations"
+                        />
+                      ) : null}
                       {moduleSubtitle ? (
                         <p className="welcome-subtitle">{moduleSubtitle}</p>
                       ) : null}
