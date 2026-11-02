@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 const COUNT_SELECTOR = '.inventory-count-session, .is-inventory-count-session-lock'
 const FIELD_SELECTOR = 'input, textarea, select, [contenteditable="true"]'
-const SHEET_FIELD_SELECTOR = '.chat-composer, .chat-sheet, .mobile-sheet, .employee-modal, .stock-item-more-menu-panel, .notification-drawer, .supply-draft-preview'
+const SHEET_FIELD_SELECTOR = '.chat-composer, .chat-sheet, .mobile-sheet, .mobile-host-reservation-inline-panel, .employee-modal, .stock-item-more-menu-panel, .notification-drawer, .supply-draft-preview'
 
 /**
  * Keyboard overlap from the visual viewport.

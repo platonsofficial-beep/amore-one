@@ -144,7 +144,7 @@ export function getViewportDimensions() {
  * Landscape uses the larger width so a stale portrait measurement cannot stick.
  */
 /**
- * iOS keyboard: the layout viewport stays portrait while visualViewport
+ * iOS keyboard: the layout viewport keeps its size while visualViewport
  * loses only height (same width). That is not a rotation, so it must not
  * flip an upright phone into the landscape layout and close an open sheet.
  */
@@ -156,7 +156,9 @@ export function isSoftKeyboardShrink(win = globalThis.window) {
   const visualWidth = Number(visual?.width) || 0
   const visualHeight = Number(visual?.height) || 0
   if (!innerWidth || !innerHeight || !visualWidth || !visualHeight) return false
-  if (innerHeight <= innerWidth) return false
+  // Same width, less height, a field focused: the keyboard, in either
+  // orientation (a landscape owner view fell back to portrait when the
+  // keyboard left ~175px). A rotation always changes the width.
   if (Math.abs(visualWidth - innerWidth) > 2) return false
   if (visualHeight >= innerHeight) return false
   const active = win.document?.activeElement

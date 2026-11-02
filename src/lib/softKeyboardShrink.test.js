@@ -28,6 +28,12 @@ describe('iOS keyboard does not count as rotation', () => {
     expect(readPortraitOrientation(win)).toBe(false)
   })
 
+  it('keeps landscape when the keyboard opens in landscape', () => {
+    const win = fakeWin({ iw: 667, ih: 375, vw: 667, vh: 175, landscapeQuery: true })
+    expect(isSoftKeyboardShrink(win)).toBe(true)
+    expect(readLiveViewportBox(win)).toEqual({ width: 667, height: 375 })
+  })
+
   it('ignores a short visual viewport when no field is focused', () => {
     const win = fakeWin({ iw: 393, ih: 659, vw: 393, vh: 297, focused: null })
     expect(isSoftKeyboardShrink(win)).toBe(false)
