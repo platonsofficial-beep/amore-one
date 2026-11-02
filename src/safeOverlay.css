@@ -582,3 +582,44 @@ body {
     right: calc(var(--safe-r) + 16px + 36px + 6px);
   }
 }
+
+/* Platon t405u: native scroll bars sat inside the host floor plan, over the
+   tables. Hide them on the plan and everything in it; FloorEdgeScrollbars
+   draws thin bars on the plan's right and bottom edges instead. Two-finger
+   pinch is handled in JS, so the browser may only pan here. */
+.floor-plan-viewport.is-host-viewport,
+.floor-plan-viewport.is-host-viewport * {
+  scrollbar-width: none;
+}
+.floor-plan-viewport.is-host-viewport::-webkit-scrollbar,
+.floor-plan-viewport.is-host-viewport *::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.floor-plan-host-main:has(> .floor-edge-scrollbars) {
+  position: relative;
+}
+.floor-edge-scrollbars {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  opacity: 0.45;
+  transition: opacity 200ms ease;
+}
+.floor-edge-scrollbars.is-active {
+  opacity: 0.9;
+}
+.floor-edge-scrollbar {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.7);
+}
+.floor-edge-scrollbar.is-vertical {
+  right: 1px;
+  width: 3px;
+}
+.floor-edge-scrollbar.is-horizontal {
+  bottom: 1px;
+  height: 3px;
+}
