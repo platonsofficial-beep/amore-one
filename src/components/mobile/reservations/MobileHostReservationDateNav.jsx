@@ -14,6 +14,7 @@ export function MobileHostReservationDateNav({
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const normalizedSelectedDateKey = normalizeReservationDateKey(selectedDateKey)
   const normalizedWorkspaceTodayKey = normalizeReservationDateKey(workspaceTodayKey) || normalizedSelectedDateKey
+  const isViewingToday = Boolean(normalizedSelectedDateKey) && normalizedSelectedDateKey === normalizedWorkspaceTodayKey
   const compactDate = useMediaQuery('(orientation: landscape) and (max-height: 520px) and (max-width: 1100px)')
   const label = compactDate
     ? formatHostWorkspaceCompactDateNavLabel(normalizedSelectedDateKey, normalizedWorkspaceTodayKey)
@@ -121,6 +122,16 @@ export function MobileHostReservationDateNav({
           disabled={!onSelectDate}
         >
           <ReservationCalendarIcon className="mobile-host-sticky-date-calendar-icon" />
+        </button>
+        <button
+          type="button"
+          className="mobile-host-sticky-date-step-btn mobile-host-sticky-date-today-btn"
+          onClick={() => onSelectDate?.(normalizedWorkspaceTodayKey)}
+          disabled={!onSelectDate || !normalizedWorkspaceTodayKey || isViewingToday}
+          aria-current={isViewingToday ? 'date' : undefined}
+          data-testid="mobile-host-date-today"
+        >
+          Today
         </button>
       </div>
       {picker}

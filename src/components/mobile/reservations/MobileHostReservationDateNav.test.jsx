@@ -240,4 +240,21 @@ describe('MobileHostReservationDateNav', () => {
       .toMatch(/^Tomorrow · /)
     tomorrow.unmount()
   })
+
+  it('header Today button jumps to today and is disabled when already on today', async () => {
+    const onSelectDate = vi.fn()
+    const view = renderHostView({ onSelectDate, todayKey: '2026-07-11', workspaceTodayKey: '2026-07-10' })
+    const btn = view.container.querySelector('[data-testid="mobile-host-date-today"]')
+    expect(btn?.textContent).toBe('Today')
+    expect(btn?.disabled).toBe(false)
+    await act(async () => {
+      btn?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onSelectDate).toHaveBeenCalledWith('2026-07-10')
+    view.unmount()
+
+    const onToday = renderHostView({ onSelectDate })
+    expect(onToday.container.querySelector('[data-testid="mobile-host-date-today"]')?.disabled).toBe(true)
+    onToday.unmount()
+  })
 })

@@ -4878,6 +4878,18 @@
   cursor: default;
 }
 
+/* Today shortcut beside the calendar button (same look as ‹ ›). */
+.mobile-host-sticky-date-today-btn {
+  padding: 0 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mobile-host-sticky-date-today-btn:disabled {
+  opacity: 0.4;
+}
+
 .mobile-host-sticky-date-btn {
   flex: 1 1 auto;
   min-width: 0;
