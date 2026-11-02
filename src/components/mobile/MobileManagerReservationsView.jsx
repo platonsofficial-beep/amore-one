@@ -3,7 +3,7 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
-import { getHostListCompactStatusLabel, normalizeReservationStatus } from '../../lib/reservationHostStatus'
+import { getHostListCompactStatusLabel } from '../../lib/reservationHostStatus'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
@@ -12,32 +12,6 @@ import { MobileReservationQuickCreateSheet } from './reservations/MobileReservat
 function reservationOnDate(reservation, dateKey) {
   return getReservationDateKey(reservation) === dateKey
 }
-
-const NOT_COMING_STATUSES = new Set(['Cancelled', 'Not Shown', 'Rejected'])
-
-// "19 bookings · 75 guests · 1 cancelled" — same rule as the database count:
-// cancelled, no-show and rejected bookings are not expected guests.
-export function summarizePortraitDay(dayReservations = []) {
-  let bookings = 0
-  let guests = 0
-  let cancelled = 0
-  dayReservations.forEach((reservation) => {
-    if (NOT_COMING_STATUSES.has(normalizeReservationStatus(reservation?.status))) {
-      cancelled += 1
-      return
-    }
-    bookings += 1
-    guests += Math.max(0, Number(reservation?.guests) || 0)
-  })
-  const parts = [
-    `${bookings} booking${bookings === 1 ? '' : 's'}`,
-    `${guests} guest${guests === 1 ? '' : 's'}`,
-  ]
-  if (cancelled) parts.push(`${cancelled} cancelled`)
-  return parts.join(' · ')
-}
-
-const tableLabelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
 
 export function MobileManagerReservationsView({
   reservations = [],
@@ -76,12 +50,6 @@ export function MobileManagerReservationsView({
     }),
     [layout, reservations, selectedDate, isToday, nowMinutes],
   )
-  // T9, T10, T11… instead of the order tables were drawn in.
-  const sortedTables = useMemo(
-    () => [...tables].sort((left, right) => tableLabelCollator.compare(left.label, right.label)),
-    [tables],
-  )
-  const daySummary = useMemo(() => summarizePortraitDay(dayReservations), [dayReservations])
 
   const shiftDate = (days) => {
     onDateChange?.(addCalendarDays(selectedDate, days))
@@ -108,7 +76,6 @@ export function MobileManagerReservationsView({
           <p className="mobile-screen-eyebrow">Reservations</p>
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
-          {!isLoading ? <p className="manager-portrait-day-summary">{daySummary}</p> : null}
         </div>
         {canManage ? (
           <button type="button" className="manager-portrait-add" onClick={() => setCreateOpen(true)}>
@@ -167,7 +134,7 @@ export function MobileManagerReservationsView({
           <p className="manager-portrait-empty">No published tables yet.</p>
         ) : (
           <ul className="manager-portrait-table-list">
-            {sortedTables.map((table) => (
+            {tables.map((table) => (
               <li key={table.id} className={`manager-portrait-table is-${table.status || 'available'}`}>
                 <span className="manager-portrait-table-name">
                   {table.label}

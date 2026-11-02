@@ -39,7 +39,7 @@ describe('ReservationAutoClosedBadge', () => {
     }
     const view = renderBadge(reservation, { canUndo: true, onUndo })
 
-    expect(view.container.textContent).toContain('Auto-closed')
+    expect(view.container.textContent).toContain('κλείστηκε αυτόματα / Auto-closed')
     const button = view.container.querySelector('button')
     expect(button?.textContent).toBe('Undo')
     act(() => button?.dispatchEvent(new MouseEvent('click', { bubbles: true })))
@@ -65,7 +65,7 @@ describe('ReservationAutoClosedBadge', () => {
       autoClosedAt: '2026-10-27T02:15:00.000Z',
     })
 
-    expect(view.container.textContent).toContain('Auto-closed')
+    expect(view.container.textContent).toContain('κλείστηκε αυτόματα / Auto-closed')
     expect(view.container.querySelector('button')).toBeNull()
     view.unmount()
   })

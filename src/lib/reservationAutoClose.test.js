@@ -29,7 +29,7 @@ describe('reservationAutoClose', () => {
       status: 'Checked In',
       auto_closed_at: '2026-10-27T02:00:00.000Z',
     })).toBe(false)
-    expect(AUTO_CLOSED_BADGE_LABEL).toBe('Auto-closed')
+    expect(AUTO_CLOSED_BADGE_LABEL).toBe('κλείστηκε αυτόματα / Auto-closed')
   })
 
   it('restores the in-house status the auto-close recorded', () => {

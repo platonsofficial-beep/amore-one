@@ -1,7 +1,7 @@
 import { isReservationInHouseStatus, normalizeReservationStatus } from './reservationHostStatus'
 
 export const DEFAULT_RESERVATION_AUTO_CLOSE_TIME = '05:00'
-export const AUTO_CLOSED_BADGE_LABEL = 'Auto-closed'
+export const AUTO_CLOSED_BADGE_LABEL = 'κλείστηκε αυτόματα / Auto-closed'
 export const RESERVATION_AUTO_CLOSE_TIMEZONE = 'Europe/Nicosia'
 
 export function normalizeReservationAutoCloseTime(value) {

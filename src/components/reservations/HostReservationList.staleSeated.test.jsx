@@ -87,7 +87,7 @@ describe('HostReservationList stale seated focus', () => {
       .find((button) => button.textContent?.includes('Completed'))
 
     expect(completedHeader?.getAttribute('aria-expanded')).toBe('true')
-    expect(container.textContent).toContain('Auto-closed')
+    expect(container.textContent).toContain('κλείστηκε αυτόματα / Auto-closed')
     expect(container.querySelector('.reservation-auto-closed-undo')?.textContent).toBe('Undo')
 
     unmount()

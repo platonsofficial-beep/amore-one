@@ -26511,7 +26511,7 @@ function App() {
                 <label className="form-field full-width">
                   <span>Notes</span>
                   <textarea rows="4" value={reservationForm.notes} onChange={(event) => setReservationForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
-                  <small className="sensitive-field-hint">Don't write health details. Allergies only if needed for the booking — this is sensitive data.</small>
+                  <small className="sensitive-field-hint">Μην γράφεις στοιχεία υγείας. Αλλεργίες μόνο αν χρειάζονται για την κράτηση — είναι ευαίσθητο δεδομένο.</small>
                 </label>
 
                 <div className="modal-actions">
