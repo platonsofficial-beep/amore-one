@@ -658,3 +658,77 @@ body {
     height: var(--one-portrait-band);
   }
 }
+
+/* Platon t409u: portrait Reservations (owner + host). After the day header
+   scrolls away, a 40px bar pinned under the top band keeps the day in view
+   ("Mon 2 Nov") with ‹ ›. Same solid colour as the band, no frame. */
+.manager-portrait-sticky-day {
+  display: none;
+}
+@media (orientation: portrait) and (max-width: 600px) {
+  .manager-portrait-sticky-day {
+    position: fixed;
+    top: var(--one-portrait-band, 0px);
+    left: 0;
+    right: 0;
+    z-index: 44;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 max(12px, var(--one-safe-area-right, 0px)) 0 max(12px, var(--one-safe-area-left, 0px));
+    background: rgb(10, 22, 40);
+    border: 0;
+    box-shadow: none;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+  }
+  .manager-portrait-sticky-day.is-visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .manager-portrait-sticky-day button {
+    width: 36px;
+    height: 32px;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #f4efe6;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .manager-portrait-sticky-day-label {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: #f4efe6;
+  }
+  body:has(.mobile-sheet-backdrop) .manager-portrait-sticky-day {
+    visibility: hidden;
+  }
+}
+
+/* Platon t409u (landscape): the Change status picker was taller than the
+   440px screen (list alone up to 100vh - 48px plus the header), so it ran
+   off the bottom and opened scrolled, with the first option half hidden
+   under its header. The whole picker now fits the visible height and only
+   its list scrolls, top to bottom. */
+.host-status-picker.is-portal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--vvh, 100dvh) - 16px);
+  box-sizing: border-box;
+}
+.host-status-picker.is-portal .host-status-picker-header {
+  flex: 0 0 auto;
+}
+.host-status-picker.is-portal .host-status-picker-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  scroll-padding-top: 8px;
+}
