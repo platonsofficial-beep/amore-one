@@ -370,7 +370,10 @@ export function reservationMatchesTableDayViewSeating(
   const normalizedSeating = normalizeReservationSeating(seating)
   if (!normalizedSeating) return false
 
-  const resolvedSeatingId = resolveReservationSeatingId(reservation, seatings, dateKey)
+  // Same rule as the host list, so a booking is never listed under one
+  // seating and reserved on another seating's floor plan: the seating follows
+  // the time, and a time between windows goes to the nearest seating.
+  const resolvedSeatingId = resolveHostQueueSeatingId(reservation, seatings, dateKey)
   if (!resolvedSeatingId) return false
 
   return String(resolvedSeatingId) === String(normalizedSeating.id)

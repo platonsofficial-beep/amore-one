@@ -10,6 +10,7 @@ import {
   isReservationTimeInSeatingWindow,
   resolveHostQueueSeatingId,
   resolveReservationSeatingId,
+  reservationMatchesTableDayViewSeating,
   serializeReservationSeatingRow,
   sortReservationSeatings,
   validateReservationSeatingForm,
@@ -399,5 +400,17 @@ describe('reservationSeatings', () => {
     expect(getSeatingWindowTimeOptions(seating)).toEqual([
       '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45',
     ])
+  })
+
+  it('floor plan and list agree for a 15:15 booking stored on Dinner 1 (Nov 2026 scenario)', () => {
+    const seatings = sortReservationSeatings([
+      { id: 'lunch', name: 'Lunch', start_time: '12:00', duration_minutes: 120, days_of_week: [0, 1, 2, 3, 4, 5, 6], sort_order: 1, is_active: true },
+      { id: 'dinner-1', name: 'Dinner 1', start_time: '19:00', duration_minutes: 120, days_of_week: [0, 1, 2, 3, 4, 5, 6], sort_order: 2, is_active: true },
+    ])
+    const reservation = { date: '2026-11-02', time: '15:15', status: 'Pending', seatingId: 'dinner-1' }
+    const listSeating = resolveHostQueueSeatingId(reservation, seatings, '2026-11-02')
+    expect(listSeating).toBe('lunch')
+    expect(reservationMatchesTableDayViewSeating(reservation, seatings[0], '2026-11-02', seatings)).toBe(true)
+    expect(reservationMatchesTableDayViewSeating(reservation, seatings[1], '2026-11-02', seatings)).toBe(false)
   })
 })

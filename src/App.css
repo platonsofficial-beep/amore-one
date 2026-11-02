@@ -1981,7 +1981,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .today-command-greeting {
@@ -9946,7 +9945,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .host-multi-table-selection-count {
@@ -12095,7 +12093,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .reservation-priority-badge {
@@ -12993,7 +12990,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .command-palette-item-copy strong {
@@ -17574,7 +17570,6 @@
   align-items: flex-start;
   justify-content: flex-start;
   gap: 2px;
-  min-width: 0;
 }
 
 .assignment-context-row:last-child {
@@ -23520,7 +23515,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .schedule-week-nav-label strong {
@@ -24887,7 +24881,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .inventory-reorder-row-details dt {
@@ -27702,7 +27695,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .tasks-mobile-metric strong {
@@ -30122,7 +30114,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  min-width: 0;
 }
 
 .stock-list-updated-type {
@@ -34623,7 +34614,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .stock-storage-detail-workspace-stats dt,
@@ -35119,7 +35109,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .stock-take-identity strong {
@@ -35660,7 +35649,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .stock-storage-product-name {
@@ -38559,7 +38547,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .inventory-count-session-meta-label {
@@ -38756,7 +38743,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .inventory-count-session-rail-title-row {
@@ -42227,7 +42213,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .stock-migration-operator-check-title {
@@ -46258,7 +46243,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .employee-identity-name {
@@ -51794,7 +51778,6 @@ summary:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
 }
 
 .notification-list-copy strong,
@@ -53401,4 +53384,86 @@ summary:focus-visible {
 .mobile-host-reservation-sheet .reservation-phone-field input[type='tel'] {
   flex: 1 1 auto;
   width: auto;
+}
+
+/* Past days for a new booking can't be picked. */
+.host-workspace-date-picker-day.is-disabled,
+.host-workspace-date-picker-day:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Owner landscape Reservations: the bell, which lives in the hidden topbar
+   elsewhere, floats on the same line as Help "?" (header reserves the room). */
+.app-shell.is-reservations-dedicated-shell .mobile-shell-bell.is-reservations-dedicated-bell {
+  position: fixed;
+  top: var(--one-top-buttons-top, max(8px, env(safe-area-inset-top)));
+  /* Left of the Help "?", which keeps the corner. */
+  right: calc(max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))) + 48px);
+  z-index: 45;
+}
+.app-shell.is-reservations-dedicated-shell .mobile-shell-bell.is-reservations-dedicated-bell .icon-btn {
+  background: rgba(12, 18, 28, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+/* Portrait Reservations (owner + host): list rows scrolled under the floating
+   Help "?" and bell. A solid band the colour of the app sits behind the two
+   buttons, so nothing can be read or tapped underneath them. */
+.mobile-screen.manager-portrait-reservations::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--one-top-buttons-top, max(8px, env(safe-area-inset-top, 0px))) + 52px);
+  background: rgb(10, 22, 40);
+  z-index: 44;
+  pointer-events: none;
+}
+body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::before {
+  display: none;
+}
+
+/* Landscape Reservations: the totals above the guest list stay on one line
+   (they wrapped "0 in house" onto a second row). */
+.mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary {
+  flex-wrap: nowrap;
+  gap: 0 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric-label {
+  font-size: 0.68rem;
+}
+.mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric {
+  gap: 2px;
+}
+
+/* Landscape booking form: the sticky Cancel/Save footer (about 70px) covered
+   the last fields and table tiles. Room under the content equal to the
+   footer lets everything scroll above it, and focused fields stop above it. */
+.mobile-host-reservation-inline-panel .mobile-host-reservation-inline-body {
+  scroll-padding-bottom: 96px;
+}
+.mobile-host-reservation-inline-panel .mobile-host-reservation-form {
+  padding-bottom: 8px;
+}
+.mobile-host-reservation-inline-panel .mobile-host-reservation-form > :nth-last-child(2) {
+  margin-bottom: 24px;
+}
+.mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric strong {
+  font-size: 0.92rem;
+}
+.mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric-icon {
+  font-size: 0.72rem;
+}
+/* Landscape phones: the list column is only ~240-330px wide, too narrow for
+   the four words on one line, so phones show icon + number (tablets keep the
+   words). The tables metric keeps its "x of y tables booked" tooltip. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mobile-host-reservations.is-landscape .host-queue-list-metrics.host-queue-service-summary .host-queue-metric-label {
+    display: none;
+  }
 }

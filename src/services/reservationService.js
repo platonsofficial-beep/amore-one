@@ -111,12 +111,18 @@ function serializeReservation(reservation) {
   const tableNumber = resolveTableNumberForSerialize(seatingAssignment, reservation)
   const notes = buildPersistedReservationNotes(reservation, { seatingAssignment })
 
+  // The table has a legacy "guests" column (default 2) next to party_size.
+  // The app reads party_size, but auto-close and reports select guests too,
+  // so both are written with the same number.
+  const partySize = Number(reservation.guests ?? reservation.party_size) || 2
+
   return {
     guest_name: `${reservation.guestName ?? reservation.guest_name ?? ''}`.trim(),
     phone: `${reservation.phone ?? ''}`.trim(),
     reservation_date: reservation.date ?? reservation.reservation_date ?? '',
     reservation_time: reservation.time ?? reservation.reservation_time ?? '',
-    party_size: Number(reservation.guests ?? reservation.party_size) || 2,
+    party_size: partySize,
+    guests: partySize,
     table_number: tableNumber,
     area: `${reservation.area ?? ''}`.trim(),
     status: normalizeReservationStatus(reservation.status ?? 'Pending'),
