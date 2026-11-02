@@ -67,7 +67,9 @@ describe('portrait polish layout', () => {
   })
 
   it('clears the portrait banner, header strip, stock bar, and chat bell', () => {
-    expect(mobileShellCss).toContain('margin: 40px 0 8px')
+    // t406u: the band below the ? and bell now clears the banner (safeOverlay.css).
+    expect(mobileShellCss).toContain('margin: 0 0 8px')
+    expect(readFileSync('src/safeOverlay.css', 'utf8')).toContain('padding-top: calc(var(--one-portrait-band) + 8px)')
     expect(mobileShellCss).toMatch(/\.manager-portrait-module-header\s*\{[^}]*background:\s*transparent/)
     expect(mobileShellCss).toContain('.mobile-manager-app .manager-portrait-module .module-section-tabs ~ .module-section-tabs')
     expect(mobileShellCss).toContain('-webkit-line-clamp: 2')
