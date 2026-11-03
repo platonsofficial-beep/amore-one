@@ -10,6 +10,7 @@ import {
   getOperationsTasks,
   reopenOperationsTask,
 } from './operationsTaskService'
+import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 
 const RUNS_TABLE = 'operations_checklist_runs'
 const STEPS_TABLE = 'operations_checklist_run_steps'
@@ -86,7 +87,24 @@ export async function getChecklistRuns(workspaceId) {
     throw error
   }
 
-  return (data ?? []).map(mapChecklistRun)
+  const runs = (data ?? []).map(mapChecklistRun)
+  // 0033: run steps carried only completed_by (an auth user id), so ticked steps
+  // showed "Team member". Resolve names with the workspace id, like notes (0032 B).
+  const authorIds = runs.flatMap((run) => run.steps.map((step) => step.completedBy)).filter(Boolean)
+  if (authorIds.length === 0) return runs
+  let names = {}
+  try {
+    names = (await getMemberDisplayNamesByAuthUserIds(normalizedWorkspaceId, authorIds)) ?? {}
+  } catch (lookupError) {
+    console.warn('[operationsChecklistRunService] step author lookup failed:', lookupError)
+  }
+  runs.forEach((run) => {
+    run.steps.forEach((step) => {
+      const name = `${names[step.completedBy] ?? ''}`.trim()
+      if (step.completedBy && name && name !== 'Unknown') step.completedByName = name
+    })
+  })
+  return runs
 }
 
 async function setChecklistRunStatus(runId, status) {
