@@ -113,6 +113,20 @@ const mapEmployee = (record) => {
   }
 }
 
+// A real positions.id is a positive integer. null / '' / undefined must not
+// become 0 (Number(null) === 0), which broke the employee_positions FK.
+export function toPositionId(value) {
+  if (value === null || value === undefined || `${value}`.trim() === '') return null
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+// Postgres date columns reject ''. Send null when no date was picked.
+export function toDateOrNull(value) {
+  const text = `${value ?? ''}`.trim()
+  return text ? text : null
+}
+
 const serializeEmployee = (employee) => {
   const explicitPrimary = `${employee.primaryPosition ?? employee.primary_position ?? ''}`.trim()
   const explicitAdditional = Array.isArray(employee.additionalPositions ?? employee.additional_positions)
@@ -144,7 +158,7 @@ const serializeEmployee = (employee) => {
     additional_positions: additionalPositions,
     phone: employee.phone ?? '',
     email: employee.email ?? '',
-    hire_date: employee.hireDate ?? employee.hire_date ?? '',
+    hire_date: toDateOrNull(employee.hireDate ?? employee.hire_date),
     emergency_contact: employee.emergencyContact ?? employee.emergency_contact ?? '',
     weekly_hours: normalizeNumericValue(employee.weeklyHours ?? employee.weekly_hours),
     notes: employee.notes ?? '',
@@ -212,13 +226,13 @@ async function hydratePrivateEmployeeFields(workspaceId, rows) {
 
 async function resolvePositionsForSync(workspaceId, positions = []) {
   const incoming = (positions ?? []).filter((position) => `${position?.name ?? ''}`.trim())
-  const allHaveIds = incoming.length > 0 && incoming.every((position) => Number.isFinite(Number(position?.id)))
+  const allHaveIds = incoming.length > 0 && incoming.every((position) => toPositionId(position?.id) !== null)
   if (allHaveIds) {
     const resolved = []
     const seenIds = new Set()
     incoming.forEach((position) => {
-      const positionId = Number(position.id)
-      if (!Number.isFinite(positionId) || seenIds.has(positionId)) return
+      const positionId = toPositionId(position.id)
+      if (positionId === null || seenIds.has(positionId)) return
       seenIds.add(positionId)
       resolved.push({
         id: positionId,
@@ -243,7 +257,7 @@ async function resolvePositionsForSync(workspaceId, positions = []) {
 
     let resolvedPosition = null
 
-    if (position?.id != null && Number.isFinite(Number(position.id))) {
+    if (toPositionId(position?.id) !== null) {
       resolvedPosition = catalog.find((item) => String(item.id) === String(position.id)) ?? {
         id: Number(position.id),
         name,
