@@ -65,11 +65,12 @@ function OperationsChecklistProgressCard({ row, canManage, onOpen }) {
   )
 }
 
-function OperationsSummaryCard({ label, value, tone = 'default' }) {
+function OperationsSummaryCard({ label, value, tone = 'default', action = null }) {
   return (
-    <article className={`operations-summary-card tone-${tone}`}>
+    <article className={`operations-summary-card tone-${tone}${action ? ' has-action' : ''}`}>
       <p className="operations-summary-label">{label}</p>
       <p className="operations-summary-value">{value}</p>
+      {action}
     </article>
   )
 }
@@ -773,19 +774,17 @@ export function OperationsDashboardView({
           label="Board tasks overdue"
           value={boardOverdueCount}
           tone={boardOverdueCount > 0 ? 'danger' : 'default'}
+          action={onOpenTaskBoards ? (
+            <button
+              type="button"
+              className="ghost-btn operations-dashboard-action operations-summary-card-action"
+              onClick={onOpenTaskBoards}
+            >
+              Open task boards
+            </button>
+          ) : null}
         />
       </div>
-      {onOpenTaskBoards ? (
-        <div className="operations-dashboard-actions">
-          <button
-            type="button"
-            className="ghost-btn operations-dashboard-action"
-            onClick={onOpenTaskBoards}
-          >
-            Open task boards{boardOverdueCount > 0 ? ` · ${boardOverdueCount} overdue` : ''}
-          </button>
-        </div>
-      ) : null}
 
       <div className="operations-dashboard-sections">
       <OperationsAnnouncementsSection
@@ -832,9 +831,23 @@ export function OperationsDashboardView({
         </header>
 
         {visibleTasks.length === 0 && !isLoading ? (
-          <div className="operations-empty-state">
-            <h4>No open tasks</h4>
-            <p>{canManage ? 'Create a task to get the team started.' : 'Check back when tasks are assigned.'}</p>
+          <div className="operations-empty-state is-inline">
+            <p>
+              <strong>No open tasks</strong>
+              {canManage ? (
+                <>
+                  {' · '}
+                  <button
+                    type="button"
+                    className="operations-empty-action"
+                    onClick={openCreateTask}
+                    disabled={!isWorkspaceReady || isSaving}
+                  >
+                    Create task
+                  </button>
+                </>
+              ) : ' · Check back when tasks are assigned.'}
+            </p>
           </div>
         ) : (
           <ul className="operations-task-list">
@@ -879,9 +892,23 @@ export function OperationsDashboardView({
         </div>
 
         {visibleLogs.length === 0 && !isLoading ? (
-          <div className="operations-empty-state">
-            <h4>No notes yet</h4>
-            <p>Leave updates for the next shift.</p>
+          <div className="operations-empty-state is-inline">
+            <p>
+              <strong>No notes yet</strong>
+              {canManage ? (
+                <>
+                  {' · '}
+                  <button
+                    type="button"
+                    className="operations-empty-action"
+                    onClick={openCreateLog}
+                    disabled={!isWorkspaceReady || isSaving}
+                  >
+                    Add note
+                  </button>
+                </>
+              ) : ' · Leave updates for the next shift.'}
+            </p>
           </div>
         ) : (
           <div className="operations-log-list">

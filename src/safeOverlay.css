@@ -1009,3 +1009,81 @@ body {
   background: var(--one-surface-card);
   border: 1px solid var(--one-border);
 }
+
+/* 0027 — Operations empty states and stats grid. */
+/* Six KPI tiles balance: 6x1 on wide desktop, 3x2 on tablet/landscape, 2x3 on narrow. */
+.operations-summary-grid:not(.operations-mobile-metrics) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (min-width: 1281px) {
+  .operations-summary-grid:not(.operations-mobile-metrics) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .operations-summary-grid:not(.operations-mobile-metrics) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* "Open task boards" now lives inside the Board tasks overdue tile. */
+.operations-summary-card.has-action {
+  display: flex;
+  flex-direction: column;
+}
+
+.operations-summary-card-action.operations-dashboard-action {
+  align-self: flex-start;
+  margin-top: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+}
+
+/* Single-line empty states with an inline action, no dashed box. */
+.operations-empty-state.is-inline {
+  padding: 6px 2px;
+  text-align: left;
+  border: 0;
+}
+
+.operations-empty-state.is-inline p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.operations-empty-state.is-inline strong {
+  color: #fff7e8;
+  font-weight: 650;
+}
+
+.operations-empty-action {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #e8c766;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.operations-empty-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.tasks-alerts-empty,
+.tasks-dept-performance-empty,
+.tasks-alerts.is-compact .tasks-alerts-empty,
+.tasks-dept-performance.is-compact .tasks-dept-performance-empty {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  text-align: left;
+}
