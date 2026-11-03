@@ -960,3 +960,35 @@ body {
 .main-panel:has(.employee-modal-backdrop, .task-modal-backdrop, [aria-modal='true']) {
   z-index: 1200;
 }
+
+/* 0026 — Operations portrait polish. */
+/* Breathing room between the Dashboard / Task boards / Checklists chips and the title. */
+.operations-unified-tabs {
+  padding-bottom: 12px;
+}
+
+/* TODAY metrics card on Task boards: app card colour, not a near-black frame. */
+.tasks-mobile-command-metrics {
+  background: var(--one-surface-card);
+  border: 1px solid var(--one-border);
+  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  box-shadow: none;
+}
+
+/* Schedule shift names (e.g. "Morning", "Evening") never break mid-word on
+   tablet/portrait week grids; a too-long word gets an ellipsis, full name in title. */
+.schedule-shift-instance-name {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 601px) and (max-width: 1100px) {
+  .schedule-shift-instance-name {
+    font-size: 0.64rem;
+    letter-spacing: 0;
+  }
+}
