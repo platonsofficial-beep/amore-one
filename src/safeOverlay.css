@@ -1104,3 +1104,166 @@ body {
 .tasks-page .tasks-templates-nav-btn:hover {
   background: rgba(212, 175, 55, 0.08);
 }
+
+/* 0032 — Operations final polish. */
+/* (1) Checklist editor: normal spacing between blocks, like the Create task form. */
+.operations-checklist-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.operations-checklist-items-section .operations-section-header {
+  margin-top: 6px;
+}
+
+/* (2) "Add checklist task" input matches the dark app inputs. */
+.operations-checklist-add-item input {
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(169, 192, 214, 0.16);
+  background: rgba(10, 22, 40, 0.55);
+  color: var(--one-text, #f7f4ee);
+  font: inherit;
+  font-size: 16px;
+}
+
+.operations-checklist-add-item input:focus {
+  outline: none;
+  border-color: rgb(212, 175, 55);
+}
+
+/* (2)(6) Secondary buttons in the checklist editor and Task boards / Daily
+   templates are quiet outlines (0028 style); Back buttons keep their own style. */
+.operations-checklist-editor-page .ghost-btn:not(.operations-checklist-editor-back),
+.tasks-page .ghost-btn:not(.tasks-back-btn) {
+  background: transparent;
+  color: #f3e7cf;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+}
+
+.tasks-page .tasks-generate-btn:disabled {
+  opacity: 0.7;
+}
+
+/* (3) Checklist editor: sticky Cancel / Create checklist in the panel colour. */
+.operations-checklist-editor-form .modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin-top: 4px;
+  padding: 12px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--one-surface-card);
+  border-top: 1px solid rgba(169, 192, 214, 0.12);
+}
+
+.main-panel:has(.operations-checklist-editor-page),
+.app-shell.is-mobile-shell .main-panel:has(.operations-checklist-editor-page) {
+  scroll-padding-bottom: 96px;
+  /* No bottom gutter under the sticky footer, so fields can't peek out below it.
+     Several shell rules set main-panel padding with higher specificity. */
+  padding-bottom: 0 !important;
+}
+
+/* (4) Operations modals: footer flush with the bottom of the form, so nothing
+   peeks out below the buttons; padding moves into the footer. */
+.app-shell .operations-form-modal.employee-modal,
+.operations-form-modal.employee-modal {
+  padding-bottom: 0;
+}
+
+.app-shell .operations-form-modal.employee-modal .modal-actions,
+.operations-form-modal.employee-modal .modal-actions {
+  margin-bottom: 0;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* (5)(6) Back buttons: own row, solid background, not a full-width tan bar. */
+.tasks-page .tasks-back-btn {
+  width: auto;
+  align-self: flex-start;
+  justify-self: start;
+  background: rgb(23, 30, 42);
+  border: 1px solid rgba(169, 192, 214, 0.18);
+  box-shadow: none;
+  color: #f3e7cf;
+}
+
+.tasks-templates-header-main {
+  flex-wrap: wrap;
+}
+
+.tasks-templates-header-main > .tasks-back-btn {
+  flex: 0 0 100%;
+  max-width: max-content;
+}
+
+/* (7) Tablet header: search never collapses to "Searc". */
+@media (min-width: 601px) and (max-width: 1100px) and (min-height: 521px) {
+  .topbar:not(.topbar-operations-compact) .search-bar {
+    min-width: 132px;
+  }
+}
+
+/* (8) Stats tiles share one surface; tone is a light tint + border only. */
+.operations-summary-card.tone-warning,
+.operations-summary-card.tone-success,
+.operations-summary-card.tone-danger,
+.operations-summary-card.tone-gold {
+  background-color: rgba(18, 32, 51, 0.88);
+}
+
+.operations-summary-card.tone-warning { background-image: linear-gradient(rgba(255, 152, 0, 0.06), rgba(255, 152, 0, 0.06)); }
+.operations-summary-card.tone-success { background-image: linear-gradient(rgba(76, 175, 80, 0.06), rgba(76, 175, 80, 0.06)); }
+.operations-summary-card.tone-danger { background-image: linear-gradient(rgba(244, 67, 54, 0.06), rgba(244, 67, 54, 0.06)); }
+.operations-summary-card.tone-gold { background-image: linear-gradient(rgba(212, 175, 55, 0.04), rgba(212, 175, 55, 0.04)); }
+
+/* (9) Compact landscape header: same height on every Operations tab. */
+.topbar.topbar-operations-compact {
+  flex-shrink: 0;
+}
+
+/* (10) Due time picker looks like the other selects (label gold must not leak in). */
+.form-field .time-select-trigger {
+  min-height: 44px;
+}
+
+.form-field .time-select-trigger > span {
+  color: var(--one-text, #f7f4ee);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.form-field .time-select-trigger > .time-select-placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.form-field .time-select-trigger > .time-select-chevron {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.72rem;
+}
+
+/* 0032 — Department board: when an Overdue group is shown, four columns on wide screens. */
+@media (min-width: 1101px) {
+  .tasks-board-sections:has(> :nth-child(4)) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 0032 (F) — Phone checklist run: one Back only. The page's own Back (own row,
+   solid) closes the run; the extra header "‹ Back" is hidden while it is open. */
+.mobile-expanded-scroll:has(.operations-checklist-exec-page) .mobile-expanded-header .mobile-back-btn {
+  display: none;
+}
+
+.operations-checklist-exec-header .operations-checklist-exec-back {
+  align-self: flex-start;
+  background: rgb(23, 30, 42);
+  border: 1px solid rgba(169, 192, 214, 0.18);
+  box-shadow: none;
+  color: #f3e7cf;
+}

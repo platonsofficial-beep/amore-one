@@ -7,6 +7,7 @@ import { useMediaQuery } from './lib/useMediaQuery'
 import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
+import { isTransientSuccessNotice, TRANSIENT_NOTICE_MS } from './lib/transientNotice'
 import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { getDisabledEmployeeKey, setDisabledEmployeeIds } from './lib/removedEmployeeShifts'
 import { updateMembershipDisplayName } from './services/membershipService'
@@ -15175,6 +15176,24 @@ function App() {
   const [activeChecklistRunTemplateId, setActiveChecklistRunTemplateId] = useState(null)
   const [activeChecklistTaskId, setActiveChecklistTaskId] = useState(null)
   const [operationsNotice, setOperationsNotice] = useState('')
+
+  // 0032: Operations / Task boards banners clear on tab change; success ones auto-dismiss.
+  useEffect(() => {
+    setOperationsNotice('')
+    setTasksNotice('')
+  }, [activeView, operationsSection])
+
+  useEffect(() => {
+    if (!isTransientSuccessNotice(operationsNotice)) return undefined
+    const timer = setTimeout(() => setOperationsNotice(''), TRANSIENT_NOTICE_MS)
+    return () => clearTimeout(timer)
+  }, [operationsNotice])
+
+  useEffect(() => {
+    if (!isTransientSuccessNotice(tasksNotice)) return undefined
+    const timer = setTimeout(() => setTasksNotice(''), TRANSIENT_NOTICE_MS)
+    return () => clearTimeout(timer)
+  }, [tasksNotice])
   const [isOperationsLoading, setIsOperationsLoading] = useState(false)
   const [isSavingOperations, setIsSavingOperations] = useState(false)
   const [operationsFocusTaskId, setOperationsFocusTaskId] = useState(null)
@@ -16083,6 +16102,13 @@ function App() {
       .filter(Boolean)
     return [...todayActionableTasks, ...operationsRows]
   }, [todayActionableTasks, operationsTasks])
+
+  // 0032: the Dashboard "Task boards overdue" tile counts exactly what Task boards
+  // shows as Overdue (board tasks + operations rows), so the two numbers match.
+  const taskBoardsOverdueCount = useMemo(
+    () => calculateTaskOverview(taskBoardTasks, currentDateKey).overdue,
+    [taskBoardTasks, currentDateKey],
+  )
 
   const sharedOperationalTasks = useMemo(
     () => combineOperationalTasks(
@@ -25270,7 +25296,7 @@ function App() {
             onOpenTaskSteps={openTaskChecklist}
             focusTaskId={operationsFocusTaskId}
             onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
-            boardOverdueCount={unifiedOperationalTaskCounts.boardPastDue}
+            boardOverdueCount={taskBoardsOverdueCount}
             onOpenTaskBoards={handleDashboardViewTasks}
           />
         ) : null}

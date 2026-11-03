@@ -124,10 +124,22 @@ export function OperationsChecklistTemplateEditor({
 
     try {
       setError('')
+      // 0032: a task typed but not yet "Add task"-ed is kept, not lost.
+      const pendingTitle = `${newItemForm.title ?? ''}`.trim()
+      const itemsToSave = !isEditing && pendingTitle
+        ? [...items, {
+          id: `local-${Date.now()}`,
+          title: pendingTitle,
+          description: `${newItemForm.description ?? ''}`.trim(),
+          orderIndex: items.length,
+          required: newItemForm.required !== false,
+          estimatedMinutes: newItemForm.estimatedMinutes ? Number(newItemForm.estimatedMinutes) : null,
+        }]
+        : items
       const savedTemplate = await onSaveTemplate?.({
         ...form,
         name: form.name.trim(),
-      }, items)
+      }, itemsToSave)
 
       const templateId = savedTemplate?.id ?? template?.id
       if (templateId) {

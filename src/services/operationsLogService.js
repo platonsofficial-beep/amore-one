@@ -37,7 +37,10 @@ function serializeOperationsLog(log, workspaceId) {
 
 async function enrichOperationsLogs(logs = []) {
   const authUserIds = logs.map((log) => log.createdBy).filter(Boolean)
-  const nameByAuthUserId = await getMemberDisplayNamesByAuthUserIds(authUserIds)
+  // 0032: the lookup needs the workspace id first (it was missing, so every
+  // author fell back to "System" → shown as "Team member").
+  const workspaceId = logs.find((log) => log.workspaceId)?.workspaceId ?? ''
+  const nameByAuthUserId = await getMemberDisplayNamesByAuthUserIds(workspaceId, authUserIds)
 
   return logs.map((log) => ({
     ...log,

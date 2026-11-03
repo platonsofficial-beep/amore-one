@@ -220,8 +220,8 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search import'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
-  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search board tasks'
-  if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks and notes'
+  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'
+  if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks'
   if (activeView === 'insights') return 'Search insights'
   return 'Search'
 }
