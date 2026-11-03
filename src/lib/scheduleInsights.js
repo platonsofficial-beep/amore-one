@@ -19,8 +19,10 @@ export function buildScheduleWeekShiftStats(shifts = [], weekDays = []) {
   const totalHours = weekShifts.reduce((sum, shift) => {
     const startMinutes = Number(shift?.startMinutes)
     const endMinutes = Number(shift?.endMinutes)
-    if (Number.isFinite(startMinutes) && Number.isFinite(endMinutes) && endMinutes > startMinutes) {
-      return sum + (endMinutes - startMinutes) / 60
+    if (Number.isFinite(startMinutes) && Number.isFinite(endMinutes) && endMinutes !== startMinutes) {
+      // Overnight (end <= start) runs to the next day.
+      const minutes = endMinutes > startMinutes ? endMinutes - startMinutes : (1440 - startMinutes) + endMinutes
+      return sum + minutes / 60
     }
     return sum
   }, 0)

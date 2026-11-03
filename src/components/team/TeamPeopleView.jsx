@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
 import { MemberAccessPanel } from './MemberAccessPanel'
@@ -280,6 +281,7 @@ export function TeamPeopleView({
   searchPlaceholder = 'Search employee',
   showLeaveInbox = false,
 }) {
+  const [confirmDisableId, setConfirmDisableId] = useState(null)
   const hasActiveFilter = activeFilter !== 'All'
   const isRosterEmpty = !isLoading && totalEmployeeCount === 0
   const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
@@ -562,7 +564,14 @@ export function TeamPeopleView({
                 type="button"
                 className="ghost-btn employee-profile-drawer-disable-btn"
                 disabled={togglingEmployeeId === selectedEmployee.id}
-                onClick={() => onToggleEmployeeEnabled(selectedEmployee, isEmployeeDisabled(selectedEmployee))}
+                onClick={() => {
+                  // Enable is instant; Disable asks once (0030).
+                  if (isEmployeeDisabled(selectedEmployee)) {
+                    onToggleEmployeeEnabled(selectedEmployee, true)
+                    return
+                  }
+                  setConfirmDisableId(selectedEmployee.id)
+                }}
               >
                 {togglingEmployeeId === selectedEmployee.id
                   ? 'Saving…'
@@ -577,6 +586,28 @@ export function TeamPeopleView({
               Delete
             </button>
           </div>
+          {confirmDisableId && confirmDisableId === selectedEmployee.id ? (
+            <div className="employee-disable-confirm" role="alertdialog" aria-label="Confirm disable" data-testid="employee-disable-confirm">
+              <p>
+                Disable {selectedEmployee.full_name ?? selectedEmployee.name ?? 'this person'}? They can&apos;t sign in and their upcoming shifts are hidden. You can enable them again any time.
+              </p>
+              <div className="employee-disable-confirm-actions">
+                <button type="button" className="ghost-btn" onClick={() => setConfirmDisableId(null)}>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn employee-disable-confirm-btn"
+                  onClick={() => {
+                    setConfirmDisableId(null)
+                    onToggleEmployeeEnabled(selectedEmployee, false)
+                  }}
+                >
+                  Disable
+                </button>
+              </div>
+            </div>
+          ) : null}
         </aside>
         </div>
       ) : null}

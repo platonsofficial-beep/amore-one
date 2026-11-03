@@ -67,7 +67,8 @@ function isShiftFinished(event, nowMinutes) {
     return nowMinutes >= endMinutes
   }
 
-  return nowMinutes >= endMinutes && nowMinutes < startMinutes
+  // Overnight shift (end <= start): it finishes the next day, never today.
+  return false
 }
 
 function getShiftTimelineState(event, nowMinutes) {

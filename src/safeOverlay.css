@@ -874,3 +874,24 @@ body {
     white-space: nowrap;
   }
 }
+
+/* 0030 — Disable confirmation in the employee drawer (form colour, no dark bar). */
+.employee-disable-confirm {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.employee-disable-confirm p {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.employee-disable-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

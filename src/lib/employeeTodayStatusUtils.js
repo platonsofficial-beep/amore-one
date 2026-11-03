@@ -97,7 +97,9 @@ function isShiftCompletedAt(nowMinutes, startMinutes, endMinutes) {
     return nowMinutes >= endMinutes
   }
 
-  return nowMinutes >= endMinutes && nowMinutes < startMinutes
+  // Overnight (end <= start, e.g. 18:00–00:00): the shift ends on the next
+  // day, so on its own date it is never completed yet.
+  return false
 }
 
 function isShiftFutureAt(nowMinutes, startMinutes, endMinutes) {
@@ -109,7 +111,7 @@ function isShiftFutureAt(nowMinutes, startMinutes, endMinutes) {
     return nowMinutes < startMinutes
   }
 
-  return nowMinutes < startMinutes && nowMinutes >= endMinutes
+  return nowMinutes < startMinutes
 }
 
 function isPreviousDayOvernightActive(nowMinutes, startMinutes, endMinutes) {
