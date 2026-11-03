@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { dismissEmployeeFormOverlayPickers, useEmployeeFormPickerDismiss } from './lib/employeeFormPickerDismiss'
 import { FloorEdgeScrollbars } from './components/floor/FloorEdgeScrollbars.jsx'
 import { anchorScrollDelta, pinchZoom, touchDistance, touchMidpoint } from './lib/floorPinch.js'
 import { clampOverlayLeft } from './lib/safeInline'
@@ -1396,9 +1397,6 @@ function normalizeEmployeePhoneForDisplay(phone = '') {
   return trimmed
 }
 
-function dismissEmployeeFormOverlayPickers() {
-  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-}
 
 const EMPLOYEE_FORM_SELECT_Z_INDEX = 1300
 const EMPLOYEE_DATE_PICKER_Z_INDEX = 1250
@@ -1596,6 +1594,8 @@ function EmployeePremiumDateField({
       if (repositionFrameId !== null) cancelAnimationFrame(repositionFrameId)
     }
   }, [isPickerOpen, updatePickerPosition])
+
+  useEmployeeFormPickerDismiss(() => setIsPickerOpen(false), { enabled: isPickerOpen })
 
   const openPicker = () => setIsPickerOpen(true)
   const closePicker = () => setIsPickerOpen(false)
