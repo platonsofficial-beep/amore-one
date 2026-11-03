@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
 import { isTransientSuccessNotice, TRANSIENT_NOTICE_MS } from './lib/transientNotice'
+import { buildEmployeeStatusOptions, disableConfirmMessage, planEmployeeStatusSave } from './lib/employeeStatusSave'
 import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { getDisabledEmployeeKey, setDisabledEmployeeIds } from './lib/removedEmployeeShifts'
 import { updateMembershipDisplayName } from './services/membershipService'
@@ -2775,7 +2776,7 @@ function buildEmployeeForm(employee = null) {
     weeklyHours: employee?.weeklyHours ?? '',
     department: employee?.department ?? 'Service',
     shift: normalizeProfileShift(employee?.shift),
-    status: employee?.status ?? 'Working',
+    status: isEmployeeDisabled(employee) ? 'Disabled' : (employee?.status ?? 'Working'),
     emergencyContact: employee?.emergencyContact ?? '',
     notes: employee?.notes ?? '',
     identityColor: employee?.identityColor ?? null,
@@ -15941,10 +15942,10 @@ function App() {
   const resolvedUserDisplayName = useMemo(
     () => resolveUserDisplayName({
       membership,
-      employees: scheduleEmployees,
+      employees,
       user,
     }),
-    [membership, scheduleEmployees, user],
+    [membership, employees, user],
   )
 
   const mobileGreeting = useMemo(
@@ -19809,6 +19810,11 @@ function App() {
       return
     }
 
+    const statusPlan = planEmployeeStatusSave({ editingEmployee, formStatus: employeeForm.status })
+    if (statusPlan.needsConfirm && !window.confirm(disableConfirmMessage(editingEmployee))) {
+      return
+    }
+
     setIsSavingEmployee(true)
     setSaveError('')
 
@@ -19852,16 +19858,23 @@ function App() {
       weeklyHours: normalizeNumericValue(employeeForm.weeklyHours),
       notes: employeeForm.notes.trim() || 'No notes yet.',
       shift: employeeForm.shift,
-      status: employeeForm.status,
+      status: statusPlan.payloadStatus,
       department: employeeForm.department,
     }
 
     try {
       const pendingDeletions = [...pendingEmployeePositionDeletions]
 
+      // 0036: enable before saving the chosen status; disable after saving.
+      if (statusPlan.accessChange === 'enable') {
+        await setEmployeeEnabled(activeWorkspaceId, editingEmployee.id, true)
+      }
       const savedEmployee = editingEmployee
         ? await updateEmployee(activeWorkspaceId, editingEmployee.id, payload)
         : await createEmployee(activeWorkspaceId, payload)
+      if (statusPlan.accessChange === 'disable') {
+        await setEmployeeEnabled(activeWorkspaceId, editingEmployee.id, false)
+      }
 
       const [refreshedEmployees] = await Promise.all([
         refreshStaffEmployees(),
@@ -24725,7 +24738,7 @@ function App() {
             />
           ) : null
           const accountProfileProps = {
-            displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+            displayName: resolvedUserDisplayName, // 0036: linked employee name first
             email: `${membership?.email ?? user?.email ?? ''}`.trim(),
             phone: mobileProfilePhone,
             roleLabel,
@@ -25592,7 +25605,7 @@ function App() {
                     onOpenProfile: handleMobileOpenProfile,
                     onBackFromProfile: handleMobileBackFromProfile,
                     profileProps: {
-                      displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+                      displayName: resolvedUserDisplayName, // 0036: linked employee name first
                       email: `${membership?.email ?? user?.email ?? ''}`.trim(),
                       phone: mobileProfilePhone,
                       roleLabel,
@@ -26178,7 +26191,7 @@ function App() {
                         openMenuId={employeeFormOpenMenuId}
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.status}
-                        options={EMPLOYEE_STATUS_OPTIONS}
+                        options={buildEmployeeStatusOptions(EMPLOYEE_STATUS_OPTIONS, { isEditing: Boolean(editingEmployee) })}
                         onChange={(status) => setEmployeeForm((current) => ({ ...current, status }))}
                       />
                     </label>
