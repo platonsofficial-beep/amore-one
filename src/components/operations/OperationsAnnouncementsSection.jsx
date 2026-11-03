@@ -142,9 +142,11 @@ export function OperationsAnnouncementsSection({
       </header>
 
       {visibleAnnouncements.length === 0 && !isLoading ? (
-        <div className="operations-empty-state">
-          <h4>No announcements yet</h4>
-          <p>Share important updates with your team.</p>
+        <div className="operations-empty-state is-inline">
+          <p>
+            <strong>No announcements yet</strong>
+            {' · Share important updates with your team.'}
+          </p>
         </div>
       ) : (
         <div className="operations-announcement-list">
