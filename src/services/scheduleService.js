@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import { EMPLOYEE_PUBLIC_COLUMNS } from './employeeReadColumns'
 import { validateShiftTemplateReference } from '../lib/shiftIntegrity'
+import { filterRemovedEmployeeShifts } from '../lib/removedEmployeeShifts'
 
 function mapShift(record) {
   const relatedEmployee = Array.isArray(record.employees) ? record.employees[0] : record.employees
@@ -96,7 +97,8 @@ export async function getShifts(workspaceId, options = {}) {
     throw new Error(error.message || 'Unable to load shifts right now.')
   }
 
-  return (data ?? []).map(mapShift)
+  const mapped = (data ?? []).map(mapShift)
+  return options.includeRemoved ? mapped : filterRemovedEmployeeShifts(mapped)
 }
 
 export async function createShift(workspaceId, shift, options = {}) {

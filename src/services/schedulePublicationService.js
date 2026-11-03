@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
 import { assertShiftsReadyForPublish, normalizeShiftTemplateId } from '../lib/shiftIntegrity'
 import { mapPublishedShift, normalizeShiftForComparison } from './publishedShiftService'
+import { filterRemovedEmployeeShifts, isRemovedEmployeeShift } from '../lib/removedEmployeeShifts'
+import { getShifts } from './scheduleService'
 
 function mapPublication(record) {
   return {
@@ -19,7 +21,7 @@ function mapSnapshot(data) {
   if (!data?.publication || !Array.isArray(data.published_shifts)) {
     throw new Error('The published schedule could not be verified. Refresh before trying again.')
   }
-  return { publication: mapPublication(data.publication), publishedShifts: data.published_shifts.map(mapPublishedShift) }
+  return { publication: mapPublication(data.publication), publishedShifts: filterRemovedEmployeeShifts(data.published_shifts.map(mapPublishedShift)) }
 }
 
 function publicationError(error) {
@@ -88,8 +90,21 @@ export async function publishWeekSchedule({ workspaceId, weekStartDate, draftShi
     return date >= weekStartDate && date < endKey
   })
   assertShiftsReadyForPublish(weekShifts, { knownTemplateIds })
+  // The server checks the sent draft against every draft row of the week.
+  // Shifts hidden for removed (disabled) people are still draft rows, so
+  // send them along unchanged; they stay hidden in every view.
+  const lastDay = new Date(`${endKey}T00:00:00Z`)
+  lastDay.setUTCDate(lastDay.getUTCDate() - 1)
+  const rawWeek = await getShifts(workspaceId, {
+    startDate: weekStartDate,
+    endDate: lastDay.toISOString().slice(0, 10),
+    includeRemoved: true,
+  })
+  const visibleIds = new Set(weekShifts.map((shift) => `${shift.id}`))
+  const hiddenShifts = rawWeek.filter((shift) => !visibleIds.has(`${shift.id}`) && isRemovedEmployeeShift(shift))
+  const payloadShifts = [...weekShifts, ...hiddenShifts]
   return setPublication({ workspaceId, weekStartDate, expectedRevision, requestId,
-    status: 'published', shifts: weekShifts.map(serializePublicationDraftShift).sort((a, b) => a.id.localeCompare(b.id)) })
+    status: 'published', shifts: payloadShifts.map(serializePublicationDraftShift).sort((a, b) => a.id.localeCompare(b.id)) })
 }
 
 export async function unpublishWeekSchedule({ workspaceId, weekStartDate, expectedRevision, requestId }) {

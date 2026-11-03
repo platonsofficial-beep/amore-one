@@ -8,6 +8,7 @@ import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
+import { getDisabledEmployeeKey, setDisabledEmployeeIds } from './lib/removedEmployeeShifts'
 import { updateMembershipDisplayName } from './services/membershipService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, moveShiftTemplatesByDrag, reorderShiftTemplates, sortShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema } from './services/shiftTemplateService'
@@ -1089,7 +1090,7 @@ function resolveScheduleIdentityEmployee(source, fallbackName = '') {
   if (isPlainEmployee) {
     return {
       id: employeeId,
-      name: source.name ?? source.full_name ?? fallbackName,
+      name: source.name ?? source.full_name ?? (`${source.employeeName ?? ''}`.trim() || fallbackName),
       identityColor: source.identityColor ?? source.identity_color ?? null,
       photoUrl: source.photoUrl ?? source.photo_url ?? null,
     }
@@ -14956,6 +14957,12 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [employees, setEmployees] = useState([])
+  // Shifts of disabled people from today on are hidden in every schedule
+  // view; the key re-runs the shift loads when someone is (re)enabled.
+  const disabledEmployeeKey = useMemo(() => {
+    setDisabledEmployeeIds(employees.filter((employee) => isEmployeeDisabled(employee)).map((employee) => employee.id))
+    return getDisabledEmployeeKey()
+  }, [employees])
   const [approvedLeave, setApprovedLeave] = useState([])
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [shifts, setShifts] = useState([])
@@ -17255,7 +17262,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, isMobileViewport, mobileWeekStart, scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, isMobileViewport, mobileWeekStart, scheduleWeekStart, todayWeekStart, disabledEmployeeKey])
 
   useEffect(() => {
     if (activeView !== 'insights') return undefined
@@ -17524,7 +17531,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey])
 
   useEffect(() => {
     let isMounted = true
@@ -18043,7 +18050,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey])
 
   useEffect(() => {
     let isMounted = true

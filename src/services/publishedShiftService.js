@@ -1,5 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 
+import { filterRemovedEmployeeShifts } from '../lib/removedEmployeeShifts'
+
 const PUBLISHED_SHIFTS_TABLE = 'published_shifts'
 
 function normalizeShiftDate(value) {
@@ -58,7 +60,7 @@ export function draftMatchesPublishedSnapshot(draftShifts = [], publishedShifts 
 
 export function mapPublishedShift(record) {
   const relatedEmployee = Array.isArray(record.employees) ? record.employees[0] : record.employees
-  const employeeFullName = `${relatedEmployee?.full_name ?? ''}`.trim()
+  const employeeFullName = `${relatedEmployee?.full_name ?? record.employee_name ?? ''}`.trim()
 
   return {
     id: record.id,
@@ -82,7 +84,7 @@ export function mapPublishedShift(record) {
 
 const PUBLISHED_SHIFT_SELECT = `
   *,
-  employees(full_name)
+  employees(full_name, active, status)
 `
 
 export async function getPublishedShifts(weekStartDate) {
@@ -103,6 +105,6 @@ export async function getPublishedShifts(weekStartDate) {
     throw new Error(error.message || 'Unable to load published schedule right now.')
   }
 
-  return (data ?? []).map(mapPublishedShift)
+  return filterRemovedEmployeeShifts((data ?? []).map(mapPublishedShift))
 }
 
