@@ -1,5 +1,5 @@
 import { resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
-import { groupTasksBySection, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
+import { groupTasksBySection, isTaskOverdue, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
 import { canStaffCompleteTask, getTaskAssigneeId } from '../../lib/operationsUtils'
 import TaskCard from './TaskCard'
 
@@ -73,7 +73,13 @@ export default function DepartmentBoardView({
 }) {
   const departmentDisplay = resolveDepartmentBoardDisplay(departmentKey, customDepartmentIcons)
   const departmentTasks = tasks.filter((task) => taskMatchesDepartmentBoard(task, departmentKey))
-  const sections = groupTasksBySection(departmentTasks)
+  const groupedSections = groupTasksBySection(departmentTasks)
+  // 0032: past-due open tasks get their own Overdue group above Today.
+  const sections = {
+    ...groupedSections,
+    overdue: groupedSections.today.filter((task) => isTaskOverdue(task)),
+    today: groupedSections.today.filter((task) => !isTaskOverdue(task)),
+  }
 
   const employeeNameById = new Map(
     employees.map((employee) => [
@@ -110,6 +116,24 @@ export default function DepartmentBoardView({
       {isLoading ? <div className="staff-status-banner">Loading tasks…</div> : null}
 
       <div className="tasks-board-sections">
+        {sections.overdue.length > 0 ? (
+          <TaskSection
+            title="Overdue"
+            tasks={sections.overdue}
+            checklistItemsByTaskId={checklistItemsByTaskId}
+            emptyMessage=""
+            resolveAssigneeName={resolveAssigneeName}
+            onComplete={onCompleteTask}
+            onReopen={onReopenTask}
+            onEdit={onEditTask}
+            onDelete={onDeleteTask}
+            onToggleChecklistItem={onToggleChecklistItem}
+            customDepartmentIcons={customDepartmentIcons}
+            isSaving={isSaving}
+            canManage={canManage}
+            currentEmployeeId={currentEmployeeId}
+          />
+        ) : null}
         <TaskSection
           title="Today"
           tasks={sections.today}

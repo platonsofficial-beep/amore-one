@@ -771,7 +771,7 @@ export function OperationsDashboardView({
         <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
         <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />
         <OperationsSummaryCard
-          label="Board tasks overdue"
+          label="Task boards overdue"
           value={boardOverdueCount}
           tone={boardOverdueCount > 0 ? 'danger' : 'default'}
           action={onOpenTaskBoards ? (

@@ -101,7 +101,7 @@ export function OperationsChecklistsView({
     })
   }, [templates, searchTerm])
 
-  const handleSaveTemplate = async (form) => {
+  const handleSaveTemplate = async (form, localItems = []) => {
     if (editingTemplate?.id) {
       const updated = await onUpdateTemplate?.(editingTemplate.id, form)
       setEditingTemplate(null)
@@ -109,6 +109,19 @@ export function OperationsChecklistsView({
     }
 
     const created = await onCreateTemplate?.(form)
+    // 0032: items added before the template existed are local only; save them now.
+    if (created?.id && typeof onCreateItem === 'function' && Array.isArray(localItems)) {
+      const pending = localItems.filter((item) => `${item?.id ?? ''}`.startsWith('local-'))
+      for (const [index, item] of pending.entries()) {
+        await onCreateItem(created.id, {
+          title: item.title,
+          description: item.description ?? '',
+          orderIndex: index,
+          required: item.required !== false,
+          estimatedMinutes: item.estimatedMinutes ?? null,
+        })
+      }
+    }
     return created
   }
 
