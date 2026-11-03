@@ -23284,6 +23284,8 @@ function App() {
       setIsSavingOperations(false)
     }
   }
+  const handleStartOperationsChecklistRef = useRef(null)
+  handleStartOperationsChecklistRef.current = handleStartOperationsChecklist
 
   const handleToggleChecklistExecutionTask = async (task) => {
     const isDone = `${task.status ?? ''}`.toLowerCase() === 'completed'
@@ -24271,8 +24273,21 @@ function App() {
     const templateId = `${row?.templateId ?? (typeof row === 'string' ? row : '')}`.trim()
     if (templateId && (typeof row === 'string' || row?.started)) {
       openChecklistTemplate(templateId)
+      return
+    }
+    // 0033 (5): a not-started checklist opens its run directly (started for today,
+    // same as "Start checklist"), instead of leaving the phone on Operational control.
+    const template = templateId
+      ? (operationsChecklistTemplates ?? []).find((entry) => `${entry.id}` === templateId)
+      : null
+    if (template) {
+      Promise.resolve(handleStartOperationsChecklistRef.current?.(template)).catch((error) => {
+        console.error('[App] open checklist run from phone dashboard failed:', error)
+        openChecklistTemplate(templateId)
+      })
     }
   }, [
+    operationsChecklistTemplates,
     permissionAccess,
     handleActiveViewChange,
     handleOperationsSectionChange,
@@ -25711,6 +25726,7 @@ function App() {
                             ? handleMobileManagerOpenChecklist
                             : undefined,
                           onCreateAnnouncement: canManageAnnouncementsRole ? handleCreateOperationsAnnouncement : undefined,
+                          boardOverdueCount: taskBoardsOverdueCount,
                         }}
                         operationsSection={operationsSection}
                         onOperationsSectionChange={handleOperationsSectionChange}

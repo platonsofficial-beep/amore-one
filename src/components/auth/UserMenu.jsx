@@ -130,6 +130,7 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Your menu"
+        title={[memberDisplayName, resolvedRoleLabel].filter(Boolean).join(" · ") || undefined}
         data-help="header.profile"
         onClick={() => setIsOpen((current) => !current)}
       >

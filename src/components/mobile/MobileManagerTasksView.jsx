@@ -184,6 +184,7 @@ export function MobileManagerTasksView({
   onCompleteTask,
   onOpenChecklist,
   onCreateAnnouncement,
+  boardOverdueCount = null,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [isAnnouncementFormOpen, setIsAnnouncementFormOpen] = useState(false)
@@ -284,7 +285,14 @@ export function MobileManagerTasksView({
                 </p>
                 <span className="mobile-manager-tasks-command-percent">{completionPercent}%</span>
               </div>
-              {overdueTodayCount > 0 || overdue > 0 ? (
+              {/* 0033: same count and wording as the desktop "Task boards overdue" tile. */}
+              {Number.isFinite(boardOverdueCount) ? (
+                boardOverdueCount > 0 ? (
+                  <p className="mobile-manager-tasks-command-alert" role="status">
+                    {`Task boards overdue: ${boardOverdueCount}`}
+                  </p>
+                ) : null
+              ) : overdueTodayCount > 0 || overdue > 0 ? (
                 <p className="mobile-manager-tasks-command-alert" role="status">
                   {overdueTodayCount > 0
                     ? `${overdueTodayCount} overdue today`
