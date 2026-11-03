@@ -826,3 +826,51 @@ body {
     height: 36px;
   }
 }
+
+/*
+  0024 — Tablet header fit. On narrow tablets (portrait iPad, ~768–1100px)
+  the header controls row could push the user chip past the right edge.
+  Keep the row on one line inside the card: search shrinks first, the user
+  name/role truncate with an ellipsis. Phone landscape (compact header)
+  and desktop are untouched.
+*/
+@media (min-width: 601px) and (max-width: 1100px) and (min-height: 521px) {
+  .topbar:not(.topbar-operations-compact) .topbar-meta {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .topbar:not(.topbar-operations-compact) .search-bar {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .topbar:not(.topbar-operations-compact) .search-bar input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar:not(.topbar-operations-compact) .date-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .topbar:not(.topbar-operations-compact) .user-menu {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .topbar:not(.topbar-operations-compact) .profile-chip > div:not(.profile-avatar) {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .topbar:not(.topbar-operations-compact) .profile-chip strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
