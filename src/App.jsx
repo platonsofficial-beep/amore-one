@@ -4225,7 +4225,8 @@ function ScheduleView({
       .map((employee) => `${employee?.id ?? ''}`.trim())
       .filter(Boolean)
 
-    if (!`${workspaceId ?? ''}`.trim() || !`${weekStartDate ?? ''}`.trim() || employeeIds.length === 0) {
+    // 0035: other people's availability is a scheduler tool; staff don't load it.
+    if (!canEditSchedule || !`${workspaceId ?? ''}`.trim() || !`${weekStartDate ?? ''}`.trim() || employeeIds.length === 0) {
       setScheduleAvailabilityOverlay({ byEmployeeId: {}, loadFailed: false })
       setIsScheduleAvailabilityLoading(false)
       return () => {
@@ -4260,7 +4261,7 @@ function ScheduleView({
     return () => {
       cancelled = true
     }
-  }, [availabilityRevision, scheduleAvailabilityEmployeeIdsKey, weekStartDate, workspaceId, employees])
+  }, [availabilityRevision, scheduleAvailabilityEmployeeIdsKey, weekStartDate, workspaceId, employees, canEditSchedule])
 
   const blendGridRows = useMemo(() => {
     const shiftsByDayKey = {}
@@ -5759,7 +5760,8 @@ function ScheduleView({
         </div>
       ) : null}
       {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
-      {scheduleIssueNotice.count > 0 ? (
+      {/* 0035: schedule issues and Staff availability are for schedulers only. */}
+      {canEditSchedule && scheduleIssueNotice.count > 0 ? (
         <div className="staff-status-banner schedule-workspace-banner schedule-issue-banner" role="status">
           {scheduleIssueNotice.count === 1
             ? 'Schedule issue'
@@ -5770,6 +5772,7 @@ function ScheduleView({
 
       <div className={`schedule-workspace-layout ${scheduleGridTemplates.length === 0 ? 'schedule-workspace-layout-empty' : ''}`}>
         <div className="schedule-workspace-main">
+          {canEditSchedule ? (
           <details className="schedule-staff-availability panel staff-panel">
             <summary className="schedule-staff-availability-summary">
               <span>Staff availability</span>
@@ -5899,6 +5902,7 @@ function ScheduleView({
               </div>
             </div>
           </details>
+          ) : null}
 
       <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
         {blendGridRows.length === 0 ? (

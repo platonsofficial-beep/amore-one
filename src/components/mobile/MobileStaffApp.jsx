@@ -292,7 +292,7 @@ export function MobileStaffApp({
 
   if (expandedView) {
     return (
-      <div className="mobile-app mobile-app-expanded">
+      <div className="mobile-app mobile-app-expanded mobile-staff-app">
         {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
         {noticeBanner}
         <div className="mobile-expanded-scroll">
@@ -318,7 +318,7 @@ export function MobileStaffApp({
   const showHostStation = isHostShell && resolvedActiveTab === 'reservations'
 
   return (
-    <div className={`mobile-app${showHostStation ? ' mobile-app-host-mode mobile-app-host-station is-reservations-host-mode' : ''}`}>
+    <div className={`mobile-app${showHostStation ? ' mobile-app-host-mode mobile-app-host-station is-reservations-host-mode' : ' mobile-staff-app'}`}>
       {notificationBell ? <div className="mobile-shell-bell">{notificationBell}</div> : null}
       {noticeBanner}
       {showLeaveConfirm ? (
