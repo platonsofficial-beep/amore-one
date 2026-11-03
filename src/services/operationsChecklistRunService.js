@@ -88,6 +88,25 @@ export async function getChecklistRuns(workspaceId) {
   }
 
   const runs = (data ?? []).map(mapChecklistRun)
+  // 0034: callers merge runs without the template list, so the run card fell back
+  // to department "service". Carry each run's real template department.
+  const templateIds = [...new Set(runs.map((run) => run.templateId).filter(Boolean))]
+  if (templateIds.length > 0) {
+    try {
+      const { data: templates, error: templateError } = await supabase
+        .from('operations_checklist_templates')
+        .select('id, department')
+        .in('id', templateIds)
+      if (templateError) throw templateError
+      const departmentById = new Map((templates ?? []).map((row) => [`${row.id}`, row.department]))
+      runs.forEach((run) => {
+        const department = departmentById.get(`${run.templateId}`)
+        if (department) run.templateDepartment = department
+      })
+    } catch (departmentError) {
+      console.warn('[operationsChecklistRunService] template department lookup failed:', departmentError)
+    }
+  }
   // 0033: run steps carried only completed_by (an auth user id), so ticked steps
   // showed "Team member". Resolve names with the workspace id, like notes (0032 B).
   const authorIds = runs.flatMap((run) => run.steps.map((step) => step.completedBy)).filter(Boolean)

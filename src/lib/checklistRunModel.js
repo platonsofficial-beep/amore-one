@@ -86,7 +86,7 @@ function presentTemplateRun(run, sourceTasks = [], checklistTemplates = []) {
     status: openSteps.length > 0 ? 'pending' : 'completed',
     dueDate,
     dueTime: dueTimes[0] ?? null,
-    category: related[0]?.category || inferChecklistCategory(title, template?.department),
+    category: related[0]?.category || inferChecklistCategory(title, template?.department ?? run.templateDepartment),
     priority: related[0]?.priority || 'normal',
     assignedTo: null,
     taskSource: 'operations',
