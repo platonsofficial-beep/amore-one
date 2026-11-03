@@ -120,3 +120,10 @@ export function getCurrentWeekStartDate(timeZone = NICOSIA_TIME_ZONE) {
 export function getCurrentWeekDateKeys() {
   return getWeekDateKeys(getCurrentWeekStartDate())
 }
+
+// 0031 — Default selected schedule day: today (device local date) when it is in
+// the visible week, otherwise the first day. Avoids Monday looking like "today".
+export function pickDefaultScheduleDayKey(weekDays, todayKey = formatLocalDateKey(new Date())) {
+  if (!Array.isArray(weekDays) || weekDays.length === 0) return null
+  return weekDays.some((day) => day?.key === todayKey) ? todayKey : weekDays[0]?.key ?? null
+}

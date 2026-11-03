@@ -344,7 +344,7 @@ import {
   isCurrentWeek,
   parseLocalDate,
   formatScheduleDayHeader,
-  formatLocalDateKey,
+  formatLocalDateKey, pickDefaultScheduleDayKey,
 } from './lib/weekUtils'
 import {
   buildKnownShiftTemplateIdSet,
@@ -3269,12 +3269,12 @@ function ScheduleView({
 
   useEffect(() => {
     if (!selectedDay && weekDays.length > 0) {
-      setSelectedDay(weekDays[0].key)
+      setSelectedDay(pickDefaultScheduleDayKey(weekDays))
       return
     }
 
     if (selectedDay && !weekDays.some((day) => day.key === selectedDay)) {
-      setSelectedDay(weekDays[0]?.key ?? null)
+      setSelectedDay(pickDefaultScheduleDayKey(weekDays))
     }
   }, [selectedDay, weekDays])
 
