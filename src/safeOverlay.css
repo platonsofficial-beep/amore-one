@@ -992,3 +992,20 @@ body {
     letter-spacing: 0;
   }
 }
+
+/* 0026b — Dashboard TODAY card and Task boards "Needs attention" panel use the
+   normal app card surface (navy), not a near-black frame. Gold left edge kept. */
+.mobile-manager-tasks-command {
+  background: var(--one-surface-card);
+  border: 1px solid var(--one-border);
+  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  box-shadow: none;
+}
+
+/* Department performance shares the same base rule; kept matching so the two
+   stacked panels don't end up in different colours. */
+.tasks-alerts,
+.tasks-dept-performance {
+  background: var(--one-surface-card);
+  border: 1px solid var(--one-border);
+}
