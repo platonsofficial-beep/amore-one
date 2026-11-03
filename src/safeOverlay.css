@@ -953,3 +953,10 @@ body {
   color: inherit;
   opacity: 1;
 }
+
+/* 0031 — Modals inside .main-panel (z-index 1) were painted under the desktop
+   sidebar (z-index 2) at ~768–1100px, cutting off form labels. Lift the panel's
+   stacking context while a modal is open so every form sits above the sidebar. */
+.main-panel:has(.employee-modal-backdrop, .task-modal-backdrop, [aria-modal='true']) {
+  z-index: 1200;
+}
