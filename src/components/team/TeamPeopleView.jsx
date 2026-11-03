@@ -146,6 +146,10 @@ export function buildPeopleDepartmentFilters(employeeList = []) {
   ]
 }
 
+export function countActivePeople(employeeList = []) {
+  return (employeeList ?? []).filter((employee) => !isEmployeeDisabled(employee)).length
+}
+
 export function countPeopleDepartmentsWithStaff(employeeList = []) {
   const activeOnly = (employeeList ?? []).filter((employee) => !isEmployeeDisabled(employee))
   return Math.max(0, buildPeopleDepartmentFilters(activeOnly).length - 1)
@@ -286,7 +290,8 @@ export function TeamPeopleView({
   const isRosterEmpty = !isLoading && totalEmployeeCount === 0
   const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
   const metricsSource = rosterEmployees.length > 0 ? rosterEmployees : employees
-  const employeeCount = totalEmployeeCount
+  // 0036: the headline count is active people only (disabled stay listed under "Disabled").
+  const employeeCount = rosterEmployees.length > 0 ? countActivePeople(rosterEmployees) : totalEmployeeCount
   const workingCount = countEmployeesWorkingNow(metricsSource, employeeTodayStatusById)
   const departmentFilters = buildPeopleDepartmentFilters(metricsSource)
   const departmentCount = countPeopleDepartmentsWithStaff(metricsSource)
