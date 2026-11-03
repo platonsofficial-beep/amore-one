@@ -1321,3 +1321,25 @@ body {
 .auth-field input[aria-invalid='true'] {
   border-color: rgba(242, 120, 110, 0.7);
 }
+
+/*
+  Auth secondary buttons ("Back to sign in", "Create account", "Reset password").
+  Root cause of the 160px pill: `.auth-action-btn { flex: 1 1 160px }` is a
+  width basis for the row layout, but at <=640px `.auth-actions` switches to
+  flex-direction: column, so the 160px basis became the button HEIGHT.
+  Keep the basis horizontal only, and give the buttons the quiet ghost look
+  (transparent, thin gold line) so they blend with the form.
+*/
+@media (max-width: 640px) {
+  .auth-page .auth-action-btn {
+    flex: 0 0 auto;
+  }
+}
+
+.auth-page .auth-action-btn {
+  min-height: 44px;
+  background: transparent;
+  color: #f3e7cf;
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+}
