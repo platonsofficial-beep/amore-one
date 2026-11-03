@@ -13,6 +13,7 @@ import {
   readPendingInviteToken,
 } from '../../lib/inviteTokenStorage'
 import { getInvitePreview } from '../../services/inviteService'
+import { PASSWORD_MISMATCH_MESSAGE, passwordsMatch } from '../../lib/passwordConfirm'
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -25,6 +26,7 @@ export function LoginView() {
   const [mode, setMode] = useState(MODES.SIGN_IN)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
@@ -86,6 +88,11 @@ export function LoginView() {
       return
     }
 
+    if (mode === MODES.SIGN_UP && !passwordsMatch(password, confirmPassword)) {
+      setErrorMessage(PASSWORD_MISMATCH_MESSAGE)
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -102,6 +109,7 @@ export function LoginView() {
         setSuccessMessage('Account created. Check your email to confirm your address, then sign in.')
         setMode(MODES.SIGN_IN)
         setPassword('')
+        setConfirmPassword('')
         return
       }
 
@@ -115,6 +123,12 @@ export function LoginView() {
       setIsSubmitting(false)
     }
   }
+
+  // Inline error once both fields have text and they differ (or after a blocked submit).
+  const showMismatch = mode === MODES.SIGN_UP && (
+    errorMessage === PASSWORD_MISMATCH_MESSAGE
+    || (confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword))
+  )
 
   const title = mode === MODES.SIGN_UP
     ? 'Create account'
@@ -151,7 +165,7 @@ export function LoginView() {
           </div>
         ) : null}
 
-        {errorMessage ? <div className="auth-banner auth-banner-error">{errorMessage}</div> : null}
+        {errorMessage && errorMessage !== PASSWORD_MISMATCH_MESSAGE ? <div className="auth-banner auth-banner-error">{errorMessage}</div> : null}
         {successMessage ? <div className="auth-banner auth-banner-success">{successMessage}</div> : null}
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -180,6 +194,31 @@ export function LoginView() {
                 disabled={isSubmitting}
                 required
               />
+            </label>
+          ) : null}
+
+          {mode === MODES.SIGN_UP ? (
+            <label className="form-field auth-field">
+              <span>Confirm password</span>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => {
+                  setConfirmPassword(event.target.value)
+                  if (errorMessage === PASSWORD_MISMATCH_MESSAGE) setErrorMessage('')
+                }}
+                placeholder="Enter password again"
+                disabled={isSubmitting}
+                aria-invalid={showMismatch || undefined}
+                aria-describedby={showMismatch ? 'auth-confirm-password-error' : undefined}
+                required
+              />
+              {showMismatch ? (
+                <small id="auth-confirm-password-error" className="auth-field-error" role="alert">
+                  {PASSWORD_MISMATCH_MESSAGE}
+                </small>
+              ) : null}
             </label>
           ) : null}
 
@@ -228,6 +267,7 @@ export function LoginView() {
               className="ghost-btn auth-action-btn"
               onClick={() => {
                 setMode(MODES.SIGN_IN)
+                setConfirmPassword('')
                 setErrorMessage('')
                 setSuccessMessage('')
               }}
