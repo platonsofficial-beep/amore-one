@@ -1087,3 +1087,20 @@ body {
   background: none;
   text-align: left;
 }
+
+/* 0028 — Operations button hierarchy: gold primary stays the one main action per
+   section; every other button is a quiet ghost (transparent, thin line), like
+   Reservations — no beige/bronze fills, no dark frames. Back (0025) unchanged. */
+.operations-dashboard-page .ghost-btn,
+.operations-checklists-page .ghost-btn,
+.tasks-page .tasks-templates-nav-btn {
+  background: transparent;
+  color: #f3e7cf;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+}
+
+.operations-dashboard-page .ghost-btn:hover:not(:disabled),
+.operations-checklists-page .ghost-btn:hover:not(:disabled),
+.tasks-page .tasks-templates-nav-btn:hover {
+  background: rgba(212, 175, 55, 0.08);
+}
