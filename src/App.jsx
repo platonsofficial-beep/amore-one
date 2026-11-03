@@ -24520,9 +24520,29 @@ function App() {
       return
     }
 
+    if (plan.action === 'manager-checklist') {
+      if (plan.templateId) {
+        handleMobileManagerOpenChecklist({ templateId: plan.templateId, started: true })
+        return
+      }
+      setMobileExpandedView(null)
+      handleMobileTabChange('tasks')
+      return
+    }
+    if (plan.action === 'operations-dashboard') {
+      handleActiveViewChange('operations')
+      handleOperationsSectionChange('dashboard')
+      if (useMobileExperience) setMobileExpandedView('workspace')
+      return
+    }
+
     handleActiveViewChange('operations')
     handleOperationsSectionChange('dashboard')
     if (useMobileExperience) setMobileExpandedView('workspace')
+    if (plan.action === 'workspace-checklist' && plan.templateId) {
+      openChecklistTemplate(plan.templateId)
+      return
+    }
     if (plan.taskId) openTaskChecklist(plan.taskId)
   }
 

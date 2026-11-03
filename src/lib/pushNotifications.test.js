@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  notificationIcon,
   buildNotificationOpenUrl,
   deviceLabelFromAgent,
   formatNotificationTimeAgo,
@@ -59,7 +60,9 @@ describe('push notification helpers', () => {
     expect(visibleNotificationGroups(false).map((group) => group.id)).toEqual([
       'clockin',
       'schedule',
+      'announcements',
       'tasks',
+      'checklists',
       'chat_message',
       'chat_direct',
     ])
@@ -130,6 +133,33 @@ describe('push notification helpers', () => {
     expect(planNotificationOpen({ view: 'chat', conversationId: 'conv-1' }).action).toBe('chat')
     expect(visibleNotificationGroups(false).find((group) => group.id === 'chat_message').label).toBe('Team & group chats')
     expect(visibleNotificationGroups(false).find((group) => group.id === 'chat_direct').label).toBe('Direct messages')
+  })
+
+  it('routes the Operations notification types', () => {
+    expect(resolveNotificationTarget({ type: 'announcement', data: { view: 'announcement', announcement_id: 'a1' } }))
+      .toMatchObject({ view: 'announcement', announcementId: 'a1' })
+    expect(resolveNotificationTarget({ type: 'task_new', data: { task_id: 't1' } })).toMatchObject({ view: 'tasks', taskId: 't1' })
+    expect(resolveNotificationTarget({ type: 'checklist_started', data: { view: 'checklist', run_id: 'r1', template_id: 'tp1' } }))
+      .toMatchObject({ view: 'checklist', runId: 'r1', templateId: 'tp1' })
+    expect(resolveNotificationTarget({ type: 'checklist_started' }).view).toBe('checklist')
+
+    expect(planNotificationOpen({ view: 'announcement' }, { useMobileExperience: false }).action).toBe('operations-dashboard')
+    expect(planNotificationOpen({ view: 'announcement' }, { useMobileExperience: true, isManagerMobile: true }).action).toBe('manager-home')
+    expect(planNotificationOpen({ view: 'announcement' }, { useMobileExperience: true, isManagerMobile: false }).action).toBe('staff-home')
+    expect(planNotificationOpen({ view: 'checklist', templateId: 'tp1' }, { useMobileExperience: false }))
+      .toMatchObject({ action: 'workspace-checklist', templateId: 'tp1' })
+    expect(planNotificationOpen({ view: 'checklist', templateId: 'tp1' }, { useMobileExperience: true, isManagerMobile: true }))
+      .toMatchObject({ action: 'manager-checklist', templateId: 'tp1' })
+    expect(planNotificationOpen({ view: 'checklist' }, { useMobileExperience: true, isManagerMobile: false }).action).toBe('staff-tasks')
+  })
+
+  it('lists the Operations types in notification settings', () => {
+    const groups = visibleNotificationGroups(false)
+    expect(groups.find((group) => group.id === 'announcements')).toMatchObject({ label: 'Announcements', types: ['announcement'] })
+    expect(groups.find((group) => group.id === 'tasks')).toMatchObject({ label: 'Tasks', types: ['task_assigned', 'task_new'] })
+    expect(groups.find((group) => group.id === 'checklists')).toMatchObject({ label: 'Checklists', types: ['checklist_started'] })
+    expect(notificationIcon('announcement')).toBe('📣')
+    expect(notificationIcon('task_new')).toBe('✓')
   })
 
   it('builds the open url and reads the notif id', () => {

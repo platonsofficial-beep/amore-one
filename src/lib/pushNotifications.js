@@ -42,11 +42,27 @@ export const NOTIFICATION_GROUPS = [
     managerOnly: false,
   },
   {
+    id: 'announcements',
+    label: 'Announcements',
+    detail: 'When a new announcement is posted for you.',
+    icon: '📣',
+    types: ['announcement'],
+    managerOnly: false,
+  },
+  {
     id: 'tasks',
-    label: 'Task assigned',
-    detail: 'When a task is assigned to you.',
+    label: 'Tasks',
+    detail: 'When a task is assigned to you or added for your department.',
     icon: '✓',
-    types: ['task_assigned'],
+    types: ['task_assigned', 'task_new'],
+    managerOnly: false,
+  },
+  {
+    id: 'checklists',
+    label: 'Checklists',
+    detail: 'When a checklist starts for today.',
+    icon: '☑️',
+    types: ['checklist_started'],
     managerOnly: false,
   },
   {
@@ -74,11 +90,14 @@ const VIEW_BY_TYPE = {
   timeclock_request: 'attendance',
   schedule_published: 'schedule',
   task_assigned: 'tasks',
+  task_new: 'tasks',
+  announcement: 'announcement',
+  checklist_started: 'checklist',
   chat_message: 'chat',
   chat_direct: 'chat',
 }
 
-const KNOWN_VIEWS = new Set(['clock', 'attendance', 'schedule', 'tasks', 'home', 'chat'])
+const KNOWN_VIEWS = new Set(['clock', 'attendance', 'schedule', 'tasks', 'home', 'chat', 'announcement', 'checklist'])
 
 function storageKey(prefix, userId) {
   return `${prefix}.${userId}`
@@ -163,7 +182,9 @@ export function shouldShowIosHomeScreenGuide({ isIos = false, isStandalone = fal
 
 export function notificationIcon(type) {
   if (type === 'schedule_published') return '📅'
-  if (type === 'task_assigned') return '✓'
+  if (type === 'task_assigned' || type === 'task_new') return '✓'
+  if (type === 'announcement') return '📣'
+  if (type === 'checklist_started') return '☑️'
   if (type === 'timeclock_request') return '📋'
   if (type === 'clockin_reminder_20_manager') return '⏱️'
   return '⏰'
@@ -200,6 +221,9 @@ export function resolveNotificationTarget(row) {
     view: KNOWN_VIEWS.has(requested) ? requested : 'home',
     weekStartDate: `${data.week_start_date ?? ''}`.trim(),
     taskId: `${data.task_id ?? ''}`.trim(),
+    announcementId: `${data.announcement_id ?? ''}`.trim(),
+    runId: `${data.run_id ?? ''}`.trim(),
+    templateId: `${data.template_id ?? ''}`.trim(),
     conversationId: `${data.conversation_id ?? row?.conversation_id ?? ''}`.trim(),
     messageId: `${data.message_id ?? row?.message_id ?? ''}`.trim(),
     notificationId: `${row?.id ?? ''}`.trim(),
@@ -237,6 +261,21 @@ export function planNotificationOpen(target, { useMobileExperience = false, isMa
     if (useMobileExperience && !isManagerMobile) return { action: 'staff-tasks', taskId }
     if (useMobileExperience && isManagerMobile) return { action: 'manager-tasks', taskId }
     return { action: 'workspace-tasks', taskId }
+  }
+
+  if (view === 'announcement') {
+    const announcementId = `${target?.announcementId ?? ''}`.trim()
+    if (useMobileExperience && isManagerMobile) return { action: 'manager-home', announcementId }
+    if (useMobileExperience) return { action: 'staff-home', announcementId }
+    return { action: 'operations-dashboard', announcementId }
+  }
+
+  if (view === 'checklist') {
+    const templateId = `${target?.templateId ?? ''}`.trim()
+    const runId = `${target?.runId ?? ''}`.trim()
+    if (useMobileExperience && !isManagerMobile) return { action: 'staff-tasks', taskId: '' }
+    if (useMobileExperience && isManagerMobile) return { action: 'manager-checklist', templateId, runId }
+    return { action: 'workspace-checklist', templateId, runId }
   }
 
   if (useMobileExperience && isManagerMobile) return { action: 'manager-home' }
