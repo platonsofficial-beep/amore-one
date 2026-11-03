@@ -268,7 +268,7 @@ export function MobileManagerTasksView({
   return (
     <div className="mobile-screen mobile-manager-tasks mobile-manager-tasks-workflow">
       <header className="mobile-manager-tasks-header" aria-label="Tasks overview">
-        <h1 className="mobile-manager-tasks-title">Tasks</h1>
+        <h1 className="mobile-manager-tasks-title">Operations</h1>
       </header>
 
       {isLoading ? (

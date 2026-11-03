@@ -357,8 +357,8 @@ export default function TasksView({
     <section className={`staff-page tasks-page${isMobileLayout ? ' is-mobile-layout' : ''}`}>
       <div className="tasks-page-header">
         <div>
-          <p className="eyebrow">Tasks</p>
-          <h3>{tasksScreen === 'templates' ? 'Daily templates' : 'Operations'}</h3>
+          <p className="eyebrow">Operations</p>
+          <h3>{tasksScreen === 'templates' ? 'Daily templates' : 'Task boards'}</h3>
           {!isMobileLayout ? (
             <p className="staff-subtitle">
               {tasksScreen === 'templates'
