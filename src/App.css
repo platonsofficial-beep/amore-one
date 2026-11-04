@@ -53490,3 +53490,17 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
   height: auto;
   max-height: none;
 }
+
+/* 0045 — Schedule focus header: the floating Help "?" (and the bell when
+   present) sat on top of Exit at the end of the toolbar row in phone
+   landscape. Reserve room for them, the same way the Stock focus header and
+   the Reservations landscape bar do, so no toolbar control sits under them.
+   Taller screens keep the header below the "?" row, so they need no inset. */
+@media (max-height: 460px) {
+  .app-shell.schedule-focus-mode:not(.is-mobile-shell):has(.help-mode-fallback) .schedule-focus-header {
+    padding-inline-end: 48px;
+  }
+  .app-shell.schedule-focus-mode:not(.is-mobile-shell):has(.help-mode-fallback):has(.notification-bell-btn) .schedule-focus-header {
+    padding-inline-end: 100px;
+  }
+}
