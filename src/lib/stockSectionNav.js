@@ -3,11 +3,14 @@ import { STOCK_SECTIONS } from './appNavigation'
 /** Phone stock row. The rest stay reachable from More. */
 export const STOCK_PHONE_PRIMARY_SECTION_IDS = ['dashboard', 'count', 'storages', 'orders']
 
+/** Staff phones lead with Take (take from storage), Orders moves to More. */
+export const STOCK_STAFF_PHONE_PRIMARY_SECTION_IDS = ['take', 'dashboard', 'count', 'storages']
+
 /** Spreadsheet import is a manager tool. Staff do not see it. */
 export const STOCK_MANAGER_ONLY_SECTION_IDS = ['migration']
 
 /** Also listed in More so a clipped primary tab stays one tap away. */
-const STOCK_PHONE_OVERFLOW_ORDER = ['orders', 'suppliers', 'migration']
+const STOCK_PHONE_OVERFLOW_ORDER = ['take', 'orders', 'suppliers', 'migration']
 
 export function isStockSectionVisible(sectionId, canManage) {
   if (!canManage && STOCK_MANAGER_ONLY_SECTION_IDS.includes(sectionId)) return false
@@ -40,14 +43,27 @@ export function resolveStockSectionNav({ canManage = false, compactPhone = false
     return { primary: visible, overflow: [] }
   }
 
-  const primary = STOCK_PHONE_PRIMARY_SECTION_IDS
+  const primaryIds = canManage ? STOCK_PHONE_PRIMARY_SECTION_IDS : STOCK_STAFF_PHONE_PRIMARY_SECTION_IDS
+  const primary = primaryIds
     .map((id) => visible.find((section) => section.id === id))
     .filter(Boolean)
 
   const overflow = STOCK_PHONE_OVERFLOW_ORDER
+    .filter((id) => canManage || id !== 'take')
     .filter((id) => visible.some((section) => section.id === id))
     .map((id) => visible.find((section) => section.id === id))
     .filter(Boolean)
 
   return { primary, overflow }
+}
+
+/**
+ * Staff land on Take each time they enter Stock (and on a cold open in Stock).
+ * Moving between Stock tabs afterwards is left alone.
+ */
+export function shouldStaffLandOnTake({ previousView = null, activeView = '', canManage = false, stockSection = '' } = {}) {
+  if (canManage) return false
+  if (activeView !== 'stock') return false
+  if (previousView === 'stock') return false
+  return stockSection !== 'take'
 }

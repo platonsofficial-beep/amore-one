@@ -170,7 +170,7 @@ export function buildWorkspaceStorageSummaries({
     current.balanceRowCount += 1
     if (quantity !== 0) current.nonZeroBalanceCount += 1
     if (itemId && costs.has(itemId)) {
-      current.inventoryValue += quantity * asFiniteNumber(costs.get(itemId))
+      current.inventoryValue += Math.max(0, quantity) * asFiniteNumber(costs.get(itemId))
     }
     aggregates.set(storageId, current)
   }
@@ -505,7 +505,7 @@ export function buildStorageProductRows({ balances = [], items = [], pars = [] }
       parQuantity,
       shortQuantity: storageParShort(parQuantity, quantity),
       costPrice,
-      lineValue: quantity * costPrice,
+      lineValue: Math.max(0, quantity) * costPrice,
       item: Object.freeze(item),
     }))
   }

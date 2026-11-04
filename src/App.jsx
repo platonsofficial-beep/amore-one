@@ -531,6 +531,7 @@ import {
   assignEmployeeIdentityColor,
   getAvailableIdentityColorsForWorkspace,
 } from './services/employeeIdentityService'
+import { StockQuickTakeView } from './components/stock/StockQuickTakeView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockLiveCard } from './components/stock/StockLiveCard'
 import { InventoryCountView } from './components/stock/InventoryCountView'
@@ -648,6 +649,7 @@ import {
   nextStockSearchTerm,
   resolvePermittedStockSection,
   resolveStockSectionNav,
+  shouldStaffLandOnTake,
 } from './lib/stockSectionNav'
 import {
   canAccessModule,
@@ -15813,6 +15815,16 @@ function App() {
     })
   }, [permissionAccess, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
+  // Staff open Stock straight on Take (take from storage). Managers keep their last tab.
+  const stockEntryViewRef = useRef(null)
+  useEffect(() => {
+    if (!stockAccessReady) return
+    const previousView = stockEntryViewRef.current
+    stockEntryViewRef.current = activeView
+    if (!shouldStaffLandOnTake({ previousView, activeView, canManage: canManageStockRole, stockSection })) return
+    setStockSection('take')
+  }, [activeView, stockAccessReady, canManageStockRole, stockSection])
+
   const handleStockSectionChange = useCallback((nextSection) => {
     const permitted = stockAccessReady
       ? resolvePermittedStockSection(nextSection, canManageStockRole)
@@ -25276,6 +25288,15 @@ function App() {
             isSavingOrders={isSavingStockOrder}
             isPreparingDrafts={isPreparingSupplyDrafts}
             timeZone={workspaceTimeZone}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'take' ? (
+          <StockQuickTakeView
+            workspaceId={activeWorkspaceId}
+            stockItems={stockItems}
+            searchTerm={searchTerm}
+            onStockItemsChanged={refreshStockItems}
           />
         ) : null}
 

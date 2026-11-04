@@ -49,6 +49,7 @@ describe('StockStorageCenter navigation contract', () => {
   it('registers Storages in Stock sections after Inventory Count', () => {
     expect(STOCK_SECTIONS.map((section) => section.id)).toEqual([
       'dashboard',
+      'take',
       'count',
       'storages',
       'suppliers',

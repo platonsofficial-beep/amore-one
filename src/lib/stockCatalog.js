@@ -5,6 +5,8 @@ import {
   toSelectableInventoryUnit,
 } from './inventoryUnitStandard.js'
 
+import { normalizePackUnit, normalizeUnitsPerPack } from './stockPackUnits.js'
+
 export { normalizePackagingNote }
 export {
   PRODUCT_CREATE_EDIT_INVENTORY_UNIT_ERROR,
@@ -351,7 +353,8 @@ export function resolveStockParQuantity(item) {
 }
 
 export function computeSuggestedOrder(item) {
-  const current = Number(item?.currentQuantity ?? item?.current_quantity ?? 0) || 0
+  // A minus total orders like 0, never more than par.
+  const current = Math.max(0, Number(item?.currentQuantity ?? item?.current_quantity ?? 0) || 0)
   const par = resolveStockParQuantity(item)
   if (!(par > 0) || current >= par) return 0
   return Math.max(0, par - current)
@@ -437,6 +440,8 @@ export function buildEmptyStockItemForm(category = '') {
       persistedUnit: '',
       size: '',
       packagingNote: '',
+      packUnit: '',
+      unitsPerPack: '',
       barcode: '',
       currentQuantity: '',
       minimumQuantity: '',
@@ -461,6 +466,8 @@ export function buildEmptyStockItemForm(category = '') {
     persistedUnit: '',
     size: '',
     packagingNote: '',
+    packUnit: '',
+    unitsPerPack: '',
     barcode: '',
     currentQuantity: '',
     minimumQuantity: '',
@@ -507,6 +514,8 @@ export function stockItemToForm(item) {
     packagingNote: normalizePackagingNote(
       item?.packagingNote ?? item?.packaging_note ?? null,
     ) ?? '',
+    packUnit: `${item?.packUnit ?? item?.pack_unit ?? ''}`,
+    unitsPerPack: item?.unitsPerPack ?? item?.units_per_pack ?? '',
     barcode: normalizeProductBarcode(item?.barcode ?? null) ?? '',
     currentQuantity: item?.currentQuantity ?? item?.current_quantity ?? '',
     minimumQuantity: item?.minimumQuantity ?? item?.minimum_quantity ?? '',
@@ -543,6 +552,9 @@ export function validateStockItemForm(form) {
 
   const unit = resolveStockFormUnit(form)
   if (!unit) return 'Please choose or enter a unit.'
+  if (`${form.packUnit ?? ''}`.trim() && !normalizeUnitsPerPack(form.unitsPerPack)) {
+    return 'Enter how many units are in one pack (more than 0).'
+  }
 
   const unitGate = resolveProductCreateEditInventoryUnit({
     proposedUnit: unit,
@@ -599,6 +611,8 @@ export function stockFormToPayload(form) {
     unit: resolveStockFormUnitForSave(form),
     size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),
+    packUnit: normalizePackUnit(form.packUnit),
+    unitsPerPack: normalizePackUnit(form.packUnit) ? normalizeUnitsPerPack(form.unitsPerPack) : null,
     barcode: normalizeProductBarcode(form.barcode ?? null),
     minimumQuantity: Number(form.minimumQuantity) || 0,
     targetQuantity: targetQuantityRaw ? Number(targetQuantityRaw) : null,

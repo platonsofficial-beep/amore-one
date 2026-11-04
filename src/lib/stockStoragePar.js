@@ -91,7 +91,8 @@ export function storageParShort(parQuantity, onHand) {
   const par = normalizeStorageParQuantity(parQuantity)
   if (par == null) return null
   const hand = Number(onHand)
-  const quantity = Number.isFinite(hand) ? hand : 0
+  // A minus balance (taken more than stock showed) orders like 0, never more than par.
+  const quantity = Number.isFinite(hand) ? Math.max(0, hand) : 0
   return roundParQuantity(Math.max(0, par - quantity))
 }
 

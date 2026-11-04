@@ -11,6 +11,7 @@ import {
 import { normalizeSupplierId, resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
 import { resolveStockItemStatus } from '../lib/stockUtils'
 import { getSuppliers } from './supplierService'
+import { isStockPackSchemaAvailable, normalizePackUnit, normalizeUnitsPerPack, notePackSchemaFromRecord } from '../lib/stockPackUnits'
 
 const STOCK_ITEMS_TABLE = 'stock_items'
 
@@ -24,6 +25,7 @@ function isTableUnavailableError(error) {
 }
 
 function mapStockItem(record) {
+  notePackSchemaFromRecord(record)
   const currentQuantity = Number(record.current_quantity ?? record.currentQuantity ?? 0)
   const minimumQuantity = Number(record.minimum_quantity ?? record.minimumQuantity ?? 0)
   const orderQuantity = record.order_quantity ?? record.orderQuantity
@@ -52,6 +54,8 @@ function mapStockItem(record) {
       record.packaging_note ?? record.packagingNote ?? null,
     ),
     barcode: normalizeProductBarcode(record.barcode ?? null),
+    packUnit: normalizePackUnit(record.pack_unit ?? record.packUnit ?? null),
+    unitsPerPack: normalizeUnitsPerPack(record.units_per_pack ?? record.unitsPerPack ?? null),
     currentQuantity,
     minimumQuantity,
     targetQuantity: targetQuantity === null || targetQuantity === undefined
@@ -98,6 +102,11 @@ export function serializeStockItem(item, workspaceId, { supplierId = null } = {}
     cost_price: Math.max(0, Number(item.costPrice ?? item.cost_price ?? 0) || 0),
     storage_location: `${item.storageLocation ?? item.storage_location ?? 'Main Storage'}`.trim() || 'Main Storage',
     active: item.active ?? true,
+    // Pack size columns are sent only once the database has them.
+    ...(isStockPackSchemaAvailable() ? {
+      pack_unit: normalizePackUnit(item.packUnit ?? item.pack_unit ?? null),
+      units_per_pack: normalizeUnitsPerPack(item.unitsPerPack ?? item.units_per_pack ?? null),
+    } : {}),
   }
 }
 

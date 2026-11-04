@@ -21,6 +21,7 @@ describe('Inventory Count section foundation', () => {
   it('registers Inventory Count in the Stock section navigation', () => {
     expect(STOCK_SECTIONS).toEqual(expect.arrayContaining([
       { id: 'dashboard', label: 'Dashboard' },
+      { id: 'take', label: 'Take' },
       { id: 'count', label: 'Counts' },
       { id: 'storages', label: 'Storages' },
       { id: 'suppliers', label: 'Suppliers' },
@@ -29,6 +30,7 @@ describe('Inventory Count section foundation', () => {
     ]))
     expect(STOCK_SECTIONS.map((section) => section.id)).toEqual([
       'dashboard',
+      'take',
       'count',
       'storages',
       'suppliers',

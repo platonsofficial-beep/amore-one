@@ -220,7 +220,8 @@ export function buildStockDashboardSummary(items = []) {
   const lowStock = activeItems.filter((item) => resolveStockItemStatus(item) === 'low').length
   const outOfStock = activeItems.filter((item) => resolveStockItemStatus(item) === 'out').length
   const totalValue = activeItems.reduce((sum, item) => {
-    const quantity = Number(item.currentQuantity) || 0
+    // Minus stock is worth 0, it never lowers the inventory value.
+    const quantity = Math.max(0, Number(item.currentQuantity) || 0)
     const cost = Number(item.costPrice) || 0
     return sum + (quantity * cost)
   }, 0)
@@ -322,20 +323,23 @@ export function formatStockQuantity(value, unit = '') {
   return formatInventoryUnit(value, unit)
 }
 
-export function applyStockMovementQuantity(currentQuantity, type, quantity) {
+export function applyStockMovementQuantity(currentQuantity, type, quantity, { allowNegative = false } = {}) {
   const current = Number(currentQuantity) || 0
   const delta = Number(quantity) || 0
+  // Legacy writes keep the 0 floor. History replay passes allowNegative so a
+  // quick take beyond stock shows its real minus.
+  const floor = (value) => (allowNegative ? value : Math.max(0, value))
 
   if (type === 'receive') {
-    return Math.max(0, current + Math.abs(delta))
+    return floor(current + Math.abs(delta))
   }
 
   if (type === 'usage') {
-    return Math.max(0, current - Math.abs(delta))
+    return floor(current - Math.abs(delta))
   }
 
   if (type === 'adjustment') {
-    return Math.max(0, current + delta)
+    return floor(current + delta)
   }
 
   if (type === 'stock_count') {
