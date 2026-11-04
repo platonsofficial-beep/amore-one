@@ -11,6 +11,7 @@ import { getWorkspaceStorageProducts, getWorkspaceStorageSummaries } from '../..
 import {
   QuickTakeUnavailableError,
   newQuickTakeKey,
+  quickTakeErrorText,
   quickTakeAvailable,
   takeStockFromStorage,
   undoQuickTake,
@@ -39,7 +40,7 @@ function productName(row) {
  * Stock → Take. Storage → Category → Product → quantity → Done.
  * No prices, costs or supplier contacts are shown here (staff safe).
  */
-export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTerm = '', onStockItemsChanged }) {
+export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTerm = '', onStockItemsChanged, canManage = false }) {
   const [available, setAvailable] = useState(null)
   const [storageState, setStorageState] = useState({ status: 'loading', storages: [], error: '' })
   const [storageId, setStorageId] = useState('')
@@ -144,7 +145,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
       onStockItemsChanged?.()
     } catch (error) {
       if (error instanceof QuickTakeUnavailableError) setAvailable(false)
-      setSheet((s) => (s ? { ...s, saving: false, error: error?.message || 'Could not save.' } : s))
+      setSheet((s) => (s ? { ...s, saving: false, error: quickTakeErrorText(error, { canManage }) } : s))
     }
   }
 
@@ -158,7 +159,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
       showToast({ undone: true, name: toast.name, label: toast.label })
       onStockItemsChanged?.()
     } catch (error) {
-      setToast((t) => ({ ...t, undoing: false, error: error?.message || 'Could not undo.' }))
+      setToast((t) => ({ ...t, undoing: false, error: quickTakeErrorText(error, { canManage }) }))
     }
   }
 

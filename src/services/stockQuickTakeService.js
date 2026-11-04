@@ -35,7 +35,26 @@ export function mapQuickTakeError(error) {
   for (const [code, message] of Object.entries(ERROR_MESSAGES)) {
     if (raw.includes(code)) return new Error(message)
   }
-  return new Error('Could not save right now. Check your connection and try again.')
+  const err = new Error(GENERIC_SAVE_ERROR)
+  err.reason = shortQuickTakeReason(error)
+  return err
+}
+
+export const GENERIC_SAVE_ERROR = 'Could not save. Try again or tell a manager.'
+
+/** Short technical reason (code + first line) for managers. Never shown to staff. */
+export function shortQuickTakeReason(error) {
+  if (!error) return ''
+  const code = `${error.code ?? ''}`.trim()
+  const msg = `${error.message ?? ''}`.split('\n')[0].trim().slice(0, 120)
+  return [code, msg].filter(Boolean).join(' · ')
+}
+
+/** Message to show: managers also see the short real reason. */
+export function quickTakeErrorText(error, { canManage = false } = {}) {
+  const base = error?.message || GENERIC_SAVE_ERROR
+  if (canManage && error?.reason) return `${base} (${error.reason})`
+  return base
 }
 
 function withTimeout(promise) {

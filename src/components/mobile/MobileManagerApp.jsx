@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { StockQuickTakeView } from '../stock/StockQuickTakeView'
 import { ManagerMoreSheet } from './ManagerMoreSheet'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -49,7 +51,9 @@ export function MobileManagerApp({
   reservationsProps = null,
   scheduleProps = null,
   portraitModule = null,
+  takeProps = null,
 }) {
+  const [isTakeOpen, setIsTakeOpen] = useState(false)
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
       <p>{noticeMessage}</p>
@@ -150,8 +154,36 @@ export function MobileManagerApp({
         ) : null}
         {screen === 'stock' ? (
           <div className="manager-portrait-stock">
-            <ManagerPortraitBanner area="stock" />
-            <MobileManagerStockView {...stockProps} />
+            {takeProps && isTakeOpen ? (
+              <div className="manager-portrait-take">
+                <header className="manager-portrait-take-header">
+                  <button type="button" className="mobile-back-btn" onClick={() => setIsTakeOpen(false)}>
+                    ‹ Stock
+                  </button>
+                  <h1>Take from storage</h1>
+                </header>
+                <StockQuickTakeView {...takeProps} />
+              </div>
+            ) : (
+              <>
+                {takeProps ? (
+                  <button
+                    type="button"
+                    className="manager-portrait-take-entry"
+                    onClick={() => setIsTakeOpen(true)}
+                  >
+                    <span className="manager-portrait-take-entry-icon" aria-hidden="true">📦</span>
+                    <span className="manager-portrait-take-entry-text">
+                      <strong>Take from storage</strong>
+                      <small>Record what you took. Stock updates now.</small>
+                    </span>
+                    <span aria-hidden="true">›</span>
+                  </button>
+                ) : null}
+                <ManagerPortraitBanner area="stock" />
+                <MobileManagerStockView {...stockProps} />
+              </>
+            )}
           </div>
         ) : null}
         {screen === 'schedule' && scheduleProps ? (

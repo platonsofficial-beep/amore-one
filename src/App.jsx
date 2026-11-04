@@ -25297,6 +25297,7 @@ function App() {
             stockItems={stockItems}
             searchTerm={searchTerm}
             onStockItemsChanged={refreshStockItems}
+            canManage={canManageStockRole}
           />
         ) : null}
 
@@ -25847,6 +25848,12 @@ function App() {
                         noticeMessage={mobileNotice}
                         onDismissNotice={() => setMobileNotice('')}
                         homeProps={mobileHomeProps}
+                        takeProps={isStockWorkspaceReady && activeWorkspaceId ? {
+                          workspaceId: activeWorkspaceId,
+                          stockItems,
+                          onStockItemsChanged: refreshStockItems,
+                          canManage: canManageStockRole,
+                        } : null}
                         stockProps={{
                           stockItems,
                           stockSummary: managerMobileStockSummary,
