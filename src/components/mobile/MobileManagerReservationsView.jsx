@@ -3,7 +3,7 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
-import { getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
+import { formatPartialSeatLabel, getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
 import { getHostQueueNameIndicators } from '../../lib/hostQueuePipeline'
 import {
   HostQueueNameIndicators,
@@ -89,9 +89,9 @@ export function MobileManagerReservationsView({
   const [statusPicker, setStatusPicker] = useState(null)
   const canChangeStatus = canManage && typeof onQuickStatusUpdate === 'function'
   // Same flow as the landscape card (MobileReservationsHostView handleStatusSelect).
-  const handleStatusSelect = async (reservation, status) => {
+  const handleStatusSelect = async (reservation, status, options) => {
     if (isSaving) return
-    await onQuickStatusUpdate?.(reservation, status)
+    await onQuickStatusUpdate?.(reservation, status, options)
     setStatusPicker(null)
   }
   const dayLabel = formatScheduleDayHeader(selectedDate)
@@ -247,7 +247,9 @@ export function MobileManagerReservationsView({
               </button>
               {reservation.status ? (() => {
                 const statusClassName = `manager-portrait-reservation-status host-reservation-card-status-pill is-compact tone-${getHostStatusMeta(normalizeReservationStatus(reservation.status)).tone}`
-                const statusLabel = getHostListCompactStatusLabel(reservation.status)
+                const statusLabel = normalizeReservationStatus(reservation.status) === 'Checked In (Partial)'
+                  ? formatPartialSeatLabel(reservation)
+                  : getHostListCompactStatusLabel(reservation.status)
                 if (!canChangeStatus) {
                   return <span className={statusClassName}>{statusLabel}</span>
                 }

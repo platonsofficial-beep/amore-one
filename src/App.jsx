@@ -14152,12 +14152,12 @@ function ReservationsUnifiedCanvas({
     })
   ), [floorPlanProps, hostProblemFilterOptions, layout, listReservations])
 
-  const handleStatusChange = async (reservation, status) => {
+  const handleStatusChange = async (reservation, status, options) => {
     if (!onQuickStatusUpdate) return
 
     setIsSavingListStatus(true)
     try {
-      await onQuickStatusUpdate(reservation, status)
+      await onQuickStatusUpdate(reservation, status, options)
     } finally {
       setIsSavingListStatus(false)
     }
@@ -22187,7 +22187,7 @@ function App() {
     }
   }
 
-  const handleQuickReservationStatus = async (reservation, status) => {
+  const handleQuickReservationStatus = async (reservation, status, options = {}) => {
     if (!canManageReservationsRole) return
 
     if (isSavingReservationRef.current) return
@@ -22195,14 +22195,18 @@ function App() {
     isSavingReservationRef.current = true
     setIsSavingReservation(true)
 
-    const optimisticReservation = mergeOptimisticReservationUpdate(reservation, { status })
+    // Partial seat count travels with the status in the same update (Platon t453u).
+    const statusPatch = options && Object.hasOwn(options, 'seatedGuests')
+      ? { status, seatedGuests: options.seatedGuests }
+      : { status }
+    const optimisticReservation = mergeOptimisticReservationUpdate(reservation, statusPatch)
     upsertReservationInState(optimisticReservation)
 
     try {
       const updated = await updateReservation(
         activeWorkspaceId,
         reservation.id,
-        buildReservationUpdatePayload(reservation, { status }),
+        buildReservationUpdatePayload(reservation, statusPatch),
       )
       upsertReservationInState(updated)
       await reloadTodayReservations()

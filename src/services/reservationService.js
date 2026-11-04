@@ -25,6 +25,24 @@ import {
 } from '../lib/reservationPurpose'
 import { getReservationEditableNotesText } from '../lib/hostQueueNoteBadges'
 
+function readSeatedGuests(record) {
+  if (record && Object.hasOwn(record, 'seated_guests')) return normalizeSeatedGuests(record.seated_guests)
+  if (record && Object.hasOwn(record, 'seatedGuests')) return record.seatedGuests === undefined ? undefined : normalizeSeatedGuests(record.seatedGuests)
+  return undefined
+}
+
+function normalizeSeatedGuests(value) {
+  if (value === null || value === undefined || value === '') return null
+  const count = Math.trunc(Number(value))
+  return Number.isFinite(count) && count >= 0 ? count : null
+}
+
+export function isMissingSeatedGuestsColumnError(error) {
+  const message = `${error?.message ?? error ?? ''}`.toLowerCase()
+  return message.includes('seated_guests')
+    && (message.includes('schema cache') || message.includes('column') || message.includes('does not exist'))
+}
+
 function mapReservation(record) {
   const rawNotes = record.notes ?? ''
   const mapped = {
@@ -45,6 +63,8 @@ function mapReservation(record) {
     autoClosedAt: record.auto_closed_at ?? record.autoClosedAt ?? null,
     autoClosedFromStatus: record.auto_closed_from_status ?? record.autoClosedFromStatus ?? null,
     seatedAt: record.seated_at ?? record.seatedAt ?? null,
+    // undefined = column not there yet (SQL not applied); null = no count.
+    seatedGuests: readSeatedGuests(record),
   }
 
   return enrichReservationWithSeatingAssignment({
@@ -128,6 +148,10 @@ function serializeReservation(reservation) {
     status: normalizeReservationStatus(reservation.status ?? 'Pending'),
     seating_id: reservation.seatingId ?? reservation.seating_id ?? null,
     notes,
+    // Only sent when known, so saves keep working before the column exists.
+    ...(reservation.seatedGuests !== undefined
+      ? { seated_guests: normalizeSeatedGuests(reservation.seatedGuests) }
+      : {}),
   }
 }
 
@@ -260,7 +284,22 @@ export function buildReservationUpdatePayload(reservation, patch) {
       seatingAssignment,
     }),
     seatingAssignment,
+    ...resolvePatchedSeatedGuests(reservation, patch, status),
   }
+}
+
+// Partial seat count (Platon t453u): kept while the status stays
+// "Checked In (Partial)", cleared when it moves to any other status.
+function resolvePatchedSeatedGuests(reservation, patch, status) {
+  if (Object.hasOwn(patch, 'seatedGuests')) {
+    return patch.seatedGuests === undefined ? {} : { seatedGuests: normalizeSeatedGuests(patch.seatedGuests) }
+  }
+  if (reservation.seatedGuests === undefined) return {}
+  if (status !== 'Checked In (Partial)') return { seatedGuests: null }
+  // Party made smaller than the seated count: drop the count (matches the SQL check).
+  const party = Number(patch.guests ?? reservation.guests) || 0
+  const seated = normalizeSeatedGuests(reservation.seatedGuests)
+  return { seatedGuests: seated !== null && seated > party ? null : seated }
 }
 
 function isTableUnavailableError(error) {
@@ -333,13 +372,23 @@ export async function updateReservation(workspaceId, id, reservation) {
     throw new Error('Reservation is required.')
   }
 
-  const { data, error } = await supabase
+  const payload = serializeReservation(reservation)
+  const runUpdate = (body) => supabase
     .from('reservations')
-    .update(serializeReservation(reservation))
+    .update(body)
     .eq('workspace_id', normalizedWorkspaceId)
     .eq('id', normalizedId)
     .select('*')
     .single()
+
+  let { data, error } = await runUpdate(payload)
+
+  // seated_guests SQL not applied yet: save the status without the count.
+  // The card then shows "Seated · partly" (Platon t453u).
+  if (error && Object.hasOwn(payload, 'seated_guests') && isMissingSeatedGuestsColumnError(error)) {
+    const { seated_guests: _skipped, ...withoutCount } = payload
+    ;({ data, error } = await runUpdate(withoutCount))
+  }
 
   if (error) {
     console.error('[reservationService] updateReservation error:', error)

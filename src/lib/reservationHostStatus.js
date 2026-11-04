@@ -292,6 +292,32 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   Rejected: 'Rejected',
 }
 
+/**
+ * Partial seat count (Platon t453u). Returns null unless the reservation is
+ * "Checked In (Partial)" with a valid count of 1..party-1.
+ */
+export function getPartialSeatCount(reservation) {
+  if (normalizeReservationStatus(reservation?.status) !== 'Checked In (Partial)') return null
+  const party = Number(reservation?.guests) || 0
+  const seated = reservation?.seatedGuests
+  if (seated === null || seated === undefined) return null
+  const count = Math.trunc(Number(seated))
+  if (!Number.isFinite(count) || count < 1 || count >= party) return null
+  return { seated: count, party, remaining: party - count }
+}
+
+/** "Seated 2/4" when the count is known, otherwise "Seated · partly". */
+export function formatPartialSeatLabel(reservation) {
+  const count = getPartialSeatCount(reservation)
+  return count ? `Seated ${count.seated}/${count.party}` : 'Seated · partly'
+}
+
+/** "2 to come" when the count is known, otherwise ''. */
+export function formatPartialSeatRemaining(reservation) {
+  const count = getPartialSeatCount(reservation)
+  return count ? `${count.remaining} to come` : ''
+}
+
 export function getHostListCompactStatusLabel(status) {
   const normalized = normalizeReservationStatus(status)
   return HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label
@@ -315,7 +341,9 @@ export function getHostListCompactStatusPresentation(
   todayKey,
 ) {
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-  const label = getHostListCompactStatusLabel(displayStatus)
+  const label = displayStatus === 'Checked In (Partial)'
+    ? formatPartialSeatLabel(reservation)
+    : getHostListCompactStatusLabel(displayStatus)
 
   if (displayStatus === 'Late Booking') {
     const delayMinutes = getReservationLateDelayMinutes(reservation, nowMinutes, todayKey)
@@ -373,6 +401,9 @@ export function getHostFloorSelectionStatusPresentation(
 
   if (displayStatus === 'Late Booking') {
     label = compact.label
+  }
+  if (displayStatus === 'Checked In (Partial)') {
+    label = formatPartialSeatLabel(reservation)
   }
 
   return {
