@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { isPhoneLandscape } from '../../lib/phoneLandscapeClass'
+import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { formatInventoryCountItemLabel } from '../../lib/inventoryCountItemName'
 import {
   completeInventoryCountLocation,
@@ -316,6 +318,7 @@ export function getCompleteLocationDisabledReason({
   sessionStatus,
   selectedLocation,
   currentLocationName = '',
+  phoneLandscapeCopy = false,
   isCompletingLocation = false,
 } = {}) {
   if (isCompletingLocation) return 'Completing location…'
@@ -339,8 +342,10 @@ export function getCompleteLocationDisabledReason({
     return 'This location is already complete.'
   }
   if (locationStatus !== 'current') {
-    const name = `${currentLocationName || 'the current location'}`.trim() || 'the current location'
-    return `Complete “${name}” first.`
+    const name = `${currentLocationName ?? ''}`.trim()
+    // S-19 (phone landscape only): no literal placeholder when no location is current.
+    if (!name && phoneLandscapeCopy) return 'Finish the location you’re on first.'
+    return `Complete “${name || 'the current location'}” first.`
   }
 
   const remaining = Math.max(
@@ -631,6 +636,11 @@ export function InventoryCountSessionWorkspace({
   const [finishPreviewLoadFailed, setFinishPreviewLoadFailed] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
   const [isKeyboardCompact, setIsKeyboardCompact] = useState(false)
+  // S-05 (phone landscape only): show storage names ("Main Storage") instead of raw keys ("main").
+  const [isPhoneLandscapeView, setIsPhoneLandscapeView] = useState(() => (
+    typeof window !== 'undefined' && isPhoneLandscape(window)
+  ))
+  const [storageNameByKey, setStorageNameByKey] = useState(null)
   const loadRequestIdRef = useRef(0)
   const locationsRef = useRef(locations)
   const sessionStatusRef = useRef(sessionStatus)
@@ -653,6 +663,45 @@ export function InventoryCountSessionWorkspace({
   useEffect(() => {
     locationsRef.current = locations
   }, [locations])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+    const update = () => setIsPhoneLandscapeView(isPhoneLandscape(window))
+    window.addEventListener('resize', update)
+    window.addEventListener('orientationchange', update)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('orientationchange', update)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isPhoneLandscapeView || storageNameByKey) return undefined
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    if (!workspaceId) return undefined
+    let cancelled = false
+    listWorkspaceStorages(workspaceId)
+      .then((storages) => {
+        if (cancelled) return
+        const map = {}
+        ;(storages ?? []).forEach((storage) => {
+          const name = `${storage?.name ?? ''}`.trim()
+          const key = `${storage?.locationKey ?? ''}`.trim().toLowerCase()
+          if (name && key) map[key] = name
+        })
+        setStorageNameByKey(map)
+      })
+      .catch(() => {
+        if (!cancelled) setStorageNameByKey({})
+      })
+    return () => { cancelled = true }
+  }, [isPhoneLandscapeView, storageNameByKey, workspaceIdProp, workspace?.id])
+
+  const getLocationLabel = (location) => {
+    const raw = `${location?.name ?? ''}`
+    if (!isPhoneLandscapeView || !storageNameByKey || !location) return raw
+    return storageNameByKey[`${location.locationKey ?? raw}`.trim().toLowerCase()] || raw
+  }
 
   useEffect(() => {
     sessionStatusRef.current = sessionStatus
@@ -1105,7 +1154,8 @@ export function InventoryCountSessionWorkspace({
   const completeLocationEligibilityArgs = {
     sessionStatus,
     selectedLocation,
-    currentLocationName: currentLocation?.name || '',
+    currentLocationName: currentLocation ? getLocationLabel(currentLocation) : '',
+    phoneLandscapeCopy: isPhoneLandscapeView,
     isCompletingLocation,
   }
   const completeLocationDisabledReason = getCompleteLocationDisabledReason(
@@ -1428,7 +1478,7 @@ export function InventoryCountSessionWorkspace({
     }
   }
 
-  const selectedLocationName = selectedLocation?.name ?? 'Location'
+  const selectedLocationName = selectedLocation ? getLocationLabel(selectedLocation) : 'Location'
   const displayedLocationItems = getDisplayedLocationItems(selectedLocation?.items ?? [], itemSearch)
   const canConfirmFinish = Boolean(
     finishPreview?.canPost
@@ -1564,7 +1614,7 @@ export function InventoryCountSessionWorkspace({
                     </span>
                     <span className="inventory-count-session-rail-copy">
                       <span className="inventory-count-session-rail-title-row">
-                        <span className="inventory-count-session-rail-title">{location.name}</span>
+                        <span className="inventory-count-session-rail-title">{getLocationLabel(location)}</span>
                         {location.status === 'current' ? (
                           <span className="inventory-count-session-rail-current-badge">Current</span>
                         ) : null}
@@ -1644,7 +1694,7 @@ export function InventoryCountSessionWorkspace({
                     <p>
                       <span className="inventory-count-inactive-location-guidance-label">Current location:</span>
                       {' '}
-                      {currentLocation?.name || '—'}
+                      {(currentLocation && getLocationLabel(currentLocation)) || '—'}
                     </p>
                   </div>
                   <button
