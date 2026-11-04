@@ -73,7 +73,7 @@ describe('portrait polish layout', () => {
     expect(mobileShellCss).toMatch(/\.manager-portrait-module-header\s*\{[^}]*background:\s*transparent/)
     expect(mobileShellCss).toContain('.mobile-manager-app .manager-portrait-module .module-section-tabs ~ .module-section-tabs')
     expect(mobileShellCss).toContain('-webkit-line-clamp: 2')
-    expect(mobileShellCss).toContain('background: #12141c')
+    expect(mobileShellCss).toMatch(/\.mobile-stock-detail-card \{[^}]*background: var\(--one-form-surface\);/)
     expect(mobileShellCss).toContain('border-top: 1px solid rgba(255, 255, 255, 0.18)')
     expect(mobileShellCss).toContain('.mobile-manager-app .manager-portrait-screen-header')
     expect(mobileShellCss).toContain('padding-right: 56px')

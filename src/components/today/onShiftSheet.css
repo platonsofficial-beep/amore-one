@@ -25,9 +25,7 @@
   border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
   border-bottom: 0;
   border-radius: 22px 22px 0 0;
-  background:
-    radial-gradient(120% 60% at 50% 0%, rgba(212, 175, 55, 0.10), transparent 60%),
-    #111013;
+  background: radial-gradient(120% 60% at 50% 0%, rgba(212, 175, 55, 0.10), transparent 60%), var(--one-form-surface);
   color: #f4ede0;
   box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.5);
   overflow: hidden;
