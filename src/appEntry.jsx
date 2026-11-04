@@ -11,12 +11,9 @@ import { PwaShell } from './components/pwa/PwaShell.jsx'
 import { registerPwaServiceWorker } from './pwaRegister.js'
 import { WorkspaceKeyedApp } from './components/workspace/WorkspaceKeyedApp.jsx'
 import './safeOverlay.css'
-import './mobileFullHeight.css'
-import { installStandaloneViewport } from './lib/standaloneViewport.js'
 import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 
 registerPwaServiceWorker()
-installStandaloneViewport()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
