@@ -101,6 +101,9 @@ function normalizeMembershipForContext(membership) {
 
 const AuthContext = createContext(null)
 
+export const BOOTSTRAP_TIMEOUT_MS = 15000
+export const BOOTSTRAP_TIMEOUT_MESSAGE = 'The server is taking too long to respond. Please try again.'
+
 export function AuthProvider({ children }) {
   const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
   const [session, setSession] = useState(isAuthDisabled ? DEV_MOCK_SESSION : null)
@@ -362,6 +365,15 @@ export function AuthProvider({ children }) {
       }
     }
 
+    // Never spin forever on "Loading session…": if getSession or the
+    // workspace load hangs (slow/unreachable API), release the gate.
+    const bootstrapTimeoutId = setTimeout(() => {
+      if (!isMounted || hasBootstrappedRef.current) return
+      console.error('[AuthContext] bootstrap timed out')
+      setMembershipLoadError((current) => current || BOOTSTRAP_TIMEOUT_MESSAGE)
+      finishBootstrapping()
+    }, BOOTSTRAP_TIMEOUT_MS)
+
     bootstrapAuth()
 
     const unsubscribe = onAuthStateChange((event, nextSession) => {
@@ -411,6 +423,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       isMounted = false
+      clearTimeout(bootstrapTimeoutId)
       unsubscribe()
     }
   }, [isAuthDisabled, clearAuthenticatedState, finishBootstrapping, loadWorkspaceContext, syncSessionOnly])

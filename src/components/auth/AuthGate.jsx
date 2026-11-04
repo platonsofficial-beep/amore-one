@@ -1,5 +1,5 @@
 import { OneFullLogo } from '../brand/OneFullLogo'
-import { useAuth } from '../../context/AuthContext'
+import { BOOTSTRAP_TIMEOUT_MESSAGE, useAuth } from '../../context/AuthContext'
 import { formatInviteErrorMessage, shouldShowJoiningWorkspaceMessage } from '../../lib/inviteFlowUtils'
 import { readPendingInviteToken } from '../../lib/inviteTokenStorage'
 import { LoginView } from './LoginView'
@@ -65,12 +65,17 @@ export function AuthGate({ children }) {
         <div className="auth-card panel staff-panel">
           <header className="auth-header">
             <OneFullLogo compact />
-            <h1 className="auth-title">Unable to join workspace</h1>
+            <h1 className="auth-title">
+              {membershipLoadError === BOOTSTRAP_TIMEOUT_MESSAGE ? 'Πρόβλημα σύνδεσης' : 'Unable to join workspace'}
+            </h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
             {inviteErrorMessage}
           </div>
-          <button type="button" className="primary-btn auth-submit-btn" onClick={() => signOut()}>
+          <button type="button" className="primary-btn auth-submit-btn" onClick={() => window.location.reload()}>
+            Try again
+          </button>
+          <button type="button" className="secondary-btn auth-submit-btn" onClick={() => signOut()}>
             Sign out
           </button>
         </div>
