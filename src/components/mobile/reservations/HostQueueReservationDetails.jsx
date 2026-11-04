@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { formatPartialSeatRemaining } from '../../../lib/reservationHostStatus'
 import { reservationHasAssignedTables } from '../../../lib/floorAssignmentMapping'
 import { getReservationSeatingAssignment } from '../../../lib/seatingAssignment'
 import {
@@ -156,6 +157,9 @@ export function HostQueueReservationDetails({
         groups={metaGroups}
         ariaLabel={presentation.metaAriaLabel}
       />
+      {formatPartialSeatRemaining(reservation) ? (
+        <span className="host-queue-row-remaining">{formatPartialSeatRemaining(reservation)}</span>
+      ) : null}
       {presentation.chips.length > 0 || presentation.overflowCount > 0 ? (
         <div className="host-queue-row-chips" aria-label="Operational requirements">
           {presentation.chips.map((chip) => (

@@ -382,8 +382,8 @@ export function HostReservationList({
     setStatusPicker(null)
   }
 
-  const handleStatusChange = async (reservation, status) => {
-    await onStatusChange(reservation, status)
+  const handleStatusChange = async (reservation, status, options) => {
+    await onStatusChange(reservation, status, options)
     setStatusPicker(null)
   }
 

@@ -53853,3 +53853,70 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
 .host-status-picker-icon.tone-walk-in { background: var(--one-bronze-light); border-color: var(--one-bronze-line); }
 .host-status-picker-icon.tone-checked-out { background: var(--one-steel); border-color: var(--one-steel-line); }
 .host-status-picker-icon.tone-not-shown { background: var(--one-danger-bg); border-color: var(--one-danger); }
+
+/* Partial seat count step (Platon t453u): "How many have sat down?" */
+.host-status-count-step {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+.host-status-count-title {
+  margin: 0;
+  color: var(--one-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+.host-status-count-copy {
+  margin: 0;
+  color: var(--one-text-muted);
+  font-size: 0.74rem;
+}
+.host-status-count-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 6px;
+}
+.host-status-count-option {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--one-bronze-line);
+  background: var(--one-bronze-soft);
+  color: var(--one-text);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.host-status-count-option.is-active {
+  border-color: var(--one-gold);
+  box-shadow: 0 0 0 1px var(--one-gold-a55);
+}
+.host-status-count-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.host-status-count-back,
+.host-status-count-all {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-04);
+  color: var(--one-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.host-status-count-all {
+  border-color: var(--one-bronze-line);
+  color: var(--one-bronze-light);
+}
+.host-queue-row-remaining {
+  color: var(--one-bronze-light);
+  font-size: 0.72rem;
+  font-weight: 650;
+  white-space: nowrap;
+}

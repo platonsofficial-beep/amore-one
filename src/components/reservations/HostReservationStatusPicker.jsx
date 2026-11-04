@@ -2,10 +2,55 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   getHostStatusMeta,
+  getPartialSeatCount,
   getHostStatusPickerGroups,
 } from '../../lib/reservationHostStatus'
 
 const PICKER_MARGIN = 10
+const PARTIAL_STATUS_ID = 'Checked In (Partial)'
+
+/** Buttons 1..party-1; the whole party means plain Seated. */
+export function getPartialSeatCountOptions(partySize) {
+  const party = Math.max(0, Math.trunc(Number(partySize) || 0))
+  return Array.from({ length: Math.max(0, party - 1) }, (_, index) => index + 1)
+}
+
+function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPickCount, onPickAll }) {
+  const options = getPartialSeatCountOptions(partySize)
+  return (
+    <div className="host-status-count-step" role="group" aria-label="How many guests have sat down">
+      <p className="host-status-count-title">How many have sat down?</p>
+      <p className="host-status-count-copy">
+        {partySize > 0 ? `Party of ${partySize}. We'll show how many are still to come.` : 'Party size is not set.'}
+      </p>
+      {options.length > 0 ? (
+        <div className="host-status-count-options">
+          {options.map((count) => (
+            <button
+              key={count}
+              type="button"
+              className={`host-status-count-option${count === currentCount ? ' is-active' : ''}`}
+              aria-pressed={count === currentCount}
+              aria-label={`${count} of ${partySize} seated, ${partySize - count} to come`}
+              disabled={isSaving}
+              onClick={() => onPickCount(count)}
+            >
+              {count}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div className="host-status-count-actions">
+        <button type="button" className="host-status-count-back" disabled={isSaving} onClick={onBack}>
+          ‹ Back
+        </button>
+        <button type="button" className="host-status-count-all" disabled={isSaving} onClick={onPickAll}>
+          {partySize > 0 ? `All ${partySize} seated → Seated` : 'Everyone seated → Seated'}
+        </button>
+      </div>
+    </div>
+  )
+}
 const PICKER_Z_INDEX = 12000
 
 export function computePickerPosition(anchorRect, pickerWidth, pickerHeight) {
@@ -69,6 +114,14 @@ export function HostReservationStatusPicker({
   const [isPositioned, setIsPositioned] = useState(false)
   const statusGroups = useMemo(() => buildStatusGroups(), [])
   const currentStatus = getHostStatusMeta(currentStatusId ?? reservation?.status)
+  // Second step for "Seated · partly": how many of the party sat down (Platon t453u).
+  const [isCountStep, setIsCountStep] = useState(false)
+  const partySize = Math.max(0, Number(reservation?.guests) || 0)
+  const currentPartial = getPartialSeatCount({ ...reservation, status: currentStatus.id })
+
+  useEffect(() => {
+    if (!isOpen) setIsCountStep(false)
+  }, [isOpen, reservation?.id])
 
   useLayoutEffect(() => {
     if (!isOpen || !anchorRect || !panelRef.current) {
@@ -207,6 +260,16 @@ export function HostReservationStatusPicker({
           </button>
         </header>
 
+        {isCountStep ? (
+          <PartialSeatCountStep
+            partySize={partySize}
+            currentCount={currentPartial?.seated ?? null}
+            isSaving={isSaving}
+            onBack={() => setIsCountStep(false)}
+            onPickCount={(count) => onSelectStatus(reservation, PARTIAL_STATUS_ID, { seatedGuests: count })}
+            onPickAll={() => onSelectStatus(reservation, 'Checked In', { seatedGuests: null })}
+          />
+        ) : (
         <div
           className="host-status-picker-list"
           role="listbox"
@@ -231,6 +294,10 @@ export function HostReservationStatusPicker({
                       className={`host-status-picker-option host-reservation-card-status-pill tone-${status.tone}${isActive ? ' is-active' : ''}`}
                       disabled={isSaving}
                       onClick={() => {
+                        if (status.id === PARTIAL_STATUS_ID) {
+                          setIsCountStep(true)
+                          return
+                        }
                         if (isActive) {
                           onClose()
                           return
@@ -252,6 +319,7 @@ export function HostReservationStatusPicker({
             </section>
           ))}
         </div>
+        )}
       </div>
     </>,
     document.body,

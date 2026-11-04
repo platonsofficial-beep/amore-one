@@ -409,9 +409,9 @@ export function MobileReservationsHostView({
     })
   }
 
-  const handleStatusSelect = async (reservation, status) => {
+  const handleStatusSelect = async (reservation, status, options) => {
     if (isSaving) return
-    await onQuickStatusUpdate?.(reservation, status)
+    await onQuickStatusUpdate?.(reservation, status, options)
     setStatusMenu(null)
   }
 

@@ -36,7 +36,7 @@ describe('portrait status pill (Platon t447u)', () => {
     expect(document.querySelector('.manager-portrait-reservation-sheet, .mobile-sheet-backdrop')).toBeNull()
     const cancelled = [...sheet.querySelectorAll('.host-status-picker-option')].find((b) => b.textContent.includes('Cancelled'))
     await act(async () => { cancelled.click() })
-    expect(onQuickStatusUpdate).toHaveBeenCalledWith(reservation, 'Cancelled')
+    expect(onQuickStatusUpdate.mock.calls[0].slice(0, 2)).toEqual([reservation, 'Cancelled'])
     expect(document.querySelector('.host-status-picker')).toBeNull()
     act(() => root.unmount())
   })
