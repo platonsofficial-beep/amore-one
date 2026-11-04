@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { inboxUnreadTotal } from '../../lib/chat'
 import { fetchChatInbox, subscribeToChatInbox } from '../../services/chatService'
+import { createCoalescedRefresh } from '../../lib/coalescedRefresh'
+
+export const INBOX_REFRESH_WAIT_MS = 3000
 
 export function useChatInbox({ workspaceId = '', memberId = '', enabled = false } = {}) {
   const [rows, setRows] = useState([])
@@ -33,15 +36,11 @@ export function useChatInbox({ workspaceId = '', memberId = '', enabled = false 
 
   useEffect(() => {
     if (!enabled || !memberId || !workspaceId) return undefined
-    let timer = 0
-    const unsubscribe = subscribeToChatInbox(memberId, workspaceId, () => {
-      window.clearTimeout(timer)
-      timer = window.setTimeout(() => {
-        refresh()
-      }, 500)
-    })
+    // One inbox reload per burst of messages (max every 3s), none while hidden.
+    const coalesced = createCoalescedRefresh(() => { refresh() }, { waitMs: INBOX_REFRESH_WAIT_MS })
+    const unsubscribe = subscribeToChatInbox(memberId, workspaceId, () => coalesced.trigger())
     return () => {
-      window.clearTimeout(timer)
+      coalesced.cancel()
       unsubscribe()
     }
   }, [enabled, memberId, refresh, workspaceId])

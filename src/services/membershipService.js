@@ -178,9 +178,10 @@ async function countWorkspaceMembers(workspaceId) {
 }
 
 async function fetchMembershipContext(authUserId) {
-  const session = await getSession()
-  const sessionUserId = `${session?.user?.id ?? ''}`.trim()
-  const normalizedUserId = `${authUserId ?? sessionUserId ?? ''}`.trim()
+  const givenUserId = `${authUserId ?? ''}`.trim()
+  // Only ask the auth client when the caller did not pass a user id.
+  const session = givenUserId ? null : await getSession()
+  const normalizedUserId = givenUserId || `${session?.user?.id ?? ''}`.trim()
 
   if (!normalizedUserId) {
     return { membership: null, workspace: null, joinedWorkspaceRecord: null }

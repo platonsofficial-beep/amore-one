@@ -10,7 +10,6 @@ import {
 import { resolveWorkspaceInviteOnBootstrap } from '../services/inviteBootstrapService'
 import {
   createOwnerMembershipIfMissing,
-  getCurrentMembership,
   getCurrentMembershipContext,
   getCurrentMembershipContextWithRetry,
   setStoredActiveWorkspaceId,
@@ -20,6 +19,7 @@ import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../l
 import { fetchMemberPermissionRows } from '../services/memberPermissionService'
 import { markSessionEnded } from '../lib/authMessageUtils'
 import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
+import { shouldSkipSameUserReload } from '../lib/authReloadPolicy'
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
@@ -121,6 +121,7 @@ export function AuthProvider({ children }) {
   const authLoadSeqRef = useRef(0)
   const hasBootstrappedRef = useRef(isAuthDisabled)
   const activeUserIdRef = useRef(isAuthDisabled ? DEV_MOCK_USER.id : '')
+  const loadedContextUserIdRef = useRef('')
 
   const syncDevMembershipProfile = useCallback(({ displayName = '' } = {}) => {
     setDevProfileDisplayName(`${displayName ?? ''}`.trim())
@@ -141,6 +142,7 @@ export function AuthProvider({ children }) {
 
   const clearAuthenticatedState = useCallback(() => {
     activeUserIdRef.current = ''
+    loadedContextUserIdRef.current = ''
     setSession(null)
     setUser(null)
     setWorkspace(null)
@@ -176,11 +178,17 @@ export function AuthProvider({ children }) {
     let joinedWorkspaceRecord = null
 
     let inviteSucceeded = false
+    // Reuse the invite check's membership read when it already found one.
+    let prefetchedContext = null
 
     try {
       const inviteResult = await resolveWorkspaceInviteOnBootstrap({
         user: activeSession?.user ?? nextUser,
-        fetchMembership: () => getCurrentMembership(membershipUserId),
+        fetchMembership: async () => {
+          const context = await getCurrentMembershipContext(membershipUserId)
+          prefetchedContext = context?.membership ? context : null
+          return context?.membership ?? null
+        },
       })
       if (loadSeq !== authLoadSeqRef.current) return
 
@@ -194,7 +202,7 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const membershipContext = await getCurrentMembershipContextWithRetry(membershipUserId, {
+      const membershipContext = prefetchedContext ?? await getCurrentMembershipContextWithRetry(membershipUserId, {
         attempts: inviteSucceeded ? 4 : 1,
       })
       if (loadSeq !== authLoadSeqRef.current) return
@@ -274,6 +282,7 @@ export function AuthProvider({ children }) {
 
     setWorkspaceLoadError(nextWorkspaceLoadError)
     setWorkspace(hydratedWorkspace)
+    loadedContextUserIdRef.current = resolvedMembership && hydratedWorkspace ? userId : ''
     } finally {
       if (loadSeq === authLoadSeqRef.current) {
         setIsJoiningWorkspace(false)
@@ -407,6 +416,7 @@ export function AuthProvider({ children }) {
 
       if (hasBootstrappedRef.current && isSameUser) {
         syncSessionOnly(nextSession)
+        if (shouldSkipSameUserReload({ isSameUser, hasLoadedContext: loadedContextUserIdRef.current === nextUserId })) return
         loadWorkspaceContext(nextSession.user).catch((error) => {
           console.error('[AuthContext] background workspace refresh error:', error)
         })

@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { startVisibleInterval } from './lib/visibleInterval'
 import { dismissEmployeeFormOverlayPickers, useEmployeeFormPickerDismiss } from './lib/employeeFormPickerDismiss'
 import { FloorEdgeScrollbars } from './components/floor/FloorEdgeScrollbars.jsx'
 import { anchorScrollDelta, pinchZoom, touchDistance, touchMidpoint } from './lib/floorPinch.js'
@@ -17168,9 +17169,7 @@ function App() {
     if (activeView !== 'today') return undefined
 
     refreshDashboardModuleData()
-    const intervalId = window.setInterval(refreshDashboardModuleData, 60_000)
-
-    return () => window.clearInterval(intervalId)
+    return startVisibleInterval(refreshDashboardModuleData, 60_000)
   }, [activeView, refreshDashboardModuleData])
 
   useEffect(() => {
@@ -17206,7 +17205,7 @@ function App() {
 
     loadManagerMobileData()
 
-    const intervalId = window.setInterval(() => {
+    const stopInterval = startVisibleInterval(() => {
       refreshDashboardModuleData()
       refreshOperationsAnnouncements()
       refreshMobileOperationsTasks().catch((error) => {
@@ -17222,7 +17221,7 @@ function App() {
 
     return () => {
       isMounted = false
-      window.clearInterval(intervalId)
+      stopInterval()
     }
   }, [
     isMobileViewport,

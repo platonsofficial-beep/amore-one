@@ -1,3 +1,4 @@
+import { startVisibleInterval } from '../lib/visibleInterval'
 import { useEffect, useState } from 'react'
 import { countClockedInNow } from '../lib/attendance'
 import { attendanceRange, loadAttendanceEntries } from '../services/attendanceService'
@@ -26,10 +27,10 @@ export function useClockedInNow(workspaceId = '', timeZone = '', enabled = true)
         .catch(() => { if (!cancelled) setCount(null) })
     }
     load()
-    const timer = window.setInterval(load, REFRESH_MS)
+    const stopInterval = startVisibleInterval(load, REFRESH_MS)
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      stopInterval()
     }
   }, [enabled, timeZone, workspaceId])
 
