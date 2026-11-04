@@ -25924,6 +25924,7 @@ function App() {
                           onDateChange: setPortraitReservationDate,
                           onCreateReservation: handleMobileHostReservationCreate,
                           onEditReservation: handleHostEditSave,
+                          onQuickStatusUpdate: handleQuickReservationStatus,
                         }}
                         scheduleProps={{
                           shifts,

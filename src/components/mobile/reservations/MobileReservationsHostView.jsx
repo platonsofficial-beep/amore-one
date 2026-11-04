@@ -667,6 +667,7 @@ export function MobileReservationsHostView({
         onDateChange={onSelectDate}
         onCreateReservation={onCreateReservation}
         onEditReservation={onHostEditSave}
+        onQuickStatusUpdate={onQuickStatusUpdate}
       />
     )
   }
