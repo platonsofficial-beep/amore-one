@@ -19,7 +19,7 @@ html.one-phone-landscape body .inventory-count-session.is-high-density .inventor
   gap: 10px;
   align-items: center;
 }
-html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-meta-label {
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-header .inventory-count-session-meta-label {
   display: none;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-meta-value {
@@ -150,4 +150,73 @@ html.one-phone-landscape body .inventory-count-complete-disabled-reason {
 html.one-phone-landscape body .inventory-count-complete-disabled-reason strong {
   color: var(--one-gold-light);
   font-weight: 600;
+}
+
+/* Complete Location helper note: kept in the DOM (role=status, still read by
+   VoiceOver) but visually hidden in phone landscape so it doesn't eat a row
+   under the footer. The disabled Complete Location button still shows state. */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-complete-disabled-reason,
+html.one-phone-landscape body .inventory-count-complete-disabled-reason {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Help "?" overlaps STATUS while typing in phone landscape: hide it only
+   while a counted input has focus (it returns on blur). */
+html.one-phone-landscape body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .help-mode-toggle {
+  visibility: hidden;
+}
+
+/* Finish Count Preview: fit inside the viewport between the side safe
+   areas, compact 4-column summary with visible labels. */
+html.one-phone-landscape body .inventory-count-finish-preview-overlay {
+  box-sizing: border-box;
+  padding: 6px max(8px, var(--one-safe-area-right)) max(6px, var(--one-safe-area-bottom)) max(8px, var(--one-safe-area-left));
+}
+html.one-phone-landscape body .inventory-count-finish-preview {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-header {
+  min-width: 0;
+  gap: 8px;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-header .inventory-count-wizard-header-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-header .inventory-count-wizard-header-actions {
+  flex: 0 0 auto;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-summary-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+html.one-phone-landscape body .inventory-count-finish-preview-summary-card .inventory-count-session-meta-label {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

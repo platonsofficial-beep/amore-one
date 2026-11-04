@@ -30,3 +30,27 @@ describe('phone-landscape Active Count compaction (authorised t462u)', () => {
     expect(css).not.toMatch(/visualViewport|100dvh|100svh|100vh|position:\s*(fixed|sticky)|--inventory-count-sheet-end-runway/)
   })
 })
+
+describe('Complete Location note in phone landscape', () => {
+  it('is visually hidden but kept for screen readers (not display:none)', () => {
+    const rule = css.match(/\.inventory-count-complete-disabled-reason\s*\{[^}]*clip-path[^}]*\}/)
+    expect(rule).toBeTruthy()
+    expect(rule[0]).not.toMatch(/display:\s*none/)
+  })
+})
+
+describe('phone-landscape help button and Finish preview', () => {
+  it('hides the help toggle only while a counted input is focused', () => {
+    expect(css).toMatch(/:has\([^)]*counted-input:focus\)\s*\.help-mode-toggle\s*\{[^}]*visibility:\s*hidden/)
+  })
+  it('only hides header meta labels, not the Finish preview summary labels', () => {
+    expect(css).toMatch(/\.inventory-count-session-header \.inventory-count-session-meta-label\s*\{\s*display:\s*none/)
+    expect(css).not.toMatch(/is-high-density \.inventory-count-session-meta-label\s*\{/)
+    expect(css).toMatch(/summary-card \.inventory-count-session-meta-label\s*\{[^}]*display:\s*block/)
+  })
+  it('fits the Finish preview between the side safe areas with a 4-column summary', () => {
+    expect(css).toMatch(/finish-preview-overlay\s*\{[^}]*var\(--one-safe-area-right\)[^}]*var\(--one-safe-area-left\)/)
+    expect(css).toMatch(/finish-preview\s*\{[^}]*max-width:\s*100%/)
+    expect(css).toMatch(/finish-preview-summary\s*\{[^}]*repeat\(4,/)
+  })
+})
