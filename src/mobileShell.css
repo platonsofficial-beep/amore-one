@@ -3818,7 +3818,9 @@
   max-width: 100%;
   overflow: hidden;
   overflow-x: hidden;
-  background: var(--one-surface);
+  /* Same navy as the page canvas and .mobile-app, so no seam shows where iOS
+     ends the 100dvh box above the home indicator or beside a short column. */
+  background: var(--one-bg);
 }
 
 .app-shell.is-mobile-shell .sidebar {
