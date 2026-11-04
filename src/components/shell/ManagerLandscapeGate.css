@@ -67,7 +67,7 @@
 
 .manager-landscape-gate-title {
   margin: 10px 0 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.7rem;
   font-weight: 700;
   line-height: 1.15;

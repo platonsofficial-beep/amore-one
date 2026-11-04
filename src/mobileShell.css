@@ -126,7 +126,7 @@
   padding: 12px 16px;
   border-bottom: 1px solid rgba(224, 108, 108, 0.24);
   background: rgba(224, 108, 108, 0.12);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.88rem;
   line-height: 1.4;
 }
@@ -148,7 +148,7 @@
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1rem;
   flex-shrink: 0;
 }
@@ -209,7 +209,7 @@
 
 .mobile-screen-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.55rem;
   font-weight: 600;
   line-height: 1.2;
@@ -246,7 +246,7 @@
 
 .mobile-card-headline {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.1rem;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -293,7 +293,7 @@
 }
 
 .mobile-task-summary-item strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.2rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -381,7 +381,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.82rem;
   font-weight: 600;
   line-height: 1.2;
@@ -396,7 +396,7 @@
 .mobile-week-nav-btn.is-active {
   border-color: rgba(214, 178, 106, 0.28);
   background: rgba(214, 178, 106, 0.1);
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .mobile-week-nav-btn:disabled {
@@ -427,7 +427,7 @@
 
 .mobile-manager-schedule-week-label {
   margin: 4px 0 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.05rem;
   font-weight: 700;
   line-height: 1.25;
@@ -531,7 +531,7 @@
 
 .mobile-schedule-day-label {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -582,7 +582,7 @@
 }
 
 .mobile-schedule-shift-item strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.95rem;
 }
 
@@ -770,7 +770,7 @@
 }
 
 .mobile-manager-team-progress-copy strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.88rem;
   min-width: 0;
   flex: 1 1 auto;
@@ -821,7 +821,7 @@
 }
 
 .mobile-task-card-copy strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.98rem;
   flex: 1 1 auto;
   min-width: 0;
@@ -968,7 +968,7 @@
 
 .mobile-sheet-title {
   margin: 4px 0 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.2rem;
   font-weight: 700;
   overflow-wrap: anywhere;
@@ -1081,7 +1081,7 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   resize: vertical;
   box-sizing: border-box;
@@ -1119,7 +1119,7 @@
 .mobile-empty-state h2,
 .mobile-empty-note {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1rem;
   font-weight: 600;
 }
@@ -1200,7 +1200,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: rgba(18, 32, 51, 0.92);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.95rem;
   font-weight: 500;
   text-align: left;
@@ -1241,7 +1241,7 @@
 
 .mobile-manager-menu-identity-name {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.2rem;
   font-weight: 700;
   line-height: 1.15;
@@ -1345,7 +1345,7 @@
 }
 
 .mobile-manager-menu-nav-title {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.94rem;
   font-weight: 700;
   line-height: 1.25;
@@ -1360,7 +1360,7 @@
 }
 
 .mobile-manager-menu-nav-chevron {
-  color: #6f675c;
+  color: var(--one-text-subtle);
   font-size: 1.2rem;
   font-weight: 600;
   line-height: 1;
@@ -1401,7 +1401,7 @@
 
 .mobile-profile-header h1 {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.2rem;
   font-weight: 600;
 }
@@ -1426,7 +1426,7 @@
 
 .mobile-profile-detail-row dd {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   text-align: right;
   font-size: 0.92rem;
   overflow-wrap: anywhere;
@@ -1510,7 +1510,7 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: transparent;
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -1708,7 +1708,7 @@
 
 .mobile-expanded-header h1 {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.1rem;
   font-weight: 600;
   min-width: 0;
@@ -1807,7 +1807,7 @@
 
 .mobile-manager-command-greeting {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 600;
   line-height: 1.08;
@@ -1945,7 +1945,7 @@
 
 .mobile-manager-home-greeting {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.48rem;
   font-weight: 600;
   line-height: 1.12;
@@ -1995,7 +1995,7 @@
 
 .mobile-manager-section-subtitle {
   margin: 0;
-  color: #7f776c;
+  color: var(--one-text-subtle);
   font-size: 0.78rem;
   line-height: 1.3;
 }
@@ -2180,7 +2180,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-critical strong {
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning {
@@ -2195,7 +2195,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning strong {
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-info {
@@ -2204,7 +2204,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-info strong {
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item strong {
@@ -2315,7 +2315,7 @@
 }
 
 .mobile-manager-status-label {
-  color: #7f776c;
+  color: var(--one-text-subtle);
   font-size: 0.64rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -2323,7 +2323,7 @@
 }
 
 .mobile-manager-status-value {
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.08rem;
   font-weight: 700;
   line-height: 1.25;
@@ -2472,7 +2472,7 @@
 }
 
 .mobile-manager-attention-item strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.9rem;
   font-weight: 600;
   min-width: 0;
@@ -2556,7 +2556,7 @@
   border: 0;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -2727,7 +2727,7 @@
 
 .mobile-manager-tasks-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 700;
   line-height: 1.05;
@@ -2781,7 +2781,7 @@
 }
 
 .mobile-manager-tasks-command-summary strong {
-  color: #fff7e8;
+  color: var(--one-text);
   font-weight: 700;
 }
 
@@ -2856,7 +2856,7 @@
 
 .mobile-manager-task-attention-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.96rem;
   font-weight: 700;
   line-height: 1.25;
@@ -2919,7 +2919,7 @@
 }
 
 .mobile-manager-team-progress-name {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -3049,7 +3049,7 @@
 }
 
 .mobile-manager-tasks-checklist-name {
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.25;
@@ -3088,7 +3088,7 @@
 
 .mobile-manager-tasks-note-headline {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.3;
@@ -3191,7 +3191,7 @@
 
 .mobile-manager-today-task-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.96rem;
   font-weight: 700;
   line-height: 1.25;
@@ -3295,7 +3295,7 @@
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.86rem;
   font-weight: 600;
   line-height: 1.2;
@@ -3327,7 +3327,7 @@
 
 .mobile-manager-stock-command-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 700;
   line-height: 1.05;
@@ -3409,7 +3409,7 @@
 .mobile-manager-stock-pending-btn-primary {
   border-color: rgba(212, 175, 55, 0.4);
   background: rgba(212, 175, 55, 0.16);
-  color: #fff7e8;
+  color: var(--one-text);
 }
 
 .mobile-manager-stock-sticky-tools {
@@ -3441,13 +3441,13 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.92rem;
   line-height: 1.2;
 }
 
 .mobile-manager-stock-search input::placeholder {
-  color: #7f776c;
+  color: var(--one-text-subtle);
 }
 
 .mobile-manager-stock-filters {
@@ -3523,7 +3523,7 @@
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.84rem;
   font-weight: 600;
   line-height: 1.2;
@@ -3585,7 +3585,7 @@
 
 .mobile-manager-stock-card-name {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.96rem;
   font-weight: 700;
   line-height: 1.22;
@@ -3642,7 +3642,7 @@
 }
 
 .mobile-manager-stock-card-qty-label {
-  color: #7f776c;
+  color: var(--one-text-subtle);
   font-size: 0.66rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -3658,7 +3658,7 @@
 }
 
 .mobile-manager-stock-card-qty-value {
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 700;
   line-height: 1;
@@ -3688,7 +3688,7 @@
 }
 
 .mobile-manager-stock-card-supplier-label {
-  color: #6f675c;
+  color: var(--one-text-subtle);
   font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0;
@@ -3775,7 +3775,7 @@
 }
 
 .mobile-manager-command-announcements .today-announcements-header h3 {
-  color: #7f776c;
+  color: var(--one-text-subtle);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -3796,7 +3796,7 @@
 }
 
 .mobile-manager-home .mobile-manager-announcements-wrap .today-announcements-header h3 {
-  color: #7f776c;
+  color: var(--one-text-subtle);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -4821,7 +4821,7 @@
 
 .mobile-host-sticky-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.1;
@@ -5011,7 +5011,7 @@
 }
 
 .host-queue-metric strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -5078,7 +5078,7 @@
 }
 
 .host-queue-time-group-count {
-  color: #8f867a;
+  color: var(--one-text-subtle);
   font-size: 0.64rem;
 }
 
@@ -5239,7 +5239,7 @@
 }
 
 .mobile-host-sticky-center strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-weight: 700;
 }
 
@@ -5492,7 +5492,7 @@
 
 .mobile-host-reservations-title {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 700;
   line-height: 1.05;
@@ -5513,7 +5513,7 @@
 }
 
 .mobile-host-reservations-stats strong {
-  color: #f7efe1;
+  color: var(--one-text);
   font-weight: 700;
 }
 
@@ -5579,7 +5579,7 @@
 .host-queue-toolbar-btn.is-open {
   background: rgba(212, 175, 55, 0.12);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .host-queue-toolbar-clear {
@@ -5651,7 +5651,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.82rem;
   text-align: left;
   cursor: pointer;
@@ -5724,7 +5724,7 @@
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.9rem;
 }
 
@@ -5923,7 +5923,7 @@
   gap: 6px;
   width: 100%;
   min-width: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.94rem;
   font-weight: 700;
   line-height: 1.2;
@@ -6224,7 +6224,7 @@
 
 .mobile-host-reservation-guest {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
@@ -6759,7 +6759,7 @@
 
 .mobile-host-floor-empty h2 {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.05rem;
   font-weight: 700;
 }
@@ -7012,7 +7012,7 @@
 .mobile-host-floor-selection-menu-btn:hover,
 .mobile-host-floor-selection-menu-btn:focus-visible {
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   outline: none;
 }
 
@@ -7037,7 +7037,7 @@
 .mobile-host-floor-selection-close-btn:hover,
 .mobile-host-floor-selection-close-btn:focus-visible {
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   outline: none;
 }
 
@@ -7105,7 +7105,7 @@
 
 .mobile-host-reservations-detail-header h2 {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.02rem;
   min-width: 0;
   overflow: hidden;
@@ -7152,7 +7152,7 @@
 
 .mobile-host-reservation-detail-grid dd {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.88rem;
 }
 
@@ -7211,7 +7211,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
 }
@@ -7257,7 +7257,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
 }
@@ -7291,7 +7291,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
   text-align: left;
@@ -7404,7 +7404,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.78rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -7494,7 +7494,7 @@
 }
 
 .mobile-host-quick-create-table-status.has-selection {
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .mobile-host-quick-create-clear-table {
@@ -7531,7 +7531,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   text-align: left;
   white-space: nowrap;
@@ -7605,7 +7605,7 @@
 .mobile-host-quick-create-extra-chair-toggle.is-active {
   border-color: rgba(212, 175, 55, 0.85);
   background: rgba(212, 175, 55, 0.18);
-  color: #fff7e8;
+  color: var(--one-text);
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
 }
 
@@ -7625,7 +7625,7 @@
 .mobile-host-quick-create-table-option.is-selected {
   border-color: rgba(212, 175, 55, 0.85);
   background: rgba(212, 175, 55, 0.18);
-  color: #fff7e8;
+  color: var(--one-text);
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
 }
 
@@ -8153,7 +8153,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .mobile-host-reservation-panel-title {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.05rem;
   font-weight: 650;
 }
@@ -8329,7 +8329,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .mobile-host-reservations-detail-empty-title {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1rem;
   font-weight: 650;
 }
@@ -8970,7 +8970,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     max(12px, env(safe-area-inset-bottom, 0px));
   border-radius: 0;
   background: var(--one-form-surface);
-  color: #fff7e8;
+  color: var(--one-text);
 }
 
 .mobile-stock-detail-header {
@@ -9528,7 +9528,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 1px solid rgba(212, 175, 55, 0.35);
   border-radius: 14px;
   background: rgba(212, 175, 55, 0.1);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -9556,7 +9556,7 @@ body:not(:has(.inventory-count-session)) :is(
   height: 44px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.4rem;
   line-height: 1;
 }
@@ -9580,7 +9580,7 @@ body:not(:has(.inventory-count-session)) :is(
 .manager-portrait-reservations h2,
 .manager-portrait-schedule h1 {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.35rem;
   line-height: 1.15;
 }
@@ -9631,7 +9631,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
-  color: #f7efe1;
+  color: var(--one-text);
   font-weight: 600;
   cursor: pointer;
 }
@@ -9679,7 +9679,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
-  color: #f7efe1;
+  color: var(--one-text);
   text-align: left;
 }
 
@@ -9864,7 +9864,7 @@ body:not(:has(.inventory-count-session)) :is(
 
 .manager-more-header h2 {
   margin: 0;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.1rem;
 }
 
@@ -9874,7 +9874,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 0;
   border-radius: 12px;
   background: transparent;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 1.5rem;
   cursor: pointer;
 }
@@ -9907,7 +9907,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 0;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
-  color: #f7efe1;
+  color: var(--one-text);
   text-align: left;
   cursor: pointer;
 }
@@ -10271,7 +10271,7 @@ body:not(:has(.inventory-count-session)) :is(
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.35);
   background: transparent;
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
   font-size: 0.82rem;
   font-weight: 650;

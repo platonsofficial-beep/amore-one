@@ -6,7 +6,7 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
-  color: #f7efe1;
+  color: var(--one-text);
 }
 
 .chat-screen.is-split {
@@ -323,7 +323,7 @@
   padding: 8px 10px 18px;
   border-radius: 16px;
   background: #1f2c34;
-  color: #f7efe1;
+  color: var(--one-text);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -432,7 +432,7 @@
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: #f7efe1;
+  color: var(--one-text);
   resize: none;
   font: inherit;
   font-size: 16px;
@@ -457,7 +457,7 @@
   border: 0;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   cursor: pointer;
 }
 
@@ -519,7 +519,7 @@
   border: 0;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   text-align: left;
   padding: 0 12px;
   cursor: pointer;
@@ -702,7 +702,7 @@
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
 }
 
@@ -820,7 +820,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: #f7efe1;
+  color: var(--one-text);
   font-size: 0.82rem;
 }
 
@@ -831,7 +831,7 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.04);
-  color: #f7efe1;
+  color: var(--one-text);
   font: inherit;
 }
 
@@ -854,7 +854,7 @@
   border-radius: 50%;
   border: 1px solid rgba(230, 194, 122, 0.55);
   background: rgba(18, 32, 51, 0.94);
-  color: #f7efe1;
+  color: var(--one-text);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   cursor: pointer;
 }
