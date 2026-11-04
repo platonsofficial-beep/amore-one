@@ -210,6 +210,33 @@ export function replaceDraftOrderLineProduct(line, catalogItem) {
  * Create-order group identity (P7.3.6 / P8.26.6c).
  * supplier_id wins; legacy text only when FK missing; Unassigned preserved.
  */
+/**
+ * Supplier name for an order card (audit S-15): the saved text, else the directory name by supplier_id.
+ */
+export function resolveStockOrderSupplierName(order, suppliers = []) {
+  const saved = `${order?.supplier ?? ''}`.trim()
+  if (saved) return saved
+  const supplierId = normalizeSupplierId(order?.supplierId ?? order?.supplier_id)
+  if (supplierId == null || !Array.isArray(suppliers)) return ''
+  const matched = suppliers.find((supplier) => normalizeSupplierId(supplier?.id) === supplierId)
+  return `${matched?.companyName ?? matched?.company_name ?? matched?.name ?? ''}`.trim()
+}
+
+/** True when a supplier directory row is switched off (active: false / is_active: false). */
+export function isInactiveSupplierRecord(supplier) {
+  if (!supplier) return false
+  return supplier.active === false || supplier.is_active === false
+}
+
+/** True when the item's supplier_id points at an inactive supplier in the directory. */
+export function isStockItemSupplierInactive(item, suppliers = []) {
+  const supplierId = normalizeSupplierId(item?.supplierId ?? item?.supplier_id)
+  if (supplierId == null || !Array.isArray(suppliers)) return false
+  return isInactiveSupplierRecord(
+    suppliers.find((supplier) => normalizeSupplierId(supplier?.id) === supplierId),
+  )
+}
+
 export function resolveOrderGroupIdentity(item, suppliers = []) {
   const supplierId = normalizeSupplierId(item?.supplierId ?? item?.supplier_id)
   const supplierText = `${item?.supplier ?? ''}`.trim()
@@ -217,6 +244,14 @@ export function resolveOrderGroupIdentity(item, suppliers = []) {
   if (supplierId != null) {
     const list = Array.isArray(suppliers) ? suppliers : []
     const matched = list.find((supplier) => normalizeSupplierId(supplier?.id) === supplierId)
+    // S-04: never group (and so never create an order) for an inactive supplier.
+    if (isInactiveSupplierRecord(matched)) {
+      return {
+        groupKey: `name:${UNASSIGNED_SUPPLIER}`,
+        supplierId: null,
+        supplier: UNASSIGNED_SUPPLIER,
+      }
+    }
     const directoryName = `${matched?.companyName ?? matched?.company_name ?? ''}`.trim()
     const displayName = directoryName || supplierText || `Supplier #${supplierId}`
 

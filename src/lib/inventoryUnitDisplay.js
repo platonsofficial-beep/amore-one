@@ -83,6 +83,28 @@ export function formatInventoryUnitLabel(unit) {
 }
 
 /**
+ * Unit label that agrees with a quantity shown next to it (audit S-18):
+ * "1 Bottle" / "20 Bottles"; measured units never pluralize.
+ *
+ * @param {unknown} quantity
+ * @param {unknown} unit
+ * @returns {string}
+ */
+export function formatInventoryUnitLabelForQuantity(quantity, unit) {
+  const normalized = `${unit ?? ''}`.replace(/\s+/g, ' ').trim()
+  if (!normalized) return ''
+  const key = normalized.toLocaleLowerCase('en-US')
+  const measured = lookupMeasuredUnit(key)
+  if (measured) return measured
+  if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
+    const numericQuantity = Number(quantity)
+    const isSingular = Number.isFinite(numericQuantity) && numericQuantity === 1
+    return isSingular ? COUNTABLE_UNIT_FORMS[key].singular : COUNTABLE_UNIT_FORMS[key].plural
+  }
+  return normalized
+}
+
+/**
  * Format quantity + inventory unit for Stock presentation.
  * Countable: "1 Piece", "2 Pieces", "0 Bottles".
  * Measured: "1 kg", "250 g", "500 mL", "1 L" (never pluralize abbreviations).

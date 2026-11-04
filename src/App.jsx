@@ -22703,6 +22703,24 @@ function App() {
     }
   }
 
+  // Shared by the desktop/landscape tree and the portrait manager shell (audit S-03).
+  const renderSupplyDraftPreviewDialog = () => (
+    <SupplyOrderDraftPreviewDialog
+      isOpen={Boolean(supplyDraftPreview)}
+      isLoading={Boolean(supplyDraftPreview?.loading)}
+      lines={supplyDraftPreview?.lines ?? []}
+      review={supplyDraftPreview?.review ?? []}
+      summary={supplyDraftPreview?.summary ?? ''}
+      message={supplyDraftPreview?.message ?? ''}
+      isSaving={isSavingStockOrder}
+      onCancel={() => {
+        if (isPreparingSupplyDrafts) return
+        setSupplyDraftPreview(null)
+      }}
+      onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
+    />
+  )
+
   const handlePrepareSupplyOrderDrafts = async () => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
@@ -25219,20 +25237,7 @@ function App() {
           </div>
         ) : null}
 
-        <SupplyOrderDraftPreviewDialog
-          isOpen={Boolean(supplyDraftPreview)}
-          isLoading={Boolean(supplyDraftPreview?.loading)}
-          lines={supplyDraftPreview?.lines ?? []}
-          review={supplyDraftPreview?.review ?? []}
-          summary={supplyDraftPreview?.summary ?? ''}
-          message={supplyDraftPreview?.message ?? ''}
-          isSaving={isSavingStockOrder}
-          onCancel={() => {
-            if (isPreparingSupplyDrafts) return
-            setSupplyDraftPreview(null)
-          }}
-          onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
-        />
+        {renderSupplyDraftPreviewDialog()}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (
           <StockDashboardView
@@ -25814,6 +25819,7 @@ function App() {
                       : (scheduleWeekKeys.includes(currentDateKey) ? currentDateKey : scheduleWeekStart)
                     const portraitModuleScreens = new Set(['team', 'settings', 'time-clock', 'insights'])
                     return (
+                      <>
                       <MobileManagerApp
                         activeTab={managerPortraitTab}
                         onTabChange={handleMobileTabChange}
@@ -25827,6 +25833,7 @@ function App() {
                           isLoading: isManagerMobileStockLoading,
                           catalogLoadFailed: stockCatalogLoadFailed,
                           onRetryCatalogLoad: loadStockCatalog,
+                          suppliers,
                           canManageStock: canManageStockRole,
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
@@ -25962,6 +25969,8 @@ function App() {
                         }}
                         portraitModule={portraitModuleScreens.has(managerPortraitScreen) ? workspaceModules : null}
                       />
+                      {renderSupplyDraftPreviewDialog()}
+                      </>
                     )
                   }
 
@@ -26874,6 +26883,7 @@ function App() {
         {isDashboardStockCreateOrderOpen && canManageStockRole ? (
           <StockCreateOrderModal
             stockItems={stockItems}
+            suppliers={suppliers}
             onClose={() => setIsDashboardStockCreateOrderOpen(false)}
             onSubmit={handleCreateStockOrders}
             isSaving={isSavingStockOrder}

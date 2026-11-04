@@ -1191,8 +1191,8 @@ export function StockDashboardView({
     return formatTodayStockActivityLine(activity)
   }, [activeCatalogItems])
   const toOrderGroups = useMemo(
-    () => buildToOrderSupplierGroups(activeCatalogItems),
-    [activeCatalogItems],
+    () => buildToOrderSupplierGroups(activeCatalogItems, suppliers),
+    [activeCatalogItems, suppliers],
   )
   const toCountGroups = useMemo(
     () => buildToCountStorageGroups(activeCatalogItems, { canManage }),
@@ -2126,6 +2126,7 @@ export function StockDashboardView({
       {isCreateOrderModalOpen && onCreateOrders ? (
         <StockCreateOrderModal
           stockItems={stockItems}
+          suppliers={suppliers}
           onClose={() => setIsCreateOrderModalOpen(false)}
           onSubmit={onCreateOrders}
           isSaving={isSavingOrders}

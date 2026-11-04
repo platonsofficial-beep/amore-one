@@ -204,6 +204,7 @@ export function MobileManagerStockView({
   stockOrdersSummary = null,
   isLoading = false,
   catalogLoadFailed = false,
+  suppliers = [],
   onRetryCatalogLoad,
   canManageStock = false,
   isWorkspaceReady = false,
@@ -286,7 +287,7 @@ export function MobileManagerStockView({
   }
 
   const openCreateOrderModal = () => {
-    const groups = buildSupplierOrderGroups(stockItems)
+    const groups = buildSupplierOrderGroups(stockItems, suppliers)
       .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
       .map((group) => ({
         ...group,
@@ -523,6 +524,7 @@ export function MobileManagerStockView({
       {orderModalGroups ? (
         <StockCreateOrderModal
           stockItems={stockItems}
+          suppliers={suppliers}
           initialGroups={orderModalGroups}
           onClose={handleCloseOrderModal}
           onSubmit={handleSubmitOrderModal}
