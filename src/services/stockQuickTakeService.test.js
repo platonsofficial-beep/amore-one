@@ -37,3 +37,13 @@ describe('stockQuickTakeService', () => {
     expect(await quickTakeAvailable()).toBe(true)
   })
 })
+
+describe('quick take error reason (2026-11-05 fix)', () => {
+  it('keeps a short real reason and shows it only to managers', async () => {
+    const { mapQuickTakeError, quickTakeErrorText } = await import('./stockQuickTakeService')
+    const err = mapQuickTakeError({ code: '42703', message: 'record "v_storage" has no field "is_active"' })
+    expect(err.message).not.toMatch(/connection/i)
+    expect(quickTakeErrorText(err, { canManage: false })).toBe(err.message)
+    expect(quickTakeErrorText(err, { canManage: true })).toContain('42703 · record "v_storage" has no field "is_active"')
+  })
+})
