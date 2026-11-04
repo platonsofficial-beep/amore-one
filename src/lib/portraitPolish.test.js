@@ -84,10 +84,10 @@ describe('portrait polish layout', () => {
       .find((block) => block.includes('.mobile-manager-stock-action-bar'))
     expect(portrait).toContain('.mobile-manager-app .mobile-manager-stock-list')
     expect(portrait).toContain('background: var(--one-bg)')
-    expect(chatCss).toContain('padding-right: 84px')
+    expect(chatCss).toContain('padding-right: 108px')
     const chatPortrait = mediaBlocks(chatCss, '@media (max-width: 760px) and (orientation: portrait)')
       .find((block) => block.includes('chat-list-header'))
-    expect(chatPortrait).toContain('padding-right: 84px')
+    expect(chatPortrait).toContain('padding-right: 108px')
   })
 
   it('does not keep notification settings mounted on the chat route', () => {

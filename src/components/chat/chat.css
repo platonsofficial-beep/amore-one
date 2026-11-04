@@ -676,7 +676,7 @@
 
 @media (max-width: 760px) and (orientation: portrait) {
   .app-shell.is-mobile-shell .chat-list-header {
-    padding-right: 84px;
+    padding-right: 108px;
   }
 }
 
@@ -942,5 +942,361 @@
   .chat-screen.is-split .chat-list,
   .chat-screen.is-split .chat-thread-pane {
     height: 100%;
+  }
+}
+
+/* WhatsApp-style pass (Platon, Chat list photo): compact header on the same
+   line as the ? and bell, real icon buttons, two-line rows, pill composer. */
+.chat-list-header {
+  gap: 6px;
+  padding-left: 16px;
+  background: var(--one-bg);
+}
+
+.chat-list-header h2 {
+  font-size: 1.55rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.chat-header-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--one-gold-a32);
+  border-radius: 999px;
+  background: var(--one-gold-a12);
+  color: var(--one-gold-text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-header-action.is-primary {
+  border-color: transparent;
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+}
+
+/* Phones: icons only, the label is the button's aria-label. */
+.app-shell.is-mobile-shell .chat-header-action {
+  width: 40px;
+  padding: 0;
+}
+
+.app-shell.is-mobile-shell .chat-header-action-label {
+  display: none;
+}
+
+.chat-search {
+  padding: 4px 12px 8px;
+}
+
+.chat-search {
+  position: relative;
+}
+
+.chat-search::before {
+  content: '';
+  position: absolute;
+  top: calc(50% - 7px);
+  left: 24px;
+  width: 18px;
+  height: 18px;
+  background: var(--one-text-subtle);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  pointer-events: none;
+}
+
+.chat-search input {
+  padding-left: 38px;
+  background: var(--one-surface-1);
+}
+
+.chat-row {
+  gap: 12px;
+  min-height: 72px;
+  padding: 8px 16px;
+  border-bottom: 0;
+}
+
+.chat-row.is-pinned {
+  background: transparent;
+}
+
+.chat-row:hover {
+  background: var(--one-overlay-04);
+}
+
+.chat-row.is-active {
+  background: var(--one-gold-a12);
+}
+
+.chat-list .chat-avatar {
+  width: 50px;
+  height: 50px;
+  font-size: 1.05rem;
+}
+
+.chat-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-self: stretch;
+  justify-content: center;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--one-overlay-06);
+}
+
+.chat-row-copy .chat-row-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: visible;
+}
+
+.chat-row-copy .chat-row-line strong,
+.chat-row-copy .chat-row-line .chat-row-preview {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.chat-row-copy .chat-row-line strong {
+  color: var(--one-text);
+  font-weight: 600;
+}
+
+.chat-row-copy .chat-row-line .chat-row-preview {
+  color: var(--one-text-subtle);
+  font-size: 0.88rem;
+}
+
+.chat-row-copy .chat-row-time {
+  flex: 0 0 auto;
+  color: var(--one-text-subtle);
+  font-size: 0.75rem;
+}
+
+.chat-row-copy .chat-row-time.is-unread {
+  color: var(--one-gold-text);
+  font-weight: 600;
+}
+
+.chat-row-copy .chat-muted {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--one-text-subtle);
+}
+
+.chat-row-copy .chat-badge {
+  flex: 0 0 auto;
+  min-width: 20px;
+  height: 20px;
+  background: var(--one-gold);
+  color: var(--one-on-gold);
+}
+
+/* Thread */
+.chat-thread-header .chat-avatar-inline {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  flex-basis: 36px;
+  font-size: 0.85rem;
+}
+
+.chat-thread-header h2 {
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.chat-thread-pane {
+  background: var(--one-bg);
+}
+
+.chat-pinned {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--one-overlay-06);
+  background: var(--one-surface-1);
+}
+
+.chat-pinned button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: min(260px, 80vw);
+  min-height: 32px;
+  color: var(--one-gold-text);
+}
+
+.chat-pinned button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-day {
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: var(--one-surface-1);
+  color: var(--one-text-subtle);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.chat-bubble {
+  padding: 6px 10px 6px;
+  border-radius: 12px;
+  background: var(--one-surface-2);
+  box-shadow: 0 1px 0 var(--one-overlay-04);
+}
+
+.chat-bubble::after {
+  border-bottom-color: var(--one-surface-2);
+}
+
+.chat-bubble.is-mine {
+  background: color-mix(in srgb, var(--one-gold) 22%, var(--one-surface-1));
+  color: var(--one-text);
+}
+
+.chat-bubble.is-mine::after {
+  border-bottom-color: color-mix(in srgb, var(--one-gold) 22%, var(--one-surface-1));
+}
+
+.chat-bubble.is-group-first,
+.chat-bubble.is-group-middle {
+  border-bottom-left-radius: 12px;
+}
+
+.chat-bubble .chat-meta {
+  margin: 0 0 2px;
+  color: var(--one-gold-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.chat-bubble-meta,
+.chat-bubble.is-mine .chat-bubble-meta {
+  color: var(--one-text-subtle);
+}
+
+.chat-ticks.is-read {
+  color: var(--one-status-info);
+}
+
+.chat-reply-quote {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--one-gold);
+  border-radius: 6px;
+  background: var(--one-overlay-06);
+  opacity: 1;
+}
+
+.chat-reply-quote strong {
+  color: var(--one-gold-text);
+}
+
+.chat-composer {
+  align-items: flex-end;
+  gap: 6px;
+  padding: 6px 8px;
+  border-top: 0;
+  background: var(--one-bg);
+}
+
+.chat-composer-field {
+  display: flex;
+  align-items: flex-end;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 22px;
+  background: var(--one-surface-1);
+  border: 1px solid var(--one-overlay-08);
+}
+
+.chat-composer-field textarea {
+  border: 0;
+  background: transparent;
+  padding: 11px 4px;
+}
+
+.chat-composer-field .chat-composer-photo,
+.chat-composer-field .chat-composer-emoji {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--one-text-subtle);
+  font-size: 1.2rem;
+}
+
+.chat-send {
+  border-radius: 999px;
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+}
+
+/* Phone portrait: the header IS the top band, on the ? / bell line. */
+@media (orientation: portrait) and (max-width: 600px) {
+  .app-shell.is-mobile-shell .mobile-app-content:has(.chat-screen)::before {
+    display: none;
+  }
+
+  /* No extra 12px above Chat, so the header buttons share the ? / bell line. */
+  .app-shell.is-mobile-shell .mobile-app-content:has(.chat-screen) {
+    padding-top: 0;
+  }
+
+  .app-shell.is-mobile-shell .chat-list-header {
+    align-items: flex-start;
+    min-height: calc(var(--one-top-buttons-top) + 48px);
+    padding-top: var(--one-top-buttons-top);
+    padding-bottom: 4px;
+  }
+
+  .app-shell.is-mobile-shell .chat-list-header h2,
+  .app-shell.is-mobile-shell .chat-header-actions {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  .app-shell.is-mobile-shell.is-chat-thread .chat-thread-header {
+    position: relative;
+    z-index: 46;
+  }
+}
+
+/* Tablet portrait (≤900px with the side menu): the open thread is a fixed
+   column for the keyboard, and it slid under the 220px side menu, hiding the
+   names and the back button. Start it after the menu. */
+@media (max-width: 900px) and (min-height: 461px) {
+  .app-shell:not(.is-mobile-shell):has(.sidebar).is-chat-thread .chat-screen {
+    left: calc(var(--safe-l, 0px) + 220px);
   }
 }
