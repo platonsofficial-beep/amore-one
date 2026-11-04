@@ -1,3 +1,4 @@
+import { createVisibleRefresh } from '../lib/visibleInterval'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { resolveAvatarPhoto } from '../lib/avatarDirectory'
@@ -44,10 +45,8 @@ export function AvatarDirectoryProvider({ children }) {
     const timer = window.setInterval(() => {
       if (!cancelled) refresh().catch(() => {})
     }, REFRESH_INTERVAL_MS)
-    const refreshIfVisible = () => {
-      if (document.visibilityState === 'hidden') return
-      refresh().catch(() => {})
-    }
+    // focus and visibilitychange usually fire together on app switch: one reload.
+    const refreshIfVisible = createVisibleRefresh(() => refresh().catch(() => {}))
     window.addEventListener('focus', refreshIfVisible)
     document.addEventListener('visibilitychange', refreshIfVisible)
     return () => {
