@@ -129,7 +129,7 @@
     width: auto;
     height: var(--vvh, 100dvh);
     max-height: var(--vvh, 100dvh);
-    background: #0b1018;
+    background: var(--one-bg);
   }
 
   /* Closed keyboard: fill the layout viewport so the nav is not left floating
@@ -395,7 +395,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
    and each category title sticks just under it while its rows scroll. */
 .mobile-manager-stock-sticky-tools {
   margin-bottom: 0;
-  background: var(--one-bg, #0e0e0f);
+  background: var(--one-bg, var(--one-surface-1));
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.07),
     0 8px 12px -10px rgba(0, 0, 0, 0.7);
@@ -412,7 +412,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   z-index: 2;
   margin: 0;
   padding: 10px 2px 6px;
-  background: var(--one-bg, #0e0e0f);
+  background: var(--one-bg, var(--one-surface-1));
 }
 
 /* Create supplier orders: remove confirmation and Undo toast. */
@@ -1359,7 +1359,7 @@ body {
   padding: 6px 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  background: rgba(11, 15, 23, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   box-shadow:
     0 10px 36px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);

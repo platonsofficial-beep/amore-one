@@ -415,7 +415,7 @@
   padding: 8px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: #16130f;
+  background: var(--one-surface-1);
 }
 
 .chat-composer .chat-meta {
@@ -656,7 +656,7 @@
   height: calc(48px + var(--one-safe-top-chrome));
   min-height: calc(48px + var(--one-safe-top-chrome));
   padding: var(--one-safe-top-chrome) 52px 0 4px;
-  background: #0c121c;
+  background: var(--one-surface-1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -853,7 +853,7 @@
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(230, 194, 122, 0.55);
-  background: rgba(12, 18, 28, 0.94);
+  background: rgba(18, 32, 51, 0.94);
   color: #f7efe1;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
   cursor: pointer;
@@ -892,7 +892,7 @@
 
 .chat-thread-header,
 .chat-list-header {
-  background: #0c121c;
+  background: var(--one-surface-1);
 }
 
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
@@ -922,7 +922,7 @@
     position: sticky;
     top: var(--one-safe-top-chrome);
     z-index: 5;
-    background: #12100e;
+    background: var(--one-surface-1);
   }
 }
 

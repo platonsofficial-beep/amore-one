@@ -676,7 +676,7 @@
   border: 1px solid rgba(212, 175, 55, 0.18);
   background:
     linear-gradient(160deg, rgba(212, 175, 55, 0.06), transparent 55%),
-    rgba(10, 10, 11, 0.92);
+    rgba(18, 32, 51, 0.92);
 }
 
 .today-status-row {
@@ -1799,17 +1799,17 @@
   border: 1px solid rgba(212, 175, 55, 0.12);
   background:
     linear-gradient(160deg, rgba(212, 175, 55, 0.045), transparent 42%),
-    rgba(9, 9, 10, 0.74);
+    rgba(18, 32, 51, 0.74);
 }
 
 .command-workspace .command-hero-metric {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(14, 14, 15, 0.9) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(18, 32, 51, 0.9) 100%);
   border-color: rgba(255, 255, 255, 0.09);
 }
 
 .command-workspace .command-card {
-  background: rgba(14, 14, 15, 0.9);
+  background: rgba(18, 32, 51, 0.9);
   border-color: rgba(255, 255, 255, 0.085);
   box-shadow: var(--command-card-shadow), inset 0 -1px 0 rgba(0, 0, 0, 0.16);
 }
@@ -2597,7 +2597,7 @@
   padding: 16px 14px;
   border-radius: var(--command-inner-radius);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(14, 14, 15, 0.94) 100%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045) 0%, rgba(18, 32, 51, 0.94) 100%);
   border: var(--command-card-border);
   box-shadow:
     var(--command-card-shadow),
@@ -4723,7 +4723,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-    rgba(10, 10, 11, 0.92);
+    rgba(18, 32, 51, 0.92);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
 }
 
@@ -9873,7 +9873,7 @@
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.28);
-  background: rgba(12, 12, 14, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: rgba(232, 215, 168, 0.92);
   font-size: 0.78rem;
   font-weight: 700;
@@ -9887,7 +9887,7 @@
 .host-multi-table-entry-btn:hover,
 .host-multi-table-entry-btn:focus-visible {
   border-color: rgba(212, 175, 55, 0.48);
-  background: rgba(18, 16, 12, 0.88);
+  background: rgba(33, 52, 76, 0.88);
   color: #f5eacf;
 }
 
@@ -12070,7 +12070,7 @@
 
 .reservation-arrival-card:hover {
   border-color: rgba(212, 175, 55, 0.28);
-  background: rgba(18, 18, 20, 0.98);
+  background: rgba(18, 32, 51, 0.98);
   transform: translateY(-2px);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.06) inset,
@@ -12867,7 +12867,7 @@
   border: 1px solid rgba(255, 255, 255, 0.09);
   background:
     radial-gradient(circle at top, rgba(212, 175, 55, 0.08), transparent 42%),
-    rgba(14, 14, 16, 0.98);
+    rgba(18, 32, 51, 0.98);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.05) inset,
     0 24px 64px rgba(0, 0, 0, 0.45),
@@ -15402,7 +15402,7 @@
   border: 1px solid rgba(212, 175, 55, 0.18);
   background:
     linear-gradient(160deg, rgba(212, 175, 55, 0.06), transparent 55%),
-    rgba(10, 10, 11, 0.92);
+    rgba(18, 32, 51, 0.92);
 }
 
 .team-today-status-row {
@@ -17904,7 +17904,7 @@
   min-height: 42px;
   max-height: none;
   overflow: visible;
-  background: #141311;
+  background: var(--one-surface-1);
   box-shadow: 0 8px 0 #141311;
 }
 
@@ -17972,7 +17972,7 @@
   z-index: 1;
   min-height: 32px;
   padding: 6px 10px;
-  background: #0e0e0f;
+  background: var(--one-surface-1);
 }
 
 .schedule-workspace.is-compact-landscape .blend-grid-assignment-cell {
@@ -18379,7 +18379,7 @@
   padding: 8px 10px 7px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(168deg, rgba(255, 255, 255, 0.04), rgba(11, 15, 23, 0.94));
+  background: linear-gradient(168deg, rgba(255, 255, 255, 0.04), rgba(18, 32, 51, 0.94));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 6px 14px rgba(0, 0, 0, 0.1);
@@ -24472,7 +24472,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
   border: 1px solid rgba(212, 175, 55, 0.14);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
@@ -24851,7 +24851,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-reorder-row-main {
@@ -24990,7 +24990,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
 }
 
 .bar-refill-card-readonly {
@@ -25272,7 +25272,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 18px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
   border: 1px solid rgba(212, 175, 55, 0.14);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   display: flex;
@@ -26287,7 +26287,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: inherit;
   text-align: left;
@@ -26461,7 +26461,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-color: rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.76);
+    rgba(18, 32, 51, 0.76);
 }
 
 .tasks-department-card.is-create-action {
@@ -26469,7 +26469,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-color: rgba(212, 175, 55, 0.28);
   background:
     linear-gradient(180deg, rgba(212, 175, 55, 0.06), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.78);
+    rgba(18, 32, 51, 0.78);
   min-height: 44px;
 }
 
@@ -26593,7 +26593,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 16px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   min-height: 220px;
 }
 
@@ -26668,7 +26668,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.72);
+    rgba(18, 32, 51, 0.72);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -26676,14 +26676,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-color: rgba(255, 180, 162, 0.34);
   background:
     linear-gradient(180deg, rgba(255, 180, 162, 0.06), rgba(255, 180, 162, 0.02)),
-    rgba(11, 15, 23, 0.72);
+    rgba(18, 32, 51, 0.72);
 }
 
 .task-card.is-completed {
   border-color: rgba(120, 196, 136, 0.22);
   background:
     linear-gradient(180deg, rgba(120, 196, 136, 0.05), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.72);
+    rgba(18, 32, 51, 0.72);
 }
 
 .task-card-top {
@@ -27139,7 +27139,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
 }
 
 .task-template-card.is-inactive {
@@ -27400,7 +27400,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
 }
 
 .tasks-assignment-filter-label {
@@ -27451,7 +27451,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
 }
 
 .tasks-alerts-header,
@@ -27668,7 +27668,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-left: 3px solid rgba(212, 175, 55, 0.55);
   background:
     linear-gradient(165deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
-    rgba(10, 10, 11, 0.94);
+    rgba(18, 32, 51, 0.94);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
@@ -27904,7 +27904,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-color: rgba(212, 175, 55, 0.18);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    rgba(11, 15, 23, 0.82);
+    rgba(18, 32, 51, 0.82);
 }
 
 .reports-metric-label {
@@ -31399,7 +31399,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 16px 18px;
   margin-bottom: 0;
   border-color: rgba(212, 175, 55, 0.22);
-  background: linear-gradient(165deg, rgba(36, 30, 18, 0.92), rgba(18, 16, 12, 0.96));
+  background: linear-gradient(165deg, rgba(36, 30, 18, 0.92), rgba(18, 32, 51, 0.96));
 }
 
 .stock-operations-banner.is-dense {
@@ -31505,7 +31505,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 18px;
   margin-bottom: 0;
   border-color: rgba(148, 163, 184, 0.16);
-  background: rgba(18, 16, 12, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .stock-today-activity.is-dense {
@@ -31722,7 +31722,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 10px 14px;
   border-radius: 12px;
   border: 1px solid rgba(212, 175, 55, 0.22);
-  background: linear-gradient(165deg, rgba(36, 30, 18, 0.92), rgba(18, 16, 12, 0.96));
+  background: linear-gradient(165deg, rgba(36, 30, 18, 0.92), rgba(18, 32, 51, 0.96));
 }
 
 .stock-filtered-context-copy {
@@ -32604,7 +32604,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
-  background: linear-gradient(165deg, rgba(24, 24, 26, 0.96), rgba(14, 14, 15, 0.98));
+  background: linear-gradient(165deg, rgba(18, 32, 51, 0.96), rgba(18, 32, 51, 0.98));
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -32614,7 +32614,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-order-card:hover,
 .stock-order-card:focus-visible {
   border-color: rgba(212, 175, 55, 0.28);
-  background: linear-gradient(165deg, rgba(28, 26, 22, 0.98), rgba(16, 15, 13, 0.98));
+  background: linear-gradient(165deg, rgba(33, 52, 76, 0.98), rgba(33, 52, 76, 0.98));
   outline: none;
 }
 
@@ -34085,7 +34085,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
   color: rgba(255, 247, 232, 0.7);
   font-size: 0.82rem;
   font-weight: 600;
@@ -34136,7 +34136,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: #fff7e8;
   text-align: left;
   cursor: pointer;
@@ -34241,7 +34241,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.62);
+  background: rgba(18, 32, 51, 0.62);
 }
 
 .stock-storage-center-detail-eyebrow {
@@ -34273,7 +34273,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 24px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
   color: rgba(255, 247, 232, 0.72);
 }
 
@@ -34566,7 +34566,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.62);
+  background: rgba(18, 32, 51, 0.62);
 }
 
 .stock-storage-detail-workspace-header-top {
@@ -35077,7 +35077,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: #fff7e8;
   font-size: 1rem;
 }
@@ -35591,7 +35591,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: #fff7e8;
   text-align: left;
   cursor: pointer;
@@ -36283,7 +36283,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 12px 10px;
   border-radius: 14px;
   border: 1px solid rgba(212, 175, 55, 0.16);
-  background: rgba(18, 18, 20, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .inventory-count-posted-review-summary-label {
@@ -36303,7 +36303,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: clip;
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.16);
-  background: rgba(12, 12, 14, 0.88);
+  background: rgba(18, 32, 51, 0.88);
 }
 
 .inventory-count-posted-review-table {
@@ -36453,7 +36453,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.18);
-  background: rgba(18, 18, 20, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   min-width: 0;
 }
 
@@ -36483,7 +36483,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px;
   border-radius: 14px;
   border: 1px solid rgba(255, 247, 232, 0.1);
-  background: rgba(9, 9, 10, 0.62);
+  background: rgba(18, 32, 51, 0.62);
 }
 
 .inventory-count-posted-review-audit-summary-item {
@@ -36661,7 +36661,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 12px 10px;
   border-radius: 12px;
   border: 1px solid rgba(255, 247, 232, 0.1);
-  background: rgba(9, 9, 10, 0.55);
+  background: rgba(18, 32, 51, 0.55);
   scroll-margin-top: 16px;
 }
 
@@ -36712,7 +36712,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(148, 132, 118, 0.28);
-  background: rgba(28, 26, 24, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-count-posted-review-audit-historical-badge {
@@ -36920,7 +36920,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: auto;
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.16);
-  background: rgba(12, 12, 14, 0.88);
+  background: rgba(18, 32, 51, 0.88);
 }
 
 .inventory-count-correction-review-table {
@@ -38656,7 +38656,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 8px;
   padding: 14px 12px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(10, 10, 11, 0.88);
+  background: rgba(18, 32, 51, 0.88);
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -38849,7 +38849,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 14px;
   border: 1px solid rgba(212, 175, 55, 0.28);
   background:
-    linear-gradient(160deg, rgba(212, 175, 55, 0.14), rgba(14, 14, 15, 0.96));
+    linear-gradient(160deg, rgba(212, 175, 55, 0.14), rgba(18, 32, 51, 0.96));
 }
 
 .inventory-count-session-progress-percent {
@@ -39318,17 +39318,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 16px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 247, 232, 0.12);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .inventory-count-finish-preview-hero.is-ready {
   border-color: rgba(111, 207, 151, 0.34);
-  background: linear-gradient(135deg, rgba(111, 207, 151, 0.14), rgba(11, 15, 23, 0.55));
+  background: linear-gradient(135deg, rgba(111, 207, 151, 0.14), rgba(18, 32, 51, 0.55));
 }
 
 .inventory-count-finish-preview-hero.is-blocked {
   border-color: rgba(212, 175, 55, 0.4);
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.14), rgba(11, 15, 23, 0.55));
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.14), rgba(18, 32, 51, 0.55));
 }
 
 .inventory-count-finish-preview-hero-title {
@@ -39374,7 +39374,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 247, 232, 0.1);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .inventory-count-finish-preview-summary-card.is-positive {
@@ -39436,7 +39436,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   list-style: none;
   border-radius: 12px;
   border: 1px solid rgba(255, 247, 232, 0.08);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-count-finish-preview-flow li {
@@ -41154,7 +41154,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   z-index: 1;
   padding: 14px 14px 12px;
   border-bottom: 1px solid rgba(255, 247, 232, 0.08);
-  background: rgba(12, 12, 14, 0.96);
+  background: rgba(18, 32, 51, 0.96);
 }
 
 .stock-migration-review-rail-heading {
@@ -42418,7 +42418,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
-  background: linear-gradient(165deg, rgba(24, 24, 26, 0.96), rgba(14, 14, 15, 0.98));
+  background: linear-gradient(165deg, rgba(18, 32, 51, 0.96), rgba(18, 32, 51, 0.98));
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -42428,7 +42428,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-supplier-card:hover,
 .stock-supplier-card:focus-visible {
   border-color: rgba(212, 175, 55, 0.28);
-  background: linear-gradient(165deg, rgba(28, 26, 22, 0.98), rgba(16, 15, 13, 0.98));
+  background: linear-gradient(165deg, rgba(33, 52, 76, 0.98), rgba(33, 52, 76, 0.98));
   outline: none;
 }
 
@@ -45822,7 +45822,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.22);
-  background: rgba(10, 10, 11, 0.97);
+  background: rgba(18, 32, 51, 0.97);
   backdrop-filter: blur(18px);
   box-shadow:
     0 16px 44px rgba(0, 0, 0, 0.48),
@@ -46372,7 +46372,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(14, 14, 15, 0.72));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(18, 32, 51, 0.72));
   transition:
     border-color 180ms ease,
     background 180ms ease,
@@ -46923,7 +46923,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 14px 12px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 10, 12, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-map-field-card.is-warning {
@@ -46969,7 +46969,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 16px;
   border-radius: 16px;
   border: 1px dashed rgba(120, 170, 220, 0.28);
-  background: rgba(12, 16, 22, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-map-sample-head {
@@ -47017,7 +47017,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 14, 15, 0.78);
+  background: rgba(18, 32, 51, 0.78);
 }
 
 .inventory-import-validate-summary-card.is-ready {
@@ -47061,7 +47061,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background:
-    linear-gradient(135deg, rgba(36, 32, 28, 0.92), rgba(18, 18, 20, 0.88));
+    linear-gradient(135deg, rgba(36, 32, 28, 0.92), rgba(18, 32, 51, 0.88));
 }
 
 .inventory-import-validate-guidance.is-blocked {
@@ -47118,7 +47118,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 10, 12, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-validate-progress-label {
@@ -47147,7 +47147,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 14, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-validate-section.is-blockers {
@@ -47207,7 +47207,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-import-validate-group {
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 14, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   overflow: hidden;
 }
 
@@ -47221,7 +47221,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-import-validate-group.is-warning.has-items {
   border-color: rgba(190, 160, 90, 0.28);
-  background: rgba(28, 24, 16, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .inventory-import-validate-group-summary {
@@ -47603,7 +47603,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -47678,7 +47678,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-eligibility-summary.is-ready {
@@ -47736,7 +47736,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.26);
   background:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.88));
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(18, 32, 51, 0.88));
 }
 
 .inventory-new-product-review-subtext {
@@ -47802,7 +47802,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(14, 14, 16, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .inventory-new-product-filter-chips {
@@ -47816,7 +47816,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(20, 20, 22, 0.9);
+  background: rgba(18, 32, 51, 0.9);
   color: rgba(255, 247, 232, 0.78);
   font-size: 0.82rem;
   font-weight: 650;
@@ -47906,7 +47906,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.34);
   background:
-    linear-gradient(180deg, rgba(36, 30, 18, 0.96), rgba(14, 14, 15, 0.96));
+    linear-gradient(180deg, rgba(36, 30, 18, 0.96), rgba(18, 32, 51, 0.96));
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
 }
 
@@ -48032,7 +48032,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(11, 15, 23, 0.55);
+  background: rgba(18, 32, 51, 0.55);
 }
 
 .inventory-import-location-allocations-title {
@@ -48170,7 +48170,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.26);
   background:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.88));
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(18, 32, 51, 0.88));
 }
 
 .inventory-operational-match-resolution-subtext {
@@ -48328,7 +48328,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.26);
   background:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.88));
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(18, 32, 51, 0.88));
 }
 
 .inventory-operational-import-preview-header-text {
@@ -48580,7 +48580,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.26);
   background:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.88));
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(18, 32, 51, 0.88));
 }
 
 .inventory-operational-review-title {
@@ -48693,7 +48693,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 14px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(11, 15, 23, 0.62);
+  background: rgba(18, 32, 51, 0.62);
 }
 
 .inventory-operational-product-name {
@@ -49317,7 +49317,7 @@ summary:focus-visible {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(6, 12, 22, 0.72);
+  background: rgba(18, 32, 51, 0.72);
 }
 
 .supply-draft-preview-card {
@@ -52003,7 +52003,7 @@ summary:focus-visible {
 }
 
 .app-shell.is-mobile-shell .mobile-shell-bell .icon-btn {
-  background: rgba(12, 18, 28, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   border: 1px solid rgba(212, 175, 55, 0.28);
 }
 
@@ -52267,7 +52267,7 @@ summary:focus-visible {
     padding: 8px 4px;
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(11, 15, 23, 0.55);
+    background: rgba(18, 32, 51, 0.55);
   }
 
   .stock-storage-center-overview-stat {
@@ -52762,7 +52762,7 @@ summary:focus-visible {
   padding: 0 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(11, 15, 23, 0.72);
+  background: rgba(18, 32, 51, 0.72);
   color: #fff7e8;
   text-align: left;
 }
@@ -53388,7 +53388,7 @@ summary:focus-visible {
   z-index: 45;
 }
 .app-shell.is-reservations-dedicated-shell .mobile-shell-bell.is-reservations-dedicated-bell .icon-btn {
-  background: rgba(12, 18, 28, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   border: 1px solid rgba(212, 175, 55, 0.28);
 }
 

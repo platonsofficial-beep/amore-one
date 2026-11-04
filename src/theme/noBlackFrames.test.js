@@ -45,4 +45,21 @@ describe('no black frames (palette step 2)', () => {
     }
     expect(offenders).toEqual([])
   })
+
+  it('page panels, cards, nav bars and icon buttons are not darker than the page (step 3)', () => {
+    const PANEL = /(card|panel|nav|filter|command|banner|header|icon-btn|help-mode-toggle|tabs|section|tools)/i
+    const SKIP_PANEL = /(input|select|textarea|::?before|::?after|pill|toast|bubble|badge|avatar|floor-|fpb-|legal|debug|backdrop|scrim)/i
+    const offenders = []
+    for (const file of files(root)) {
+      const css = readFileSync(file, 'utf8')
+      for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const last = m[1].trim().split(/\s+/).join(' ').split(',').pop().trim().split(' ').pop()
+        if (!PANEL.test(last) || SKIP_PANEL.test(last)) continue
+        for (const d of m[2].matchAll(/background(?:-color|-image)?\s*:\s*([^;]+);/g)) {
+          if ((d[1].match(COLOR) ?? []).some(isNearBlack)) offenders.push(`${file.replace(root, 'src')}: ${last}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
 })

@@ -355,7 +355,7 @@
   padding: 16px;
   border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
   border-radius: 20px;
-  background: #151418;
+  background: var(--one-surface-1);
   color: #f4ede0;
 }
 
