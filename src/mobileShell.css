@@ -939,7 +939,7 @@
   border-bottom: none;
   background: var(--one-surface-raised);
   /* Sticky footers inside paint this same colour (no dark box). */
-  --one-form-surface: var(--one-surface-raised);
+  --one-form-surface: var(--one-surface-2);
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   min-width: 0;
 }
@@ -8251,8 +8251,8 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #0f0f11;
-  --one-form-surface: #0f0f11;
+  background: var(--one-form-surface);
+  --one-form-surface: var(--one-surface-2);
 }
 
 .mobile-host-reservation-inline-panel .mobile-host-reservation-inline-body {
@@ -8270,7 +8270,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin-top: 8px;
   padding-top: 10px;
   padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
-  background: var(--one-form-surface, #12141c);
+  background: var(--one-form-surface, #18283d);
 }
 
 .mobile-host-reservation-sheet.mobile-sheet {
@@ -9394,7 +9394,7 @@ body:not(:has(.inventory-count-session)) :is(
   border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0;
-  background: #0b0f17;
+  background: var(--one-form-surface);
   box-shadow: 0 -12px 24px rgba(0, 0, 0, 0.35);
 }
 
@@ -10308,7 +10308,7 @@ body:not(:has(.inventory-count-session)) :is(
     border: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 0;
-    background: #0b0f17;
+    background: var(--one-form-surface);
   }
 }
 
