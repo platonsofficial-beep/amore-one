@@ -156,7 +156,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(dialog?.textContent).toContain('New count')
     expect(dialog?.textContent).toContain('Create a new inventory counting session.')
     expect(dialog?.textContent).toContain('Step 1 of 4')
-    expect(dialog?.textContent).toContain('Count Type')
+    expect(dialog?.textContent).toContain('Count type')
 
     const cancelBtn = getButtonByText(dialog, 'Cancel')
     expect(dialog.querySelector('.inventory-count-wizard-header-actions .inventory-count-wizard-cancel-btn')).toBeNull()
@@ -233,7 +233,7 @@ describe('InventoryCountWizard foundation', () => {
     await flushAsync()
 
     expect(container.textContent).toContain('Step 2 of 4')
-    expect(container.textContent).toContain('Scope / Locations')
+    expect(container.textContent).toContain('Storages')
     expect(container.textContent).toContain(
       'Select the locations that will be included in this inventory count.',
     )
@@ -266,7 +266,7 @@ describe('InventoryCountWizard foundation', () => {
       continueBtn.click()
     })
     expect(container.textContent).toContain('Step 3 of 4')
-    expect(container.textContent).toContain('Count Settings')
+    expect(container.textContent).toContain('Count settings')
     expect(onClose).not.toHaveBeenCalled()
 
     const backBtn = getButtonByText(container, 'Back')
@@ -275,7 +275,7 @@ describe('InventoryCountWizard foundation', () => {
     })
 
     expect(container.textContent).toContain('Step 2 of 4')
-    expect(container.textContent).toContain('Scope / Locations')
+    expect(container.textContent).toContain('Storages')
     expect(getLocationCardByTitle(container, 'Main Bar').getAttribute('aria-checked')).toBe('true')
     expect(getLocationCardByTitle(container, 'Main Storage').getAttribute('aria-checked')).toBe('true')
     expect(getLocationCardByTitle(container, 'Freezer').getAttribute('aria-checked')).toBe('true')
@@ -284,7 +284,7 @@ describe('InventoryCountWizard foundation', () => {
       backBtn.click()
     })
     expect(container.textContent).toContain('Step 1 of 4')
-    expect(container.textContent).toContain('Count Type')
+    expect(container.textContent).toContain('Count type')
     const restoredTypeCards = container.querySelectorAll('[role="radio"]')
     expect(restoredTypeCards[1].getAttribute('aria-checked')).toBe('true')
 
@@ -302,7 +302,7 @@ describe('InventoryCountWizard foundation', () => {
     const { continueBtn } = await goToStep3(container)
 
     expect(container.textContent).toContain('Step 3 of 4')
-    expect(container.textContent).toContain('Count Settings')
+    expect(container.textContent).toContain('Count settings')
     expect(container.textContent).toContain(
       'Configure how this inventory session will be performed.',
     )
@@ -312,7 +312,7 @@ describe('InventoryCountWizard foundation', () => {
     )
     expect(visibilityCards).toHaveLength(2)
     expect(visibilityCards[0].getAttribute('aria-checked')).toBe('true')
-    expect(visibilityCards[0].textContent).toContain('Blind Count')
+    expect(visibilityCards[0].textContent).toContain('Blind count')
     expect(visibilityCards[0].textContent).toContain('Recommended')
     expect(continueBtn?.disabled).toBe(false)
 
@@ -353,13 +353,13 @@ describe('InventoryCountWizard foundation', () => {
     })
 
     expect(container.textContent).toContain('Step 4 of 4')
-    expect(container.textContent).toContain('Review & Start')
+    expect(container.textContent).toContain('Review & start')
     expect(container.textContent).toContain('Review the session details before starting.')
-    expect(container.textContent).toContain('Quick Count')
+    expect(container.textContent).toContain('Quick count')
     expect(container.textContent).toContain('Main Bar')
     expect(container.textContent).toContain('Main Storage')
     expect(container.textContent).toContain('2 locations')
-    expect(container.textContent).toContain('Open Count')
+    expect(container.textContent).toContain('Open count')
     expect(container.textContent).toContain('Include zero-stock items')
     expect(container.textContent).toContain('Include inactive items')
     expect(container.textContent).toContain('Yes')
@@ -419,7 +419,7 @@ describe('InventoryCountWizard foundation', () => {
       continueBtn.click()
     })
 
-    expect(container.textContent).toContain('Blind Count')
+    expect(container.textContent).toContain('Blind count')
     expect(container.textContent).not.toContain('Expected quantities will be visible while counting.')
     expect(container.textContent).not.toContain('Inactive inventory items will be included.')
     expect(container.textContent).not.toContain('Session note')

@@ -32,12 +32,9 @@ export function StockInventoryMigrationView({
             <p className="stock-migration-ownership-description">
               Import your products from CSV or Excel using the guided import workflow.
             </p>
-            <ul className="stock-migration-ownership-meta" aria-label="Spreadsheet Import capabilities">
-              <li>CSV / XLSX</li>
-              <li>Review before apply</li>
-              <li>Product matching</li>
-              <li>New product preparation</li>
-            </ul>
+            <p className="stock-migration-ownership-meta-copy">
+              Upload a CSV or Excel file. You check every product and match before anything is saved.
+            </p>
           </div>
           <div className="stock-migration-ownership-card-action">
             <button

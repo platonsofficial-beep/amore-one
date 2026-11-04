@@ -31916,8 +31916,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1.15rem;
   font-weight: 600;
   line-height: 1.25;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  /* S-24: product/supplier titles in natural case (was uppercase). */
   overflow-wrap: anywhere;
 }
 
@@ -39886,6 +39885,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.72);
   font-size: 0.88rem;
   line-height: 1.45;
+}
+
+.stock-migration-ownership-meta-copy {
+  margin: 2px 0 0;
+  color: inherit;
+  opacity: 0.8;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .stock-migration-ownership-meta {

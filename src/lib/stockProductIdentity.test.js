@@ -112,12 +112,11 @@ describe('buildProductDisplayName', () => {
     expect(buildProductDisplayName({ brand: '  ', name: null, size: '' })).toBe('')
   })
 
-  it('does not strip duplicated brand tokens from name', () => {
-    expect(buildProductDisplayName({
-      brand: 'Belvedere',
-      name: 'Belvedere Vodka',
-      size: '1 L',
-    })).toBe('Belvedere Belvedere Vodka 1 L')
+  it('drops the brand when the name already starts with it (S-24)', () => {
+    expect(buildProductDisplayName({ brand: 'Belvedere', name: 'Belvedere Vodka', size: '1 L' })).toBe('Belvedere Vodka 1 L')
+    expect(buildProductDisplayName({ brand: 'Aperol', name: 'aperol', size: '700 ml' })).toBe('aperol 700 ml')
+    expect(buildProductDisplayName({ brand: 'Bacardi', name: 'Rum', size: '1 L' })).toBe('Bacardi Rum 1 L')
+    expect(buildProductDisplayName({ brand: 'Gin', name: 'Ginger beer' })).toBe('Gin Ginger beer')
   })
 })
 

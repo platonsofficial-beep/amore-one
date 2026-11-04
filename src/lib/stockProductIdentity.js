@@ -28,10 +28,15 @@ export function normalizeProductIdentityComponent(value) {
  * @returns {string}
  */
 export function buildProductDisplayName({ brand, name, size } = {}) {
-  return [brand, name, size]
-    .map((part) => normalizeProductIdentityComponent(part))
-    .filter(Boolean)
-    .join(' ')
+  const parts = [brand, name, size].map((part) => normalizeProductIdentityComponent(part))
+  // S-24: drop the brand when the name already starts with it ("Aperol" + "Aperol" → "Aperol 700 ml").
+  const [b0, n0] = parts
+  if (b0 && n0) {
+    const lowerBrand = b0.toLocaleLowerCase()
+    const lowerName = n0.toLocaleLowerCase()
+    if (lowerName === lowerBrand || lowerName.startsWith(`${lowerBrand} `)) parts[0] = ''
+  }
+  return parts.filter(Boolean).join(' ')
 }
 
 /**

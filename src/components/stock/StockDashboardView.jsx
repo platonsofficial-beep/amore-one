@@ -54,7 +54,7 @@ import {
 } from '../../lib/stockUtils'
 import { getCurrentDateKey } from '../../lib/currentDateUtils'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
-import { buildStockOrdersOperationsSummary, sumSuggestedOrderCost } from '../../lib/stockOrderUtils'
+import { buildStockOrdersOperationsSummary, sumSuggestedOrderCost, formatSupplierDisplayName } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockActionIcon } from './StockActionIcon'
@@ -1834,7 +1834,7 @@ export function StockDashboardView({
               <ul className="stock-today-groups">
                 {visibleOrderGroups.map((group) => (
                   <li key={group.supplier}>
-                    <span>{group.supplier}</span>
+                    <span>{formatSupplierDisplayName(group.supplier)}</span>
                     <span>{group.count}</span>
                   </li>
                 ))}

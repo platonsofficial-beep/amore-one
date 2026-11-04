@@ -20,7 +20,7 @@ import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
   const quantity = line.quantity > 0 ? line.quantity : 1
-  const supplier = `${item.supplier ?? ''}`.trim() || 'Unassigned supplier'
+  const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
 
   return [{
     supplier,
@@ -377,7 +377,7 @@ export function MobileManagerStockView({
             <>
               <span aria-hidden="true">·</span>
               <span className="tone-info">
-                <strong>{isLoading ? '0' : pendingOrders}</strong> pending
+                <strong>{isLoading ? '0' : pendingOrders}</strong> {pendingOrders === 1 ? 'order' : 'orders'} pending
               </span>
             </>
           ) : null}
