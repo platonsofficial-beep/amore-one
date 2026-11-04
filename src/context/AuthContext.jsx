@@ -20,6 +20,7 @@ import { fetchMemberPermissionRows } from '../services/memberPermissionService'
 import { markSessionEnded } from '../lib/authMessageUtils'
 import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
 import { shouldSkipSameUserReload } from '../lib/authReloadPolicy'
+import { clearBootCache, readBootCache, readStoredSupabaseSession, updateBootCachePermissions, writeBootCache } from '../lib/bootCache'
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
@@ -103,6 +104,7 @@ const AuthContext = createContext(null)
 
 export const BOOTSTRAP_TIMEOUT_MS = 15000
 export const BOOTSTRAP_TIMEOUT_MESSAGE = 'The server is taking too long to respond. Please try again.'
+export const MEMBERSHIP_LOST_MESSAGE = 'Your access to this workspace has ended. Please sign in again or ask your manager.'
 
 export function AuthProvider({ children }) {
   const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
@@ -141,6 +143,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const clearAuthenticatedState = useCallback(() => {
+    clearBootCache()
     activeUserIdRef.current = ''
     loadedContextUserIdRef.current = ''
     setSession(null)
@@ -153,7 +156,10 @@ export function AuthProvider({ children }) {
     setStoredPermissionRows(null)
   }, [])
 
-  const loadWorkspaceContext = useCallback(async (nextUser) => {
+  // revalidate: background check of a context rendered from the boot cache.
+  // Network/query failures keep the cached context; a confirmed missing
+  // membership clears it and shows the existing error screen.
+  const loadWorkspaceContext = useCallback(async (nextUser, { revalidate = false } = {}) => {
     const loadSeq = ++authLoadSeqRef.current
     const userId = `${nextUser?.id ?? ''}`.trim()
     if (!userId) {
@@ -165,6 +171,8 @@ export function AuthProvider({ children }) {
     }
 
     setIsJoiningWorkspace(true)
+    let membershipQueryFailed = false
+    let resolvedMemberships = []
 
     try {
     setMembershipLoadError(null)
@@ -198,7 +206,7 @@ export function AuthProvider({ children }) {
       }
     } catch (inviteBootstrapError) {
       console.error('[AuthContext] resolveWorkspaceInviteOnBootstrap error:', inviteBootstrapError)
-      setMembershipLoadError((current) => current || inviteBootstrapError?.message || 'Unable to accept workspace invite.')
+      if (!revalidate) setMembershipLoadError((current) => current || inviteBootstrapError?.message || 'Unable to accept workspace invite.')
     }
 
     try {
@@ -208,7 +216,8 @@ export function AuthProvider({ children }) {
       if (loadSeq !== authLoadSeqRef.current) return
 
       resolvedMembership = membershipContext.membership
-      setMemberships(Array.isArray(membershipContext.memberships) ? membershipContext.memberships : [])
+      resolvedMemberships = Array.isArray(membershipContext.memberships) ? membershipContext.memberships : []
+      setMemberships(resolvedMemberships)
       joinedWorkspaceRecord = membershipContext.joinedWorkspaceRecord ?? membershipContext.workspace
 
       if (resolvedMembership) {
@@ -217,7 +226,21 @@ export function AuthProvider({ children }) {
     } catch (membershipQueryError) {
       const message = membershipQueryError?.message || 'Unable to load workspace membership.'
       console.error('[AuthContext] membership query error:', membershipQueryError)
-      setMembershipLoadError((current) => current || message)
+      membershipQueryFailed = true
+      if (!revalidate) setMembershipLoadError((current) => current || message)
+    }
+
+    if (revalidate && membershipQueryFailed) return
+    if (revalidate && !resolvedMembership) {
+      if (loadSeq !== authLoadSeqRef.current) return
+      clearBootCache()
+      loadedContextUserIdRef.current = ''
+      setMembership(null)
+      setWorkspace(null)
+      setMemberships([])
+      setStoredPermissionRows(null)
+      setMembershipLoadError(MEMBERSHIP_LOST_MESSAGE)
+      return
     }
 
     const skipOwnerBootstrap = shouldSkipOwnerMembershipBootstrap({
@@ -283,6 +306,17 @@ export function AuthProvider({ children }) {
     setWorkspaceLoadError(nextWorkspaceLoadError)
     setWorkspace(hydratedWorkspace)
     loadedContextUserIdRef.current = resolvedMembership && hydratedWorkspace ? userId : ''
+    if (resolvedMembership && hydratedWorkspace) {
+      const normalized = normalizeMembershipForContext(resolvedMembership)
+      const previous = readBootCache(userId)
+      writeBootCache({
+        userId,
+        membership: normalized,
+        memberships: resolvedMemberships,
+        workspace: hydratedWorkspace,
+        permissionRows: previous && `${previous.membership?.id ?? ''}` === `${normalized?.id ?? ''}` ? previous.permissionRows : null,
+      })
+    }
     } finally {
       if (loadSeq === authLoadSeqRef.current) {
         setIsJoiningWorkspace(false)
@@ -358,7 +392,58 @@ export function AuthProvider({ children }) {
       }
     }
 
+    const bootFromCache = () => {
+      const storedSession = readStoredSupabaseSession()
+      const cached = storedSession ? readBootCache(storedSession.user.id) : null
+      if (!cached) return null
+      syncSessionOnly(storedSession)
+      setMembership(cached.membership)
+      setMemberships(Array.isArray(cached.memberships) ? cached.memberships : [])
+      setWorkspace(cached.workspace)
+      setStoredPermissionRows(Array.isArray(cached.permissionRows) && cached.permissionRows.length > 0 ? cached.permissionRows : null)
+      setMembershipLoadError(null)
+      setWorkspaceLoadError(null)
+      loadedContextUserIdRef.current = cached.userId
+      finishBootstrapping()
+      return cached
+    }
+
+    const revalidateCachedBoot = async (cached) => {
+      let nextSession
+      try {
+        nextSession = await getSession()
+      } catch (error) {
+        // Network trouble while refreshing the token: keep the cached shell.
+        console.warn('[AuthContext] background session check failed:', error)
+        return
+      }
+      if (!isMounted) return
+      const nextUserId = `${nextSession?.user?.id ?? ''}`.trim()
+      if (!nextUserId) {
+        clearMobileSessionState()
+        clearAuthenticatedState()
+        return
+      }
+      if (nextUserId !== cached.userId) {
+        clearBootCache()
+        await hydrateAuthenticatedSession(nextSession, { blockUi: true })
+        return
+      }
+      syncSessionOnly(nextSession)
+      try {
+        await loadWorkspaceContext(nextSession.user, { revalidate: true })
+      } catch (error) {
+        console.warn('[AuthContext] background workspace revalidation failed:', error)
+      }
+    }
+
     const bootstrapAuth = async () => {
+      const cached = bootFromCache()
+      if (cached) {
+        revalidateCachedBoot(cached)
+        return
+      }
+
       setIsBootstrapping(true)
       setIsLoading(true)
 
@@ -424,6 +509,7 @@ export function AuthProvider({ children }) {
       }
 
       if (hasBootstrappedRef.current) {
+        clearBootCache()
         hydrateAuthenticatedSession(nextSession, { blockUi: true })
         return
       }
@@ -520,22 +606,30 @@ export function AuthProvider({ children }) {
     }
 
     let cancelled = false
-    setStoredPermissionRows(null)
+    // Start from the cached rows for this member (never broader than the
+    // last known permissions); the fetch below replaces them.
+    const cachedBoot = readBootCache(user?.id)
+    const cachedRows = cachedBoot && `${cachedBoot.membership?.id ?? ''}` === memberId && Array.isArray(cachedBoot.permissionRows) && cachedBoot.permissionRows.length > 0
+      ? cachedBoot.permissionRows
+      : null
+    setStoredPermissionRows(cachedRows)
     fetchMemberPermissionRows(workspaceId, memberId)
       .then((rows) => {
         if (cancelled) return
-        setStoredPermissionRows(Array.isArray(rows) && rows.length > 0 ? rows : null)
+        const nextRows = Array.isArray(rows) && rows.length > 0 ? rows : null
+        setStoredPermissionRows(nextRows)
+        updateBootCachePermissions(user?.id, memberId, nextRows)
       })
       .catch((error) => {
         console.error('[AuthContext] member permission load error:', error)
         if (cancelled) return
-        setStoredPermissionRows(null)
+        setStoredPermissionRows(cachedRows)
       })
 
     return () => {
       cancelled = true
     }
-  }, [isAuthDisabled, membership?.id, membership?.workspaceId, membership?.role])
+  }, [isAuthDisabled, membership?.id, membership?.workspaceId, membership?.role, user?.id])
 
   const role = useMemo(() => {
     if (membership?.role) {

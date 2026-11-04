@@ -1,5 +1,6 @@
 import { buildStockLiveFacts } from '../../lib/stockLiveCard'
 import { formatSharedStockHealthLine } from '../../lib/stockUtils'
+import { LoadFailed, LoadingLines } from '../common/DataPending'
 
 function LiveRow({ label, tone = 'default', onClick }) {
   return (
@@ -15,6 +16,8 @@ function LiveRow({ label, tone = 'default', onClick }) {
 }
 
 export function StockLiveCard({
+  loadStatus = 'ready',
+  onRetry,
   stockSummary = null,
   belowParCount = 0,
   parsReady = false,
@@ -28,6 +31,25 @@ export function StockLiveCard({
   onOpenDrafts,
   onOpenCounts,
 }) {
+  if (loadStatus !== 'ready') {
+    return (
+      <section className={`stock-live-card panel staff-panel is-${loadStatus}`} aria-label="Stock live" aria-busy={loadStatus === 'loading' ? 'true' : undefined}>
+        <h3 className="stock-live-card-title">Stock</h3>
+        {loadStatus === 'error' ? (
+          <div className="stock-live-card-pending"><LoadFailed onRetry={onRetry} /></div>
+        ) : (
+          <div className="stock-live-card-rows">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="stock-live-card-row stock-live-card-row-pending" aria-hidden={row > 0 ? 'true' : undefined}>
+                <LoadingLines label="Loading stock" />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    )
+  }
+
   const facts = buildStockLiveFacts({
     belowParCount,
     parsReady: parsStatus === 'ready' && parsReady,

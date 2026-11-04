@@ -1,3 +1,4 @@
+import { LoadingLines } from '../common/DataPending'
 import { UserMenu } from '../auth/UserMenu'
 import { HelpModeToggle } from '../../help/HelpMode'
 
@@ -70,24 +71,31 @@ export function TodayCommandHeader({
           {chips.length > 0 ? (
             <div className="today-command-row today-command-row-chips">
               <div className="today-command-chip-strip" role="list" aria-label="Operational status">
-                {chips.map((chip) => (
+                {chips.map((chip) => {
+                  const status = chip.loadStatus ?? 'ready'
+                  const isReady = status === 'ready'
+                  return (
                   <button
                     key={chip.id}
                     type="button"
-                    className={`today-command-chip tone-${chip.tone ?? 'default'}`}
+                    className={`today-command-chip tone-${isReady ? (chip.tone ?? 'default') : 'default'}${isReady ? '' : ` is-${status}`}`}
                     role="listitem"
-                    onClick={() => onChipSelect?.(chip.id)}
+                    aria-busy={status === 'loading' ? 'true' : undefined}
+                    onClick={() => (status === 'error' ? chip.onRetry?.() : onChipSelect?.(chip.id))}
                   >
                     <span className="today-command-chip-icon" aria-hidden="true">{chip.icon}</span>
                     <span className="today-command-chip-copy">
                       <span className="today-command-chip-label">{chip.label}</span>
-                      <strong className="today-command-chip-value">{chip.value}</strong>
-                      {chip.detail ? (
+                      <strong className="today-command-chip-value">
+                        {isReady ? chip.value : status === 'error' ? "Couldn't load" : <LoadingLines label={`Loading ${chip.label}`} className="is-chip" />}
+                      </strong>
+                      {isReady && chip.detail ? (
                         <span className="today-command-chip-detail">{chip.detail}</span>
                       ) : null}
                     </span>
                   </button>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ) : null}

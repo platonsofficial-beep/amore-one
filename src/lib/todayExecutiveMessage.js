@@ -38,7 +38,15 @@ export function buildTodayExecutiveMessage({
   firstShiftStartLabel = '',
   isServiceInProgress = false,
   hasStockProblems = false,
+  dataStatus = 'ready',
 } = {}) {
+  // Never say "Everything is ready" before the data that proves it arrived.
+  if (dataStatus === 'loading') {
+    return buildExecutivePresentation({ tone: 'neutral', message: "Loading today's status…" })
+  }
+  if (dataStatus === 'error') {
+    return buildExecutivePresentation({ tone: 'warning', message: "Couldn't load today's status. Tap a card to retry." })
+  }
   if (hasUrgentAttention) {
     const urgentMessage = isServiceInProgress
       ? 'Service requires immediate attention.'

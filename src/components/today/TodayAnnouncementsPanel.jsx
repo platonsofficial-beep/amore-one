@@ -1,3 +1,4 @@
+import { PendingValue } from '../common/DataPending'
 import { useEffect, useMemo, useState } from 'react'
 import {
   filterAnnouncementsForUser,
@@ -83,6 +84,8 @@ export function TodayAnnouncementsPanel({
   isSaving = false,
   onMarkSeen,
   collapsible = true,
+  loadStatus = 'ready',
+  onRetry,
 }) {
   const activeAnnouncements = useMemo(() => (
     filterAnnouncementsForUser(announcements, {
@@ -103,7 +106,9 @@ export function TodayAnnouncementsPanel({
     setIsPanelExpanded(defaultExpanded)
   }, [collapsible, defaultExpanded])
 
-  const collapsedSummary = formatTodayAnnouncementsCollapsedSummary(activeAnnouncements)
+  const collapsedSummary = activeAnnouncements.length === 0 && loadStatus !== 'ready'
+    ? (loadStatus === 'error' ? "Couldn't load" : 'Loading…')
+    : formatTodayAnnouncementsCollapsedSummary(activeAnnouncements)
 
   const handlePanelToggle = () => {
     setIsPanelExpanded((current) => {
@@ -115,7 +120,9 @@ export function TodayAnnouncementsPanel({
     })
   }
 
-  const announcementList = activeAnnouncements.length === 0 ? (
+  const announcementList = activeAnnouncements.length === 0 && loadStatus !== 'ready' ? (
+    <div className="today-empty-note"><PendingValue status={loadStatus} lines={2} onRetry={onRetry} /></div>
+  ) : activeAnnouncements.length === 0 ? (
     <p className="today-empty-note today-empty-note-clear">No announcements right now.</p>
   ) : (
     <div className="today-announcements-list">
