@@ -15,6 +15,7 @@
   - #0A1628 on #D2BFA4 is 10.1:1 (bronze fills)
   - #F7F4EE on #46617C is 5.9:1 (steel fills)
   Status red, green, and amber stay separate from gold, steel, and bronze.
+  - #8EA6BF (text-subtle) on #0A1628 is 7.2:1 and on #21344C is 5.0:1
 */
 
 :root {
@@ -75,6 +76,30 @@
   --one-chart-1: var(--one-steel);
   --one-chart-2: var(--one-bronze);
   --one-chart-3: var(--one-gold);
+
+  /* Palette v1 (rollout step 1). Surface levels, text levels, lines and
+     status tokens. Older names above stay and alias where they overlap. */
+  --one-surface-1: var(--one-navy-800);
+  --one-surface-2: var(--one-navy-700);
+  --one-surface-3: var(--one-navy-600);
+  --one-fill: rgba(169, 192, 214, 0.06);
+  --one-fill-hover: rgba(169, 192, 214, 0.12);
+  --one-scrim: rgba(5, 11, 22, 0.62);
+  /* One surface for forms, modals, sheets and their sticky footers. */
+  --one-form-surface: var(--one-surface-2);
+
+  --one-text-subtle: #8ea6bf;
+  --one-on-gold: var(--one-gold-ink);
+  --one-border-strong: var(--one-steel-line);
+  --one-gold-text: var(--one-gold-light);
+  --one-gold-soft-bg: rgba(212, 175, 55, 0.12);
+
+  --one-info: var(--one-status-info);
+  --one-info-bg: var(--one-status-info-bg);
+  --one-status-seated: #7fc8d8;
+  --one-status-seated-bg: rgba(127, 200, 216, 0.16);
+  --one-status-combined: #b3a1e0;
+  --one-status-combined-bg: rgba(179, 161, 224, 0.16);
 
   --one-scrollbar-thumb: rgba(70, 97, 124, 0.85);
   --one-scrollbar-thumb-hover: rgba(212, 175, 55, 0.55);

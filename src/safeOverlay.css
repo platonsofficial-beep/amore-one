@@ -470,8 +470,8 @@ body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reserv
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background: #12141c;
-  --one-form-surface: #12141c;
+  background: var(--one-form-surface);
+  --one-form-surface: var(--one-surface-2);
   border-radius: 0;
 }
 body.is-keyboard-open .mobile-host-reservations.is-landscape .mobile-host-reservation-inline-panel:focus-within .mobile-host-reservation-inline-body {
