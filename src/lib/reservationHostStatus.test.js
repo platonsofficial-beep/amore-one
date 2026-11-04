@@ -69,7 +69,7 @@ describe('getHostStationStatusMenuOptions', () => {
       'Arrived',
       'Seated',
       'Completed',
-      'No show',
+      'No-show',
       'Cancelled',
     ])
     expect(options.find((entry) => entry.menuLabel === 'Arrived')?.status).toBe('Waiting')

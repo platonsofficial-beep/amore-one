@@ -289,7 +289,7 @@ export default function ReportsView({
       },
       {
         key: 'waiting',
-        label: 'Waiting',
+        label: 'Arrived',
         value: formatSectionMetric(reports.reservationsReport.metrics.waiting, {
           connected: reports.reservationsReport.connected,
         }),
@@ -318,7 +318,7 @@ export default function ReportsView({
   reservationMetrics.push(
     {
       key: 'in-house',
-      label: 'In house',
+      label: 'Seated',
       value: formatSectionMetric(reports.reservationsReport.metrics.inHouse, {
         connected: reports.reservationsReport.connected,
       }),

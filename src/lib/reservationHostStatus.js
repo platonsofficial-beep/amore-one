@@ -5,6 +5,7 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '◷',
     tone: 'pending',
     groupId: 'upcoming',
+    pickerGroupId: 'upcoming',
   },
   {
     id: 'Waiting',
@@ -13,13 +14,17 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '◴',
     tone: 'waiting',
     groupId: 'upcoming',
+    pickerGroupId: 'arrived',
   },
   {
     id: 'Not Confirmed',
-    label: 'Not Confirmed',
+    label: 'Unconfirmed',
     icon: '🕐',
     tone: 'not-confirmed',
     groupId: 'upcoming',
+    pickerGroupId: 'upcoming',
+    // Platon t447u: no longer offered in the picker; existing bookings still show it.
+    hiddenInPicker: true,
   },
   {
     id: 'Confirmed',
@@ -27,34 +32,40 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '●',
     tone: 'confirmed',
     groupId: 'upcoming',
+    pickerGroupId: 'upcoming',
   },
   {
     id: 'Late Booking',
-    label: 'Late Booking',
+    label: 'Late',
     icon: '☾',
     tone: 'late-booking',
     groupId: 'upcoming',
+    pickerGroupId: 'upcoming',
   },
   {
     id: 'Checked In (Partial)',
-    label: 'In House (Partial)',
+    // No seated-guest count is stored, so the partial seat gets a short hint.
+    label: 'Seated · partly',
     icon: '✓',
     tone: 'checked-in-partial',
     groupId: 'in-house',
+    pickerGroupId: 'arrived',
   },
   {
     id: 'Checked In',
-    label: 'In House',
+    label: 'Seated',
     icon: '🍽',
     tone: 'checked-in',
     groupId: 'in-house',
+    pickerGroupId: 'arrived',
   },
   {
     id: 'Walk In',
-    label: 'Walk In',
+    label: 'Walk-in',
     icon: '→',
     tone: 'walk-in',
     groupId: 'in-house',
+    pickerGroupId: 'arrived',
   },
   {
     id: 'Checked Out',
@@ -62,6 +73,7 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '✓',
     tone: 'checked-out',
     groupId: 'completed',
+    pickerGroupId: 'finished',
   },
   {
     id: 'Cancelled',
@@ -69,13 +81,15 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '⊗',
     tone: 'cancelled',
     groupId: 'problems',
+    pickerGroupId: 'problems',
   },
   {
     id: 'Not Shown',
-    label: 'Not Shown',
+    label: 'No-show',
     icon: '◌',
     tone: 'not-shown',
     groupId: 'problems',
+    pickerGroupId: 'problems',
   },
   {
     id: 'Rejected',
@@ -83,8 +97,28 @@ export const HOST_RESERVATION_STATUSES = [
     icon: '✕',
     tone: 'rejected',
     groupId: 'problems',
+    pickerGroupId: 'problems',
   },
 ]
+
+// Display groups for the status picker (Platon t447u). Logic groups
+// (HOST_LIST_GROUP_DEFS / groupId) stay unchanged: Waiting still counts as
+// "upcoming" for late flags, counts and sorting.
+export const HOST_STATUS_PICKER_GROUP_DEFS = [
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'arrived', label: 'Arrived' },
+  { id: 'finished', label: 'Finished' },
+  { id: 'problems', label: 'Problems' },
+]
+
+export function getHostStatusPickerGroups() {
+  return HOST_STATUS_PICKER_GROUP_DEFS.map((group) => ({
+    ...group,
+    statuses: HOST_RESERVATION_STATUSES.filter(
+      (status) => status.pickerGroupId === group.id && !status.hiddenInPicker,
+    ),
+  }))
+}
 
 export const HOST_LIST_GROUP_DEFS = [
   {
@@ -95,13 +129,13 @@ export const HOST_LIST_GROUP_DEFS = [
   },
   {
     id: 'in-house',
-    label: 'In House',
+    label: 'Seated',
     tone: 'in-house',
     icon: '●',
   },
   {
     id: 'completed',
-    label: 'Completed',
+    label: 'Finished',
     tone: 'completed',
     icon: '✓',
   },
@@ -249,7 +283,7 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   'Not Confirmed': 'Unconfirmed',
   Confirmed: 'Confirmed',
   'Late Booking': 'Late',
-  'Checked In (Partial)': 'Seated',
+  'Checked In (Partial)': 'Seated · partly',
   'Checked In': 'Seated',
   'Walk In': 'Walk-in',
   'Checked Out': 'Completed',
@@ -303,9 +337,9 @@ export function getHostListCompactStatusPresentation(
 
 const HOST_FLOOR_SELECTION_STATUS_LABELS = {
   'Checked In': 'Seated',
-  'Checked In (Partial)': 'Seated',
-  'Walk In': 'Seated',
-  'Not Shown': 'No Show',
+  'Checked In (Partial)': 'Seated · partly',
+  'Walk In': 'Walk-in',
+  'Not Shown': 'No-show',
   'Checked Out': 'Completed',
 }
 
@@ -363,7 +397,7 @@ export const HOST_STATION_STATUS_MENU_OPTIONS = [
   { status: 'Waiting', menuLabel: 'Arrived' },
   { status: 'Checked In', menuLabel: 'Seated' },
   { status: 'Checked Out', menuLabel: 'Completed' },
-  { status: 'Not Shown', menuLabel: 'No show' },
+  { status: 'Not Shown', menuLabel: 'No-show' },
   { status: 'Cancelled', menuLabel: 'Cancelled' },
 ]
 
@@ -407,6 +441,9 @@ function parseTimeToMinutes(value) {
 export function getReservationDisplayStatus(reservation, nowMinutes, todayKey) {
   const status = normalizeReservationStatus(reservation?.status)
   if (status === 'Late Booking') return 'Late Booking'
+  // An Arrived guest is already here: show Arrived, never Late (Platon t447u).
+  // Late/waiting counts in the service snapshot are unchanged.
+  if (status === 'Waiting') return status
   if (isReservationLateByTime(reservation, nowMinutes, todayKey)) return 'Late Booking'
   return status
 }

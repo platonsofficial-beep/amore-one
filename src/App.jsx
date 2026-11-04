@@ -8800,10 +8800,10 @@ const FLOOR_TABLE_STATUS_META = {
   upcoming: { label: 'Upcoming', tone: 'confirmed' },
   booked: { label: 'Booked', tone: 'booked' },
   confirmed: { label: 'Confirmed', tone: 'confirmed' },
-  arrived: { label: 'Waiting', tone: 'arrived' },
+  arrived: { label: 'Arrived', tone: 'arrived' },
   seated: { label: 'Seated', tone: 'seated' },
-  'checked-in': { label: 'Checked In', tone: 'checked-in' },
-  'checked-in-partial': { label: 'Checked In (Partial)', tone: 'checked-in-partial' },
+  'checked-in': { label: 'Seated', tone: 'checked-in' },
+  'checked-in-partial': { label: 'Seated · partly', tone: 'checked-in-partial' },
   dining: { label: 'Dining', tone: 'dining' },
   cleaning: { label: 'Needs Cleaning', tone: 'cleaning' },
 }
@@ -13538,7 +13538,7 @@ function ServiceHealthCard({ metrics }) {
       </div>
       <div className="service-health-ribbon-metrics" role="list">
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>In house</span>
+          <span>Seated</span>
           <strong>{metrics.guestsInHouse > 0 ? metrics.guestsInHouse : '—'}</strong>
         </div>
         <div className="service-health-ribbon-metric" role="listitem">

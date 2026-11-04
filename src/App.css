@@ -53802,3 +53802,54 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
   font-size: 0.6rem;
   line-height: 1;
 }
+
+/* Status colours (Platon t447u): one distinct colour per status, palette
+   tokens only. Unconfirmed amber, Arrived lilac, Late red, Walk-in a lighter
+   orange than Seated, partial seat = Seated with a dashed edge, Completed
+   neutral steel, and the three problems told apart by text colour/edge. */
+.host-reservation-card-status-pill.tone-waiting {
+  color: var(--one-status-combined);
+  background: var(--one-status-combined-bg);
+  border-color: var(--one-status-combined);
+}
+.host-reservation-card-status-pill.tone-not-confirmed {
+  color: var(--one-warning);
+  background: var(--one-warning-bg);
+  border-color: var(--one-warning);
+}
+.host-reservation-card-status-pill.tone-late-booking {
+  color: var(--one-danger);
+  background: var(--one-danger-bg);
+  border-color: var(--one-danger);
+}
+.host-reservation-card-status-pill.tone-checked-in-partial {
+  color: var(--one-text);
+  background: var(--one-bronze-soft);
+  border-style: dashed;
+  border-color: var(--one-bronze-light);
+}
+.host-reservation-card-status-pill.tone-walk-in {
+  color: var(--one-bronze-light);
+  background: var(--one-overlay-04);
+  border-color: var(--one-bronze-line);
+}
+.host-reservation-card-status-pill.tone-checked-out {
+  color: var(--one-steel-light);
+  background: var(--one-steel-soft);
+  border-color: var(--one-steel-line);
+}
+.host-reservation-card-status-pill.tone-not-shown {
+  color: var(--one-danger);
+  border-color: var(--one-danger-bg);
+}
+.host-reservation-card-status-pill.tone-rejected {
+  color: var(--one-text-muted);
+  border-style: dashed;
+}
+.host-status-picker-icon.tone-waiting { background: var(--one-status-combined); border-color: var(--one-status-combined-bg); }
+.host-status-picker-icon.tone-not-confirmed { background: var(--one-warning); border-color: var(--one-warning-bg); }
+.host-status-picker-icon.tone-late-booking { background: var(--one-danger); border-color: var(--one-danger-bg); }
+.host-status-picker-icon.tone-checked-in-partial { background: var(--one-bronze-soft); border-color: var(--one-bronze-light); border-style: dashed; }
+.host-status-picker-icon.tone-walk-in { background: var(--one-bronze-light); border-color: var(--one-bronze-line); }
+.host-status-picker-icon.tone-checked-out { background: var(--one-steel); border-color: var(--one-steel-line); }
+.host-status-picker-icon.tone-not-shown { background: var(--one-danger-bg); border-color: var(--one-danger); }

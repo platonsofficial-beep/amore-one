@@ -1,9 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  HOST_LIST_GROUP_DEFS,
-  HOST_RESERVATION_STATUSES,
   getHostStatusMeta,
+  getHostStatusPickerGroups,
 } from '../../lib/reservationHostStatus'
 
 const PICKER_MARGIN = 10
@@ -49,10 +48,7 @@ export function computePickerPosition(anchorRect, pickerWidth, pickerHeight) {
 }
 
 function buildStatusGroups() {
-  return HOST_LIST_GROUP_DEFS.map((group) => ({
-    ...group,
-    statuses: HOST_RESERVATION_STATUSES.filter((status) => status.groupId === group.id),
-  }))
+  return getHostStatusPickerGroups()
 }
 
 export function HostReservationStatusPicker({

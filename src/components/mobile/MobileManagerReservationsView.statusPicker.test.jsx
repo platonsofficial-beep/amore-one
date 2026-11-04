@@ -32,7 +32,7 @@ describe('portrait status pill (Platon t447u)', () => {
     act(() => pill.click())
     const sheet = document.querySelector('.host-status-picker.is-sheet')
     expect(sheet).not.toBeNull()
-    expect(sheet.querySelector('.host-status-picker-option.is-active')?.textContent).toContain('In House')
+    expect(sheet.querySelector('.host-status-picker-option.is-active')?.textContent).toContain('Seated')
     expect(document.querySelector('.manager-portrait-reservation-sheet, .mobile-sheet-backdrop')).toBeNull()
     const cancelled = [...sheet.querySelectorAll('.host-status-picker-option')].find((b) => b.textContent.includes('Cancelled'))
     await act(async () => { cancelled.click() })

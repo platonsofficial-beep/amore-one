@@ -86,7 +86,7 @@ describe('getHostFloorSelectionStatusPresentation', () => {
       1200,
       '2026-07-10',
     )).toMatchObject({
-      label: 'No Show',
+      label: 'No-show',
       icon: '⚠',
     })
 
@@ -195,7 +195,7 @@ describe('MobileHostFloorSelectionCard', () => {
 
     const noShowPill = noShow.container.querySelector('.selected-reservation-status')
     expect(noShowPill?.querySelector('.selected-reservation-status-icon')?.textContent).toBe('⚠')
-    expect(noShowPill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('No Show')
+    expect(noShowPill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('No-show')
     noShow.cleanup()
   })
 

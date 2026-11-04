@@ -118,7 +118,7 @@ export const HELP_CATALOG = {
   },
   'reservations.walk-in': {
     title: { en: 'Walk-in' },
-    body: { en: 'Seats a guest who does not have a booking. Seat Now saves them as in house.' },
+    body: { en: 'Seats a guest who does not have a booking. Seat Now saves them as seated.' },
   },
   'reservations.add': {
     title: { en: 'Add reservation' },
