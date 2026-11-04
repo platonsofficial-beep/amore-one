@@ -57,7 +57,7 @@
 }
 
 .privacy-warning {
-  color: #ffb74d;
+  color: var(--one-warning);
 }
 
 .privacy-sheet-body p,

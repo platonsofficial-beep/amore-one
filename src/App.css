@@ -599,9 +599,9 @@
 }
 
 .today-status-premium-card.tone-live {
-  border-color: rgba(76, 175, 80, 0.24);
+  border-color: color-mix(in srgb, var(--one-success) 24%, transparent);
   background:
-    linear-gradient(160deg, rgba(76, 175, 80, 0.08), transparent 58%),
+    linear-gradient(160deg, color-mix(in srgb, var(--one-success) 8%, transparent), transparent 58%),
     rgba(18, 32, 51, 0.92);
 }
 
@@ -613,9 +613,9 @@
 }
 
 .today-status-premium-card.tone-alert {
-  border-color: rgba(244, 67, 54, 0.24);
+  border-color: color-mix(in srgb, var(--one-danger) 24%, transparent);
   background:
-    linear-gradient(160deg, rgba(244, 67, 54, 0.08), transparent 58%),
+    linear-gradient(160deg, color-mix(in srgb, var(--one-danger) 8%, transparent), transparent 58%),
     rgba(18, 32, 51, 0.92);
 }
 
@@ -1755,7 +1755,7 @@
 
 .operational-snapshot-status {
   margin: 0;
-  color: #d9f6cf;
+  color: var(--one-success);
   font-size: 0.92rem;
   font-weight: 600;
 }
@@ -2120,8 +2120,8 @@
 }
 
 .today-command-chip.tone-live {
-  border-color: rgba(76, 175, 80, 0.28);
-  background: rgba(76, 175, 80, 0.08);
+  border-color: color-mix(in srgb, var(--one-success) 28%, transparent);
+  background: color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .today-command-chip.tone-draft,
@@ -2136,8 +2136,8 @@
 }
 
 .today-command-chip.tone-alert {
-  border-color: rgba(244, 67, 54, 0.28);
-  background: rgba(244, 67, 54, 0.08);
+  border-color: color-mix(in srgb, var(--one-danger) 28%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 8%, transparent);
 }
 
 .today-command-chip.tone-muted {
@@ -2335,8 +2335,8 @@
 }
 
 .command-status-chip.tone-live {
-  border-color: rgba(76, 175, 80, 0.28);
-  background: rgba(76, 175, 80, 0.08);
+  border-color: color-mix(in srgb, var(--one-success) 28%, transparent);
+  background: color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .command-status-chip.tone-standby {
@@ -2452,8 +2452,8 @@
 }
 
 .command-live-status.tone-live {
-  border-color: rgba(76, 175, 80, 0.28);
-  background: rgba(76, 175, 80, 0.08);
+  border-color: color-mix(in srgb, var(--one-success) 28%, transparent);
+  background: color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .command-live-status.tone-standby {
@@ -2707,9 +2707,9 @@
 }
 
 .command-health-icon.tone-healthy {
-  color: #b8e8b0;
-  background: rgba(76, 175, 80, 0.14);
-  border: 1px solid rgba(76, 175, 80, 0.28);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-success) 28%, transparent);
 }
 
 .command-health-icon.tone-attention {
@@ -2720,8 +2720,8 @@
 
 .command-health-icon.tone-critical {
   color: #ffb8b0;
-  background: rgba(244, 67, 54, 0.14);
-  border: 1px solid rgba(244, 67, 54, 0.3);
+  background: color-mix(in srgb, var(--one-danger) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-danger) 30%, transparent);
 }
 
 .command-hero-metric-label-upper {
@@ -2851,8 +2851,8 @@
 }
 
 .command-stock-item.severity-critical {
-  border-color: rgba(244, 67, 54, 0.42);
-  background: rgba(244, 67, 54, 0.1);
+  border-color: color-mix(in srgb, var(--one-danger) 42%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
 }
 
 .command-stock-copy {
@@ -2877,8 +2877,8 @@
 }
 
 .command-alert-compact.severity-info {
-  border-color: rgba(76, 175, 80, 0.24);
-  background: rgba(76, 175, 80, 0.06);
+  border-color: color-mix(in srgb, var(--one-success) 24%, transparent);
+  background: color-mix(in srgb, var(--one-success) 6%, transparent);
 }
 
 .command-alert-compact.severity-warning {
@@ -2887,8 +2887,8 @@
 }
 
 .command-alert-compact.severity-critical {
-  border-color: rgba(244, 67, 54, 0.3);
-  background: rgba(244, 67, 54, 0.07);
+  border-color: color-mix(in srgb, var(--one-danger) 30%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 7%, transparent);
 }
 
 .command-issues-title {
@@ -2917,13 +2917,13 @@
 }
 
 .command-hero-metric.health-tone-healthy {
-  border-color: rgba(76, 175, 80, 0.36);
+  border-color: color-mix(in srgb, var(--one-success) 36%, transparent);
   background:
-    linear-gradient(180deg, rgba(76, 175, 80, 0.12) 0%, rgba(76, 175, 80, 0.04) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--one-success) 12%, transparent) 0%, color-mix(in srgb, var(--one-success) 4%, transparent) 100%);
   box-shadow:
     inset 0 1px 0 rgba(127, 214, 122, 0.18),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(76, 175, 80, 0.08);
+    0 0 0 1px color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .command-hero-metric.health-tone-attention {
@@ -2937,17 +2937,17 @@
 }
 
 .command-hero-metric.health-tone-critical {
-  border-color: rgba(244, 67, 54, 0.4);
+  border-color: color-mix(in srgb, var(--one-danger) 40%, transparent);
   background:
-    linear-gradient(180deg, rgba(244, 67, 54, 0.12) 0%, rgba(244, 67, 54, 0.04) 100%);
+    linear-gradient(180deg, color-mix(in srgb, var(--one-danger) 12%, transparent) 0%, color-mix(in srgb, var(--one-danger) 4%, transparent) 100%);
   box-shadow:
     inset 0 1px 0 rgba(255, 138, 128, 0.16),
     inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(244, 67, 54, 0.08);
+    0 0 0 1px color-mix(in srgb, var(--one-danger) 8%, transparent);
 }
 
 .command-hero-metric.health-tone-healthy .command-hero-metric-value-text {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .command-hero-metric.health-tone-attention .command-hero-metric-value-text {
@@ -2972,8 +2972,8 @@
   height: 30px;
   padding: 0 8px;
   border-radius: 999px;
-  background: rgba(244, 67, 54, 0.14);
-  border: 1px solid rgba(244, 67, 54, 0.24);
+  background: color-mix(in srgb, var(--one-danger) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-danger) 24%, transparent);
   color: #ffb8b0;
   font-size: 0.82rem;
   font-weight: 700;
@@ -2987,7 +2987,7 @@
 }
 
 .command-state-label.live {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .command-issues-card.severity-warning {
@@ -2995,7 +2995,7 @@
 }
 
 .command-issues-card.severity-critical {
-  border-color: rgba(244, 67, 54, 0.28);
+  border-color: color-mix(in srgb, var(--one-danger) 28%, transparent);
 }
 
 .command-issues-panel {
@@ -3013,8 +3013,8 @@
 }
 
 .command-severity-badge.info {
-  color: #b8e8b0;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .command-severity-badge.warning {
@@ -3024,7 +3024,7 @@
 
 .command-severity-badge.critical {
   color: #ffb8b0;
-  background: rgba(244, 67, 54, 0.14);
+  background: color-mix(in srgb, var(--one-danger) 14%, transparent);
 }
 
 .command-card-link-action {
@@ -3070,9 +3070,9 @@
 .command-empty-state-healthy {
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(76, 175, 80, 0.22);
-  background: rgba(76, 175, 80, 0.06);
-  color: #b8e8b0;
+  border: 1px solid color-mix(in srgb, var(--one-success) 22%, transparent);
+  background: color-mix(in srgb, var(--one-success) 6%, transparent);
+  color: var(--one-success);
   font-size: 0.8rem;
 }
 
@@ -3334,7 +3334,7 @@
 }
 
 .command-overview-status.ready {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .command-overview-status.needs-attention {
@@ -3401,8 +3401,8 @@
 }
 
 .command-status-block.ready {
-  border-color: rgba(76, 175, 80, 0.22);
-  background: rgba(76, 175, 80, 0.06);
+  border-color: color-mix(in srgb, var(--one-success) 22%, transparent);
+  background: color-mix(in srgb, var(--one-success) 6%, transparent);
 }
 
 .command-status-block.attention,
@@ -3719,7 +3719,7 @@
 }
 
 .command-alert-item.severity-critical::before {
-  background: linear-gradient(180deg, #f08a7e, #e53935);
+  background: linear-gradient(180deg, var(--one-danger), color-mix(in srgb, var(--one-danger) 70%, #b8544e));
 }
 
 .command-alert-item.severity-low {
@@ -3728,8 +3728,8 @@
 }
 
 .command-alert-item.severity-critical {
-  border-color: rgba(244, 67, 54, 0.38);
-  background: rgba(244, 67, 54, 0.1);
+  border-color: color-mix(in srgb, var(--one-danger) 38%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
 }
 
 .command-alert-badge {
@@ -3749,7 +3749,7 @@
 
 .command-alert-badge.critical {
   color: #ffb8b0;
-  background: rgba(244, 67, 54, 0.14);
+  background: color-mix(in srgb, var(--one-danger) 14%, transparent);
 }
 
 .command-alert-badge.low {
@@ -5705,7 +5705,7 @@
 }
 
 .host-service-health-metric strong.tone-alert {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .host-service-health-next,
@@ -7016,7 +7016,7 @@
 
 .host-reservation-card-warning.is-capacity {
   background: rgba(212, 120, 120, 0.16);
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .host-reservation-card-action,
@@ -7317,7 +7317,7 @@
   height: 14px;
   border-radius: 999px;
   background: rgba(232, 168, 154, 0.18);
-  color: #e8a89a;
+  color: var(--one-danger);
   font-size: 0.62rem;
   font-weight: 800;
   line-height: 1;
@@ -7338,7 +7338,7 @@
 }
 
 .host-reservation-status.tone-danger {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .host-reservation-status.tone-neutral {
@@ -7605,14 +7605,14 @@
 
 .host-seating-drawer-advisory.is-success {
   color: #d8f0d0;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid rgba(76, 175, 80, 0.28);
+  background: color-mix(in srgb, var(--one-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-success) 28%, transparent);
 }
 
 .host-seating-drawer-advisory.is-warning {
   color: #ffe0c2;
-  background: rgba(255, 152, 0, 0.12);
-  border: 1px solid rgba(255, 152, 0, 0.28);
+  background: color-mix(in srgb, var(--one-warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-warning) 28%, transparent);
 }
 
 .host-seating-drawer-scroll.is-content-fit {
@@ -8023,10 +8023,10 @@
   min-height: 0;
   position: relative;
 
-  --host-floor-available-border: rgba(108, 138, 116, 0.42);
-  --host-floor-available-fill: rgba(8, 8, 9, 0.96);
-  --host-floor-available-text: rgba(188, 210, 192, 0.88);
-  --host-floor-available-dot: rgba(108, 138, 116, 0.72);
+  --host-floor-available-border: color-mix(in srgb, var(--one-success) 42%, transparent);
+  --host-floor-available-fill: var(--one-surface-1);
+  --host-floor-available-text: var(--one-success);
+  --host-floor-available-dot: color-mix(in srgb, var(--one-success) 80%, transparent);
 
   --host-floor-reserved-border: rgba(232, 196, 110, 0.92);
   --host-floor-reserved-fill: linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(12, 10, 8, 0.98));
@@ -8034,20 +8034,20 @@
   --host-floor-reserved-dot: rgba(232, 196, 110, 0.94);
   --host-floor-reserved-glow: rgba(212, 175, 55, 0.27);
 
-  --host-floor-seated-border: rgba(48, 168, 196, 0.88);
+  --host-floor-seated-border: color-mix(in srgb, var(--one-status-seated) 88%, transparent);
   --host-floor-seated-fill: linear-gradient(180deg, rgba(10, 38, 50, 0.96), rgba(6, 20, 28, 0.98));
   --host-floor-seated-text: rgba(224, 244, 252, 0.94);
-  --host-floor-seated-dot: rgba(48, 168, 196, 0.92);
-  --host-floor-seated-glow: rgba(42, 156, 182, 0.18);
+  --host-floor-seated-dot: var(--one-status-seated);
+  --host-floor-seated-glow: color-mix(in srgb, var(--one-status-seated) 18%, transparent);
 
-  --host-floor-problem-border: rgba(214, 96, 84, 0.92);
+  --host-floor-problem-border: color-mix(in srgb, var(--one-danger) 92%, transparent);
   --host-floor-problem-fill: linear-gradient(180deg, rgba(40, 14, 12, 0.98), rgba(10, 6, 6, 0.98));
   --host-floor-problem-text: rgba(255, 228, 222, 0.94);
-  --host-floor-problem-dot: rgba(214, 96, 84, 0.92);
-  --host-floor-problem-glow: rgba(176, 74, 52, 0.16);
+  --host-floor-problem-dot: var(--one-danger);
+  --host-floor-problem-glow: color-mix(in srgb, var(--one-danger) 16%, transparent);
 
-  --host-floor-combined-accent: rgba(148, 124, 196, 0.38);
-  --host-floor-combined-dot: rgba(148, 124, 196, 0.62);
+  --host-floor-combined-accent: color-mix(in srgb, var(--one-status-combined) 38%, transparent);
+  --host-floor-combined-dot: var(--one-status-combined);
 
   --host-floor-surface-transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, background-color 160ms ease;
 }
@@ -10444,10 +10444,10 @@
 .floor-plan-workspace.is-host-floor .floor-table-node.is-arrived .floor-table-node-surface {
   border: 2px solid var(--host-floor-seated-border);
   background:
-    radial-gradient(circle at 50% 22%, rgba(48, 168, 196, 0.16), transparent 64%),
+    radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--one-status-seated) 16%, transparent), transparent 64%),
     var(--host-floor-seated-fill);
   box-shadow:
-    0 0 0 1px rgba(48, 168, 196, 0.2),
+    0 0 0 1px color-mix(in srgb, var(--one-status-seated) 20%, transparent),
     0 0 13px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(120, 210, 228, 0.08);
   opacity: 1;
@@ -10477,10 +10477,10 @@
 .floor-plan-workspace.is-host-floor .floor-table-node.is-seated .floor-table-node-surface {
   border: 2px solid var(--host-floor-seated-border);
   background:
-    radial-gradient(circle at 50% 26%, rgba(48, 168, 196, 0.2), transparent 66%),
+    radial-gradient(circle at 50% 26%, color-mix(in srgb, var(--one-status-seated) 20%, transparent), transparent 66%),
     var(--host-floor-seated-fill);
   box-shadow:
-    0 0 0 1px rgba(48, 168, 196, 0.24),
+    0 0 0 1px color-mix(in srgb, var(--one-status-seated) 24%, transparent),
     0 0 14px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(120, 210, 228, 0.1);
   opacity: 1;
@@ -11261,7 +11261,7 @@
 }
 
 .service-health-status.tone-calm {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .service-health-status.tone-active {
@@ -11273,7 +11273,7 @@
 }
 
 .service-health-status.tone-alert {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .service-health-live-dot {
@@ -11321,7 +11321,7 @@
 }
 
 .service-health-ribbon-metric strong.tone-alert {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .service-insights-panel {
@@ -11386,13 +11386,13 @@
 }
 
 .service-insight.tone-late {
-  color: #e8a89a;
+  color: var(--one-danger);
   border-color: rgba(212, 122, 106, 0.24);
   background: rgba(212, 122, 106, 0.08);
 }
 
 .service-insight.tone-capacity {
-  color: #b8e8b0;
+  color: var(--one-success);
   border-color: rgba(115, 184, 109, 0.22);
   background: rgba(115, 184, 109, 0.07);
 }
@@ -11850,7 +11850,7 @@
   align-items: center;
   gap: 5px;
   margin-top: 1px;
-  color: #b8e8b0;
+  color: var(--one-success);
   font-size: 0.52rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -12402,7 +12402,7 @@
 }
 
 .reservation-arrival-time.tone-arrived {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .reservation-arrival-time.tone-next {
@@ -12410,7 +12410,7 @@
 }
 
 .reservation-arrival-time.tone-late {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .reservation-card-row-details {
@@ -12549,15 +12549,15 @@
 }
 
 .reservation-status-badge.tone-late {
-  color: #f0b06a;
+  color: var(--one-warning);
   border-color: rgba(232, 154, 74, 0.32);
   background: rgba(232, 154, 74, 0.1);
 }
 
 .reservation-status-badge.tone-seated {
-  color: #b8e8b0;
+  color: var(--one-success);
   border-color: rgba(115, 184, 109, 0.3);
-  background: rgba(76, 175, 80, 0.11);
+  background: color-mix(in srgb, var(--one-success) 11%, transparent);
 }
 
 .reservation-status-badge.tone-dining {
@@ -12602,7 +12602,7 @@
 }
 
 .reservation-confidence.tone-likely {
-  color: #b8e8b0;
+  color: var(--one-success);
   border-color: rgba(115, 184, 109, 0.22);
   background: rgba(115, 184, 109, 0.08);
 }
@@ -12614,7 +12614,7 @@
 }
 
 .reservation-confidence.tone-risk {
-  color: #f0b06a;
+  color: var(--one-warning);
   border-color: rgba(232, 154, 74, 0.22);
   background: rgba(232, 154, 74, 0.08);
 }
@@ -12638,7 +12638,7 @@
 
 .arrival-wave-label {
   margin: 0;
-  color: #f0b06a;
+  color: var(--one-warning);
   font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -13115,8 +13115,8 @@
 
 .reservation-icon-btn-danger:hover:not(:disabled) {
   border-color: rgba(212, 122, 106, 0.36);
-  background: rgba(244, 67, 54, 0.1);
-  color: #e8a89a;
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
+  color: var(--one-danger);
   box-shadow: 0 0 8px rgba(212, 122, 106, 0.1);
 }
 
@@ -13193,7 +13193,7 @@
 }
 
 .reservation-arrival-countdown.tone-arrived {
-  color: #b8e8b0;
+  color: var(--one-success);
 }
 
 .reservation-arrival-countdown.tone-next {
@@ -13201,7 +13201,7 @@
 }
 
 .reservation-arrival-countdown.tone-late {
-  color: #e8a89a;
+  color: var(--one-danger);
 }
 
 .reservation-arrival-countdown.tone-completed,
@@ -15428,7 +15428,7 @@
 }
 
 .team-today-status-value.tone-ok {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .team-today-status-value.tone-warn {
@@ -15492,7 +15492,7 @@
 }
 
 .team-today-member-state.tone-working {
-  color: #9fd4a8;
+  color: var(--one-success);
   background: rgba(159, 212, 168, 0.12);
 }
 
@@ -15901,7 +15901,7 @@
 
 .member-access-error {
   margin: 8px 0 0;
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .member-access-notice {
@@ -16082,14 +16082,14 @@
 }
 
 .employee-profile-drawer-delete-btn {
-  border: 1px solid rgba(244, 67, 54, 0.28);
-  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid color-mix(in srgb, var(--one-danger) 28%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 8%, transparent);
   color: #f2b8b0;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .employee-profile-drawer-delete-btn:hover {
-    background: rgba(244, 67, 54, 0.14);
+    background: color-mix(in srgb, var(--one-danger) 14%, transparent);
     color: #ffd4ce;
   }
 }
@@ -16232,8 +16232,8 @@
 }
 
 .team-people-today-status-pill--working-now {
-  color: #d9f6cf;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .team-people-today-status-pill--scheduled-later {
@@ -16648,8 +16648,8 @@
 }
 
 .schedule-status-badge.published {
-  border-color: rgba(76, 175, 80, 0.2);
-  background: rgba(76, 175, 80, 0.06);
+  border-color: color-mix(in srgb, var(--one-success) 20%, transparent);
+  background: color-mix(in srgb, var(--one-success) 6%, transparent);
   color: #7aab74;
 }
 
@@ -16868,7 +16868,7 @@
 }
 
 .schedule-stat-value.tone-success {
-  color: #b8e8b0;
+  color: var(--one-success);
   font-size: 0.98rem;
 }
 
@@ -17081,7 +17081,7 @@
 
 .schedule-day-status-label.tone-covered,
 .schedule-day-coverage-label.tone-covered {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .schedule-day-status-label.tone-understaffed,
@@ -17097,7 +17097,7 @@
 }
 
 .schedule-day-status-label.tone-overstaffed {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .schedule-day-cell {
@@ -17438,8 +17438,8 @@
 }
 
 .schedule-shift-coverage-status.tone-covered {
-  color: #9fd4a8;
-  border-top-color: rgba(76, 175, 80, 0.16);
+  color: var(--one-success);
+  border-top-color: color-mix(in srgb, var(--one-success) 16%, transparent);
 }
 
 .schedule-shift-coverage-status.tone-understaffed,
@@ -17449,8 +17449,8 @@
 }
 
 .schedule-shift-coverage-status.tone-overstaffed {
-  color: #9fd4a8;
-  border-top-color: rgba(76, 175, 80, 0.16);
+  color: var(--one-success);
+  border-top-color: color-mix(in srgb, var(--one-success) 16%, transparent);
 }
 
 .schedule-shift-coverage-status.tone-empty {
@@ -17516,7 +17516,7 @@
 
 .assignment-staffing-extra,
 .assignment-staffing-covered {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .schedule-capacity-edit-stepper {
@@ -17624,7 +17624,7 @@
 
 .schedule-day-cell-coverage.tone-staffed,
 .schedule-day-cell-coverage.tone-covered {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .schedule-day-cell-coverage.tone-understaffed,
@@ -18811,7 +18811,7 @@
 
 .schedule-template-inline-actions-danger {
   padding-top: 8px;
-  border-top: 1px solid rgba(244, 67, 54, 0.14);
+  border-top: 1px solid color-mix(in srgb, var(--one-danger) 14%, transparent);
 }
 
 .schedule-template-inline-action {
@@ -18851,14 +18851,14 @@
 
 .schedule-template-inline-action.danger {
   color: #ffb8b0;
-  border-color: rgba(244, 67, 54, 0.24);
-  background: rgba(244, 67, 54, 0.05);
+  border-color: color-mix(in srgb, var(--one-danger) 24%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 5%, transparent);
 }
 
 .schedule-template-inline-action.danger:hover,
 .schedule-template-inline-action.danger:focus-visible {
-  border-color: rgba(244, 67, 54, 0.42);
-  background: rgba(244, 67, 54, 0.12);
+  border-color: color-mix(in srgb, var(--one-danger) 42%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 12%, transparent);
   color: #ffd8d2;
 }
 
@@ -18922,12 +18922,12 @@
   font-size: 0.82rem;
   font-weight: 600;
   color: #e8b4ae;
-  border-color: rgba(244, 67, 54, 0.28);
+  border-color: color-mix(in srgb, var(--one-danger) 28%, transparent);
 }
 
 .schedule-unpublish-btn:hover:not(:disabled) {
-  border-color: rgba(244, 67, 54, 0.42);
-  background: rgba(244, 67, 54, 0.1);
+  border-color: color-mix(in srgb, var(--one-danger) 42%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
   color: #ffd8d2;
 }
 
@@ -21033,8 +21033,8 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
 .form-field input.field-invalid,
 .form-field select.field-invalid,
 .form-field textarea.field-invalid {
-  border-color: rgba(244, 67, 54, 0.75);
-  box-shadow: inset 0 0 0 1px rgba(244, 67, 54, 0.35);
+  border-color: color-mix(in srgb, var(--one-danger) 75%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--one-danger) 35%, transparent);
 }
 
 .field-helper-error {
@@ -22235,8 +22235,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .day-header-status.covered {
-  color: #b8e8b0;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
   border: 1px solid rgba(115, 184, 109, 0.28);
 }
 
@@ -22602,7 +22602,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .template-card-menu-item.danger:hover {
-  background: rgba(244, 67, 54, 0.12);
+  background: color-mix(in srgb, var(--one-danger) 12%, transparent);
 }
 
 .ghost-btn.danger-text {
@@ -22612,8 +22612,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .ghost-btn.danger-text:hover {
-  border-color: rgba(244, 67, 54, 0.35);
-  background: rgba(244, 67, 54, 0.08);
+  border-color: color-mix(in srgb, var(--one-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 8%, transparent);
 }
 
 .template-delete-copy {
@@ -22726,8 +22726,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-assignment-cell.staffed {
-  border-color: rgba(76, 175, 80, 0.5);
-  background: rgba(76, 175, 80, 0.05);
+  border-color: color-mix(in srgb, var(--one-success) 50%, transparent);
+  background: color-mix(in srgb, var(--one-success) 5%, transparent);
 }
 
 .blend-grid-assignment-cell.overstaffed {
@@ -23472,7 +23472,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .schedule-publication-badge.published {
   border: 1px solid rgba(115, 215, 146, 0.45);
-  background: rgba(76, 175, 80, 0.2);
+  background: color-mix(in srgb, var(--one-success) 20%, transparent);
   color: #cff4d9;
 }
 
@@ -23575,13 +23575,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .published-state-btn {
   border-color: rgba(115, 215, 146, 0.45);
-  background: rgba(76, 175, 80, 0.2);
+  background: color-mix(in srgb, var(--one-success) 20%, transparent);
   color: #cff4d9;
 }
 
 .published-state-btn:hover {
   border-color: rgba(115, 215, 146, 0.62);
-  background: rgba(76, 175, 80, 0.28);
+  background: color-mix(in srgb, var(--one-success) 28%, transparent);
 }
 
 .published-week-grid {
@@ -23677,8 +23677,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .schedule-availability-dot.tone-available {
-  background: rgba(76, 175, 80, 0.95);
-  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.28);
+  background: color-mix(in srgb, var(--one-success) 95%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--one-success) 28%, transparent);
 }
 
 .schedule-availability-dot.tone-preferred {
@@ -23837,9 +23837,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .quick-action-item.danger {
-  border-color: rgba(244, 67, 54, 0.35);
+  border-color: color-mix(in srgb, var(--one-danger) 35%, transparent);
   color: #ffcdc6;
-  background: rgba(244, 67, 54, 0.08);
+  background: color-mix(in srgb, var(--one-danger) 8%, transparent);
 }
 
 .schedule-week-grid {
@@ -23942,18 +23942,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .day-coverage-pill.staffed {
-  color: #d9f6cf;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .day-coverage-pill.attention {
   color: #ffd8a8;
-  background: rgba(255, 152, 0, 0.16);
+  background: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .day-coverage-pill.understaffed {
   color: #ffcccc;
-  background: rgba(244, 67, 54, 0.16);
+  background: color-mix(in srgb, var(--one-danger) 16%, transparent);
 }
 
 .roster-day-timeline {
@@ -24346,7 +24346,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .shift-indicator.morning {
-  color: #d6e4ff;
+  color: var(--one-info);
   background: rgba(66, 133, 244, 0.16);
 }
 
@@ -24366,28 +24366,28 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .status-pill.confirmed {
-  color: #d9f6cf;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .status-pill.completed {
-  color: #d6e4ff;
+  color: var(--one-info);
   background: rgba(66, 133, 244, 0.16);
 }
 
 .status-pill.inventory-in {
-  color: #d9f6cf;
-  background: rgba(76, 175, 80, 0.14);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .status-pill.inventory-low {
   color: #ffd8a8;
-  background: rgba(255, 152, 0, 0.16);
+  background: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .status-pill.inventory-out {
   color: #ffcccc;
-  background: rgba(244, 67, 54, 0.16);
+  background: color-mix(in srgb, var(--one-danger) 16%, transparent);
 }
 
 .inventory-item-card-list {
@@ -24577,7 +24577,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-item-card-delete-btn {
-  color: #ffc8bb;
+  color: var(--one-danger);
   border-color: rgba(220, 90, 90, 0.35);
 }
 
@@ -24640,8 +24640,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 2px;
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 152, 0, 0.45);
-  background: linear-gradient(180deg, rgba(255, 152, 0, 0.22), rgba(255, 152, 0, 0.1));
+  border: 1px solid color-mix(in srgb, var(--one-warning) 45%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--one-warning) 22%, transparent), color-mix(in srgb, var(--one-warning) 10%, transparent));
   box-shadow: 0 0 0 1px rgba(255, 184, 77, 0.08) inset;
 }
 
@@ -24699,15 +24699,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-item-card-health-fill.tone-critical {
-  background: linear-gradient(90deg, rgba(244, 67, 54, 0.95), rgba(255, 120, 110, 0.95));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--one-danger) 95%, transparent), rgba(255, 120, 110, 0.95));
 }
 
 .inventory-item-card-health-fill.tone-warning {
-  background: linear-gradient(90deg, rgba(255, 152, 0, 0.95), rgba(255, 196, 77, 0.95));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--one-warning) 95%, transparent), rgba(255, 196, 77, 0.95));
 }
 
 .inventory-item-card-health-fill.tone-healthy {
-  background: linear-gradient(90deg, rgba(76, 175, 80, 0.95), rgba(129, 199, 132, 0.95));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--one-success) 95%, transparent), rgba(129, 199, 132, 0.95));
 }
 
 .inventory-item-card-health-unset {
@@ -25104,17 +25104,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .bar-refill-status-draft {
   color: #ffd8a8;
-  background: rgba(255, 152, 0, 0.16);
+  background: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .bar-refill-status-picked {
   color: #c8e6c9;
-  background: rgba(76, 175, 80, 0.16);
+  background: color-mix(in srgb, var(--one-success) 16%, transparent);
 }
 
 .bar-refill-status-cancelled {
-  color: #ffc8bb;
-  background: rgba(244, 67, 54, 0.16);
+  color: var(--one-danger);
+  background: color-mix(in srgb, var(--one-danger) 16%, transparent);
 }
 
 .bar-refill-card-notes textarea {
@@ -25191,7 +25191,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .bar-refill-cancel-btn {
-  color: #ffc8bb;
+  color: var(--one-danger);
   border-color: rgba(220, 90, 90, 0.35);
 }
 
@@ -25353,7 +25353,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .supplier-card-delete-btn {
-  color: #ffc8bb;
+  color: var(--one-danger);
   border-color: rgba(220, 90, 90, 0.35);
 }
 
@@ -26413,7 +26413,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .tasks-department-metric.is-alert {
-  color: #ffc8bb;
+  color: var(--one-danger);
 }
 
 .tasks-department-metric.is-alert strong {
@@ -26751,7 +26751,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .task-priority-badge.priority-urgent {
   background: rgba(255, 120, 96, 0.18);
-  color: #ffc8bb;
+  color: var(--one-danger);
 }
 
 .task-card-metadata {
@@ -26779,7 +26779,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .task-card-metadata-item.is-overdue {
-  color: #ffc8bb;
+  color: var(--one-danger);
 }
 
 .task-card-department {
@@ -26879,7 +26879,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .command-task-footer-message.is-alert {
-  color: #ffc8bb;
+  color: var(--one-danger);
 }
 
 .command-task-footer-message.is-clear {
@@ -29084,29 +29084,29 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-summary-card.is-interactive.tone-warning.is-selected {
-  border-color: rgba(255, 152, 0, 0.7);
+  border-color: color-mix(in srgb, var(--one-warning) 70%, transparent);
   box-shadow:
-    0 0 0 1px rgba(255, 152, 0, 0.32),
-    inset 0 0 0 1px rgba(255, 152, 0, 0.12);
-  background: rgba(255, 152, 0, 0.16);
+    0 0 0 1px color-mix(in srgb, var(--one-warning) 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--one-warning) 12%, transparent);
+  background: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .stock-summary-card.is-interactive.tone-danger.is-selected {
-  border-color: rgba(244, 67, 54, 0.7);
+  border-color: color-mix(in srgb, var(--one-danger) 70%, transparent);
   box-shadow:
-    0 0 0 1px rgba(244, 67, 54, 0.32),
-    inset 0 0 0 1px rgba(244, 67, 54, 0.12);
-  background: rgba(244, 67, 54, 0.16);
+    0 0 0 1px color-mix(in srgb, var(--one-danger) 32%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--one-danger) 12%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 16%, transparent);
 }
 
 .stock-summary-card.tone-warning {
-  border-color: rgba(255, 152, 0, 0.28);
-  background: rgba(255, 152, 0, 0.06);
+  border-color: color-mix(in srgb, var(--one-warning) 28%, transparent);
+  background: color-mix(in srgb, var(--one-warning) 6%, transparent);
 }
 
 .stock-summary-card.tone-danger {
-  border-color: rgba(244, 67, 54, 0.28);
-  background: rgba(244, 67, 54, 0.06);
+  border-color: color-mix(in srgb, var(--one-danger) 28%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 6%, transparent);
 }
 
 .stock-summary-card.tone-gold {
@@ -30035,7 +30035,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-list-cell-stock.is-out .stock-list-stock-current {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-list-row {
@@ -30054,12 +30054,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-row.tone-out td,
 .stock-list-row.tone-out th {
-  background: rgba(244, 67, 54, 0.04);
+  background: color-mix(in srgb, var(--one-danger) 4%, transparent);
 }
 
 .stock-list-row.tone-low td,
 .stock-list-row.tone-low th {
-  background: rgba(255, 152, 0, 0.04);
+  background: color-mix(in srgb, var(--one-warning) 4%, transparent);
 }
 
 .stock-list-cell-qty {
@@ -30072,7 +30072,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-list-cell-qty.is-out strong {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-list-mobile-qty-current.tone-low {
@@ -30081,7 +30081,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-list-mobile-qty-current.tone-out {
-  color: #ffb4b4;
+  color: var(--one-danger);
   font-weight: 600;
 }
 
@@ -30316,7 +30316,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-compact-qty .tone-out {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-compact-qty {
@@ -30354,7 +30354,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-card.is-alert {
-  border-color: rgba(255, 152, 0, 0.28);
+  border-color: color-mix(in srgb, var(--one-warning) 28%, transparent);
 }
 
 .stock-item-card.is-inactive {
@@ -30363,12 +30363,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-card.tone-out.is-alert {
-  border-color: rgba(244, 67, 54, 0.34);
-  background: rgba(244, 67, 54, 0.05);
+  border-color: color-mix(in srgb, var(--one-danger) 34%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 5%, transparent);
 }
 
 .stock-item-card.tone-low.is-alert {
-  background: rgba(255, 152, 0, 0.05);
+  background: color-mix(in srgb, var(--one-warning) 5%, transparent);
 }
 
 .stock-item-card.is-selectable {
@@ -30519,17 +30519,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-status-badge.tone-ok {
   color: #c8efb8;
-  background: rgba(76, 175, 80, 0.14);
+  background: color-mix(in srgb, var(--one-success) 14%, transparent);
 }
 
 .stock-item-status-badge.tone-low {
   color: #ffd8a8;
-  background: rgba(255, 152, 0, 0.16);
+  background: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .stock-item-status-badge.tone-out {
   color: #ffcccc;
-  background: rgba(244, 67, 54, 0.16);
+  background: color-mix(in srgb, var(--one-danger) 16%, transparent);
 }
 
 .stock-item-category-type {
@@ -30633,7 +30633,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-hero-qty.tone-out {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-item-qty-context {
@@ -31545,7 +31545,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-attention-qty-current.tone-out {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-attention-qty-separator {
@@ -31582,7 +31582,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-attention-group.tone-danger .stock-attention-group-title {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-attention-group.tone-warning .stock-attention-group-title {
@@ -31621,11 +31621,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-attention-row.tone-out {
-  border-color: rgba(244, 67, 54, 0.18);
+  border-color: color-mix(in srgb, var(--one-danger) 18%, transparent);
 }
 
 .stock-attention-row.tone-low {
-  border-color: rgba(255, 152, 0, 0.16);
+  border-color: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .stock-attention-copy {
@@ -32032,11 +32032,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-product-history-movement.tone-receive {
-  border-color: rgba(76, 175, 80, 0.18);
+  border-color: color-mix(in srgb, var(--one-success) 18%, transparent);
 }
 
 .stock-product-history-movement.tone-usage {
-  border-color: rgba(255, 152, 0, 0.16);
+  border-color: color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .stock-product-history-movement.tone-adjustment {
@@ -32070,12 +32070,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-product-history-movement-dot.tone-receive {
   background: #7bd67f;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--one-success) 18%, transparent);
 }
 
 .stock-product-history-movement-dot.tone-usage {
-  background: #ffb74d;
-  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.16);
+  background: var(--one-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--one-warning) 16%, transparent);
 }
 
 .stock-product-history-movement-dot.tone-adjustment {
@@ -32642,7 +32642,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-order-card-next-action.tone-info {
-  color: #b8d4ff;
+  color: var(--one-info);
   background: rgba(96, 165, 250, 0.1);
   border: 1px solid rgba(96, 165, 250, 0.18);
 }
@@ -32791,7 +32791,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-order-status-badge.tone-info {
-  color: #b8d4ff;
+  color: var(--one-info);
   background: rgba(96, 165, 250, 0.12);
   border: 1px solid rgba(96, 165, 250, 0.24);
 }
@@ -33010,7 +33010,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-order-receiving-guide h4 {
   margin: 0;
-  color: #b8d4ff;
+  color: var(--one-info);
   font-size: 0.95rem;
 }
 
@@ -34456,7 +34456,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-department-toolbar-btn {
   background: transparent;
-  color: #d5e4f4;
+  color: var(--one-info);
   font-weight: 500;
   box-shadow: inset 0 0 0 1px rgba(168, 196, 224, 0.38);
   border-color: transparent;
@@ -35939,7 +35939,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-count-session-card-error {
   margin: 0;
-  color: #f0b4b4;
+  color: var(--one-danger);
   font-size: 0.82rem;
   line-height: 1.35;
 }
@@ -35982,7 +35982,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session-delete-btn:hover:not(:disabled),
 .inventory-count-session-delete-btn:focus-visible {
   outline: none;
-  color: #f0b4b4;
+  color: var(--one-danger);
   border-color: rgba(240, 113, 120, 0.35);
   background: rgba(240, 113, 120, 0.1);
 }
@@ -36418,11 +36418,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-table td.is-positive {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .inventory-count-posted-review-table td.is-negative {
-  color: #f0b4b4;
+  color: var(--one-danger);
 }
 
 .inventory-count-posted-review-table td.is-neutral {
@@ -36518,11 +36518,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-audit-summary-value.is-positive {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .inventory-count-posted-review-audit-summary-value.is-negative {
-  color: #f0b4b4;
+  color: var(--one-danger);
 }
 
 .inventory-count-posted-review-audit-summary-value.is-neutral {
@@ -36626,12 +36626,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-delta-badge.is-positive {
-  color: #9fd4a8;
+  color: var(--one-success);
   background: rgba(159, 212, 168, 0.12);
 }
 
 .inventory-count-posted-review-delta-badge.is-negative {
-  color: #f0b4b4;
+  color: var(--one-danger);
   background: rgba(240, 180, 180, 0.12);
 }
 
@@ -36802,11 +36802,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-version-line-impact.is-positive {
-  color: #9fd4a8;
+  color: var(--one-success);
 }
 
 .inventory-count-posted-review-version-line-impact.is-negative {
-  color: #f0b4b4;
+  color: var(--one-danger);
 }
 
 .inventory-count-posted-review-version-line-impact.is-neutral {
@@ -41000,9 +41000,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-migration-timeline-item.is-in-progress .stock-migration-timeline-dot,
 .stock-migration-state-badge.is-in-progress {
-  border-color: rgba(255, 152, 0, 0.5);
-  background: rgba(255, 152, 0, 0.14);
-  color: #ffb74d;
+  border-color: color-mix(in srgb, var(--one-warning) 50%, transparent);
+  background: color-mix(in srgb, var(--one-warning) 14%, transparent);
+  color: var(--one-warning);
 }
 
 .stock-migration-timeline-item.is-waiting .stock-migration-timeline-dot,
@@ -41014,8 +41014,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-migration-timeline-item.is-blocked .stock-migration-timeline-dot,
 .stock-migration-state-badge.is-blocked {
-  border-color: rgba(244, 67, 54, 0.5);
-  background: rgba(244, 67, 54, 0.14);
+  border-color: color-mix(in srgb, var(--one-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 14%, transparent);
   color: #ef9a9a;
 }
 
@@ -43283,18 +43283,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-summary-card.tone-warning {
-  border-color: rgba(255, 152, 0, 0.28);
-  background: rgba(255, 152, 0, 0.06);
+  border-color: color-mix(in srgb, var(--one-warning) 28%, transparent);
+  background: color-mix(in srgb, var(--one-warning) 6%, transparent);
 }
 
 .operations-summary-card.tone-success {
-  border-color: rgba(76, 175, 80, 0.28);
-  background: rgba(76, 175, 80, 0.06);
+  border-color: color-mix(in srgb, var(--one-success) 28%, transparent);
+  background: color-mix(in srgb, var(--one-success) 6%, transparent);
 }
 
 .operations-summary-card.tone-danger {
-  border-color: rgba(244, 67, 54, 0.28);
-  background: rgba(244, 67, 54, 0.06);
+  border-color: color-mix(in srgb, var(--one-danger) 28%, transparent);
+  background: color-mix(in srgb, var(--one-danger) 6%, transparent);
 }
 
 .operations-dashboard-page.is-mobile-layout {
@@ -43551,8 +43551,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-task-checkbox.is-checked {
-  background: rgba(76, 175, 80, 0.18);
-  border-color: rgba(76, 175, 80, 0.45);
+  background: color-mix(in srgb, var(--one-success) 18%, transparent);
+  border-color: color-mix(in srgb, var(--one-success) 45%, transparent);
   color: #b8f0bc;
 }
 
@@ -43603,15 +43603,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-priority-badge.tone-warning {
-  border-color: rgba(255, 152, 0, 0.35);
+  border-color: color-mix(in srgb, var(--one-warning) 35%, transparent);
   color: #ffc46b;
-  background: rgba(255, 152, 0, 0.1);
+  background: color-mix(in srgb, var(--one-warning) 10%, transparent);
 }
 
 .operations-priority-badge.tone-danger {
-  border-color: rgba(244, 67, 54, 0.35);
+  border-color: color-mix(in srgb, var(--one-danger) 35%, transparent);
   color: #ff9a92;
-  background: rgba(244, 67, 54, 0.1);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
 }
 
 .operations-priority-badge.tone-muted {
@@ -43717,9 +43717,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-log-type-badge.tone-danger {
-  border-color: rgba(244, 67, 54, 0.35);
+  border-color: color-mix(in srgb, var(--one-danger) 35%, transparent);
   color: #ff9a92;
-  background: rgba(244, 67, 54, 0.1);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
 }
 
 .operations-log-type-badge.tone-gold {
@@ -43786,9 +43786,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-shift-note-badge.tone-danger {
-  border-color: rgba(244, 67, 54, 0.35);
+  border-color: color-mix(in srgb, var(--one-danger) 35%, transparent);
   color: #ff9a92;
-  background: rgba(244, 67, 54, 0.1);
+  background: color-mix(in srgb, var(--one-danger) 10%, transparent);
 }
 
 .operations-shift-note-badge.tone-gold {
@@ -44509,9 +44509,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
-  border: 1px solid rgba(76, 175, 80, 0.35);
+  border: 1px solid color-mix(in srgb, var(--one-success) 35%, transparent);
   color: #b8f0bc;
-  background: rgba(76, 175, 80, 0.1);
+  background: color-mix(in srgb, var(--one-success) 10%, transparent);
 }
 
 .operations-checklist-status-badge.is-inactive {
@@ -44577,13 +44577,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-checklist-progress-card.tone-success {
-  border-color: rgba(76, 175, 80, 0.35);
-  background: rgba(76, 175, 80, 0.08);
+  border-color: color-mix(in srgb, var(--one-success) 35%, transparent);
+  background: color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .operations-checklist-progress-card.tone-warning {
-  border-color: rgba(255, 152, 0, 0.35);
-  background: rgba(255, 152, 0, 0.08);
+  border-color: color-mix(in srgb, var(--one-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--one-warning) 8%, transparent);
 }
 
 .operations-checklist-progress-card:disabled {
@@ -44733,8 +44733,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-checklist-active-btn.is-active {
-  border-color: rgba(76, 175, 80, 0.35);
-  background: rgba(76, 175, 80, 0.12);
+  border-color: color-mix(in srgb, var(--one-success) 35%, transparent);
+  background: color-mix(in srgb, var(--one-success) 12%, transparent);
   color: #b8f0bc;
 }
 
@@ -44806,8 +44806,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-checklist-exec-step.is-done {
-  border-color: rgba(76, 175, 80, 0.28);
-  background: rgba(76, 175, 80, 0.08);
+  border-color: color-mix(in srgb, var(--one-success) 28%, transparent);
+  background: color-mix(in srgb, var(--one-success) 8%, transparent);
 }
 
 .operations-checklist-exec-step:disabled {
@@ -44831,8 +44831,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .operations-checklist-exec-mark.is-checked {
-  background: rgba(76, 175, 80, 0.18);
-  border-color: rgba(76, 175, 80, 0.45);
+  background: color-mix(in srgb, var(--one-success) 18%, transparent);
+  border-color: color-mix(in srgb, var(--one-success) 45%, transparent);
   color: #b8f0bc;
 }
 
@@ -45499,7 +45499,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .schedule-card-action-menu-sheet .template-card-menu-item.danger:hover:not(:disabled),
 .schedule-card-action-menu-sheet .template-card-menu-item.danger:focus-visible {
-  background: rgba(244, 67, 54, 0.12);
+  background: color-mix(in srgb, var(--one-danger) 12%, transparent);
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
@@ -45904,16 +45904,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .floor-seating-selector-chip-metrics { display: none; }
 }
 .floor-plan-workspace.is-host-floor .floor-table-seating-indicator.is-empty {
-  background: rgba(76, 175, 80, 0.28);
-  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.16);
+  background: color-mix(in srgb, var(--one-success) 28%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--one-success) 16%, transparent);
 }
 
 .floor-table-seating-indicators { display: flex; gap: 0.18rem; margin-top: 0.2rem; }
 .floor-table-seating-indicator { width: 0.45rem; height: 0.45rem; border-radius: 999px; background: rgba(255,255,255,0.25); }
-.floor-table-seating-indicator.is-empty { background: #4caf50; }
-.floor-table-seating-indicator.is-confirmed { background: #f0b429; }
-.floor-table-seating-indicator.is-waiting { background: #ff9800; }
-.floor-table-seating-indicator.is-seated { background: #ef5350; }
+.floor-table-seating-indicator.is-empty { background: var(--one-success); }
+.floor-table-seating-indicator.is-confirmed { background: var(--one-gold); }
+.floor-table-seating-indicator.is-waiting { background: var(--one-warning); }
+.floor-table-seating-indicator.is-seated { background: var(--one-status-seated); }
 .host-service-dashboard { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; }
 .host-service-dashboard-row { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
 .host-list-filter-chip { min-height: 44px; min-width: 0; width: 100%; }
@@ -45946,7 +45946,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .host-settings-footer { padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
 .host-settings-signout { min-height: 44px; width: 100%; }
 
-.unified-floor-editor-publish-success { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; margin: 0 0 0.5rem; border-radius: 0.75rem; background: rgba(76, 175, 80, 0.14); border: 1px solid rgba(76, 175, 80, 0.35); }
+.unified-floor-editor-publish-success { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.75rem 1rem; margin: 0 0 0.5rem; border-radius: 0.75rem; background: color-mix(in srgb, var(--one-success) 14%, transparent); border: 1px solid color-mix(in srgb, var(--one-success) 35%, transparent); }
 .unified-floor-editor-publish-success-copy { display: flex; flex-direction: column; gap: 0.25rem; }
 .unified-floor-editor-publish-success-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .unified-floor-editor-return-host-btn { min-height: 44px; }
@@ -46126,14 +46126,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .mobile-availability-banner-error {
   color: #ffd7d7;
-  background: rgba(244, 67, 54, 0.12);
-  border: 1px solid rgba(244, 67, 54, 0.24);
+  background: color-mix(in srgb, var(--one-danger) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-danger) 24%, transparent);
 }
 
 .mobile-availability-banner-success {
-  color: #d9f6cf;
-  background: rgba(76, 175, 80, 0.12);
-  border: 1px solid rgba(76, 175, 80, 0.24);
+  color: var(--one-success);
+  background: color-mix(in srgb, var(--one-success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--one-success) 24%, transparent);
 }
 
 .mobile-availability-leave-dialog {
@@ -49558,7 +49558,7 @@ summary:focus-visible {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: #d5e4f4;
+  color: var(--one-info);
   cursor: pointer;
 }
 
@@ -49622,7 +49622,7 @@ summary:focus-visible {
 }
 
 .stock-item-qty-figure.tone-out .stock-item-qty-number {
-  color: #ffb4b4;
+  color: var(--one-danger);
 }
 
 .stock-item-qty-figure.tone-low .stock-item-qty-number {
@@ -49721,7 +49721,7 @@ summary:focus-visible {
   padding: 0 2px;
   border: 0;
   background: transparent;
-  color: #d5e4f4;
+  color: var(--one-info);
   font: inherit;
   font-weight: 650;
   cursor: pointer;
@@ -49763,7 +49763,7 @@ summary:focus-visible {
   min-height: 44px;
   padding: 0;
   background: transparent;
-  color: #d5e4f4;
+  color: var(--one-info);
   box-shadow: inset 0 0 0 1px rgba(168, 196, 224, 0.35);
 }
 
@@ -49834,7 +49834,7 @@ summary:focus-visible {
 .inventory-count-door-icon {
   font-size: 1.35rem;
   line-height: 1;
-  color: #d5e4f4;
+  color: var(--one-info);
 }
 
 .inventory-count-door-copy {
@@ -49878,7 +49878,7 @@ summary:focus-visible {
 .inventory-count-page .ghost-btn,
 .inventory-count-session .ghost-btn {
   background: transparent;
-  color: #d5e4f4;
+  color: var(--one-info);
   box-shadow: inset 0 0 0 1px rgba(168, 196, 224, 0.38);
 }
 
@@ -51630,8 +51630,8 @@ summary:focus-visible {
   height: 18px;
   padding: 0 4px;
   border-radius: 999px;
-  background: #c4564a;
-  color: #fff;
+  background: var(--one-danger);
+  color: var(--one-gold-ink);
   font-size: 0.68rem;
   font-weight: 700;
   line-height: 18px;
@@ -53141,7 +53141,7 @@ summary:focus-visible {
   border-radius: 10px;
   background: rgba(220, 70, 70, 0.14);
   border: 1px solid rgba(220, 70, 70, 0.45);
-  color: #ffb4b4;
+  color: var(--one-danger);
   font-size: 0.9rem;
 }
 .team-people-disabled-badge {

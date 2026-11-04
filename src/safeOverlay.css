@@ -1215,9 +1215,9 @@ body {
   background-color: rgba(18, 32, 51, 0.88);
 }
 
-.operations-summary-card.tone-warning { background-image: linear-gradient(rgba(255, 152, 0, 0.06), rgba(255, 152, 0, 0.06)); }
-.operations-summary-card.tone-success { background-image: linear-gradient(rgba(76, 175, 80, 0.06), rgba(76, 175, 80, 0.06)); }
-.operations-summary-card.tone-danger { background-image: linear-gradient(rgba(244, 67, 54, 0.06), rgba(244, 67, 54, 0.06)); }
+.operations-summary-card.tone-warning { background-image: linear-gradient(color-mix(in srgb, var(--one-warning) 6%, transparent), color-mix(in srgb, var(--one-warning) 6%, transparent)); }
+.operations-summary-card.tone-success { background-image: linear-gradient(color-mix(in srgb, var(--one-success) 6%, transparent), color-mix(in srgb, var(--one-success) 6%, transparent)); }
+.operations-summary-card.tone-danger { background-image: linear-gradient(color-mix(in srgb, var(--one-danger) 6%, transparent), color-mix(in srgb, var(--one-danger) 6%, transparent)); }
 .operations-summary-card.tone-gold { background-image: linear-gradient(rgba(212, 175, 55, 0.04), rgba(212, 175, 55, 0.04)); }
 
 /* (9) Compact landscape header: same height on every Operations tab. */
