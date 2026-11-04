@@ -54,3 +54,12 @@ describe('phone-landscape help button and Finish preview', () => {
     expect(css).toMatch(/finish-preview-summary\s*\{[^}]*repeat\(4,/)
   })
 })
+
+describe('phone-landscape STATUS column', () => {
+  it('widens STATUS, leaves a gap for the scroll indicator and trims the pill', () => {
+    expect(css).toMatch(/--ic-col-status:\s*minmax\(84px[^;]*!important/)
+    expect(css).toMatch(/spreadsheet-row\s*\{[^}]*padding-right:\s*14px/)
+    expect(css).toMatch(/status-pill\s*\{[^}]*font-size:\s*0\.68rem/)
+    expect(css).not.toMatch(/overflow-y:\s*hidden|scrollbar-width:\s*none|::-webkit-scrollbar/)
+  })
+})

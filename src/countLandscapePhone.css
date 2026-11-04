@@ -220,3 +220,26 @@ html.one-phone-landscape body .inventory-count-finish-preview-summary-card .inve
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* STATUS column: the iOS overlay scroll indicator sat on the pills and the
+   column was too narrow, clipping "PENDING". Give STATUS a fixed minimum
+   that fits the pill, leave a gap for the indicator, and trim the pill.
+   Scrolling itself is untouched. */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
+  --ic-col-status: minmax(84px, 0.48fr) !important;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet > .inventory-count-session-table-head,
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row {
+  padding-right: 14px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-cell.is-status {
+  justify-content: flex-start;
+  min-width: 0;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-status-pill {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
