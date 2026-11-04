@@ -1827,7 +1827,7 @@ export function StockDashboardView({
             <header className="stock-today-card-header">
               <h3>To order</h3>
               <StockMetaSegments
-                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
+                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${canManage && toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
               />
             </header>
             {visibleOrderGroups.length > 0 ? (
@@ -1851,7 +1851,7 @@ export function StockDashboardView({
                   Shelf levels
                 </button>
               ) : null}
-              {ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
+              {canManage && ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
                 <button type="button" className="stock-text-btn" onClick={onOpenDrafts}>
                   Review order
                 </button>

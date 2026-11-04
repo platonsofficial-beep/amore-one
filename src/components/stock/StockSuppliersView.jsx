@@ -78,7 +78,7 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
+function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true, showContact = true }) {
   const statusTone = getSupplierStatusTone(supplier)
   const receivedValue = describeReceivedValue(metrics.totalSpend, metrics.receivedOrders?.length)
 
@@ -105,6 +105,8 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
         </span>
       </div>
 
+      {/* S-10: supplier phone/email are manager-only. */}
+      {showContact ? (
       <div className="stock-supplier-card-contact-grid">
         {supplier.phone || supplier.email ? (
           <>
@@ -115,6 +117,7 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
           <span className="is-muted">No contact</span>
         )}
       </div>
+      ) : null}
 
       <div className="stock-supplier-card-stats">
         <div className="stock-supplier-card-stat">
@@ -445,6 +448,7 @@ export function StockSuppliersView({
               supplier={supplier}
               metrics={metricsBySupplierId.get(supplier.id) ?? buildSupplierMetrics(supplier, stockItems, stockOrders)}
               showSpend={canManage}
+              showContact={canManage}
               onOpen={setSelectedSupplier}
             />
           ))}

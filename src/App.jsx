@@ -26073,6 +26073,10 @@ function App() {
                         canRequestLeave: canRequestOwnLeave,
                         onOpenRequestLeave: () => setIsRequestLeaveModalOpen(true),
                       }}
+                      onOpenStock={!isHostAccount && canAccessMobileExpandedModule(permissionAccess, 'stock')
+                        ? () => handleMobileNavigateModule('stock')
+                        : null}
+                      isStockOpen={mobileExpandedView === 'workspace' && activeView === 'stock'}
                       expandedView={mobileExpandedView}
                       expandedTitle={mobileExpandedTitle}
                       onBackFromExpanded={handleMobileBack}

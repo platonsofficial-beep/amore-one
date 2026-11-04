@@ -102,12 +102,12 @@ export function StockSupplierDetailDrawer({
             <h3 className="stock-product-history-section-title">Contact</h3>
             <dl className="stock-supplier-detail-list">
               <DetailRow label="Contact person" value={supplier?.contactPerson} />
-              <DetailRow label="Phone" value={supplier?.phone} />
-              <DetailRow label="Email" value={supplier?.email} />
+              {canManage ? <DetailRow label="Phone" value={supplier?.phone} /> : null}
+              {canManage ? <DetailRow label="Email" value={supplier?.email} /> : null}
               <DetailRow label="Address" value={supplier?.address} />
               <DetailRow label="Notes" value={supplier?.notes} />
             </dl>
-            {!supplier?.contactPerson && !supplier?.phone && !supplier?.email && !supplier?.address && !supplier?.notes ? (
+            {!supplier?.contactPerson && !(canManage && (supplier?.phone || supplier?.email)) && !supplier?.address && !supplier?.notes ? (
               <p className="stock-supplier-detail-empty">No contact details added yet.</p>
             ) : null}
           </section>
@@ -132,7 +132,9 @@ export function StockSupplierDetailDrawer({
                     </div>
                     <div className="stock-supplier-product-stats">
                       <span>{product.currentStock}</span>
-                      <span className="stock-supplier-product-price">{product.lastPurchasePrice}</span>
+                      {canManage ? (
+                        <span className="stock-supplier-product-price">{product.lastPurchasePrice}</span>
+                      ) : null}
                     </div>
                   </li>
                 ))}
