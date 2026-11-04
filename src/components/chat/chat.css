@@ -28,6 +28,12 @@
   border-right: 1px solid var(--one-overlay-08);
 }
 
+/* The divider only belongs between list and thread. With the list alone it
+   drew a stray hairline down the right edge of the phone screen. */
+.chat-screen:not(.is-split) .chat-list {
+  border-right: 0;
+}
+
 .chat-list-header,
 .chat-thread-header {
   display: flex;

@@ -71,6 +71,8 @@
 
 html {
   color-scheme: dark;
+  /* The canvas iOS shows under the home indicator and status bar. */
+  background-color: var(--one-bg);
 }
 
 html,
