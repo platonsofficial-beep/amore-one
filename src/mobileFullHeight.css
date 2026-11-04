@@ -1,0 +1,64 @@
+/*
+  Phone tab bar sits low like a native one, and the bottom of the screen has
+  no cut line on iOS home-screen apps.
+
+  --one-standalone-gap = strip iOS leaves below the layout viewport (set by
+  lib/standaloneViewport.js; 0px elsewhere). The page height chain
+  (html/body/#root/shell) is NOT touched: it is part of the locked Active
+  Inventory Count baseline (P8.19.8). Everything here is skipped while a count
+  session is open (stock focus mode / .inventory-count-session present).
+*/
+:root {
+  --one-standalone-gap: 0px;
+  /* Tab bar bottom edge above the physical bottom: inset 34 -> 14pt. */
+  --one-mobile-nav-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) - 20px));
+}
+
+@media (orientation: portrait) {
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) {
+    /* Room to scroll the last card clear of the lowered bar and the fade. */
+    --one-mobile-bottom-inset: max(
+      calc(
+        var(--one-mobile-bottom-nav-height) +
+        var(--one-mobile-nav-bottom) +
+        var(--one-mobile-nav-content-spacing) -
+        var(--one-standalone-gap)
+      ),
+      calc(48px + var(--one-mobile-nav-content-spacing))
+    );
+  }
+
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app .mobile-bottom-nav,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-staff-app .mobile-bottom-nav {
+    bottom: calc(var(--one-mobile-nav-bottom) - var(--one-standalone-gap));
+  }
+
+  /* Stock list: its Count / Suggest / Create order bar keeps riding on the tab bar
+     (and the fade below is skipped there so the bar is not dimmed). */
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app .mobile-manager-stock-action-bar {
+    bottom: calc(var(--one-mobile-nav-bottom) - var(--one-standalone-gap) + 56px);
+  }
+
+  /*
+    Full-bleed backdrop behind the bar: solid navy from the glass up to where
+    iOS ends the page, then a 48px fade, so content dissolves instead of being
+    hard-cut. Decorative only (fixed, pointer-events: none).
+  */
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app:not(.is-reservations-host-mode):not(:has(.mobile-manager-stock-action-bar))::after,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-staff-app::after {
+    content: '';
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(0px - var(--one-standalone-gap));
+    height: calc(var(--one-standalone-gap) + 48px);
+    z-index: 39;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      var(--one-bg) 0,
+      var(--one-bg) var(--one-standalone-gap),
+      transparent 100%
+    );
+  }
+}
