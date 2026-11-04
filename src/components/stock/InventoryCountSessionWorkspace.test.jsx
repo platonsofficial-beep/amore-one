@@ -4911,7 +4911,7 @@ describe('InventoryCountSessionWorkspace active count table premium typography (
     expect(pill.className).toMatch(/is-(pending|counted|skipped)/)
     expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
     expect(appCss).toMatch(
-      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\.is-counted\s*\{[^}]*border-color:\s*rgba\(212,\s*175,\s*55,\s*0\.22\)/s,
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\.is-counted\s*\{[^}]*border-color:\s*var\(--one-gold-a24\)/s,
     )
     expect(appCss).toMatch(
       /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\.is-pending\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.45\)/s,
@@ -4931,7 +4931,7 @@ describe('InventoryCountSessionWorkspace active count table premium typography (
       /\.inventory-count-session-spreadsheet-cell\.is-head\s*\{[^}]*letter-spacing:\s*0\.12em/s,
     )
     expect(appCss).toMatch(
-      /\.inventory-count-session-spreadsheet\s*>\s*\.inventory-count-session-sheet-frozen-head\s*\{[^}]*border-bottom:\s*1px solid rgba\(255,\s*255,\s*255,\s*0\.16\)/s,
+      /\.inventory-count-session-spreadsheet\s*>\s*\.inventory-count-session-sheet-frozen-head\s*\{[^}]*border-bottom:\s*1px solid var\(--one-overlay-16\)/s,
     )
   })
 

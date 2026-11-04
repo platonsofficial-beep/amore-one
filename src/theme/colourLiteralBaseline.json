@@ -1,0 +1,16 @@
+{
+  "src/App.css": 3069,
+  "src/components/chat/chat.css": 34,
+  "src/components/privacy/privacy.css": 7,
+  "src/components/reservations/phoneCountryPicker.css": 8,
+  "src/components/shell/ManagerLandscapeGate.css": 1,
+  "src/components/shell/coldStartSplash.css": 4,
+  "src/components/today/onShiftSheet.css": 50,
+  "src/components/workspace/venueManager.css": 9,
+  "src/components/workspace/workspaceTimezonePicker.css": 14,
+  "src/floor-plan-builder/floorPlanBuilder.css": 135,
+  "src/help/helpMode.css": 10,
+  "src/legal/legal.css": 8,
+  "src/mobileShell.css": 410,
+  "src/safeOverlay.css": 48
+}

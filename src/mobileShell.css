@@ -228,9 +228,9 @@
 .mobile-card {
   padding: 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   background: rgba(18, 32, 51, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 var(--one-overlay-04);
   min-width: 0;
   max-width: 100%;
 }
@@ -273,7 +273,7 @@
 
 .mobile-shift-card.tone-completed,
 .mobile-shift-card.tone-neutral {
-  border-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--one-overlay-06);
 }
 
 .mobile-task-summary-grid {
@@ -289,7 +289,7 @@
   min-width: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
 }
 
 .mobile-task-summary-item strong {
@@ -380,7 +380,7 @@
   padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: var(--one-text);
   font-size: 0.82rem;
   font-weight: 600;
@@ -475,7 +475,7 @@
 .mobile-schedule-day {
   padding: 14px 16px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   background: rgba(18, 32, 51, 0.92);
   min-width: 0;
   max-width: 100%;
@@ -572,7 +572,7 @@
   min-width: 0;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
 }
 
 .mobile-schedule-shift-item strong,
@@ -608,9 +608,9 @@
   min-width: 0;
   min-height: 48px;
   padding: 8px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--one-overlay-02);
   color: #a89f92;
   font-size: 0.82rem;
   font-weight: 600;
@@ -618,7 +618,7 @@
 }
 
 .mobile-segmented-btn:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -656,7 +656,7 @@
   text-align: left;
   padding: 14px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   background: rgba(18, 32, 51, 0.92);
   min-width: 0;
   max-width: 100%;
@@ -712,7 +712,7 @@
   margin-top: 4px;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: #b8afa2;
   font-size: 0.74rem;
   font-weight: 600;
@@ -757,8 +757,8 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-team-progress-copy {
@@ -788,7 +788,7 @@
 .mobile-manager-team-progress-track {
   height: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   overflow: hidden;
 }
 
@@ -796,7 +796,7 @@
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.75), rgba(212, 175, 55, 0.95));
+  background: linear-gradient(90deg, var(--one-gold-a72), rgba(212, 175, 55, 0.95));
 }
 
 .mobile-task-card-copy {
@@ -840,7 +840,7 @@
 }
 
 .mobile-task-card:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -873,12 +873,12 @@
 }
 
 .mobile-task-priority-badge.priority-low {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: #a89f92;
 }
 
 .mobile-task-priority-badge.priority-normal {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-08);
   color: #c8c0b3;
 }
 
@@ -935,7 +935,7 @@
   overflow-x: hidden;
   overflow-y: auto;
   border-radius: 24px 24px 0 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-bottom: none;
   background: var(--one-surface-raised);
   /* Sticky footers inside paint this same colour (no dark box). */
@@ -981,9 +981,9 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: #d8d0c3;
   font-size: 1rem;
   flex-shrink: 0;
@@ -1046,7 +1046,7 @@
 .mobile-task-completion-note {
   padding: 12px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   min-width: 0;
 }
 
@@ -1080,7 +1080,7 @@
   padding: 12px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: var(--one-text);
   font: inherit;
   resize: vertical;
@@ -1197,7 +1197,7 @@
   max-width: 100%;
   min-height: 48px;
   padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 14px;
   background: rgba(18, 32, 51, 0.92);
   color: var(--one-text);
@@ -1225,9 +1225,9 @@
   gap: 6px;
   padding: 11px 12px;
   border-radius: 14px;
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.08), rgba(255, 255, 255, 0.02)),
+    linear-gradient(165deg, var(--one-gold-a08), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.94);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -1260,7 +1260,7 @@
   letter-spacing: 0.06em;
   line-height: 24px;
   text-transform: uppercase;
-  background: rgba(212, 175, 55, 0.14);
+  background: var(--one-gold-a16);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
 }
 
@@ -1312,8 +1312,8 @@
   padding: 10px 11px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -1332,7 +1332,7 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.1);
+  background: var(--one-gold-a12);
   font-size: 1rem;
   line-height: 1;
 }
@@ -1485,7 +1485,7 @@
   color: #17110a;
   font-size: 2rem;
   font-weight: 700;
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.45);
+  box-shadow: 0 0 0 3px var(--one-gold-a45);
 }
 
 .profile-photo-circle img {
@@ -1568,7 +1568,7 @@
   grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--one-overlay-08);
   background: rgba(18, 32, 51, 0.96);
   backdrop-filter: blur(12px);
 }
@@ -1620,7 +1620,7 @@
   background: rgba(18, 32, 51, 0.92);
   box-shadow:
     0 10px 36px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 var(--one-overlay-06);
   backdrop-filter: blur(22px) saturate(170%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
 }
@@ -1678,7 +1678,7 @@
   top: 0;
   z-index: 2;
   padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--one-overlay-08);
   background: var(--one-bg, var(--one-surface-1));
 }
 
@@ -1726,9 +1726,9 @@
   min-height: 44px;
   flex-shrink: 0;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: #d6b26a;
   font-size: 0.92rem;
   font-weight: 600;
@@ -1769,8 +1769,8 @@
   margin: 0;
   padding: 6px 16px;
   color: #d6b26a;
-  background: rgba(212, 175, 55, 0.1);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+  background: var(--one-gold-a12);
+  border-bottom: 1px solid var(--one-gold-a16);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -1857,9 +1857,9 @@
   gap: 0;
   padding: 10px 10px 11px;
   border-radius: 16px;
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
+    linear-gradient(165deg, var(--one-gold-a08), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.94);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
 }
@@ -1869,7 +1869,7 @@
   padding: 10px 10px 11px;
   border-radius: 16px;
   background: rgba(18, 32, 51, 0.82);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-command-announcements {
@@ -1891,7 +1891,7 @@
 .mobile-manager-command-divider {
   height: 1px;
   margin: 8px 0 7px;
-  background: linear-gradient(90deg, rgba(212, 175, 55, 0.35), rgba(255, 255, 255, 0.06), transparent);
+  background: linear-gradient(90deg, var(--one-gold-a32), var(--one-overlay-06), transparent);
 }
 
 .mobile-manager-block-title {
@@ -1934,8 +1934,8 @@
   flex-shrink: 0;
   padding: 4px 10px;
   border-radius: 999px;
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid var(--one-gold-a24);
+  background: var(--one-gold-a08);
   color: #e8d7a8;
   font-size: 0.68rem;
   font-weight: 600;
@@ -2009,7 +2009,7 @@
   margin-left: 8px;
   padding: 0 6px;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.14);
+  background: var(--one-gold-a16);
   color: #e8d7a8;
   font-size: 0.68rem;
   font-weight: 700;
@@ -2019,7 +2019,7 @@
 }
 
 .mobile-manager-today-placeholder {
-  border-color: rgba(212, 175, 55, 0.18);
+  border-color: var(--one-gold-a16);
 }
 
 .mobile-manager-panel {
@@ -2031,11 +2031,11 @@
   padding: 14px 14px 16px;
   border-radius: 18px;
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
+    linear-gradient(165deg, var(--one-overlay-03), rgba(255, 255, 255, 0.008)),
     rgba(18, 32, 51, 0.88);
   box-shadow:
     0 10px 28px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    inset 0 1px 0 var(--one-overlay-04);
 }
 
 .mobile-manager-overview-section {
@@ -2059,7 +2059,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-status-card.is-tappable:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -2103,7 +2103,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-action-btn:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -2130,8 +2130,8 @@
   padding: 8px 9px;
   border-radius: 10px;
   border: 0;
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-04);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-feed .mobile-manager-priority-item.is-actionable {
@@ -2144,8 +2144,8 @@
   gap: 8px;
   padding: 8px 9px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-04);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-dot {
@@ -2153,7 +2153,7 @@
   height: 5px;
   margin-top: 6px;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.55);
+  background: var(--one-gold-a55);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.category-schedule .mobile-manager-priority-dot {
@@ -2170,13 +2170,13 @@
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-critical {
   box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.7);
-  background: rgba(255, 255, 255, 0.025);
+  background: var(--one-overlay-03);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.is-actionable.tone-critical .mobile-manager-attention-trigger,
 .mobile-manager-command-center .mobile-manager-priority-item.tone-critical .mobile-manager-attention-trigger {
-  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.7), inset 0 0 0 1px var(--one-overlay-04);
+  background: var(--one-overlay-03);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-critical strong {
@@ -2185,13 +2185,13 @@
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning {
   box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.45);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--one-overlay-02);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.is-actionable.tone-warning .mobile-manager-attention-trigger,
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning .mobile-manager-attention-trigger {
-  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.45), inset 0 0 0 1px var(--one-overlay-04);
+  background: var(--one-overlay-02);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning strong {
@@ -2200,7 +2200,7 @@
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-info {
   box-shadow: inset 2px 0 0 rgba(127, 168, 212, 0.5);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--one-overlay-02);
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-info strong {
@@ -2229,7 +2229,7 @@
 }
 
 .mobile-manager-command-center .mobile-manager-attention-more:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -2259,9 +2259,9 @@
   border-radius: 14px;
   border: 0;
   background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+    linear-gradient(165deg, var(--one-overlay-04), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   text-align: left;
 }
 
@@ -2285,7 +2285,7 @@
     inset 0 0 0 1px rgba(212, 175, 55, 0.28),
     0 6px 16px rgba(0, 0, 0, 0.16);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.1), rgba(255, 255, 255, 0.02)),
+    linear-gradient(165deg, var(--one-gold-a12), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.82);
 }
 
@@ -2368,8 +2368,8 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 0;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-attention-feed .mobile-manager-attention-item.is-actionable {
@@ -2389,7 +2389,7 @@
   height: 8px;
   margin-top: 5px;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.55);
+  background: var(--one-gold-a55);
 }
 
 .mobile-manager-priority-dot {
@@ -2424,8 +2424,8 @@
   gap: 3px;
   padding: 11px 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--one-overlay-06);
+  background: var(--one-overlay-02);
 }
 
 .mobile-manager-attention-item.is-actionable {
@@ -2447,8 +2447,8 @@
   padding: 10px 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   text-align: left;
   cursor: pointer;
   color: inherit;
@@ -2457,13 +2457,13 @@
 }
 
 .mobile-manager-attention-trigger:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
 }
 
 .mobile-manager-attention-trigger:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
-  background: rgba(212, 175, 55, 0.06);
+  background: var(--one-gold-a04);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
 }
 
@@ -2525,8 +2525,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #d6c7b0;
   font-size: 0.86rem;
   font-weight: 600;
@@ -2554,8 +2554,8 @@
   padding: 0 14px;
   border-radius: 14px;
   border: 0;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font-size: 0.9rem;
   font-weight: 600;
@@ -2564,7 +2564,7 @@
 }
 
 .mobile-manager-action-btn:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -2573,8 +2573,8 @@
 }
 
 .mobile-manager-action-btn-primary {
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.1));
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.2), var(--one-gold-a12));
   color: #f6dca2;
 }
 
@@ -2596,8 +2596,8 @@
   min-height: 72px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-03);
 }
 
 .mobile-manager-metric-card.tone-warning {
@@ -2650,8 +2650,8 @@
   gap: 2px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-03);
 }
 
 .mobile-manager-stock-order-item strong {
@@ -2681,8 +2681,8 @@
   gap: 6px;
   padding: 12px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-03);
 }
 
 .mobile-manager-task-preview-card.is-urgent {
@@ -2755,9 +2755,9 @@
   gap: 5px;
   padding: 8px 10px;
   border-radius: 12px;
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
+    linear-gradient(165deg, var(--one-gold-a08), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.94);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
@@ -2796,7 +2796,7 @@
 .mobile-manager-team-progress-track {
   height: 5px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-08);
   overflow: hidden;
 }
 
@@ -2835,16 +2835,16 @@
   gap: 4px;
   padding: 9px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-task-attention-card.tone-overdue {
-  box-shadow: inset 2px 0 0 rgba(201, 120, 102, 0.75), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 2px 0 0 rgba(201, 120, 102, 0.75), inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-task-attention-card.tone-due-soon {
-  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.55), inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-task-attention-header {
@@ -2933,8 +2933,8 @@
 .mobile-manager-team-progress-item {
   padding: 8px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.025);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-empty {
@@ -2949,8 +2949,8 @@
 }
 
 .mobile-manager-tasks-empty.is-subtle {
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-empty-title {
@@ -3003,8 +3003,8 @@
   color: var(--one-text-muted);
   font-size: 0.82rem;
   line-height: 1.35;
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-checklist-list,
@@ -3027,8 +3027,8 @@
   padding: 8px 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -3041,11 +3041,11 @@
 }
 
 .mobile-manager-tasks-checklist-card.tone-success {
-  box-shadow: inset 2px 0 0 rgba(143, 214, 168, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 2px 0 0 rgba(143, 214, 168, 0.7), inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-checklist-card.tone-warning {
-  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.55), inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-checklist-name {
@@ -3068,8 +3068,8 @@
   gap: 4px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-note-badge {
@@ -3083,7 +3083,7 @@
   letter-spacing: 0.05em;
   line-height: 20px;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
 }
 
 .mobile-manager-tasks-note-headline {
@@ -3124,7 +3124,7 @@
   padding: 0 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.14);
+  background: var(--one-gold-a16);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
   color: #f0dca2;
   font-size: 0.78rem;
@@ -3160,8 +3160,8 @@
   padding: 9px 10px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -3169,12 +3169,12 @@
 }
 
 .mobile-manager-today-task-card:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
 .mobile-manager-today-task-card.is-overdue {
-  box-shadow: inset 2px 0 0 rgba(201, 120, 102, 0.75), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow: inset 2px 0 0 rgba(201, 120, 102, 0.75), inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-today-task-card.is-done {
@@ -3225,7 +3225,7 @@
 
 .mobile-manager-today-task-priority.priority-normal {
   color: var(--one-text-muted);
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
 }
 
 .mobile-manager-today-task-department {
@@ -3293,8 +3293,8 @@
   padding: 0 10px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font-size: 0.86rem;
   font-weight: 600;
@@ -3310,7 +3310,7 @@
 .mobile-manager-tasks-quick-btn-primary {
   color: #1a1408;
   background: linear-gradient(165deg, #e8c97a, var(--one-gold));
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
+  box-shadow: 0 6px 18px var(--one-gold-a24);
 }
 
 .mobile-manager-stock-inventory {
@@ -3399,8 +3399,8 @@
   min-width: 44px;
   padding: 8px 12px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-04);
   color: #f5f8ff;
   font-size: 0.82rem;
   font-weight: 600;
@@ -3408,7 +3408,7 @@
 
 .mobile-manager-stock-pending-btn-primary {
   border-color: rgba(212, 175, 55, 0.4);
-  background: rgba(212, 175, 55, 0.16);
+  background: var(--one-gold-a16);
   color: var(--one-text);
 }
 
@@ -3421,7 +3421,7 @@
   margin: 0 -16px 6px;
   padding: 0 16px 8px;
   background: var(--one-bg, var(--one-surface-1));
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 1px 0 var(--one-overlay-04);
 }
 
 .mobile-manager-stock-scroll-body {
@@ -3439,8 +3439,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font-size: 0.92rem;
   line-height: 1.2;
@@ -3508,7 +3508,7 @@
   background: rgba(10, 22, 40, 0.94);
   box-shadow:
     0 8px 28px rgba(0, 0, 0, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    inset 0 1px 0 var(--one-overlay-06);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
@@ -3521,8 +3521,8 @@
   padding: 0 10px;
   border: 0;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font-size: 0.84rem;
   font-weight: 600;
@@ -3544,7 +3544,7 @@
 .mobile-manager-stock-quick-btn-primary {
   color: #1a1408;
   background: linear-gradient(165deg, #e8c97a, var(--one-gold));
-  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
+  box-shadow: 0 6px 18px var(--one-gold-a24);
 }
 
 .mobile-manager-stock-loading {
@@ -3568,8 +3568,8 @@
   gap: 6px;
   padding: 9px 10px;
   border-radius: 13px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-manager-stock-card-header {
@@ -3708,8 +3708,8 @@
   padding: 0 11px;
   border: 0;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.24);
+  background: var(--one-gold-a12);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a24);
   color: #f0dca2;
   font-size: 0.82rem;
   font-weight: 600;
@@ -3770,8 +3770,8 @@
 .mobile-manager-command-announcements .today-announcements {
   margin-top: 0;
   border: 0;
-  background: rgba(255, 255, 255, 0.012);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-04);
 }
 
 .mobile-manager-command-announcements .today-announcements-header h3 {
@@ -3791,8 +3791,8 @@
 
 .mobile-manager-home .mobile-manager-announcements-wrap .today-announcements {
   border: 0;
-  background: rgba(255, 255, 255, 0.012);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-04);
 }
 
 .mobile-manager-home .mobile-manager-announcements-wrap .today-announcements-header h3 {
@@ -3975,7 +3975,7 @@
   border: 0;
   box-sizing: border-box;
   background: rgba(18, 32, 51, 0.96);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 -1px 0 var(--one-overlay-08);
   z-index: 3;
 }
 
@@ -4012,7 +4012,7 @@
   align-items: center;
   box-sizing: border-box;
   background: rgba(18, 32, 51, 0.96);
-  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 -1px 0 var(--one-overlay-08);
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -4297,7 +4297,7 @@
   min-width: 220px;
   padding: 6px;
   border-radius: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  border: 1px solid var(--one-gold-a16);
   background: var(--one-surface-3);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
 }
@@ -4810,7 +4810,7 @@
   gap: 8px;
   flex-shrink: 0;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--one-overlay-08);
   background: var(--one-bg);
   backdrop-filter: blur(10px);
 }
@@ -4858,8 +4858,8 @@
   padding: 0;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: #a89f92;
   font-size: 1.1rem;
   line-height: 1;
@@ -4869,7 +4869,7 @@
 .mobile-host-sticky-date-step-btn:hover,
 .mobile-host-sticky-date-step-btn:focus-visible {
   color: var(--one-gold);
-  background: rgba(212, 175, 55, 0.08);
+  background: var(--one-gold-a08);
   outline: none;
 }
 
@@ -4928,8 +4928,8 @@
   padding: 0;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: #a89f92;
   cursor: pointer;
 }
@@ -4937,7 +4937,7 @@
 .mobile-host-sticky-date-calendar-btn:hover,
 .mobile-host-sticky-date-calendar-btn:focus-visible {
   color: var(--one-gold);
-  background: rgba(212, 175, 55, 0.08);
+  background: var(--one-gold-a08);
   outline: none;
 }
 
@@ -5180,7 +5180,7 @@
 
 .host-queue-name-indicator.tone-vip {
   color: #e8c46e;
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
 }
 
 .host-queue-row-chip.tone-extra-chair,
@@ -5204,8 +5204,8 @@
 
 .host-queue-row-chip.tone-vip {
   color: #e8c46e;
-  background: rgba(212, 175, 55, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.22);
+  background: var(--one-gold-a12);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a24);
 }
 
 .host-queue-row-chip.tone-accessibility,
@@ -5218,8 +5218,8 @@
 .host-queue-row-chip.tone-neutral,
 .host-queue-row-chip.tone-window {
   color: #d8cdbd;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
 }
 
 .host-reservation-card-status-pill.is-late-mild,
@@ -5301,8 +5301,8 @@
   padding: 0 14px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(165deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.1));
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  background: linear-gradient(165deg, var(--one-gold-a24), var(--one-gold-a12));
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
   color: #f0dca2;
   font-size: 0.88rem;
   font-weight: 700;
@@ -5332,7 +5332,7 @@
   padding: 0 12px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   color: #e8dcc8;
   font-size: 0.72rem;
@@ -5394,8 +5394,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #d6b26a;
   font-size: 0.86rem;
   font-weight: 700;
@@ -5563,8 +5563,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #e8dcc6;
   font-size: 0.72rem;
   font-weight: 600;
@@ -5577,7 +5577,7 @@
 }
 
 .host-queue-toolbar-btn.is-open {
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
   color: var(--one-text);
 }
@@ -5597,7 +5597,7 @@
   padding: 6px;
   border-radius: 14px;
   background: var(--one-surface-3);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 0 0 1px var(--one-overlay-08);
   opacity: 0;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -5621,7 +5621,7 @@
 .host-queue-toolbar-menu-section + .host-queue-toolbar-menu-section {
   margin-top: 6px;
   padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--one-overlay-08);
 }
 
 .host-queue-toolbar-menu-section-label {
@@ -5658,7 +5658,7 @@
 }
 
 .host-queue-toolbar-menu-item.is-selected {
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
   color: #f7e3a4;
 }
 
@@ -5681,8 +5681,8 @@
   min-height: 22px;
   padding: 0 7px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #e8dcc6;
   font-size: 0.64rem;
   font-weight: 600;
@@ -5722,8 +5722,8 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font-size: 0.9rem;
 }
@@ -5752,7 +5752,7 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-06);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
   color: #e8dcc6;
   font-size: 0.82rem;
@@ -5770,7 +5770,7 @@
 .mobile-host-reservations-notice {
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.1);
+  background: var(--one-gold-a12);
   color: #f0dca2;
   font-size: 0.84rem;
   line-height: 1.35;
@@ -5792,8 +5792,8 @@
   padding: 8px 10px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: var(--one-text-muted);
   font-size: 0.78rem;
   font-weight: 600;
@@ -5809,7 +5809,7 @@
 }
 
 .mobile-host-reservations-tab:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -5824,7 +5824,7 @@
   min-height: 22px;
   padding: 0 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: #f0e4cc;
   font-size: 0.72rem;
   line-height: 22px;
@@ -5852,13 +5852,13 @@
   min-height: 68px;
   padding: 8px 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
 }
 
 .mobile-host-reservation-row.is-compact.is-selected {
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
-  background: rgba(212, 175, 55, 0.06);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
+  background: var(--one-gold-a04);
 }
 
 .mobile-host-reservation-row.is-compact.is-status-menu-open {
@@ -5875,7 +5875,7 @@
   font-size: 0.92rem;
   line-height: 1;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: #d8cdbf;
 }
 
@@ -5951,9 +5951,9 @@
   min-height: 44px;
   max-width: 112px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: #e8dcc6;
   font-size: 0.68rem;
   font-weight: 700;
@@ -5983,7 +5983,7 @@
   padding: 0;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: #d8cdbf;
   font-size: 1.2rem;
   line-height: 1;
@@ -5993,7 +5993,7 @@
 .mobile-host-reservation-row-more:focus-visible,
 .mobile-host-reservation-row-status:focus-visible,
 .mobile-host-reservation-row-main:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -6100,7 +6100,7 @@
 .mobile-host-status-menu-option.is-active,
 .mobile-host-status-menu-option:hover,
 .mobile-host-status-menu-option:focus-visible {
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
   outline: none;
 }
 
@@ -6153,7 +6153,7 @@
 
 .mobile-host-row-menu-option:hover,
 .mobile-host-row-menu-option:focus-visible {
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
   outline: none;
 }
 
@@ -6166,13 +6166,13 @@
   flex-direction: column;
   gap: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-03);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   overflow: hidden;
 }
 
 .mobile-host-reservation-card.is-selected {
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
 }
 
 .mobile-host-reservation-card-main {
@@ -6214,7 +6214,7 @@
   letter-spacing: 0.04em;
   line-height: 24px;
   text-transform: uppercase;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: #d8cdbf;
   max-width: 46%;
   overflow: hidden;
@@ -6256,7 +6256,7 @@
   padding: 0 8px;
   border: 0;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.14);
+  background: var(--one-gold-a16);
   color: #f0dca2;
   font-size: 0.76rem;
   font-weight: 700;
@@ -6267,12 +6267,12 @@
 }
 
 .mobile-host-reservation-action:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
 .mobile-host-reservation-action.is-ghost {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: #d8cdbf;
 }
 
@@ -6285,8 +6285,8 @@
 .mobile-host-reservations-loading {
   padding: 12px 10px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-02);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: var(--one-text-muted);
   font-size: 0.86rem;
 }
@@ -6307,8 +6307,8 @@
   margin-top: 2px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #d6b26a;
   font-size: 0.84rem;
   font-weight: 600;
@@ -6325,7 +6325,7 @@
   font-size: 0.88rem;
   font-weight: 800;
   background: linear-gradient(165deg, rgba(232, 201, 122, 0.34), rgba(212, 175, 55, 0.2));
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
   color: #fff3cf;
 }
 
@@ -6375,7 +6375,7 @@
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--one-overlay-06);
 }
 
 .mobile-host-reservations-list-pane,
@@ -6392,7 +6392,7 @@
   gap: 0;
   min-height: 0;
   overflow: hidden;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid var(--one-overlay-08);
 }
 
 .mobile-host-reservations-list-pane .mobile-host-list-scroll {
@@ -6408,7 +6408,7 @@
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--one-overlay-02);
 }
 
 .mobile-host-reservations-right-pane {
@@ -6530,7 +6530,7 @@
   max-width: none;
   min-height: 0;
   border-left: 0;
-  border-top: 1px solid rgba(212, 175, 55, 0.22);
+  border-top: 1px solid var(--one-gold-a24);
   overflow: hidden;
 }
 
@@ -6741,10 +6741,10 @@
   min-height: 220px;
   padding: 16px 14px;
   border-radius: 14px;
-  border-left: 3px solid rgba(212, 175, 55, 0.35);
+  border-left: 3px solid var(--one-gold-a32);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.06), rgba(255, 255, 255, 0.02)),
-    rgba(10, 10, 11, 0.94);
+    linear-gradient(165deg, var(--one-gold-a04), var(--one-overlay-02)),
+    color-mix(in srgb, var(--one-bg) 94%, transparent);
   text-align: left;
 }
 
@@ -6812,13 +6812,13 @@
     linear-gradient(
       180deg,
       rgba(36, 33, 30, 0.94) 0%,
-      rgba(20, 18, 16, 0.98) 100%
+      color-mix(in srgb, var(--one-bg) 98%, transparent) 100%
     );
   backdrop-filter: blur(16px) saturate(120%);
   -webkit-backdrop-filter: blur(16px) saturate(120%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 var(--one-overlay-06),
+    inset 0 0 0 1px var(--one-overlay-06),
     0 12px 32px rgba(0, 0, 0, 0.34);
 }
 
@@ -6895,7 +6895,7 @@
   height: 28px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--one-overlay-08);
   font-size: 0.88rem;
   line-height: 1;
   overflow: hidden;
@@ -6968,16 +6968,16 @@
   min-height: 44px;
   min-width: 44px;
   padding: 0 12px;
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  border: 1px solid var(--one-gold-a24);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.16) 0%, rgba(212, 175, 55, 0.1) 100%);
+  background: linear-gradient(180deg, var(--one-gold-a16) 0%, var(--one-gold-a12) 100%);
   color: #f3dfaa;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 var(--one-overlay-06),
     0 1px 2px rgba(0, 0, 0, 0.18);
 }
 
@@ -6988,7 +6988,7 @@
 
 .mobile-host-floor-selection-edit-btn:hover,
 .mobile-host-floor-selection-edit-btn:focus-visible {
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.22) 0%, rgba(212, 175, 55, 0.14) 100%);
+  background: linear-gradient(180deg, var(--one-gold-a24) 0%, var(--one-gold-a16) 100%);
   outline: none;
 }
 
@@ -6999,19 +6999,19 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--one-overlay-04);
   color: rgba(168, 159, 146, 0.94);
   font-size: 1.15rem;
   line-height: 1;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 var(--one-overlay-04);
 }
 
 .mobile-host-floor-selection-menu-btn:hover,
 .mobile-host-floor-selection-menu-btn:focus-visible {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   outline: none;
 }
@@ -7023,20 +7023,20 @@
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--one-overlay-04);
   color: rgba(168, 159, 146, 0.94);
   font-size: 0.95rem;
   line-height: 1;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 var(--one-overlay-04);
 }
 
 .mobile-host-floor-selection-close-btn:hover,
 .mobile-host-floor-selection-close-btn:focus-visible {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   outline: none;
 }
@@ -7090,9 +7090,9 @@
   min-height: 220px;
   padding: 10px 11px;
   border-radius: 14px;
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   background:
-    linear-gradient(165deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
+    linear-gradient(165deg, var(--one-gold-a08), var(--one-overlay-02)),
     rgba(18, 32, 51, 0.94);
 }
 
@@ -7118,7 +7118,7 @@
   padding: 0 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(212, 175, 55, 0.14);
+  background: var(--one-gold-a16);
   color: #f0dca2;
   font-size: 0.8rem;
   font-weight: 700;
@@ -7209,8 +7209,8 @@
   padding: 8px 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
@@ -7255,8 +7255,8 @@
   padding: 8px 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
@@ -7268,15 +7268,15 @@
   padding: 0;
   border-radius: 10px;
   border: 0;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #a89f92;
 }
 
 .mobile-host-form-field .reservation-date-field-calendar-btn[aria-expanded='true'],
 .mobile-host-form-field .reservation-date-field-calendar-btn:hover {
   color: var(--one-gold);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.35);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
 }
 
 .mobile-host-form-field .host-quick-create-time-picker-trigger {
@@ -7289,8 +7289,8 @@
   padding: 8px 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
@@ -7338,8 +7338,8 @@
   border-radius: 14px;
   background: linear-gradient( 180deg, rgba(36, 33, 30, 0.98) 0%, var(--one-surface-3) 100% );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 var(--one-overlay-06),
+    inset 0 0 0 1px var(--one-overlay-06),
     0 18px 48px rgba(0, 0, 0, 0.42);
 }
 
@@ -7368,8 +7368,8 @@
   padding: 0 6px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: rgba(168, 159, 146, 0.92);
   font-size: 0.68rem;
   font-weight: 650;
@@ -7402,8 +7402,8 @@
   padding: 0 4px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-04);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-06);
   color: var(--one-text);
   font-size: 0.78rem;
   font-weight: 600;
@@ -7412,14 +7412,14 @@
 }
 
 .host-quick-create-time-picker-slot.is-selected {
-  background: rgba(212, 175, 55, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  background: var(--one-gold-a16);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
   color: #f3dfaa;
 }
 
 .host-quick-create-time-picker-slot:hover,
 .host-quick-create-time-picker-slot:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-08);
   outline: none;
 }
 
@@ -7433,8 +7433,8 @@
   padding: 0 16px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: #d8d0c3;
   font-size: 0.82rem;
   font-weight: 650;
@@ -7443,7 +7443,7 @@
 
 .host-quick-create-time-picker-cancel:hover,
 .host-quick-create-time-picker-cancel:focus-visible {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-08);
   outline: none;
 }
 
@@ -7502,8 +7502,8 @@
   padding: 0 10px;
   border: 0;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-06);
+  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
   color: var(--one-gold);
   font: inherit;
   font-size: 0.74rem;
@@ -7528,9 +7528,9 @@
   gap: 2px;
   min-height: 44px;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   font: inherit;
   text-align: left;
@@ -7589,9 +7589,9 @@
   min-height: 44px;
   min-width: 44px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: rgba(247, 239, 225, 0.78);
   font: inherit;
   font-size: 0.68rem;
@@ -7604,13 +7604,13 @@
 
 .mobile-host-quick-create-extra-chair-toggle.is-active {
   border-color: rgba(212, 175, 55, 0.85);
-  background: rgba(212, 175, 55, 0.18);
+  background: var(--one-gold-a16);
   color: var(--one-text);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 0 1px var(--one-gold-a32);
 }
 
 .mobile-host-quick-create-extra-chair-toggle:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.72);
+  outline: 2px solid var(--one-gold-a72);
   outline-offset: 2px;
 }
 
@@ -7624,9 +7624,9 @@
 
 .mobile-host-quick-create-table-option.is-selected {
   border-color: rgba(212, 175, 55, 0.85);
-  background: rgba(212, 175, 55, 0.18);
+  background: var(--one-gold-a16);
   color: var(--one-text);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 0 1px var(--one-gold-a32);
 }
 
 .mobile-host-quick-create-table-option.is-unavailable,
@@ -7636,7 +7636,7 @@
 }
 
 .mobile-host-quick-create-table-option:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.72);
+  outline: 2px solid var(--one-gold-a72);
   outline-offset: 2px;
 }
 
@@ -8139,7 +8139,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   border-radius: 18px;
   background: var(--one-surface-raised);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
 }
 
 .mobile-host-reservation-panel-header {
@@ -8148,7 +8148,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   justify-content: space-between;
   gap: 12px;
   padding: 16px 16px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--one-overlay-06);
 }
 
 .mobile-host-reservation-panel-title {
@@ -8392,7 +8392,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 
   .app-shell.is-host-station-shell .mobile-host-reservation-inline-panel {
-    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 1px solid var(--one-overlay-08);
   }
 }
 
@@ -8457,7 +8457,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   overflow-x: hidden;
   pointer-events: auto;
   overscroll-behavior: contain;
-  border-left: 1px solid rgba(212, 175, 55, 0.18);
+  border-left: 1px solid var(--one-gold-a16);
   border-radius: 14px 0 0 0;
   background:
     linear-gradient(
@@ -8468,7 +8468,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   backdrop-filter: blur(18px) saturate(120%);
   -webkit-backdrop-filter: blur(18px) saturate(120%);
   box-shadow:
-    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    inset 1px 0 0 var(--one-overlay-06),
     -12px 0 32px rgba(0, 0, 0, 0.34);
   animation: host-table-inspector-enter 180ms ease;
 }
@@ -8537,7 +8537,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .host-table-inspector-context {
   flex-shrink: 0;
   padding: 4px 14px 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--one-overlay-06);
 }
 
 .host-table-inspector-context-line {
@@ -8559,7 +8559,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   flex-shrink: 0;
   margin: 0;
   padding: 10px 16px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--one-overlay-06);
 }
 
 .host-table-inspector-summary-primary {
@@ -8605,14 +8605,14 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin: 0 0 10px;
   padding: 0;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--one-overlay-06);
   background:
     linear-gradient(
       180deg,
       rgba(18, 32, 51, 0.82) 0%,
       rgba(18, 32, 51, 0.9) 100%
     );
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 var(--one-overlay-04);
   overflow: visible;
 }
 
@@ -8639,7 +8639,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0) 0%,
-    rgba(212, 175, 55, 0.14) 50%,
+    var(--one-gold-a16) 50%,
     rgba(255, 255, 255, 0) 100%
   );
 }
@@ -8704,7 +8704,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   padding: 0 10px;
   border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.035);
+  background: var(--one-overlay-04);
   color: rgba(232, 214, 176, 0.9);
   font-size: 0.72rem;
   font-weight: 650;
@@ -8721,8 +8721,8 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .table-inspector-new-reservation-action:hover,
 .table-inspector-new-reservation-action:focus-visible {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(212, 175, 55, 0.32);
+  background: var(--one-overlay-08);
+  border-color: var(--one-gold-a32);
   color: #f3dfaa;
   outline: none;
 }
@@ -8738,8 +8738,8 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 }
 
 .table-inspector-seating-row.is-seating-selected {
-  background: rgba(212, 175, 55, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.24);
+  background: var(--one-gold-a04);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a24);
 }
 
 .table-inspector-seating-row.is-seating-selectable:focus-visible {
@@ -8760,15 +8760,15 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .host-table-inspector .floor-table-day-row.is-hero-primary {
   margin-bottom: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-top: 1px solid rgba(212, 175, 55, 0.14);
+  border: 1px solid var(--one-overlay-06);
+  border-top: 1px solid var(--one-gold-a16);
   background:
     linear-gradient(
       180deg,
       rgba(30, 27, 24, 0.84) 0%,
       rgba(16, 14, 12, 0.9) 100%
     );
-  box-shadow: inset 0 1px 0 rgba(212, 175, 55, 0.05);
+  box-shadow: inset 0 1px 0 var(--one-gold-a04);
 }
 
 .host-table-inspector .floor-table-day-row.is-hero-primary .floor-table-day-guest-name {
@@ -8851,8 +8851,8 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   gap: 3px;
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid rgba(212, 175, 55, 0.16);
-  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid var(--one-gold-a16);
+  background: var(--one-gold-a04);
 }
 
 .host-table-inspector-assignment-label {
@@ -9382,7 +9382,7 @@ body:not(:has(.inventory-count-session)) :is(
   margin: 16px -18px 0;
   padding: 12px 18px calc(12px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
   border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--one-overlay-08);
   border-radius: 0;
   background: var(--one-form-surface);
   box-shadow: 0 -12px 24px rgba(0, 0, 0, 0.35);
@@ -9525,9 +9525,9 @@ body:not(:has(.inventory-count-session)) :is(
   /* Content already starts below the portrait ?/bell band (safeOverlay.css). */
   margin: 0 0 8px;
   padding: 8px 8px 8px 12px;
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid var(--one-gold-a32);
   border-radius: 14px;
-  background: rgba(212, 175, 55, 0.1);
+  background: var(--one-gold-a12);
   color: var(--one-text);
   font: inherit;
   text-align: left;
@@ -9555,7 +9555,7 @@ body:not(:has(.inventory-count-session)) :is(
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   font-size: 1.4rem;
   line-height: 1;
@@ -9630,7 +9630,7 @@ body:not(:has(.inventory-count-session)) :is(
 .manager-portrait-date-nav button {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: var(--one-text);
   font-weight: 600;
   cursor: pointer;
@@ -9676,9 +9676,9 @@ body:not(:has(.inventory-count-session)) :is(
   min-height: 44px;
   margin: 0 0 8px;
   padding: 12px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: var(--one-text);
   text-align: left;
 }
@@ -9748,7 +9748,7 @@ body:not(:has(.inventory-count-session)) :is(
 .manager-portrait-status {
   border-radius: 999px;
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--one-overlay-08);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -9761,7 +9761,7 @@ body:not(:has(.inventory-count-session)) :is(
 
 .manager-portrait-status.is-arrived,
 .manager-portrait-status.is-upcoming {
-  background: rgba(212, 175, 55, 0.22);
+  background: var(--one-gold-a24);
 }
 
 .manager-portrait-status.is-cleaning {
@@ -9894,7 +9894,7 @@ body:not(:has(.inventory-count-session)) :is(
   height: 28px;
   margin-top: -28px;
   pointer-events: none;
-  background: linear-gradient(to bottom, rgba(14, 16, 22, 0), rgba(14, 16, 22, 0.98));
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--one-bg) 0%, transparent), color-mix(in srgb, var(--one-bg) 98%, transparent));
 }
 
 .manager-more-item {
@@ -9906,7 +9906,7 @@ body:not(:has(.inventory-count-session)) :is(
   padding: 10px 12px;
   border: 0;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--one-overlay-03);
   color: var(--one-text);
   text-align: left;
   cursor: pointer;
@@ -10269,7 +10269,7 @@ body:not(:has(.inventory-count-session)) :is(
   min-height: 44px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid var(--one-gold-a32);
   background: transparent;
   color: var(--one-text);
   font: inherit;
@@ -10279,7 +10279,7 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .operations-unified-tab.is-active {
-  background: rgba(212, 175, 55, 0.18);
+  background: var(--one-gold-a16);
   color: #f3e3b0;
 }
 
@@ -10296,7 +10296,7 @@ body:not(:has(.inventory-count-session)) :is(
     margin: 16px -28px 0;
     padding: 12px 28px calc(12px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
     border: 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: 1px solid var(--one-overlay-08);
     border-radius: 0;
     background: var(--one-form-surface);
   }

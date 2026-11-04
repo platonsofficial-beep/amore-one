@@ -34,8 +34,8 @@ export const HOST_FLOOR_SEMANTIC_TOKENS = {
 }
 
 export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
-  '--host-floor-available-border': 'color-mix(in srgb, var(--one-success) 42%, transparent)',
-  '--host-floor-available-fill': 'var(--one-surface-1)',
+  '--host-floor-available-border': 'color-mix(in srgb, var(--one-success) 60%, transparent)',
+  '--host-floor-available-fill': 'var(--one-surface-3)',
   '--host-floor-available-text': 'var(--one-success)',
   '--host-floor-available-dot': 'color-mix(in srgb, var(--one-success) 80%, transparent)',
 

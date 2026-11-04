@@ -124,7 +124,7 @@
   min-width: 44px;
   min-height: 44px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--one-overlay-16);
   background: transparent;
   color: inherit;
   font-size: 1.1rem;

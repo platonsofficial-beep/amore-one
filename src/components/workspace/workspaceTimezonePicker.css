@@ -13,7 +13,7 @@
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-overlay-04);
   color: var(--one-text);
   font: inherit;
   text-align: left;
@@ -21,12 +21,12 @@
 }
 
 .workspace-timezone-picker-trigger:hover:not(:disabled) {
-  border-color: rgba(212, 175, 55, 0.22);
-  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--one-gold-a24);
+  background: var(--one-overlay-06);
 }
 
 .workspace-timezone-picker-trigger:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 2px;
 }
 
@@ -79,14 +79,14 @@
   min-height: 0;
   overflow: hidden;
   border-radius: 14px;
-  border: 1px solid rgba(212, 175, 55, 0.18);
+  border: 1px solid var(--one-gold-a16);
   background: rgba(18, 32, 51, 0.98);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.48);
 }
 
 .workspace-timezone-picker-search-wrap {
   padding: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--one-overlay-08);
 }
 
 .workspace-timezone-picker-search {
@@ -95,13 +95,13 @@
   padding: 0 12px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   font: inherit;
 }
 
 .workspace-timezone-picker-search:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 1px;
 }
 
@@ -149,11 +149,11 @@
 .workspace-timezone-picker-option:hover,
 .workspace-timezone-picker-option.is-highlighted,
 .workspace-timezone-picker-option.is-selected {
-  background: rgba(212, 175, 55, 0.12);
+  background: var(--one-gold-a12);
 }
 
 .workspace-timezone-picker-option:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline: 2px solid var(--one-gold-a55);
   outline-offset: 1px;
 }
 
@@ -195,10 +195,10 @@
 }
 
 .form-field .workspace-timezone-picker-trigger {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-06);
 }
 
 .form-field .workspace-timezone-picker-trigger:hover:not(:disabled) {
-  border-color: rgba(212, 175, 55, 0.22);
+  border-color: var(--one-gold-a24);
 }

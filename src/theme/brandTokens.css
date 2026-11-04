@@ -93,6 +93,23 @@
   --one-border-strong: var(--one-steel-line);
   --one-gold-text: var(--one-gold-light);
   --one-gold-soft-bg: rgba(212, 175, 55, 0.12);
+  /* Step 7: alpha ladders (collapse ~60 near-duplicate gold / white-overlay steps). */
+  --one-gold-a04: rgba(212, 175, 55, 0.04);
+  --one-gold-a08: rgba(212, 175, 55, 0.08);
+  --one-gold-a12: rgba(212, 175, 55, 0.12);
+  --one-gold-a16: rgba(212, 175, 55, 0.16);
+  --one-gold-a24: rgba(212, 175, 55, 0.24);
+  --one-gold-a32: rgba(212, 175, 55, 0.32);
+  --one-gold-a45: rgba(212, 175, 55, 0.45);
+  --one-gold-a55: rgba(212, 175, 55, 0.55);
+  --one-gold-a72: rgba(212, 175, 55, 0.72);
+  --one-overlay-02: rgba(255, 255, 255, 0.02);
+  --one-overlay-03: rgba(255, 255, 255, 0.03);
+  --one-overlay-04: rgba(255, 255, 255, 0.04);
+  --one-overlay-06: rgba(255, 255, 255, 0.06);
+  --one-overlay-08: rgba(255, 255, 255, 0.08);
+  --one-overlay-12: rgba(255, 255, 255, 0.12);
+  --one-overlay-16: rgba(255, 255, 255, 0.16);
 
   --one-info: var(--one-status-info);
   --one-info-bg: var(--one-status-info-bg);
