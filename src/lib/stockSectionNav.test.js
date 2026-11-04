@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav } from './stockSectionNav'
+import { nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav, shouldStaffLandOnTake } from './stockSectionNav'
 
 describe('resolveStockSectionNav', () => {
   it('keeps every stock section for managers outside the phone shell', () => {
@@ -8,6 +8,7 @@ describe('resolveStockSectionNav', () => {
     expect(nav.overflow).toEqual([])
     expect(nav.primary.map((section) => section.id)).toEqual([
       'dashboard',
+      'take',
       'count',
       'storages',
       'suppliers',
@@ -27,6 +28,7 @@ describe('resolveStockSectionNav', () => {
       'Orders',
     ])
     expect(nav.overflow.map((section) => section.label)).toEqual([
+      'Take',
       'Orders',
       'Suppliers',
       'Import',
@@ -39,11 +41,13 @@ describe('resolveStockSectionNav', () => {
 
     expect(desktop.primary.map((section) => section.id)).toEqual([
       'dashboard',
+      'take',
       'count',
       'storages',
       'suppliers',
       'orders',
     ])
+    expect(phone.primary.map((section) => section.id)).toEqual(['take', 'dashboard', 'count', 'storages'])
     expect(phone.overflow.map((section) => section.id)).toEqual(['orders', 'suppliers'])
     expect(resolvePermittedStockSection('migration', false)).toBe('dashboard')
     expect(resolvePermittedStockSection('inventory', false)).toBe('dashboard')
@@ -54,5 +58,17 @@ describe('resolveStockSectionNav', () => {
   it('clears stock search when the tab changes and keeps it on the same tab', () => {
     expect(nextStockSearchTerm('dashboard', 'storages', 'vodka')).toBe('')
     expect(nextStockSearchTerm('dashboard', 'dashboard', 'vodka')).toBe('vodka')
+  })
+})
+
+describe('shouldStaffLandOnTake', () => {
+  it('sends staff to Take when they enter Stock', () => {
+    expect(shouldStaffLandOnTake({ previousView: 'today', activeView: 'stock', stockSection: 'dashboard' })).toBe(true)
+    expect(shouldStaffLandOnTake({ previousView: null, activeView: 'stock', stockSection: 'count' })).toBe(true)
+  })
+  it('leaves managers and in-Stock tab changes alone', () => {
+    expect(shouldStaffLandOnTake({ previousView: 'today', activeView: 'stock', canManage: true, stockSection: 'dashboard' })).toBe(false)
+    expect(shouldStaffLandOnTake({ previousView: 'stock', activeView: 'stock', stockSection: 'count' })).toBe(false)
+    expect(shouldStaffLandOnTake({ previousView: 'stock', activeView: 'today', stockSection: 'count' })).toBe(false)
   })
 })

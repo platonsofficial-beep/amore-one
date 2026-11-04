@@ -17,6 +17,7 @@ export const TEAM_SECTIONS = [
 
 export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'take', label: 'Take' },
   { id: 'count', label: 'Counts' },
   { id: 'storages', label: 'Storages' },
   { id: 'suppliers', label: 'Suppliers' },

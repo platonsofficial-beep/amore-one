@@ -21,6 +21,8 @@ import {
 import { buildStockItemSupplierOptions, normalizeSupplierName } from '../../lib/stockSupplierUtils'
 import { buildProductDisplayName } from '../../lib/stockProductIdentity'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
+import './stockQuickTake.css'
+import { formatQuantityWithUnit, isStockPackSchemaAvailable, normalizeUnitsPerPack } from '../../lib/stockPackUnits'
 
 function StockFormSection({ title, children }) {
   return (
@@ -350,6 +352,38 @@ export function StockItemFormModal({
                   placeholder="e.g. Usually supplied in cases"
                 />
               </label>
+
+              {isStockPackSchemaAvailable() ? (
+                <div className="stock-form-field stock-form-field-full stock-pack-size-field">
+                  <span>Pack size (optional)</span>
+                  <div className="stock-pack-size-row">
+                    <span className="stock-pack-size-prefix">1</span>
+                    <input
+                      type="text"
+                      aria-label="Pack name"
+                      value={form.packUnit ?? ''}
+                      maxLength={40}
+                      onChange={(event) => setForm((current) => ({ ...current, packUnit: event.target.value }))}
+                      placeholder="Case"
+                    />
+                    <span className="stock-pack-size-prefix">=</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      aria-label="Units in one pack"
+                      value={form.unitsPerPack ?? ''}
+                      onChange={(event) => setForm((current) => ({ ...current, unitsPerPack: event.target.value }))}
+                      placeholder="6"
+                    />
+                    <span className="stock-pack-size-unit">{resolvedUnit ? formatQuantityWithUnit(2, resolvedUnit).replace(/^2 /, '') : 'units'}</span>
+                  </div>
+                  <small className="stock-pack-size-hint">
+                    {`${form.packUnit ?? ''}`.trim() && normalizeUnitsPerPack(form.unitsPerPack)
+                      ? `Staff can take whole ${formatQuantityWithUnit(2, `${form.packUnit}`.trim()).replace(/^2 /, '')}. Stock is still kept in ${resolvedUnit ? formatQuantityWithUnit(2, resolvedUnit).replace(/^2 /, '') : 'units'}.`
+                      : 'Lets staff take whole cases. Stock is still kept in the unit above.'}
+                  </small>
+                </div>
+              ) : null}
 
               <label className="stock-form-field stock-form-field-full">
                 <span>Barcode (optional)</span>

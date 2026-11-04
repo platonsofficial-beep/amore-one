@@ -13,7 +13,7 @@ export function buildStockMovementTimeline(movements = [], currentQuantity = 0) 
 
   const enriched = chronological.map((movement) => {
     const before = running
-    const after = applyStockMovementQuantity(before, movement.type, movement.quantity)
+    const after = applyStockMovementQuantity(before, movement.type, movement.quantity, { allowNegative: true })
     running = after
 
     return {
