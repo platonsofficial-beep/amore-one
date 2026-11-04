@@ -3,7 +3,16 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
-import { getHostListCompactStatusLabel, normalizeReservationStatus } from '../../lib/reservationHostStatus'
+import { getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
+import { getHostQueueNameIndicators } from '../../lib/hostQueuePipeline'
+import {
+  HostQueueNameIndicators,
+  HostQueueReservationDetails,
+  HostReservationGuestTypeBadge,
+  HostReservationPurposeLabel,
+} from './reservations/HostQueueReservationDetails'
+import { HOST_LIST_HELPERS } from '../reservations/hostReservationListHelpers'
+import { getHostNameGuestTypeBadgeMeta } from '../reservations/hostReservationListUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
@@ -211,13 +220,27 @@ export function MobileManagerReservationsView({
                   {formatTime24(reservation.time, '—')}
                 </span>
                 <span className="manager-portrait-reservation-copy">
-                  <strong>{reservation.guestName || 'Guest'}</strong>
-                  <span>
-                    {Number(reservation.guests) || 0} guests
-                    {reservation.tableNumber ? ` · ${reservation.tableNumber}` : ''}
-                    {reservation.status ? ` · ${getHostListCompactStatusLabel(reservation.status)}` : ''}
+                  <span className="manager-portrait-reservation-title">
+                    <strong>{reservation.guestName || 'Guest'}</strong>
+                    <HostQueueNameIndicators indicators={getHostQueueNameIndicators(reservation)} />
+                    <HostReservationGuestTypeBadge
+                      badge={getHostNameGuestTypeBadgeMeta(reservation, HOST_LIST_HELPERS.getGuestCustomerType)}
+                    />
+                    <HostReservationPurposeLabel reservation={reservation} />
                   </span>
+                  <HostQueueReservationDetails
+                    reservation={reservation}
+                    layout={layout}
+                    className="host-queue-row-details manager-portrait-reservation-details"
+                  />
                 </span>
+                {reservation.status ? (
+                  <span
+                    className={`manager-portrait-reservation-status host-reservation-card-status-pill is-compact tone-${getHostStatusMeta(normalizeReservationStatus(reservation.status)).tone}`}
+                  >
+                    {getHostListCompactStatusLabel(reservation.status)}
+                  </span>
+                ) : null}
               </button>
             </li>
           ))}
