@@ -1801,7 +1801,7 @@
 }
 
 .fpb-area-action-btn-danger {
-  color: #e8a89a;
+  color: var(--one-danger);
   border-color: rgba(232, 168, 154, 0.18);
 }
 

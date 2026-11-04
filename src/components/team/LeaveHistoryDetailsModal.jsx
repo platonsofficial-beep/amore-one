@@ -232,23 +232,23 @@ export function LeaveHistoryDetailsModal({
           }
 
           .leave-history-details-modal .status-pill.pending {
-            color: #ffd8a8;
-            background: rgba(255, 152, 0, 0.16);
+            color: var(--one-warning);
+            background: var(--one-warning-bg);
           }
 
           .leave-history-details-modal .status-pill.approved {
-            color: #d9f6cf;
-            background: rgba(76, 175, 80, 0.14);
+            color: var(--one-success);
+            background: var(--one-success-bg);
           }
 
           .leave-history-details-modal .status-pill.rejected {
-            color: #ffcccc;
-            background: rgba(244, 67, 54, 0.16);
+            color: var(--one-danger);
+            background: var(--one-danger-bg);
           }
 
           .leave-history-details-modal .status-pill.cancelled {
-            color: #d6e4ff;
-            background: rgba(66, 133, 244, 0.16);
+            color: var(--one-info);
+            background: var(--one-info-bg);
           }
 
           .leave-history-details-footer {

@@ -34,10 +34,10 @@ export const HOST_FLOOR_SEMANTIC_TOKENS = {
 }
 
 export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
-  '--host-floor-available-border': 'rgba(108, 138, 116, 0.42)',
-  '--host-floor-available-fill': 'rgba(8, 8, 9, 0.96)',
-  '--host-floor-available-text': 'rgba(188, 210, 192, 0.88)',
-  '--host-floor-available-dot': 'rgba(108, 138, 116, 0.72)',
+  '--host-floor-available-border': 'color-mix(in srgb, var(--one-success) 42%, transparent)',
+  '--host-floor-available-fill': 'var(--one-surface-1)',
+  '--host-floor-available-text': 'var(--one-success)',
+  '--host-floor-available-dot': 'color-mix(in srgb, var(--one-success) 80%, transparent)',
 
   '--host-floor-reserved-border': 'rgba(232, 196, 110, 0.92)',
   '--host-floor-reserved-fill': 'linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(12, 10, 8, 0.98))',
@@ -45,20 +45,20 @@ export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
   '--host-floor-reserved-dot': 'rgba(232, 196, 110, 0.94)',
   '--host-floor-reserved-glow': 'rgba(212, 175, 55, 0.27)',
 
-  '--host-floor-seated-border': 'rgba(48, 168, 196, 0.88)',
+  '--host-floor-seated-border': 'color-mix(in srgb, var(--one-status-seated) 88%, transparent)',
   '--host-floor-seated-fill': 'linear-gradient(180deg, rgba(10, 38, 50, 0.96), rgba(6, 20, 28, 0.98))',
   '--host-floor-seated-text': 'rgba(224, 244, 252, 0.94)',
-  '--host-floor-seated-dot': 'rgba(48, 168, 196, 0.92)',
-  '--host-floor-seated-glow': 'rgba(42, 156, 182, 0.18)',
+  '--host-floor-seated-dot': 'var(--one-status-seated)',
+  '--host-floor-seated-glow': 'color-mix(in srgb, var(--one-status-seated) 18%, transparent)',
 
-  '--host-floor-problem-border': 'rgba(214, 96, 84, 0.92)',
+  '--host-floor-problem-border': 'color-mix(in srgb, var(--one-danger) 92%, transparent)',
   '--host-floor-problem-fill': 'linear-gradient(180deg, rgba(40, 14, 12, 0.98), rgba(10, 6, 6, 0.98))',
   '--host-floor-problem-text': 'rgba(255, 228, 222, 0.94)',
-  '--host-floor-problem-dot': 'rgba(214, 96, 84, 0.92)',
-  '--host-floor-problem-glow': 'rgba(176, 74, 52, 0.16)',
+  '--host-floor-problem-dot': 'var(--one-danger)',
+  '--host-floor-problem-glow': 'color-mix(in srgb, var(--one-danger) 16%, transparent)',
 
-  '--host-floor-combined-accent': 'rgba(148, 124, 196, 0.38)',
-  '--host-floor-combined-dot': 'rgba(148, 124, 196, 0.62)',
+  '--host-floor-combined-accent': 'color-mix(in srgb, var(--one-status-combined) 38%, transparent)',
+  '--host-floor-combined-dot': 'var(--one-status-combined)',
 }
 
 export function resolveHostFloorLegendToneToken(tone) {
