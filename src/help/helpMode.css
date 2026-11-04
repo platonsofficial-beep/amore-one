@@ -96,7 +96,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(212, 175, 55, 0.55);
-  background: #14110c;
+  background: var(--one-surface-3);
   color: #f7efe1;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }

@@ -6,7 +6,7 @@ const block = css.slice(css.indexOf('/* 0025 — Operations forms'))
 
 describe('0025 operations forms', () => {
   it('sticky footer uses the form colour, not a dark gradient', () => {
-    expect(block).toMatch(/\.operations-form-modal\.employee-modal \.modal-actions \{[^}]*position: sticky;[^}]*background: rgb\(11, 15, 23\);[^}]*background-image: none;/)
+    expect(block).toMatch(/\.operations-form-modal\.employee-modal \.modal-actions \{[^}]*position: sticky;[^}]*background: var\(--one-form-surface\);[^}]*background-image: none;/)
   })
   it('keeps focused fields clear of the footer', () => {
     expect(block).toMatch(/scroll-padding-bottom: 112px/)

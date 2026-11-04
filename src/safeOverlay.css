@@ -915,10 +915,10 @@ body {
   padding-top: 12px;
   padding-bottom: 4px;
   /* Same colour as the form itself (.employee-modal), not a black gradient bar. */
-  background: rgb(11, 15, 23);
+  background: var(--one-form-surface);
   background-image: none;
   border-top: 1px solid rgba(169, 192, 214, 0.12);
-  box-shadow: 0 -10px 14px -10px rgba(11, 15, 23, 0.9);
+  box-shadow: none;
 }
 
 .operations-form-modal select,
