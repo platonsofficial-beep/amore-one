@@ -19,6 +19,9 @@ const STAFF_BOTTOM_TABS = [
   { id: 'menu', label: 'Profile', icon: '☺' },
 ]
 
+// S-02: staff with Stock access get a direct Stock tab (counting) instead of only Profile > Stock.
+const STAFF_STOCK_TAB = { id: 'stock', label: 'Stock', icon: '📦' }
+
 const HOST_BOTTOM_TABS = [
   { id: 'home', label: 'Today', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
@@ -72,6 +75,8 @@ export function MobileStaffApp({
   operationsChecklists = null,
   operationsExecution = null,
   embeddedSchedule = false,
+  onOpenStock = null,
+  isStockOpen = false,
 }) {
   const isStaffShell = shellVariant === 'staff'
   const isHostShell = shellVariant === 'host'
@@ -113,7 +118,10 @@ export function MobileStaffApp({
     : isStaffShell
       ? STAFF_BOTTOM_TABS
       : bottomTabs
-  const resolvedBottomTabs = (Array.isArray(baseBottomTabs) ? baseBottomTabs : [])
+  const staffTabsWithStock = isStaffShell && typeof onOpenStock === 'function'
+    ? baseBottomTabs.flatMap((tab) => (tab.id === 'menu' ? [STAFF_STOCK_TAB, tab] : [tab]))
+    : baseBottomTabs
+  const resolvedBottomTabs = (Array.isArray(staffTabsWithStock) ? staffTabsWithStock : [])
     .filter((tab) => tab.id !== 'chat' || canUseChat)
     .map((tab) => (tab.id === 'chat' && Number(chatUnread) > 0 ? { ...tab, badge: chatUnread } : tab))
   const resolvedActiveTab = usesInternalTabs ? staffTab : activeTab
@@ -158,6 +166,10 @@ export function MobileStaffApp({
 
   const applyTabChange = useCallback((tab) => {
     setClockOpen(false)
+    if (tab === 'stock') {
+      onOpenStock?.()
+      return
+    }
     if (embeddedSchedule && (tab === 'schedule' || tab === 'availability')) {
       setStaffTab(tab)
       return
@@ -170,7 +182,7 @@ export function MobileStaffApp({
 
     setStaffTab(tab)
     onTabChange?.(tab)
-  }, [embeddedSchedule, onTabChange])
+  }, [embeddedSchedule, onTabChange, onOpenStock])
 
   const handleTabChange = useCallback((tab) => {
     if (staffTab === 'availability' && tab !== 'availability' && availabilityDirtyRef.current) {
@@ -211,7 +223,9 @@ export function MobileStaffApp({
   ) : null
 
   const showBottomNav = Array.isArray(resolvedBottomTabs) && resolvedBottomTabs.length > 0
-  const bottomNavTab = resolvedActiveTab === 'availability' ? 'schedule' : resolvedActiveTab
+  const bottomNavTab = isStockOpen
+    ? 'stock'
+    : (resolvedActiveTab === 'availability' ? 'schedule' : resolvedActiveTab)
 
   const availabilityView = useMemo(() => (
     <MobileAvailabilityView
