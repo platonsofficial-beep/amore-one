@@ -184,4 +184,25 @@ describe('AttendanceClockScreen', () => {
     expect(view.container.textContent).not.toContain('Request a time change')
     view.unmount()
   })
+
+  it('shows a neutral loading line, not "No shift today" or the venue warning, while loading', async () => {
+    settingsMock.mockImplementation(() => new Promise(() => {}))
+    const view = renderClock()
+    await view.flush()
+    expect(view.container.textContent).not.toMatch(/No shift today|Venue location is not set/)
+    expect(view.container.querySelector('.data-pending-line')).not.toBeNull()
+    view.unmount()
+  })
+
+  it('shows the load error with a Retry button that reloads', async () => {
+    settingsMock.mockRejectedValueOnce(new Error('timeout'))
+    const view = renderClock()
+    await view.flush()
+    const retry = view.container.querySelector('.data-pending-retry')
+    expect(retry).not.toBeNull()
+    const calls = settingsMock.mock.calls.length
+    await act(async () => { retry.click() })
+    expect(settingsMock.mock.calls.length).toBe(calls + 1)
+    view.unmount()
+  })
 })

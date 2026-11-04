@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LoadFailed, LoadingLines } from '../common/DataPending'
 import {
   LOCATION_CONSENT_TEXT,
   NO_VENUE_LOCATION_MESSAGE,
@@ -353,7 +354,9 @@ export function AttendanceClockScreen({
           </span>
           <h2 className="attendance-clock-title">{employeeName || 'Your shift'}</h2>
         </div>
-        <p className="attendance-clock-shift">{shiftSummary.label}</p>
+        <p className="attendance-clock-shift">
+          {settingsLoaded ? shiftSummary.label : (loadError ? null : <LoadingLines label="Loading your shift" />)}
+        </p>
       </header>
 
       {openEntry && isForgotten ? (
@@ -372,10 +375,14 @@ export function AttendanceClockScreen({
         </p>
       ) : null}
 
-      {!venueReady && !loadError ? (
+      {settingsLoaded && !venueReady && !loadError ? (
         <p className="attendance-clock-banner" role="status">{NO_VENUE_LOCATION_MESSAGE}</p>
       ) : null}
-      {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
+      {loadError ? (
+        <div className="attendance-clock-banner is-alert" role="alert">
+          <LoadFailed message={loadError} onRetry={() => { setLoadError(''); reload().catch((error) => setLoadError(attendanceErrorMessage(error))) }} />
+        </div>
+      ) : null}
       {message ? <p className="attendance-clock-message" role="status">{message}</p> : null}
 
       <div className="attendance-clock-actions">

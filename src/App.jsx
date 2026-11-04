@@ -1,5 +1,7 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { startVisibleInterval } from './lib/visibleInterval'
+import { combineLoadStatus, loadAreaForCard, stockLiveLoadStatus, useLoadStatuses } from './lib/loadStatus'
+import { LoadFailed, PendingValue } from './components/common/DataPending'
 import { dismissEmployeeFormOverlayPickers, useEmployeeFormPickerDismiss } from './lib/employeeFormPickerDismiss'
 import { FloorEdgeScrollbars } from './components/floor/FloorEdgeScrollbars.jsx'
 import { anchorScrollDelta, pinchZoom, touchDistance, touchMidpoint } from './lib/floorPinch.js'
@@ -1209,7 +1211,12 @@ function CommandCenterView({
   onMarkAnnouncementSeen,
   onStatusCardSelect,
   stockLive = null,
+  dataStatus = null,
+  onRetryData,
 }) {
+  const attentionStatus = dataStatus?.attention ?? 'ready'
+  const scheduleStatus = dataStatus?.schedule ?? 'ready'
+  const attentionPending = attentionStatus !== 'ready' && attentionItems.length === 0
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
   const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => (
     item.key.startsWith('stock:')
@@ -1233,6 +1240,8 @@ function CommandCenterView({
         employeeDepartment={announcementEmployeeDepartment}
         isSaving={isAnnouncementsSaving}
         onMarkSeen={onMarkAnnouncementSeen}
+        loadStatus={dataStatus?.announcements ?? 'ready'}
+        onRetry={() => onRetryData?.('announcements')}
         collapsible
       />
 
@@ -1240,6 +1249,8 @@ function CommandCenterView({
         statusSummary={statusSummary}
         showStock={showStockStatus && !stockLive}
         onSelect={onStatusCardSelect}
+        dataStatus={dataStatus}
+        onRetryData={onRetryData}
       />
 
       {stockLive ? <StockLiveCard {...stockLive} /> : null}
@@ -1277,6 +1288,8 @@ function CommandCenterView({
           >
             {isScheduleLoading ? (
               <p className="today-empty-note">Loading team schedule…</p>
+            ) : scheduleStatus === 'error' && teamTodayGroups.length === 0 ? (
+              <p className="today-empty-note"><LoadFailed onRetry={() => onRetryData?.('schedule')} /></p>
             ) : teamTodayGroups.length === 0 ? (
               <p className="today-empty-note">No shifts scheduled today.</p>
             ) : (
@@ -1296,8 +1309,13 @@ function CommandCenterView({
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.ATTENTION, { hasUrgentAttention: attentionHasUrgent })}
             title="Attention"
             ariaLabel="Attention"
-            summary={formatAttentionCollapsedSummary(attentionItems)}
+            summary={attentionPending ? (attentionStatus === 'error' ? "Couldn't load" : 'Loading…') : formatAttentionCollapsedSummary(attentionItems)}
           >
+            {attentionPending ? (
+              <div className="today-empty-note">
+                <PendingValue status={attentionStatus} lines={2} onRetry={() => onRetryData?.('all')} />
+              </div>
+            ) : (
             <TodayAttentionPanel
               attentionItems={attentionItems}
               attentionPermissions={attentionPermissions}
@@ -1312,6 +1330,7 @@ function CommandCenterView({
               onViewTasks={onViewTasks}
               onViewSchedule={onViewSchedule}
             />
+            )}
           </TodayCollapsiblePanel>
         </aside>
       </div>
@@ -14987,6 +15006,8 @@ function App() {
   )
   const [scheduleEmployees, setScheduleEmployees] = useState([])
   const [isScheduleLoading, setIsScheduleLoading] = useState(true)
+  const [loadStatuses, markLoad] = useLoadStatuses()
+  const [todayRetryToken, setTodayRetryToken] = useState(0)
   const [scheduleNotice, setScheduleNotice] = useState('')
   const [scheduleLegacyTemplateSchema, setScheduleLegacyTemplateSchema] = useState(false)
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
@@ -16408,6 +16429,23 @@ function App() {
   const canAccessStockModule = canAccessModule(permissionAccess, 'stock')
 
   const clockedInNowCount = useClockedInNow(activeWorkspaceId, workspaceTimeZone, canManageAttendanceRole)
+  // Which Today data has actually arrived: cards show a neutral placeholder
+  // (never "OK"/zero) until then, and "Couldn't load" + Retry on failure.
+  const todayDataStatus = useMemo(() => {
+    const schedule = isViewingTodayWeekInScheduler ? loadStatuses.schedule : loadStatuses.todayWeek
+    const stock = combineLoadStatus(loadStatuses.stockItems, loadStatuses.stockOrders, stockLiveLoadStatus(stockLiveSnapshot.status))
+    const tasks = combineLoadStatus(loadStatuses.tasks, loadStatuses.operationsTasks)
+    const reservations = combineLoadStatus(loadStatuses.reservations)
+    return {
+      schedule: combineLoadStatus(schedule),
+      announcements: combineLoadStatus(loadStatuses.announcements),
+      stock,
+      tasks,
+      reservations,
+      attention: combineLoadStatus(schedule, stock, tasks, reservations),
+    }
+  }, [isViewingTodayWeekInScheduler, loadStatuses, stockLiveSnapshot.status])
+
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
     snapshot: operationalSnapshot,
@@ -16745,7 +16783,9 @@ function App() {
       stockSummaryLine: todayStatusSummary.stockSummaryLine,
       hasStockModuleData: stockItems.length > 0,
     }),
+    dataStatus: todayDataStatus.attention,
   }), [
+    todayDataStatus.attention,
     todayAttentionItems,
     unifiedOperationalTaskCounts.pastDueCount,
     operationalSnapshot?.coverageGaps,
@@ -16814,17 +16854,20 @@ function App() {
       return []
     }
 
+    markLoad('reservations', 'start')
     try {
       const remoteReservations = await getReservations(activeWorkspaceId)
       setReservations(remoteReservations)
       setIsReservationsModuleConnected(true)
+      markLoad('reservations', 'success')
       return remoteReservations
     } catch (error) {
       setReservations([])
       setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
+      markLoad('reservations', 'failure')
       throw error
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, markLoad])
 
   const upsertReservationInState = useCallback((reservation) => {
     if (!reservation?.id) return
@@ -16860,15 +16903,18 @@ function App() {
       return []
     }
 
+    markLoad('stockItems', 'start')
     try {
       const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId)
       setStockItems(remoteStockItems)
+      markLoad('stockItems', 'success')
       return remoteStockItems
     } catch (error) {
       setStockItems([])
+      markLoad('stockItems', 'failure')
       throw error
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, markLoad])
 
   // P8.17.1 — Shared catalog load path for initial mount and Retry (not a second fetch implementation).
   const loadStockCatalog = useCallback(async () => {
@@ -16892,15 +16938,18 @@ function App() {
       return []
     }
 
+    markLoad('stockOrders', 'start')
     try {
       const remoteOrders = await getStockOrdersWithAuthors(activeWorkspaceId)
       setStockOrders(remoteOrders)
+      markLoad('stockOrders', 'success')
       return remoteOrders
     } catch (error) {
       setStockOrders([])
+      markLoad('stockOrders', 'failure')
       throw error
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, markLoad])
 
   const refreshOperationsChecklistTemplates = useCallback(async () => {
     if (!activeWorkspaceId) {
@@ -16924,15 +16973,18 @@ function App() {
       return []
     }
 
+    markLoad('operationsTasks', 'start')
     try {
       const remoteTasks = await loadMergedOperationsTasks(activeWorkspaceId)
       setOperationsTasks(remoteTasks)
+      markLoad('operationsTasks', 'success')
       return remoteTasks
     } catch (error) {
       setOperationsTasks([])
+      markLoad('operationsTasks', 'failure')
       throw error
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, markLoad])
 
   const refreshMobileOperationsTasks = useCallback(async () => {
     if (!activeWorkspaceId) {
@@ -16976,19 +17028,22 @@ function App() {
       return []
     }
 
+    markLoad('announcements', 'start')
     try {
       const remoteAnnouncements = await getOperationsAnnouncements(activeWorkspaceId, {
         currentUserId: user?.id ?? null,
         employees: scheduleEmployees,
       })
       setOperationsAnnouncements(remoteAnnouncements)
+      markLoad('announcements', 'success')
       return remoteAnnouncements
     } catch (error) {
       console.warn('[App] refreshOperationsAnnouncements error:', error)
       setOperationsAnnouncements([])
+      markLoad('announcements', 'failure')
       return []
     }
-  }, [activeWorkspaceId, user?.id, scheduleEmployees])
+  }, [activeWorkspaceId, user?.id, scheduleEmployees, markLoad])
 
   const refreshSuppliers = useCallback(async () => {
     const remoteSuppliers = await getSuppliers(activeWorkspaceId)
@@ -17032,14 +17087,17 @@ function App() {
   const refreshTasks = useCallback(async () => {
     setIsTasksLoading(true)
     setTasksError('')
+    markLoad('tasks', 'start')
 
     try {
       const remoteTasks = await getTasks(activeWorkspaceId)
       setTasks(remoteTasks)
       setIsTasksModuleConnected(true)
+      markLoad('tasks', 'success')
       await refreshTaskChecklists(remoteTasks)
       return remoteTasks
     } catch (error) {
+      markLoad('tasks', 'failure')
       setTasks([])
       setChecklistItemsByTaskId({})
       setTasksError(error?.message || 'Unable to load tasks right now.')
@@ -17048,7 +17106,7 @@ function App() {
     } finally {
       setIsTasksLoading(false)
     }
-  }, [activeWorkspaceId, refreshTaskChecklists])
+  }, [activeWorkspaceId, markLoad, refreshTaskChecklists])
 
   const refreshTaskTemplates = useCallback(async () => {
     setIsTaskTemplatesLoading(true)
@@ -17076,6 +17134,30 @@ function App() {
       refreshTasks(),
     ])
   }, [refreshInventory, refreshReservations, refreshTasks])
+
+  const retryTodayData = useCallback((area) => {
+    if (area === 'stock') {
+      Promise.allSettled([refreshStockItems(), refreshStockOrders()])
+      setTodayRetryToken((token) => token + 1)
+    } else if (area === 'tasks') {
+      Promise.allSettled([refreshTasks(), refreshOperationsTasks()])
+    } else if (area === 'reservations') {
+      refreshReservations().catch(() => {})
+    } else if (area === 'announcements') {
+      refreshOperationsAnnouncements()
+    } else if (area === 'schedule') {
+      setTodayRetryToken((token) => token + 1)
+    } else {
+      Promise.allSettled([refreshStockItems(), refreshStockOrders(), refreshTasks(), refreshOperationsTasks(), refreshReservations()])
+      setTodayRetryToken((token) => token + 1)
+    }
+  }, [refreshOperationsAnnouncements, refreshOperationsTasks, refreshReservations, refreshStockItems, refreshStockOrders, refreshTasks])
+
+  const todayCommandHeaderChipsWithStatus = useMemo(() => todayCommandHeaderChips.map((chip) => {
+    const area = loadAreaForCard(chip.id)
+    return area ? { ...chip, loadStatus: todayDataStatus[area], onRetry: () => retryTodayData(area) } : chip
+  }), [todayCommandHeaderChips, todayDataStatus, retryTodayData])
+
 
   const refreshReportsData = useCallback(async () => {
     const results = await Promise.allSettled([
@@ -17514,6 +17596,7 @@ function App() {
       }
 
       setIsTodayWeekLoading(true)
+      markLoad('todayWeek', 'start')
       const weekDateKeys = getWeekDateKeys(todayWeekStart)
 
       try {
@@ -17537,8 +17620,10 @@ function App() {
           unpublishedAt: null,
           publishedBy: null,
         })
+        markLoad('todayWeek', 'success')
       } catch {
         if (!isMounted) return
+        markLoad('todayWeek', 'failure')
         setTodayWeekShifts([])
         setTodayWeekCapacities([])
         setTodayWeekPublishedShifts([])
@@ -17561,7 +17646,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey, markLoad, todayRetryToken])
 
   useEffect(() => {
     let isMounted = true
@@ -17889,6 +17974,7 @@ function App() {
       cancelled = true
     }
   }, [
+    todayRetryToken,
     canAccessStockModule,
     activeWorkspaceId,
     activeView,
@@ -18031,6 +18117,7 @@ function App() {
 
       setIsScheduleLoading(true)
       setScheduleNotice('')
+      markLoad('schedule', 'start')
       const weekDateKeys = getWeekDateKeys(weekStartDate)
 
       try {
@@ -18054,8 +18141,10 @@ function App() {
           publishedBy: null,
         })
         setPublishedShifts(publicationState.publishedShifts ?? [])
+        markLoad('schedule', 'success')
       } catch (error) {
         if (!isMounted) return
+        markLoad('schedule', 'failure')
 
         setShifts([])
         setScheduleCapacities([])
@@ -18080,7 +18169,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey, markLoad, todayRetryToken])
 
   useEffect(() => {
     let isMounted = true
@@ -24881,6 +24970,8 @@ function App() {
             announcementEmployeeDepartment={currentEmployeeDepartment}
             isAnnouncementsSaving={isSavingOperations}
             isScheduleLoading={isDashboardScheduleLoading}
+            dataStatus={todayDataStatus}
+            onRetryData={retryTodayData}
             now={localNow}
             timeZone={workspaceTimeZone}
             todayKey={currentDateKey}
@@ -24894,6 +24985,8 @@ function App() {
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
+              loadStatus: todayDataStatus.stock,
+              onRetry: () => retryTodayData('stock'),
               stockSummary: managerMobileStockSummary,
               belowParCount: stockLiveSnapshot.belowParCount,
               parsReady: stockLiveSnapshot.parsReady,
@@ -25539,6 +25632,8 @@ function App() {
                       dateLabel: currentDateLabel,
                       roleLabel,
                       statusSummary: todayStatusSummary,
+                      dataStatus: todayDataStatus,
+                      onRetryData: retryTodayData,
                       attentionItems: todayAttentionItems,
                       stockSummary: managerMobileStockSummary,
                       stockOrdersSummary: managerMobileOrdersSummary,
@@ -25990,7 +26085,7 @@ function App() {
                     businessName={brandDisplay.businessName}
                     dateLabel={dashboardHeroDateLabel}
                     workspaceBadge={todayWorkspaceBadge}
-                    chips={todayCommandHeaderChips}
+                    chips={todayCommandHeaderChipsWithStatus}
                     onChipSelect={handleTodayChipSelect}
                     quickActions={permittedTodayQuickActions}
                     profileChipDisplay={profileChipDisplay}

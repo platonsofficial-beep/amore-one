@@ -4,6 +4,8 @@ import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 import { StockLiveCard } from '../stock/StockLiveCard'
 import { OnShiftSheet } from '../today/OnShiftSheet'
+import { PendingValue } from '../common/DataPending'
+import { areaStatus } from '../../lib/loadStatus'
 
 const ATTENTION_PREVIEW_LIMIT = 3
 
@@ -25,18 +27,23 @@ function getAttentionCategory(item) {
   return 'stock'
 }
 
-function MobileManagerStatusCard({ label, value, tone = 'default', onClick }) {
-  const isInteractive = typeof onClick === 'function'
+function MobileManagerStatusCard({ label, value, tone = 'default', onClick, status = 'ready', onRetry }) {
+  const isReady = status === 'ready'
+  const handleClick = status === 'error' ? onRetry : (isReady ? onClick : undefined)
+  const isInteractive = typeof handleClick === 'function'
   const Tag = isInteractive ? 'button' : 'div'
 
   return (
     <Tag
       type={isInteractive ? 'button' : undefined}
-      className={`mobile-manager-status-card tone-${tone}${isInteractive ? ' is-tappable' : ''}`}
-      onClick={onClick}
+      className={`mobile-manager-status-card tone-${isReady ? tone : 'default'}${isInteractive ? ' is-tappable' : ''}${isReady ? '' : ` is-${status}`}`}
+      aria-busy={status === 'loading' ? 'true' : undefined}
+      onClick={handleClick}
     >
       <span className="mobile-manager-status-label">{label}</span>
-      <strong className="mobile-manager-status-value">{value}</strong>
+      <strong className="mobile-manager-status-value">
+        <PendingValue status={status} lines={1} insideButton={isInteractive}>{value}</PendingValue>
+      </strong>
       {isInteractive ? <span className="mobile-manager-status-chevron" aria-hidden="true">›</span> : null}
     </Tag>
   )
@@ -134,7 +141,11 @@ export function MobileManagerHomeView({
   workspaceId = '',
   onShiftEmployees = [],
   onShiftTodayShifts = [],
+  dataStatus = null,
+  onRetryData,
 }) {
+  const statusOf = (area) => areaStatus(dataStatus, area)
+  const retry = (area) => () => onRetryData?.(area)
   const [showAllAttention, setShowAllAttention] = useState(false)
   const [isOnShiftOpen, setIsOnShiftOpen] = useState(false)
 
@@ -181,11 +192,15 @@ export function MobileManagerHomeView({
             <MobileManagerStatusCard
               label="On shift"
               value={statusSummary.onShiftSummary || '—'}
+              status={statusOf('schedule')}
+              onRetry={retry('schedule')}
               onClick={canViewOnShift && workspaceId ? () => setIsOnShiftOpen(true) : undefined}
             />
             <MobileManagerStatusCard
               label="Team"
               value={statusSummary.teamScheduledSummary || '—'}
+              status={statusOf('schedule')}
+              onRetry={retry('schedule')}
               tone={/gap/i.test(`${statusSummary.teamScheduledSummary ?? ''}`) ? 'warning' : 'default'}
               onClick={canOpenTeam ? onOpenTeamToday : undefined}
             />
@@ -193,6 +208,8 @@ export function MobileManagerHomeView({
               <MobileManagerStatusCard
                 label="Reservations"
                 value={statusSummary.reservationsSummaryLine || '—'}
+                status={statusOf('reservations')}
+                onRetry={retry('reservations')}
                 onClick={canOpenReservations ? onOpenReservations : undefined}
               />
             ) : null}
@@ -200,6 +217,8 @@ export function MobileManagerHomeView({
               <MobileManagerStatusCard
                 label="Tasks"
                 value={statusSummary.tasksSummary || '—'}
+                status={statusOf('tasks')}
+                onRetry={retry('tasks')}
                 onClick={canOpenTasks ? onOpenTasks : undefined}
               />
             ) : null}
@@ -207,6 +226,8 @@ export function MobileManagerHomeView({
               <MobileManagerStatusCard
                 label="Stock"
                 value={stockStatusLine}
+                status={statusOf('stock')}
+                onRetry={retry('stock')}
                 tone={
                   (stockSummary?.outOfStock ?? 0) > 0
                     ? 'critical'
@@ -220,6 +241,8 @@ export function MobileManagerHomeView({
           </div>
           {hasStockLiveCard ? (
             <StockLiveCard
+              loadStatus={statusOf('stock')}
+              onRetry={retry('stock')}
               stockSummary={stockSummary}
               belowParCount={stockLiveSnapshot.belowParCount}
               parsReady={stockLiveSnapshot.parsReady}
@@ -266,7 +289,11 @@ export function MobileManagerHomeView({
               <span className="mobile-manager-section-count">{mergedAttentionItems.length}</span>
             ) : null}
           </h2>
-          {mergedAttentionItems.length === 0 ? (
+          {mergedAttentionItems.length === 0 && statusOf('attention') !== 'ready' ? (
+            <div className="mobile-manager-attention-empty">
+              <PendingValue status={statusOf('attention')} lines={2} onRetry={retry('all')} />
+            </div>
+          ) : mergedAttentionItems.length === 0 ? (
             <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
           ) : (
             <>
@@ -305,6 +332,8 @@ export function MobileManagerHomeView({
           employeeDepartment={announcementEmployeeDepartment}
           isSaving={isAnnouncementsSaving}
           onMarkSeen={onMarkAnnouncementSeen}
+          loadStatus={statusOf('announcements')}
+          onRetry={retry('announcements')}
         />
       </section>
       {isOnShiftOpen ? (
