@@ -126,7 +126,7 @@ describe('quiet hours', () => {
     expect(css).toMatch(/\.hour-minute-field \{[^}]*min-height: 44px;/s)
     expect(css).toMatch(/\.hour-minute-field select \{[^}]*-webkit-appearance: none;/s)
     expect(css).toMatch(/\.hour-minute-field select \{[^}]*min-height: 44px;/s)
-    expect(css).toMatch(/\.hour-minute-field \{[^}]*color: #f7efe1;/s)
+    expect(css).toMatch(/\.hour-minute-field \{[^}]*color: var\(--one-text\);/s)
     expect(css).toMatch(/\.hour-minute-field select \{[^}]*-webkit-text-fill-color: currentColor;/s)
     expect(css).not.toContain('.notification-quiet-time-face')
     expect(css).not.toContain(".notification-quiet-time-box input[type='time']")

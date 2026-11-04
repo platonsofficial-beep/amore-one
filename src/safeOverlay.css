@@ -441,7 +441,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
   border-radius: 14px;
   background: #16151a;
-  color: #fff7e8;
+  color: var(--one-text);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
 
@@ -1055,7 +1055,7 @@ body {
 }
 
 .operations-empty-state.is-inline strong {
-  color: #fff7e8;
+  color: var(--one-text);
   font-weight: 650;
 }
 

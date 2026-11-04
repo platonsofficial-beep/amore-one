@@ -83,7 +83,7 @@ describe('staff availability time fields', () => {
     expect(css).toContain('appearance: none;')
     expect(css).toContain('min-height: 44px;')
     expect(css).toMatch(/\.hour-minute-field select \{[^}]*font-size: 16px;/s)
-    expect(css).toMatch(/\.mobile-availability-field \.hour-minute-field \{[^}]*color: #fff7e8;/s)
+    expect(css).toMatch(/\.mobile-availability-field \.hour-minute-field \{[^}]*color: var\(--one-text\);/s)
     expect(css).not.toContain('.mobile-availability-time-placeholder')
     expect(css).not.toContain(".mobile-availability-input[type='time']")
     expect(css).toMatch(/@media \(max-width: 420px\) \{\s*\.mobile-availability-time-grid \{\s*grid-template-columns: 1fr;/)

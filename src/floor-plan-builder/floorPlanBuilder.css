@@ -82,7 +82,7 @@
 }
 
 .fpb-toolbar-btn:hover:not(:disabled) {
-  color: #fff7e8;
+  color: var(--one-text);
   border-color: rgba(212, 175, 55, 0.22);
   background: rgba(212, 175, 55, 0.07);
 }
@@ -178,7 +178,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.025);
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 0.72rem;
   font-weight: 600;
 }
@@ -192,7 +192,7 @@
 .fpb-floor-select-chevron {
   position: absolute;
   right: 9px;
-  color: #7a7266;
+  color: var(--one-text-subtle);
   font-size: 0.58rem;
   pointer-events: none;
 }
@@ -401,7 +401,7 @@
 
 .fpb-panel-eyebrow {
   margin: 0;
-  color: #635c52;
+  color: var(--one-text-subtle);
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -452,7 +452,7 @@
 
 .fpb-toolbox-category-chevron {
   width: 12px;
-  color: #6f675c;
+  color: var(--one-text-subtle);
   font-size: 0.52rem;
   flex-shrink: 0;
 }
@@ -552,7 +552,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.5rem;
-  color: #6a6258;
+  color: var(--one-text-subtle);
   font-weight: 700;
 }
 
@@ -611,7 +611,7 @@
   height: 20px;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.035);
-  color: #8a8072;
+  color: var(--one-text-subtle);
   font-size: 0.66rem;
   flex-shrink: 0;
 }
@@ -700,7 +700,7 @@
 
 .fpb-ruler-tick-label {
   position: absolute;
-  color: #5e5850;
+  color: var(--one-text-subtle);
   font-size: 0.5rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1072,7 +1072,7 @@
   line-height: 1.2;
   letter-spacing: -0.02em;
   text-align: center;
-  color: #f7efe1;
+  color: var(--one-text);
   font-variant-numeric: tabular-nums;
   max-width: 100%;
   overflow: hidden;
@@ -1176,7 +1176,7 @@
 }
 
 .fpb-nav-widget-btn:hover {
-  color: #fff7e8;
+  color: var(--one-text);
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.06);
 }
@@ -1210,7 +1210,7 @@
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(10, 10, 11, 0.78);
-  color: #5e5850;
+  color: var(--one-text-subtle);
   font-size: 0.58rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -1261,7 +1261,7 @@
 .fpb-inspector-empty-copy {
   margin: 10px 0 0;
   max-width: 200px;
-  color: #5e5850;
+  color: var(--one-text-subtle);
   font-size: 0.7rem;
   font-weight: 500;
   line-height: 1.55;
@@ -1283,7 +1283,7 @@
 }
 
 .fpb-inspector-field span {
-  color: #635c52;
+  color: var(--one-text-subtle);
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1469,7 +1469,7 @@
 }
 
 .fpb-status-label {
-  color: #5e5850;
+  color: var(--one-text-subtle);
   font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -1646,7 +1646,7 @@
 }
 
 .fpb-area-nav-btn:hover {
-  color: #fff7e8;
+  color: var(--one-text);
   border-color: rgba(212, 175, 55, 0.24);
   background: rgba(212, 175, 55, 0.08);
 }
@@ -1738,7 +1738,7 @@
 .fpb-toolbox-hint {
   margin: 0;
   padding: 0 12px 12px;
-  color: #635c52;
+  color: var(--one-text-subtle);
   font-size: 0.62rem;
   line-height: 1.45;
 }
@@ -2142,7 +2142,7 @@
 
 .fpb-canvas-empty-guide h3 {
   margin: 0;
-  color: #fff7e8;
+  color: var(--one-text);
   font-size: 1.2rem;
 }
 
