@@ -616,10 +616,22 @@ export function ChatScreen({
         <section className="chat-list" aria-label="Chats">
           <header className="chat-list-header">
             <h2>Chat</h2>
-            <button type="button" className="chat-icon-btn" data-help="chat.new" onClick={() => setSheet('direct')}>New</button>
-            {canManage ? (
-              <button type="button" className="chat-icon-btn" data-help="chat.channel" onClick={() => setSheet('channel')}>Channel</button>
-            ) : null}
+            <div className="chat-header-actions">
+              {canManage ? (
+                <button type="button" className="chat-header-action" aria-label="New channel" title="New channel" data-help="chat.channel" onClick={() => setSheet('channel')}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path fill="currentColor" d="M18 3v2.3L6.6 8H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1l1.2 4.6a1 1 0 0 0 1 .7H9a1 1 0 0 0 1-1.2L9 15.6l9 2.1V20h2V3h-2Zm0 12.6-8-1.9V9.4l8-1.9v8.1Z" />
+                  </svg>
+                  <span className="chat-header-action-label">Channel</span>
+                </button>
+              ) : null}
+              <button type="button" className="chat-header-action is-primary" aria-label="New chat" title="New chat" data-help="chat.new" onClick={() => setSheet('direct')}>
+                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                  <path fill="currentColor" d="M12 3C6.5 3 2 6.9 2 11.7c0 2.4 1.1 4.6 3 6.2L4 21.6l4.4-1.9c1.1.4 2.3.6 3.6.6 5.5 0 10-3.9 10-8.6S17.5 3 12 3Zm4 9.7h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Z" />
+                </svg>
+                <span className="chat-header-action-label">New</span>
+              </button>
+            </div>
           </header>
           <label className="chat-search" data-help="chat.search">
             <span className="sr-only">Search chats</span>
@@ -668,14 +680,26 @@ export function ChatScreen({
                     ) : (row.icon || initials(title))}
                   </span>
                   <span className="chat-row-copy">
-                    <strong>{title}</strong>
-                    <span>{lastMessagePreview(row)}</span>
+                    <span className="chat-row-line">
+                      <strong>{title}</strong>
+                      {when ? <time className={`chat-row-time${!row.muted && Number(row.unread) > 0 ? ' is-unread' : ''}`} dateTime={row.last_message_at}>{when}</time> : null}
+                    </span>
+                    <span className="chat-row-line">
+                      <span className="chat-row-preview">{lastMessagePreview(row)}</span>
+                      {row.muted ? (
+                        <span className="chat-muted" title="Muted">
+                          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                            <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.2-2h-4.4A2.2 2.2 0 0 0 12 22Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 1 0-2 0v1.1A6 6 0 0 0 6 11v5l-1.7 1.7A1 1 0 0 0 5 19.4h14a1 1 0 0 0 .7-1.7L18 16Z" />
+                            <path fill="currentColor" d="M4.3 3.3 3 4.6 19.4 21l1.3-1.3L4.3 3.3Z" />
+                          </svg>
+                          <span className="sr-only">Muted</span>
+                        </span>
+                      ) : null}
+                      {!row.muted && Number(row.unread) > 0 ? (
+                        <span className="chat-badge">{Number(row.unread) > 9 ? '9+' : row.unread}</span>
+                      ) : null}
+                    </span>
                   </span>
-                  {when ? <time className="chat-row-time" dateTime={row.last_message_at}>{when}</time> : null}
-                  {row.muted ? <span className="chat-muted">Muted</span> : null}
-                  {!row.muted && Number(row.unread) > 0 ? (
-                    <span className="chat-badge">{Number(row.unread) > 9 ? '9+' : row.unread}</span>
-                  ) : null}
                 </button>
               )
             })}
@@ -711,6 +735,8 @@ export function ChatScreen({
                     fallback={initials(conversationTitle(openRow, membersById, aliases))}
                   />
                 </span>
+              ) : openRow ? (
+                <span className="chat-avatar chat-avatar-inline" aria-hidden="true">{openRow.icon || initials(conversationTitle(openRow, membersById, aliases))}</span>
               ) : null}
               <span>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
               </button>
@@ -748,7 +774,10 @@ export function ChatScreen({
             <div className="chat-pinned" aria-label="Pinned messages">
               {pinned.map((message) => (
                 <button key={message.id} type="button" onClick={() => document.getElementById(`chat-message-${message.id}`)?.scrollIntoView({ block: 'center' })}>
-                  {message.body || 'Photo'}
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+                    <path fill="currentColor" d="M16 3v2h-1v6l2 3v2h-4v5l-1 1-1-1v-5H7v-2l2-3V5H8V3h8Z" />
+                  </svg>
+                  <span>{message.body || 'Photo'}</span>
                 </button>
               ))}
             </div>
@@ -951,31 +980,33 @@ export function ChatScreen({
                 hidden
                 onChange={onPhoto}
               />
-              <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
-                <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                  <path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
-                </svg>
-              </button>
-              <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
-                ☺
-              </button>
-              <textarea
-                ref={draftRef}
-                aria-label="Message"
-                data-help="chat.message"
-                value={draft}
-                maxLength={4000}
-                rows={1}
-                disabled={cannotPost}
-                placeholder="Message"
-                onChange={(event) => setDraft(clipChatBody(event.target.value))}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault()
-                    send()
-                  }
-                }}
-              />
+              <div className="chat-composer-field">
+                <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
+                  ☺
+                </button>
+                <textarea
+                  ref={draftRef}
+                  aria-label="Message"
+                  data-help="chat.message"
+                  value={draft}
+                  maxLength={4000}
+                  rows={1}
+                  disabled={cannotPost}
+                  placeholder="Message"
+                  onChange={(event) => setDraft(clipChatBody(event.target.value))}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      send()
+                    }
+                  }}
+                />
+                <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
+                  <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                    <path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
+                  </svg>
+                </button>
+              </div>
               <button type="submit" className="chat-send" aria-label="Send" data-help="chat.send" disabled={busy || cannotPost || !draft.trim()}>
                 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
