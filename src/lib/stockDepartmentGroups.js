@@ -169,7 +169,7 @@ export function groupActiveStoragesByDepartment({
   if (unassigned.length > 0 || includeEmptyDepartments) {
     groups.push({
       id: UNASSIGNED_STORAGE_GROUP_ID,
-      name: 'Unassigned',
+      name: 'No department',
       active: true,
       isUnassigned: true,
       storages: unassigned,

@@ -213,9 +213,20 @@ export function replaceDraftOrderLineProduct(line, catalogItem) {
 /**
  * Supplier name for an order card (audit S-15): the saved text, else the directory name by supplier_id.
  */
+/**
+ * S-23 naming: one visible label for "no supplier". The stored grouping value stays
+ * 'Unassigned supplier' (existing orders/rows use it); only the label changes.
+ */
+export const NO_SUPPLIER_LABEL = 'No supplier'
+export function formatSupplierDisplayName(name) {
+  const trimmed = `${name ?? ''}`.trim()
+  if (!trimmed || trimmed.toLowerCase() === UNASSIGNED_SUPPLIER.toLowerCase()) return NO_SUPPLIER_LABEL
+  return trimmed
+}
+
 export function resolveStockOrderSupplierName(order, suppliers = []) {
   const saved = `${order?.supplier ?? ''}`.trim()
-  if (saved) return saved
+  if (saved) return saved.toLowerCase() === UNASSIGNED_SUPPLIER.toLowerCase() ? NO_SUPPLIER_LABEL : saved
   const supplierId = normalizeSupplierId(order?.supplierId ?? order?.supplier_id)
   if (supplierId == null || !Array.isArray(suppliers)) return ''
   const matched = suppliers.find((supplier) => normalizeSupplierId(supplier?.id) === supplierId)

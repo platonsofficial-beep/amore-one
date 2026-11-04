@@ -43,8 +43,8 @@ function deltaToneClass(value) {
 }
 
 const VISIBILITY_LABELS = {
-  blind: 'Blind Count',
-  open: 'Open Count',
+  blind: 'Blind count',
+  open: 'Open count',
 }
 
 function formatSessionDate(value, timeZone = '') {

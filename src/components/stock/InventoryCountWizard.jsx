@@ -14,25 +14,25 @@ const COUNT_TYPES = [
   },
   {
     id: 'quick',
-    title: 'Quick Count',
+    title: 'Quick count',
     description: 'Count only selected inventory items.',
     icon: '✦',
   },
   {
     id: 'partial',
-    title: 'Partial Count',
+    title: 'Partial count',
     description: 'Count one department or storage location.',
     icon: '◫',
   },
   {
     id: 'scheduled',
-    title: 'Scheduled Count',
+    title: 'Scheduled count',
     description: 'Create a planned inventory session.',
     icon: '◷',
   },
   {
     id: 'emergency',
-    title: 'Emergency Count',
+    title: 'Emergency count',
     description: 'Immediate stock verification.',
     icon: '◉',
   },
@@ -43,7 +43,7 @@ const LOCATION_CARD_ICON = '▦'
 const COUNT_VISIBILITY_OPTIONS = [
   {
     id: 'blind',
-    title: 'Blind Count',
+    title: 'Blind count',
     description: 'Hide expected quantities while counting.',
     helper: 'Recommended for accurate stock counts.',
     icon: '◌',
@@ -51,7 +51,7 @@ const COUNT_VISIBILITY_OPTIONS = [
   },
   {
     id: 'open',
-    title: 'Open Count',
+    title: 'Open count',
     description: 'Show expected quantities while counting.',
     helper: 'Useful for training or quick verification.',
     icon: '◎',
@@ -64,22 +64,22 @@ const SESSION_NOTE_MAX_LENGTH = 250
 const STEP_COPY = {
   1: {
     label: 'Step 1 of 4',
-    name: 'Count Type',
+    name: 'Count type',
     subtitle: 'Create a new inventory counting session.',
   },
   2: {
     label: 'Step 2 of 4',
-    name: 'Scope / Locations',
+    name: 'Storages',
     subtitle: 'Select the locations that will be included in this inventory count.',
   },
   3: {
     label: 'Step 3 of 4',
-    name: 'Count Settings',
+    name: 'Count settings',
     subtitle: 'Configure how this inventory session will be performed.',
   },
   4: {
     label: 'Step 4 of 4',
-    name: 'Review & Start',
+    name: 'Review & start',
     subtitle: 'Review the session details before starting.',
   },
 }
@@ -386,7 +386,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               <summary>More options</summary>
           <div
             role="radiogroup"
-            aria-label="Count Type"
+            aria-label="Count type"
           >
             {COUNT_TYPES.map((countType) => {
               const isSelected = selectedType === countType.id
@@ -449,7 +449,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               <div
                 className="inventory-count-wizard-body inventory-count-wizard-body-locations"
                 role="group"
-                aria-label="Scope / Locations"
+                aria-label="Storages"
               >
                 <p className="inventory-count-wizard-location-note">
                   Only storages that already have products are listed. Empty storages are not part of a count.
@@ -592,9 +592,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         {step === 4 ? (
           <div className="inventory-count-wizard-step4">
             <div className="inventory-count-review-grid">
-              <section className="inventory-count-review-card" aria-label="Count Type summary">
+              <section className="inventory-count-review-card" aria-label="Count type summary">
                 <div className="inventory-count-review-card-header">
-                  <h3 className="inventory-count-review-card-title">Count Type</h3>
+                  <h3 className="inventory-count-review-card-title">Count type</h3>
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
@@ -653,9 +653,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 </div>
               </section>
 
-              <section className="inventory-count-review-card" aria-label="Count Settings summary">
+              <section className="inventory-count-review-card" aria-label="Count settings summary">
                 <div className="inventory-count-review-card-header">
-                  <h3 className="inventory-count-review-card-title">Count Settings</h3>
+                  <h3 className="inventory-count-review-card-title">Count settings</h3>
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"

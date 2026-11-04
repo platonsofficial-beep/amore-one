@@ -106,9 +106,6 @@ function StorageSummaryCard({
             <strong className="stock-storage-center-card-name">
               {storage.name || storage.locationKey || 'Unnamed storage'}
             </strong>
-            {storage.locationKey && storage.locationKey !== storage.name ? (
-              <span className="stock-storage-center-card-key">{storage.locationKey}</span>
-            ) : null}
             {departmentName ? (
               <span className="stock-storage-center-card-key">{departmentName}</span>
             ) : null}
@@ -663,7 +660,7 @@ export function StockStorageCenter({
               disabled={departmentBusy}
               onClick={() => setNameDialog({ mode: 'create' })}
             >
-              New department
+              New department group
             </button>
           </div>
         ) : null}
@@ -683,7 +680,7 @@ export function StockStorageCenter({
 
       {status === 'ready' ? (
         <p className="stock-storage-par-note">
-          Below storage par is this shelf only. To order uses each product’s total target, so the two counts can differ.
+          Shelf levels here are for this storage only. “To order” uses each product’s total across all storages, so the numbers can differ.
         </p>
       ) : null}
 

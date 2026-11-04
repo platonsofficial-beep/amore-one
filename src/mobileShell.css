@@ -10313,3 +10313,74 @@ body:not(:has(.inventory-count-session)) :is(
 .mobile-host-reservations.is-landscape .host-queue-list-metrics .host-queue-metric-label {
   display: inline;
 }
+
+/* ---- Stock audit batch E (portrait quick list) ---- */
+@media (max-width: 760px) and (orientation: portrait) {
+  /* S-09: the list ends above the Count/Suggest/Create bar instead of running
+     under it and under the bottom nav. */
+  .mobile-manager-app .mobile-app-content:has(.mobile-manager-stock-inventory) {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-manager-app .mobile-app-content:has(.mobile-manager-stock-inventory) > .manager-portrait-stock {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .mobile-manager-app .manager-portrait-stock > .mobile-manager-stock-inventory {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-inventory > .mobile-manager-stock-stage {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-inventory .mobile-manager-stock-scroll-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  /* S-25: chip row fades at the right edge so it reads as scrollable. */
+  .mobile-manager-stock-chip-scroll {
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent);
+    padding-inline-end: 28px;
+  }
+
+  /* S-32: help mode replaces the sideways hint instead of overlapping it. */
+  .app-shell:has(.help-mode-banner) .manager-portrait-banner {
+    display: none;
+  }
+
+  .help-mode-banner .help-mode-done {
+    min-height: 40px;
+    padding-inline: 16px;
+  }
+}
+
+/* S-08: the status-bar strip takes the sheet colour while the product sheet is
+   open, so there is no dark band above it; the sheet still starts below the
+   Dynamic Island (card keeps its safe-top padding). */
+@media (orientation: portrait) {
+  body:has(.mobile-stock-detail-sheet)::before {
+    background: var(--one-form-surface);
+  }
+}
+
+.mobile-stock-detail-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.mobile-stock-detail-actions .ghost-btn {
+  min-height: 44px;
+}

@@ -71,7 +71,7 @@ describe('groupActiveStoragesByDepartment', () => {
     expect(groups.map((group) => group.name)).toEqual([
       'Bar',
       'Kitchen',
-      'Unassigned',
+      'No department',
       'Old cellar',
     ])
     expect(groups.find((group) => group.id === 'd-bar')?.storages.map((storage) => storage.id))
@@ -93,7 +93,7 @@ describe('groupActiveStoragesByDepartment', () => {
       includeEmptyDepartments: false,
     })
 
-    expect(groups.map((group) => group.name)).toEqual(['Bar', 'Unassigned', 'Old cellar'])
+    expect(groups.map((group) => group.name)).toEqual(['Bar', 'No department', 'Old cellar'])
     expect(groups.find((group) => group.name === 'Kitchen')).toBeUndefined()
   })
 

@@ -423,7 +423,7 @@ describe('StockStorageCenter UI', () => {
 
     expect(container.textContent).toContain('Bar')
     expect(container.textContent).toContain('Kitchen')
-    expect(container.textContent).toContain('Unassigned')
+    expect(container.textContent).toContain('No department')
     expect(container.textContent).toContain('Soft drinks')
     expect(container.textContent).toContain('Spirits')
     expect(container.textContent).toContain('Back bar')
@@ -532,7 +532,7 @@ describe('StockStorageCenter UI', () => {
     })
 
     expect(container.textContent).toContain('Bar')
-    expect(container.textContent).toContain('Unassigned')
+    expect(container.textContent).toContain('No department')
     expect(container.textContent).toContain('Soft drinks')
     expect(container.querySelector('[data-testid="supply-storage-pill"]')?.textContent).toBe('Supply')
     expect(container.querySelector('[data-testid="supply-storage-pill"]')?.getAttribute('title'))

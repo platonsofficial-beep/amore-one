@@ -5,6 +5,8 @@ import {
   buildSupplierOrderGroups,
   computeOrderLineTotal,
   UNASSIGNED_SUPPLIER,
+  NO_SUPPLIER_LABEL,
+  formatSupplierDisplayName,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
 import { formatInventoryUnitLabelForQuantity } from '../../lib/inventoryUnitDisplay'
@@ -76,7 +78,7 @@ function SupplierOrderGroup({
     <section className="stock-create-order-group panel staff-panel">
       <header className="stock-create-order-group-header">
         <div>
-          <h4 className="stock-create-order-group-title">{supplier}</h4>
+          <h4 className="stock-create-order-group-title">{formatSupplierDisplayName(supplier)}</h4>
           <p className="stock-create-order-group-meta">
             {items.length} product{items.length === 1 ? '' : 's'} · {formatStockPurchasePrice(groupTotal)}
           </p>
@@ -360,7 +362,7 @@ export function StockCreateOrderModal({
 
           {groups.some((group) => group.supplier === UNASSIGNED_SUPPLIER) ? (
             <p className="stock-create-order-hint">
-              Products without a supplier, or whose supplier is inactive, are grouped under &ldquo;{UNASSIGNED_SUPPLIER}&rdquo;.
+              Products without a supplier, or whose supplier is inactive, are grouped under &ldquo;{NO_SUPPLIER_LABEL}&rdquo;.
             </p>
           ) : null}
         </div>

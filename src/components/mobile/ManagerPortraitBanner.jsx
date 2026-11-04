@@ -5,19 +5,20 @@ const STORAGE_PREFIX = 'one.managerPortraitBanner.'
 function readDismissed(area) {
   if (typeof window === 'undefined') return false
   try {
-    return window.sessionStorage.getItem(`${STORAGE_PREFIX}${area}`) === '1'
+    return window.localStorage.getItem(`${STORAGE_PREFIX}${area}`) === '1'
   } catch {
     return false
   }
 }
 
+// S-26: dismissal is remembered on this device (was per tab session).
 export function ManagerPortraitBanner({ area = 'view' }) {
   const [dismissed, setDismissed] = useState(() => readDismissed(area))
   if (dismissed) return null
 
   const dismiss = () => {
     try {
-      window.sessionStorage.setItem(`${STORAGE_PREFIX}${area}`, '1')
+      window.localStorage.setItem(`${STORAGE_PREFIX}${area}`, '1')
     } catch {
       // The banner still closes for this visit.
     }

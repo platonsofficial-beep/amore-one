@@ -610,5 +610,7 @@ export function stockFormToPayload(form) {
 export function formatStockCategoryTypeLine(category, itemType) {
   const normalizedCategory = normalizeStockCategory(category)
   const normalizedType = normalizeStockItemType(normalizedCategory, itemType)
+  // S-27: "Other" is the unassigned type, so it adds nothing to the line.
+  if (!normalizedType || `${normalizedType}`.trim().toLowerCase() === 'other') return normalizedCategory
   return `${normalizedCategory} · ${normalizedType}`
 }

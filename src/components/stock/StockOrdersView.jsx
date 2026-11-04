@@ -133,16 +133,18 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
         {showCost ? (
           <div className="stock-order-card-stat">
             <span className="stock-order-card-stat-label">Est. total</span>
-            <span className="stock-order-card-stat-value stock-order-card-stat-value-gold">
+            {/* S-36: a partial total gets a quiet "≈" with the note as tooltip, not an error-looking line. */}
+            <span
+              className="stock-order-card-stat-value stock-order-card-stat-value-gold"
+              title={estimate.missingCostLines > 0 && estimate.total > 0 ? formatMissingCostLineNote(estimate.missingCostLines) : undefined}
+            >
               {estimate.total > 0
-                ? formatStockPurchasePrice(estimate.total)
+                ? `${estimate.missingCostLines > 0 ? '≈ ' : ''}${formatStockPurchasePrice(estimate.total)}`
                 : 'No cost on file'}
+              {estimate.missingCostLines > 0 && estimate.total > 0 ? (
+                <span className="sr-only"> ({formatMissingCostLineNote(estimate.missingCostLines)})</span>
+              ) : null}
             </span>
-            {estimate.missingCostLines > 0 ? (
-              <span className="stock-order-card-stat-label">
-                {formatMissingCostLineNote(estimate.missingCostLines)}
-              </span>
-            ) : null}
           </div>
         ) : null}
       </div>

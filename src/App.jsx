@@ -25843,6 +25843,10 @@ function App() {
                           onCountStock: handleMobileManagerCountStock,
                           onOpenOrders: handleMobileManagerOpenStockOrders,
                           onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
+                          workspaceId: activeWorkspaceId,
+                          isSavingStock: isSavingStockItem,
+                          onRecordMovement: handleRecordStockMovement,
+                          onUpdateItem: handleUpdateStockItem,
                         }}
                         managerTasksProps={{
                           tasks: managerMobileOperationsTasks,

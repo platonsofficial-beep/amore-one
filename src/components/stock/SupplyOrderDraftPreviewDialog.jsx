@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { updateSupplyOrderDraftReviewQuantity } from '../../lib/stockSupplyOrderDraft'
+import { formatSupplierDisplayName } from '../../lib/stockOrderUtils'
 
 export function SupplyOrderDraftPreviewDialog({
   isOpen = false,
@@ -73,7 +74,7 @@ export function SupplyOrderDraftPreviewDialog({
           <div className="supply-draft-review">
             {groups.map((group, groupIndex) => (
               <section key={`${group.supplier}-${groupIndex}`} className="supply-draft-review-supplier" aria-label={group.supplier}>
-                <h3>{group.supplier}</h3>
+                <h3>{formatSupplierDisplayName(group.supplier)}</h3>
                 <ul>
                   {group.items.map((item, itemIndex) => (
                     <li key={`${item.stockItemId ?? item.itemName}-${itemIndex}`}>

@@ -31916,8 +31916,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1.15rem;
   font-weight: 600;
   line-height: 1.25;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  /* S-24: product/supplier titles in natural case (was uppercase). */
   overflow-wrap: anywhere;
 }
 
@@ -39886,6 +39885,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.72);
   font-size: 0.88rem;
   line-height: 1.45;
+}
+
+.stock-migration-ownership-meta-copy {
+  margin: 2px 0 0;
+  color: inherit;
+  opacity: 0.8;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .stock-migration-ownership-meta {
@@ -53943,4 +53950,79 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
   font-size: 0.72rem;
   font-weight: 650;
   white-space: nowrap;
+}
+
+/* S-06 (phone landscape only): no solid band behind Exit Stock / tabs. The sticky
+   tab row gets a soft frosted backdrop that spans the panel edge to edge and fades
+   out, the tab strip fades at its end so "Import" reads as scrollable instead of
+   cut, and search keeps its own 36px slot. Active Count is excluded (own chrome). */
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome {
+  overflow: visible;
+  background: transparent;
+  isolation: isolate;
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * max(8px, var(--one-safe-top-chrome, 0px)));
+  bottom: -8px;
+  left: -20px;
+  right: -20px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--one-bg) 40%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent);
+  mask-image: linear-gradient(to bottom, black 70%, transparent);
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome .module-section-tabs {
+  padding-inline-end: 20px;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome .stock-focus-search:not(:focus-within):has(input:placeholder-shown) {
+  flex: 0 0 36px;
+  width: 36px;
+  min-width: 36px;
+  justify-content: center;
+}
+
+/* S-07 (phone landscape only): slim Add/Edit item header so 2-3 fields show. */
+html.one-phone-landscape .stock-item-form-modal .stock-item-form-header .eyebrow,
+html.one-phone-landscape .stock-item-form-modal .stock-item-form-subtitle {
+  display: none;
+}
+
+html.one-phone-landscape .stock-item-form-modal .stock-item-form-header {
+  padding-block: 8px;
+  min-height: 0;
+}
+
+html.one-phone-landscape .stock-item-form-modal .stock-item-form-header h2,
+html.one-phone-landscape .stock-item-form-modal .stock-item-form-header h3 {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+/* S-16 (phone landscape only): compact supplier form, scroll hint at the bottom. */
+html.one-phone-landscape .stock-supplier-form-modal .drawer-header .eyebrow {
+  display: none;
+}
+
+html.one-phone-landscape .stock-supplier-form-modal .stock-supplier-form-scroll .form-grid {
+  gap: 6px 10px;
+}
+
+html.one-phone-landscape .stock-supplier-form-modal .stock-supplier-form-scroll .form-field {
+  gap: 2px;
+}
+
+html.one-phone-landscape .stock-supplier-form-modal .stock-supplier-form-scroll {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 28px), transparent);
+  padding-bottom: 24px;
 }

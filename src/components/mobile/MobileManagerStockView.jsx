@@ -14,13 +14,15 @@ import {
   getStockStatusShortLabel,
 } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from '../stock/StockCreateOrderModal'
+import { StockDashboardMovementDialog } from '../stock/StockDashboardMovementDialog'
+import { StockItemFormModal } from '../stock/StockItemFormModal'
 import { formatInventoryUnit } from '../../lib/inventoryUnitDisplay'
 import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../lib/stockProductIdentity'
 
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
   const quantity = line.quantity > 0 ? line.quantity : 1
-  const supplier = `${item.supplier ?? ''}`.trim() || 'Unassigned supplier'
+  const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
 
   return [{
     supplier,
@@ -69,6 +71,9 @@ function MobileStockDetailSheet({
   isWorkspaceReady,
   onClose,
   onAddToOrder,
+  onCount = null,
+  onReceive = null,
+  onEdit = null,
 }) {
   useEffect(() => {
     if (!item) return undefined
@@ -131,6 +136,20 @@ function MobileStockDetailSheet({
           >
             Add to order
           </button>
+        ) : null}
+        {/* S-08: same per-product actions as landscape (Count, Receive, Edit). */}
+        {canManageStock && (onCount || onReceive || onEdit) ? (
+          <div className="mobile-stock-detail-actions" role="group" aria-label="Product actions">
+            {onCount ? (
+              <button type="button" className="ghost-btn" onClick={() => onCount(item)} disabled={!isWorkspaceReady}>Count</button>
+            ) : null}
+            {onReceive ? (
+              <button type="button" className="ghost-btn" onClick={() => onReceive(item)} disabled={!isWorkspaceReady} aria-label="Receive delivery">Receive</button>
+            ) : null}
+            {onEdit ? (
+              <button type="button" className="ghost-btn" onClick={() => onEdit(item)} disabled={!isWorkspaceReady}>Edit</button>
+            ) : null}
+          </div>
         ) : null}
       </section>
     </div>
@@ -215,7 +234,13 @@ export function MobileManagerStockView({
   onCountStock,
   onOpenOrders,
   onReceiveDeliveries,
+  workspaceId = '',
+  isSavingStock = false,
+  onRecordMovement = null,
+  onUpdateItem = null,
 }) {
+  const [movementModal, setMovementModal] = useState(null)
+  const [editingItem, setEditingItem] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -377,7 +402,7 @@ export function MobileManagerStockView({
             <>
               <span aria-hidden="true">·</span>
               <span className="tone-info">
-                <strong>{isLoading ? '0' : pendingOrders}</strong> pending
+                <strong>{isLoading ? '0' : pendingOrders}</strong> {pendingOrders === 1 ? 'order' : 'orders'} pending
               </span>
             </>
           ) : null}
@@ -517,9 +542,38 @@ export function MobileManagerStockView({
             setDetailItem(null)
             handleAddItemToOrder(item)
           }}
+          onCount={typeof onRecordMovement === 'function' ? (item) => { setDetailItem(null); setMovementModal({ item, type: 'stock_count' }) } : null}
+          onReceive={typeof onRecordMovement === 'function' ? (item) => { setDetailItem(null); setMovementModal({ item, type: 'receive' }) } : null}
+          onEdit={typeof onUpdateItem === 'function' ? (item) => { setDetailItem(null); setEditingItem(item) } : null}
         />
       ) : null}
       </div>
+
+      {movementModal ? (
+        <StockDashboardMovementDialog
+          item={movementModal.item}
+          movementType={movementModal.type}
+          workspaceId={workspaceId}
+          isSaving={isSavingStock}
+          onClose={() => setMovementModal(null)}
+          onSubmit={onRecordMovement}
+        />
+      ) : null}
+
+      {editingItem ? (
+        <StockItemFormModal
+          initialItem={editingItem}
+          onClose={() => setEditingItem(null)}
+          isSaving={isSavingStock}
+          workspaceId={workspaceId}
+          isWorkspaceReady={isWorkspaceReady}
+          suppliers={suppliers}
+          canManage={canManageStock}
+          onSubmit={async (payload) => {
+            await onUpdateItem(editingItem.id, payload)
+          }}
+        />
+      ) : null}
 
       {orderModalGroups ? (
         <StockCreateOrderModal
