@@ -27,6 +27,6 @@ describe('portrait Bookings row (Platon t445u)', () => {
     expect(row?.querySelector('.host-reservation-card-purpose-label')?.textContent).toContain('Dinner')
     expect(row?.textContent).toContain('4 guests')
     expect(row?.textContent).toContain('T10 + T11')
-    expect(row?.querySelector('.manager-portrait-reservation-status')?.textContent).toMatch(/pending/i)
+    expect(row?.closest('li')?.querySelector('.manager-portrait-reservation-status')?.textContent).toMatch(/pending/i)
   })
 })

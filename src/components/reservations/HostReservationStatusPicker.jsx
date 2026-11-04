@@ -9,9 +9,26 @@ import {
 const PICKER_MARGIN = 10
 const PICKER_Z_INDEX = 12000
 
-function computePickerPosition(anchorRect, pickerWidth, pickerHeight) {
+export function computePickerPosition(anchorRect, pickerWidth, pickerHeight) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
+  const clampTop = (value) => Math.max(
+    PICKER_MARGIN,
+    Math.min(value, viewportHeight - pickerHeight - PICKER_MARGIN),
+  )
+
+  const fitsBelow = anchorRect.bottom + PICKER_MARGIN + pickerHeight <= viewportHeight - PICKER_MARGIN
+  const fitsAbove = anchorRect.top - PICKER_MARGIN - pickerHeight >= PICKER_MARGIN
+
+  // Short screens (phone landscape): open beside the card instead of on top
+  // of it when there is room to the right (Platon t447u).
+  if (!fitsBelow && !fitsAbove && anchorRect.right + PICKER_MARGIN + pickerWidth <= viewportWidth - PICKER_MARGIN) {
+    return {
+      top: clampTop(anchorRect.top + anchorRect.height / 2 - pickerHeight / 2),
+      left: anchorRect.right + PICKER_MARGIN,
+      placement: 'beside',
+    }
+  }
 
   let left = anchorRect.left
   let top = anchorRect.bottom + PICKER_MARGIN
@@ -22,11 +39,11 @@ function computePickerPosition(anchorRect, pickerWidth, pickerHeight) {
   }
   left = Math.max(PICKER_MARGIN, left)
 
-  if (top + pickerHeight > viewportHeight - PICKER_MARGIN) {
+  if (!fitsBelow) {
     top = anchorRect.top - pickerHeight - PICKER_MARGIN
     placement = 'above'
   }
-  top = Math.max(PICKER_MARGIN, top)
+  top = clampTop(top)
 
   return { top, left, placement }
 }
@@ -47,7 +64,9 @@ export function HostReservationStatusPicker({
   onClose,
   onSelectStatus,
   isSaving = false,
+  variant = 'popover',
 }) {
+  const isSheet = variant === 'sheet'
   const panelRef = useRef(null)
   const activeOptionRef = useRef(null)
   const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below' })
@@ -61,13 +80,15 @@ export function HostReservationStatusPicker({
       return
     }
 
-    const { width, height } = panelRef.current.getBoundingClientRect()
-    setPosition(computePickerPosition(anchorRect, width, height))
+    if (!isSheet) {
+      const { width, height } = panelRef.current.getBoundingClientRect()
+      setPosition(computePickerPosition(anchorRect, width, height))
+    }
     setIsPositioned(true)
 
     activeOptionRef.current?.scrollIntoView({ block: 'nearest' })
     activeOptionRef.current?.focus({ preventScroll: true })
-  }, [anchorRect, isOpen, currentStatusId])
+  }, [anchorRect, isOpen, currentStatusId, isSheet])
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -113,7 +134,7 @@ export function HostReservationStatusPicker({
     }
 
     const handleReposition = () => {
-      if (!anchorRect || !panelRef.current) return
+      if (isSheet || !anchorRect || !panelRef.current) return
       const { width, height } = panelRef.current.getBoundingClientRect()
       setPosition(computePickerPosition(anchorRect, width, height))
     }
@@ -134,18 +155,18 @@ export function HostReservationStatusPicker({
       window.removeEventListener('resize', handleReposition)
       window.removeEventListener('scroll', handleScroll, true)
     }
-  }, [anchorRect, isOpen, onClose])
+  }, [anchorRect, isOpen, onClose, isSheet])
 
   if (!isOpen || !reservation || !anchorRect || typeof document === 'undefined') return null
 
   return createPortal(
     <>
       <div
-        className="host-status-picker-backdrop"
+        className={`host-status-picker-backdrop${isSheet ? ' is-sheet' : ''}`}
         aria-hidden="true"
         onClick={onClose}
       />
-      {anchorLabel ? (
+      {anchorLabel && !isSheet ? (
         <span
           className={`host-reservation-card-status-pill host-status-picker-anchor tone-${currentStatus.tone} is-compact`}
           style={{
@@ -153,7 +174,7 @@ export function HostReservationStatusPicker({
             top: `${anchorRect.top}px`,
             left: `${anchorRect.left}px`,
             width: `${anchorRect.width}px`,
-            minHeight: `${Math.max(anchorRect.height, 44)}px`,
+            height: `${anchorRect.height}px`,
             // Under the picker (t409u: "LATE 42M" sat on top of the options
             // in landscape), above the backdrop so it still shows beside it.
             zIndex: PICKER_Z_INDEX - 1,
@@ -165,8 +186,8 @@ export function HostReservationStatusPicker({
       ) : null}
       <div
         ref={panelRef}
-        className={`host-status-picker is-portal is-${position.placement}${isPositioned ? ' is-positioned' : ''}${isSaving ? ' is-saving' : ''}`}
-        style={{
+        className={`host-status-picker is-portal is-${isSheet ? 'sheet' : position.placement}${isPositioned ? ' is-positioned' : ''}${isSaving ? ' is-saving' : ''}`}
+        style={isSheet ? { position: 'fixed', zIndex: PICKER_Z_INDEX } : {
           position: 'fixed',
           top: `${position.top}px`,
           left: `${position.left}px`,
@@ -211,7 +232,7 @@ export function HostReservationStatusPicker({
                       type="button"
                       role="option"
                       aria-selected={isActive}
-                      className={`host-status-picker-option tone-${status.tone}${isActive ? ' is-active' : ''}`}
+                      className={`host-status-picker-option host-reservation-card-status-pill tone-${status.tone}${isActive ? ' is-active' : ''}`}
                       disabled={isSaving}
                       onClick={() => {
                         if (isActive) {

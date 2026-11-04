@@ -11,6 +11,7 @@ import {
   HostReservationGuestTypeBadge,
   HostReservationPurposeLabel,
 } from './reservations/HostQueueReservationDetails'
+import { HostReservationStatusPicker } from '../reservations/HostReservationStatusPicker'
 import { HOST_LIST_HELPERS } from '../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../reservations/hostReservationListUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
@@ -79,11 +80,20 @@ export function MobileManagerReservationsView({
   onDateChange,
   onCreateReservation,
   onEditReservation,
+  onQuickStatusUpdate = null,
 }) {
   const { layout } = usePublishedFloorPlan()
   const selectedDate = dateKey || todayKey
   const [createOpen, setCreateOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
+  const [statusPicker, setStatusPicker] = useState(null)
+  const canChangeStatus = canManage && typeof onQuickStatusUpdate === 'function'
+  // Same flow as the landscape card (MobileReservationsHostView handleStatusSelect).
+  const handleStatusSelect = async (reservation, status) => {
+    if (isSaving) return
+    await onQuickStatusUpdate?.(reservation, status)
+    setStatusPicker(null)
+  }
   const dayLabel = formatScheduleDayHeader(selectedDate)
   const isToday = selectedDate === todayKey
 
@@ -207,7 +217,7 @@ export function MobileManagerReservationsView({
         ) : null}
         <ul className="manager-portrait-reservation-list">
           {dayReservations.map((reservation) => (
-            <li key={reservation.id}>
+            <li key={reservation.id} className="manager-portrait-reservation-item">
               <button
                 type="button"
                 className={`manager-portrait-reservation${isNotComingReservation(reservation) ? ' is-not-coming' : ''}`}
@@ -234,14 +244,36 @@ export function MobileManagerReservationsView({
                     className="host-queue-row-details manager-portrait-reservation-details"
                   />
                 </span>
-                {reservation.status ? (
-                  <span
-                    className={`manager-portrait-reservation-status host-reservation-card-status-pill is-compact tone-${getHostStatusMeta(normalizeReservationStatus(reservation.status)).tone}`}
-                  >
-                    {getHostListCompactStatusLabel(reservation.status)}
-                  </span>
-                ) : null}
               </button>
+              {reservation.status ? (() => {
+                const statusClassName = `manager-portrait-reservation-status host-reservation-card-status-pill is-compact tone-${getHostStatusMeta(normalizeReservationStatus(reservation.status)).tone}`
+                const statusLabel = getHostListCompactStatusLabel(reservation.status)
+                if (!canChangeStatus) {
+                  return <span className={statusClassName}>{statusLabel}</span>
+                }
+                const isOpen = statusPicker?.reservation?.id === reservation.id
+                return (
+                  <button
+                    type="button"
+                    className={`${statusClassName} is-interactive`}
+                    aria-label={`Status: ${getHostStatusMeta(normalizeReservationStatus(reservation.status)).label}. Change status.`}
+                    aria-haspopup="dialog"
+                    aria-expanded={isOpen}
+                    disabled={isSaving}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setStatusPicker({
+                        reservation,
+                        currentStatusId: normalizeReservationStatus(reservation.status),
+                        anchorRect: event.currentTarget.getBoundingClientRect(),
+                      })
+                    }}
+                  >
+                    {statusLabel}
+                    <span className="manager-portrait-reservation-status-caret" aria-hidden="true">▾</span>
+                  </button>
+                )
+              })() : null}
             </li>
           ))}
         </ul>
@@ -270,6 +302,17 @@ export function MobileManagerReservationsView({
           </ul>
         )}
       </section>
+
+      <HostReservationStatusPicker
+        variant="sheet"
+        reservation={statusPicker?.reservation}
+        currentStatusId={statusPicker?.currentStatusId}
+        anchorRect={statusPicker?.anchorRect}
+        isOpen={Boolean(statusPicker)}
+        isSaving={isSaving}
+        onClose={() => setStatusPicker(null)}
+        onSelectStatus={handleStatusSelect}
+      />
 
       <MobileReservationQuickCreateSheet
         isOpen={createOpen}
