@@ -82,7 +82,7 @@
     right: var(--safe-r);
     width: auto;
     bottom: max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+    border-bottom: 1px solid var(--one-gold-a24);
   }
 
   .notification-drawer {
@@ -369,7 +369,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
 
   body .app-shell.stock-focus-mode .stock-focus-exit-btn {
     margin-inline-end: 6px;
-    box-shadow: 10px 0 0 -9px rgba(255, 255, 255, 0.16);
+    box-shadow: 10px 0 0 -9px var(--one-overlay-16);
   }
 
   /* Leave room for the floating Help "?" and centre it on this row. */
@@ -397,7 +397,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   margin-bottom: 0;
   background: var(--one-bg, var(--one-surface-1));
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.07),
+    0 1px 0 var(--one-overlay-08),
     0 8px 12px -10px rgba(0, 0, 0, 0.7);
 }
 
@@ -438,7 +438,7 @@ input[type="datetime-local"]::-webkit-date-and-time-value {
   gap: 12px;
   max-width: calc(100vw - var(--safe-l, 0px) - var(--safe-r, 0px) - 32px);
   padding: 6px 6px 6px 14px;
-  border: 1px solid var(--one-gold-line, rgba(212, 175, 55, 0.32));
+  border: 1px solid var(--one-gold-line, var(--one-gold-a32));
   border-radius: 14px;
   background: #16151a;
   color: var(--one-text);
@@ -613,7 +613,7 @@ body {
 .floor-edge-scrollbar {
   position: absolute;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.7);
+  background: var(--one-gold-a72);
 }
 .floor-edge-scrollbar.is-vertical {
   right: 1px;
@@ -697,7 +697,7 @@ body {
     height: 32px;
     border: 0;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--one-overlay-06);
     color: #f4efe6;
     font-size: 1.1rem;
     line-height: 1;
@@ -880,7 +880,7 @@ body {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(212, 175, 55, 0.08);
+  background: var(--one-gold-a08);
   border: 1px solid rgba(212, 175, 55, 0.28);
 }
 
@@ -971,7 +971,7 @@ body {
 .tasks-mobile-command-metrics {
   background: var(--one-surface-card);
   border: 1px solid var(--one-border);
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   box-shadow: none;
 }
 
@@ -998,7 +998,7 @@ body {
 .mobile-manager-tasks-command {
   background: var(--one-surface-card);
   border: 1px solid var(--one-border);
-  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  border-left: 3px solid var(--one-gold-a55);
   box-shadow: none;
 }
 
@@ -1096,13 +1096,13 @@ body {
 .tasks-page .tasks-templates-nav-btn {
   background: transparent;
   color: #f3e7cf;
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
 }
 
 .operations-dashboard-page .ghost-btn:hover:not(:disabled),
 .operations-checklists-page .ghost-btn:hover:not(:disabled),
 .tasks-page .tasks-templates-nav-btn:hover {
-  background: rgba(212, 175, 55, 0.08);
+  background: var(--one-gold-a08);
 }
 
 /* 0032 — Operations final polish. */
@@ -1141,7 +1141,7 @@ body {
 .tasks-page .ghost-btn:not(.tasks-back-btn) {
   background: transparent;
   color: #f3e7cf;
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
 }
 
 .tasks-page .tasks-generate-btn:disabled {
@@ -1218,7 +1218,7 @@ body {
 .operations-summary-card.tone-warning { background-image: linear-gradient(color-mix(in srgb, var(--one-warning) 6%, transparent), color-mix(in srgb, var(--one-warning) 6%, transparent)); }
 .operations-summary-card.tone-success { background-image: linear-gradient(color-mix(in srgb, var(--one-success) 6%, transparent), color-mix(in srgb, var(--one-success) 6%, transparent)); }
 .operations-summary-card.tone-danger { background-image: linear-gradient(color-mix(in srgb, var(--one-danger) 6%, transparent), color-mix(in srgb, var(--one-danger) 6%, transparent)); }
-.operations-summary-card.tone-gold { background-image: linear-gradient(rgba(212, 175, 55, 0.04), rgba(212, 175, 55, 0.04)); }
+.operations-summary-card.tone-gold { background-image: linear-gradient(var(--one-gold-a04), var(--one-gold-a04)); }
 
 /* (9) Compact landscape header: same height on every Operations tab. */
 .topbar.topbar-operations-compact {
@@ -1341,7 +1341,7 @@ body {
   background: transparent;
   color: #f3e7cf;
   border: 0;
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.32);
+  box-shadow: inset 0 0 0 1px var(--one-gold-a32);
 }
 
 /*
@@ -1362,7 +1362,7 @@ body {
   background: rgba(18, 32, 51, 0.92);
   box-shadow:
     0 10px 36px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    inset 0 1px 0 var(--one-overlay-06);
   backdrop-filter: blur(22px) saturate(170%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
 }

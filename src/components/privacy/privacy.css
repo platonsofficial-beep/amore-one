@@ -112,7 +112,7 @@
   color: var(--one-text, #f4efe4);
   border-radius: 16px;
   padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--one-overlay-08);
 }
 
 .permission-notice h3 { margin: 0 0 8px; }

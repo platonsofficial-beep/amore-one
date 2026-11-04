@@ -930,7 +930,7 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
     expect(timelineCss).toContain('width: 12px')
     expect(timelineCss).toContain('height: 12px')
     expect(timelineCss).toContain('width: 1.5px')
-    expect(timelineCss).toContain('rgba(212, 175, 55, 0.58)')
+    expect(timelineCss).toContain('var(--one-gold-a55)')
     expect(css).not.toContain('.inventory-count-posted-review-footnote')
   })
 
