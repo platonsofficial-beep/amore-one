@@ -1410,3 +1410,83 @@ body {
     right: max(10px, var(--safe-r));
   }
 }
+
+/* Palette step 4: one secondary-button style app-wide.
+   Secondary = --one-fill + 1px --one-border-strong + soft text. Primary (gold) and
+   danger/delete buttons keep their own styles. Focus rings and disabled opacity are untouched. */
+:root {
+  --one-secondary-fill: var(--one-fill);
+  --one-secondary-fill-hover: var(--one-fill-hover);
+  --one-secondary-border: var(--one-border-strong);
+  --one-secondary-ink: var(--one-text-soft);
+}
+
+:root :is(
+  .ghost-btn,
+  .secondary-btn,
+  .mobile-secondary-btn,
+  .shift-reminder-btn-quiet,
+  .manager-portrait-date-nav > button,
+  .mobile-host-sticky-date-step-btn,
+  .mobile-host-sticky-date-calendar-btn,
+  .mobile-host-mode-exit-btn,
+  .mobile-host-reservations-walk-in-btn,
+  .host-queue-toolbar-btn,
+  .floor-plan-area-nav-btn,
+  .floor-plan-zoom-btn,
+  .mobile-manager-stock-quick-btn:not(.mobile-manager-stock-quick-btn-primary),
+  .mobile-manager-stock-pending-btn,
+  .schedule-availability-edit-btn
+):not(.primary-btn):not([class*='danger']):not([class*='delete']):not([class*='remove']):not(.schedule-unpublish-btn) {
+  background: var(--one-secondary-fill) !important;
+  border: 1px solid var(--one-secondary-border) !important;
+  box-shadow: none !important;
+  color: var(--one-secondary-ink) !important;
+}
+
+@media (hover: hover) {
+  :root :is(
+    .ghost-btn,
+    .secondary-btn,
+    .mobile-secondary-btn,
+    .shift-reminder-btn-quiet,
+    .manager-portrait-date-nav > button,
+    .mobile-host-sticky-date-step-btn,
+    .mobile-host-sticky-date-calendar-btn,
+    .mobile-host-mode-exit-btn,
+    .mobile-host-reservations-walk-in-btn,
+    .host-queue-toolbar-btn,
+    .floor-plan-area-nav-btn,
+    .floor-plan-zoom-btn,
+    .mobile-manager-stock-quick-btn:not(.mobile-manager-stock-quick-btn-primary),
+    .mobile-manager-stock-pending-btn,
+    .schedule-availability-edit-btn
+  ):not(.primary-btn):not([class*='danger']):not([class*='delete']):not([class*='remove']):not(.schedule-unpublish-btn):not(:disabled):hover {
+    background: var(--one-secondary-fill-hover) !important;
+    color: var(--one-text) !important;
+  }
+}
+
+:root :is(
+  .ghost-btn,
+  .secondary-btn,
+  .mobile-secondary-btn,
+  .shift-reminder-btn-quiet,
+  .manager-portrait-date-nav > button,
+  .mobile-host-sticky-date-step-btn,
+  .mobile-host-mode-exit-btn,
+  .mobile-host-reservations-walk-in-btn,
+  .host-queue-toolbar-btn
+):not(.primary-btn):not([class*='danger']):not([class*='delete']):not([class*='remove']):not(.schedule-unpublish-btn):not(:disabled):active {
+  background: var(--one-secondary-fill-hover) !important;
+}
+
+:root :is(.ghost-btn, .secondary-btn, .mobile-secondary-btn, .shift-reminder-btn-quiet, .manager-portrait-date-nav > button):disabled {
+  opacity: 0.55;
+}
+
+/* Outline-only toggles/tabs on phone get the same quiet fill when not selected. */
+:root .operations-unified-tab:not(.is-active),
+:root .manager-availability-status:not(.is-selected) {
+  background: var(--one-secondary-fill) !important;
+}
