@@ -52862,7 +52862,14 @@ summary:focus-visible {
   .inventory-count-wizard-backdrop {
     align-items: stretch;
     justify-content: stretch;
-    padding: 8px;
+    /* Phone landscape: keep the sheet inside the side safe areas. iOS clips this
+       fixed layer to the Stock panel (which starts after the left inset), so a
+       flat 8px left the first ~50pt of the New count wizard cut off. */
+    padding:
+      8px
+      max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+      8px
+      max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
     box-sizing: border-box;
   }
 

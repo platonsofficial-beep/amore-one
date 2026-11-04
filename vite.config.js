@@ -7,9 +7,6 @@ import { resolve } from 'node:path'
 // https://vite.dev/config/
 const packageJsonPath = resolve(process.cwd(), 'package.json')
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
-const pwaManifest = JSON.parse(
-  readFileSync(resolve(process.cwd(), 'public/manifest.webmanifest'), 'utf8'),
-)
 
 const appVersion = `v${packageJson.version ?? '1.0.0'}-${packageJson.release ?? 'core'}`
 const derivedBuildNumber = process.env.VERCEL_GIT_COMMIT_SHA
@@ -37,7 +34,8 @@ export default defineConfig({
         'brand/one-full-logo.svg',
         'brand/one-app-icon.svg',
       ],
-      manifest: pwaManifest,
+      // index.html links public/manifest.webmanifest per platform (not on iOS 26+).
+      manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
         navigateFallback: '/index.html',

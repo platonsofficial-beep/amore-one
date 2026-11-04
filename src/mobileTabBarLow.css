@@ -1,0 +1,33 @@
+/*
+  Tab bar sits low like a native one (Facebook-style floating pill): its bottom
+  edge is max(8px, safe-area-inset-bottom - 20px) above the glass (34 -> 14pt),
+  and content scrolls behind it to the edge. Needs the full-height page that
+  iOS 26 gives once the legacy web-app markup is gone (see index.html).
+
+  Skipped while an inventory count session is open: the Active Count layout is
+  a locked baseline (P8.19.8, .cursor/rules/active-count-locked-baseline.mdc).
+  No html/body/#root/shell height or visualViewport changes here.
+*/
+:root {
+  --one-mobile-nav-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 20px));
+}
+
+@media (orientation: portrait) {
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) {
+    --one-mobile-bottom-inset: calc(
+      var(--one-mobile-bottom-nav-height) +
+      var(--one-mobile-nav-bottom) +
+      var(--one-mobile-nav-content-spacing)
+    );
+  }
+
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app .mobile-bottom-nav,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-staff-app .mobile-bottom-nav {
+    bottom: var(--one-mobile-nav-bottom);
+  }
+
+  /* Stock list's Count / Suggest / Create order bar keeps riding on the tab bar. */
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app .mobile-manager-stock-action-bar {
+    bottom: calc(var(--one-mobile-nav-bottom) + 56px);
+  }
+}

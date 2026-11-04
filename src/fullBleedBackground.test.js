@@ -8,10 +8,10 @@ const rule = (css, selector) => {
 }
 
 describe('full-bleed background on iOS home-screen app', () => {
-  it('keeps viewport-fit=cover and the translucent status bar', () => {
+  it('keeps viewport-fit=cover; translucent status bar only off iOS 26+', () => {
     const html = read('../index.html')
     expect(html).toMatch(/viewport-fit=cover/)
-    expect(html).toMatch(/black-translucent/)
+    expect(html).toMatch(/if \(ios26\) return[\s\S]*black-translucent/)
   })
 
   it('paints the html canvas the app navy', () => {
