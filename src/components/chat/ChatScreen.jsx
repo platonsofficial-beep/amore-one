@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useKeyboardInset } from '../../lib/keyboardInset'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { useAvatarDirectory } from '../../context/AvatarDirectoryContext'
@@ -59,6 +60,7 @@ import {
 import './chat.css'
 
 const CHAT_SESSION_KEY = 'one.chat.session'
+const CHANNEL_ICON_CHOICES = ['📣', '🍳', '🍷', '🍸', '🧾', '📦', '⭐', '🎉']
 
 function readChatSession() {
   try {
@@ -167,6 +169,7 @@ export function ChatScreen({
   const [scrollReadyId, setScrollReadyId] = useState('')
   const [outgoingPhoto, setOutgoingPhoto] = useState(null)
   const [directQuery, setDirectQuery] = useState('')
+  const [memberQuery, setMemberQuery] = useState('')
   const fileRef = useRef(null)
   const scrollerRef = useRef(null)
   const logRef = useRef(null)
@@ -608,6 +611,11 @@ export function ChatScreen({
     [messages],
   )
 
+  const isPanelSheet = sheet === 'direct' || sheet === 'channel'
+  const panelTitle = sheet === 'channel' ? 'New channel' : 'New chat'
+  const directPeople = members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase()))
+  const channelPeople = members.filter((member) => member.id !== memberId && `${member.name ?? ''} ${member.email ?? ''}`.toLowerCase().includes(memberQuery.trim().toLowerCase()))
+
   return (
     <div
       className={`chat-screen${resolvedLayout === 'split' ? ' is-split' : ''}`}
@@ -1019,9 +1027,20 @@ export function ChatScreen({
         </section>
       ) : null}
 
-      {sheet ? (
-        <div className="chat-sheet-backdrop" role="presentation" onClick={() => setSheet(null)}>
-          <div className="chat-sheet" role="dialog" aria-label="Chat actions" onClick={(event) => event.stopPropagation()}>
+      {sheet ? createPortal((
+        <div className={`chat-sheet-backdrop${isPanelSheet ? ' is-panel' : ''}`} role="presentation" onClick={() => setSheet(null)}>
+          <div className={`chat-sheet${isPanelSheet ? ' is-panel' : ''}`} role="dialog" aria-label={isPanelSheet ? panelTitle : 'Chat actions'} onClick={(event) => event.stopPropagation()}>
+            {isPanelSheet ? (
+              <div className="chat-sheet-head">
+                <span className="chat-sheet-grab" aria-hidden="true" />
+                <h3>{panelTitle}</h3>
+                <button type="button" className="chat-sheet-close" aria-label="Close" onClick={() => setSheet(null)}>
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <path fill="currentColor" d="M18.3 5.7 16.9 4.3 12 9.2 7.1 4.3 5.7 5.7 10.6 10.6 5.7 15.5l1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z" />
+                  </svg>
+                </button>
+              </div>
+            ) : null}
             {sheet === 'actions' && activeMessage ? (
               <>
                 <div className="chat-emoji-row">
@@ -1052,71 +1071,136 @@ export function ChatScreen({
             ) : null}
             {sheet === 'direct' ? (
               <>
-                <label className="chat-field">
-                  Search people
-                  <input value={directQuery} onChange={(event) => setDirectQuery(event.target.value)} placeholder="Name" />
+                <label className="chat-sheet-search">
+                  <span className="sr-only">Search people</span>
+                  <input
+                    type="search"
+                    value={directQuery}
+                    onChange={(event) => setDirectQuery(event.target.value)}
+                    placeholder="Search people"
+                    aria-label="Search people"
+                  />
                 </label>
-                {members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase())).map((member) => {
-                  const existing = ordered.find((row) => row.kind === 'direct' && row.other_member_id === member.id)
-                  return (
-                    <button
-                      key={member.id}
-                      type="button"
-                      className="chat-person-row"
-                      onClick={() => {
-                        if (existing) {
-                          stickToBottomRef.current = true
-                          setOpenId(existing.conversation_id)
-                          setSheet(null)
-                          return
-                        }
-                        startDirect(member.id)
-                      }}
-                    >
-                      <span className="chat-avatar chat-avatar-inline" aria-hidden="true">
-                        <PersonAvatar memberId={member.id} employeeId={member.employeeId} authUserId={member.authUserId} name={member.name} fallback={initials(member.name)} />
-                      </span>
-                      <span>{member.name}</span>
-                      {existing ? <span className="chat-meta">Open</span> : null}
-                    </button>
-                  )
-                })}
+                <div className="chat-sheet-body">
+                  {directPeople.length === 0 ? <p className="chat-sheet-empty">No one matches “{directQuery.trim()}”.</p> : null}
+                  {directPeople.map((member) => {
+                    const existing = ordered.find((row) => row.kind === 'direct' && row.other_member_id === member.id)
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        className="chat-person-row"
+                        disabled={busy}
+                        onClick={() => {
+                          if (existing) {
+                            stickToBottomRef.current = true
+                            setOpenId(existing.conversation_id)
+                            setSheet(null)
+                            return
+                          }
+                          startDirect(member.id)
+                        }}
+                      >
+                        <span className="chat-avatar" aria-hidden="true">
+                          <PersonAvatar memberId={member.id} employeeId={member.employeeId} authUserId={member.authUserId} name={member.name} fallback={initials(member.name)} />
+                        </span>
+                        <span className="chat-person-copy">
+                          <strong>{member.name}</strong>
+                          {member.role ? <span>{member.role}</span> : null}
+                        </span>
+                        {existing ? <span className="chat-person-badge">Open chat</span> : null}
+                        <svg className="chat-person-chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                          <path fill="currentColor" d="m9.4 18-1.4-1.4 4.6-4.6L8 7.4 9.4 6l6 6z" />
+                        </svg>
+                      </button>
+                    )
+                  })}
+                </div>
               </>
             ) : null}
             {sheet === 'channel' ? (
               <>
-                <label className="chat-field">
-                  Channel name
-                  <input value={channelName} onChange={(event) => setChannelName(event.target.value)} />
-                </label>
-                <label className="chat-field">
-                  Icon
-                  <input value={channelIcon} onChange={(event) => setChannelIcon(event.target.value)} placeholder="Optional" />
-                </label>
-                <label className="chat-field">
-                  Who can post
-                  <select value={channelPolicy} onChange={(event) => setChannelPolicy(event.target.value)}>
-                    <option value="all">Everyone can post</option>
-                    <option value="managers">Announcements only</option>
-                  </select>
-                </label>
-                {members.filter((member) => member.id !== memberId).map((member) => (
-                  <label key={member.id}>
-                    <input
-                      type="checkbox"
-                      checked={pickedMembers.includes(member.id)}
-                      onChange={(event) => {
-                        setPickedMembers((current) => (
-                          event.target.checked
-                            ? [...current, member.id]
-                            : current.filter((id) => id !== member.id)
-                        ))
-                      }}
-                    />
-                    {member.name}
+                <div className="chat-sheet-body">
+                  <div className="chat-channel-top">
+                    <span className="chat-channel-icon-preview" aria-hidden="true">{channelIcon.trim() || '#'}</span>
+                    <label className="chat-field chat-channel-name">
+                      Channel name
+                      <input value={channelName} onChange={(event) => setChannelName(event.target.value)} placeholder="e.g. Kitchen" />
+                    </label>
+                  </div>
+                  <div className="chat-field">
+                    <span id="chat-channel-icon-label">Icon (optional)</span>
+                    <div className="chat-icon-picker" role="group" aria-labelledby="chat-channel-icon-label">
+                      {CHANNEL_ICON_CHOICES.map((icon) => (
+                        <button
+                          key={icon}
+                          type="button"
+                          aria-pressed={channelIcon === icon}
+                          className={channelIcon === icon ? 'is-on' : ''}
+                          onClick={() => setChannelIcon(channelIcon === icon ? '' : icon)}
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                      <input
+                        aria-label="Icon"
+                        value={channelIcon}
+                        onChange={(event) => setChannelIcon(event.target.value)}
+                        placeholder="Other"
+                        maxLength={8}
+                      />
+                    </div>
+                  </div>
+                  <div className="chat-field">
+                    <span id="chat-channel-policy-label">Who can post</span>
+                    <div className="chat-segmented" role="radiogroup" aria-labelledby="chat-channel-policy-label">
+                      <button type="button" role="radio" aria-checked={channelPolicy === 'all'} className={channelPolicy === 'all' ? 'is-on' : ''} onClick={() => setChannelPolicy('all')}>
+                        Everyone can post
+                      </button>
+                      <button type="button" role="radio" aria-checked={channelPolicy === 'managers'} className={channelPolicy === 'managers' ? 'is-on' : ''} onClick={() => setChannelPolicy('managers')}>
+                        Announcements only
+                      </button>
+                    </div>
+                  </div>
+                  <div className="chat-members-head">
+                    <span>Members</span>
+                    <span className="chat-members-count">{pickedMembers.length} selected</span>
+                  </div>
+                  <label className="chat-sheet-search">
+                    <span className="sr-only">Search members</span>
+                    <input type="search" value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Search members" aria-label="Search members" />
                   </label>
-                ))}
-                <button type="button" onClick={createChannel}>Create channel</button>
+                  {channelPeople.map((member) => {
+                    const on = pickedMembers.includes(member.id)
+                    return (
+                      <label key={member.id} className={`chat-person-row chat-pick-row${on ? ' is-on' : ''}`}>
+                        <span className="chat-avatar" aria-hidden="true">
+                          <PersonAvatar memberId={member.id} employeeId={member.employeeId} authUserId={member.authUserId} name={member.name} fallback={initials(member.name)} />
+                        </span>
+                        <span className="chat-person-copy">
+                          <strong>{member.name}</strong>
+                          {member.role ? <span>{member.role}</span> : null}
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="chat-round-check"
+                          checked={on}
+                          onChange={(event) => {
+                            setPickedMembers((current) => (
+                              event.target.checked
+                                ? [...current, member.id]
+                                : current.filter((id) => id !== member.id)
+                            ))
+                          }}
+                        />
+                      </label>
+                    )
+                  })}
+                  {channelPeople.length === 0 ? <p className="chat-sheet-empty">No one matches “{memberQuery.trim()}”.</p> : null}
+                </div>
+                <div className="chat-sheet-footer">
+                  <button type="button" className="chat-sheet-primary" disabled={busy || !channelName.trim()} onClick={createChannel}>Create channel</button>
+                </div>
               </>
             ) : null}
             {sheet === 'members' ? (
@@ -1172,10 +1256,10 @@ export function ChatScreen({
                 <button type="button" onClick={() => applyMute('off')}>Unmute</button>
               </>
             ) : null}
-            <button type="button" onClick={() => setSheet(null)}>Close</button>
+            {isPanelSheet ? null : <button type="button" onClick={() => setSheet(null)}>Close</button>}
           </div>
         </div>
-      ) : null}
+      ), document.body) : null}
       {viewerUrl ? (
         <div className="chat-viewer" role="dialog" aria-label="Photo" onClick={() => setViewerUrl('')}>
           <img src={viewerUrl} alt="" />
