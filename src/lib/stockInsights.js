@@ -1,6 +1,7 @@
 import { resolveStockStorageLocation, selectItemsToOrder, computeSuggestedOrder } from './stockCatalog'
 import { filterStockDashboardItems } from './stockDashboardBrowse'
 import { buildStockDashboardSummary, resolveStockItemQuantityStatus } from './stockUtils'
+import { isStockItemSupplierInactive } from './stockOrderUtils'
 
 const STALE_COUNT_DAYS = 14
 
@@ -122,12 +123,15 @@ export function formatToOrderBreakdown(items = [], summary = null) {
   return `${orderLabel}: ${out} out, ${low} low, ${breakdown.underTarget} below target`
 }
 
-export function buildToOrderSupplierGroups(items = []) {
+export function buildToOrderSupplierGroups(items = [], suppliers = []) {
   const groups = new Map()
 
   selectItemsToOrder(items).forEach((item) => {
     const status = quantityStatus(item)
-    const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
+    // S-04: an inactive supplier is not someone to order from.
+    const supplier = isStockItemSupplierInactive(item, suppliers)
+      ? 'No supplier'
+      : (`${item.supplier ?? ''}`.trim() || 'No supplier')
     const current = groups.get(supplier) ?? { supplier, count: 0, out: 0, low: 0, quantity: 0 }
     current.count += 1
     current.quantity += computeSuggestedOrder(item)

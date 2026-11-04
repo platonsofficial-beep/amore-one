@@ -17,6 +17,7 @@ import {
   getStockOrderStatusTone,
   isOrderPartiallyReceived,
   normalizeStockOrderStatus,
+  resolveStockOrderSupplierName,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
@@ -81,7 +82,8 @@ function StockOrderSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockOrderCard({ order, stockItems = [], onOpen, showCost = true, timeZone = '' }) {
+function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCost = true, timeZone = '' }) {
+  const supplierName = resolveStockOrderSupplierName(order, suppliers)
   const status = normalizeStockOrderStatus(order.status)
   const statusTone = getStockOrderStatusTone(order.status)
   const nextAction = getStockOrderNextAction(order)
@@ -102,8 +104,8 @@ function StockOrderCard({ order, stockItems = [], onOpen, showCost = true, timeZ
           <span className="stock-order-card-number">
             {formatStockOrderNumber(order.orderNumber)}
           </span>
-          <strong className="stock-order-card-supplier" title={order.supplier || undefined}>
-            {order.supplier || '—'}
+          <strong className="stock-order-card-supplier" title={supplierName || undefined}>
+            {supplierName || '—'}
           </strong>
         </div>
         <div className="stock-order-card-badges">
@@ -390,6 +392,7 @@ export function StockOrdersView({
               key={order.id}
               order={order}
               stockItems={stockItems}
+              suppliers={suppliers}
               showCost={canManage}
               timeZone={timeZone}
               onOpen={setSelectedOrder}
@@ -401,6 +404,7 @@ export function StockOrdersView({
       {isCreateModalOpen ? (
         <StockCreateOrderModal
           stockItems={stockItems}
+          suppliers={suppliers}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleCreateOrders}
           isSaving={isSaving}

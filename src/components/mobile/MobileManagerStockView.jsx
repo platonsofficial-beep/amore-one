@@ -204,6 +204,7 @@ export function MobileManagerStockView({
   stockOrdersSummary = null,
   isLoading = false,
   catalogLoadFailed = false,
+  suppliers = [],
   onRetryCatalogLoad,
   canManageStock = false,
   isWorkspaceReady = false,
@@ -286,7 +287,7 @@ export function MobileManagerStockView({
   }
 
   const openCreateOrderModal = () => {
-    const groups = buildSupplierOrderGroups(stockItems)
+    const groups = buildSupplierOrderGroups(stockItems, suppliers)
       .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
       .map((group) => ({
         ...group,
@@ -358,19 +359,19 @@ export function MobileManagerStockView({
         <h1 className="mobile-manager-stock-command-title">Stock</h1>
         <p className="mobile-manager-stock-command-stats">
           <span>
-            <strong>{isLoading ? '0' : totalItems}</strong> items
+            <strong>{isLoading || catalogLoadFailed ? '—' : totalItems}</strong> items
           </span>
           <span aria-hidden="true">·</span>
           <span className={lowCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading ? '0' : lowCount}</strong> low
+            <strong>{isLoading || catalogLoadFailed ? '—' : lowCount}</strong> low
           </span>
           <span aria-hidden="true">·</span>
           <span className={outCount > 0 ? 'tone-danger' : ''}>
-            <strong>{isLoading ? '0' : outCount}</strong> out
+            <strong>{isLoading || catalogLoadFailed ? '—' : outCount}</strong> out
           </span>
           <span aria-hidden="true">·</span>
           <span className={toOrderCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading ? '0' : toOrderCount}</strong> to order
+            <strong>{isLoading || catalogLoadFailed ? '—' : toOrderCount}</strong> to order
           </span>
           {pendingOrders > 0 ? (
             <>
@@ -523,6 +524,7 @@ export function MobileManagerStockView({
       {orderModalGroups ? (
         <StockCreateOrderModal
           stockItems={stockItems}
+          suppliers={suppliers}
           initialGroups={orderModalGroups}
           onClose={handleCloseOrderModal}
           onSubmit={handleSubmitOrderModal}

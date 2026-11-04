@@ -264,6 +264,7 @@ import { getInventoryItems } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
+import { resolveStockCatalogLoadFailure } from './lib/stockCatalogLoadFailure'
 import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
 import { prepareSupplyOrderDrafts, previewSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
 import { SupplyOrderDraftPreviewDialog } from './components/stock/SupplyOrderDraftPreviewDialog'
@@ -15142,6 +15143,10 @@ function App() {
   const isSavingReservationRef = useRef(false)
   const [inventoryItems, setInventoryItems] = useState([])
   const [stockItems, setStockItems] = useState([])
+  const stockItemsCountRef = useRef(0)
+  useEffect(() => {
+    stockItemsCountRef.current = stockItems.length
+  }, [stockItems])
   const [stockItemsNotice, setStockItemsNotice] = useState('')
   const [isStockItemsLoading, setIsStockItemsLoading] = useState(false)
   const [stockCatalogLoadFailed, setStockCatalogLoadFailed] = useState(false)
@@ -16897,7 +16902,7 @@ function App() {
     }
   }, [])
 
-  const refreshStockItems = useCallback(async () => {
+  const refreshStockItems = useCallback(async (options) => {
     if (!activeWorkspaceId) {
       setStockItems([])
       return []
@@ -16905,12 +16910,16 @@ function App() {
 
     markLoad('stockItems', 'start')
     try {
-      const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId)
+      const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId, {
+        throwOnError: options?.strict === true,
+      })
       setStockItems(remoteStockItems)
+      setStockCatalogLoadFailed(false)
       markLoad('stockItems', 'success')
       return remoteStockItems
     } catch (error) {
-      setStockItems([])
+      // S-11: a strict (catalog) load keeps the last loaded list instead of wiping it.
+      if (options?.strict !== true) setStockItems([])
       markLoad('stockItems', 'failure')
       throw error
     }
@@ -16923,10 +16932,13 @@ function App() {
     setStockItemsNotice('')
 
     try {
-      await refreshStockItems()
+      await refreshStockItems({ strict: true })
       setStockCatalogLoadFailed(false)
     } catch {
-      setStockCatalogLoadFailed(true)
+      // S-01/S-11: with nothing loaded yet show the Retry card; otherwise keep the last list and say so.
+      const failure = resolveStockCatalogLoadFailure(stockItemsCountRef.current)
+      setStockCatalogLoadFailed(failure.showRetryCard)
+      setStockItemsNotice(failure.notice)
     } finally {
       setIsStockItemsLoading(false)
     }
@@ -22691,6 +22703,24 @@ function App() {
     }
   }
 
+  // Shared by the desktop/landscape tree and the portrait manager shell (audit S-03).
+  const renderSupplyDraftPreviewDialog = () => (
+    <SupplyOrderDraftPreviewDialog
+      isOpen={Boolean(supplyDraftPreview)}
+      isLoading={Boolean(supplyDraftPreview?.loading)}
+      lines={supplyDraftPreview?.lines ?? []}
+      review={supplyDraftPreview?.review ?? []}
+      summary={supplyDraftPreview?.summary ?? ''}
+      message={supplyDraftPreview?.message ?? ''}
+      isSaving={isSavingStockOrder}
+      onCancel={() => {
+        if (isPreparingSupplyDrafts) return
+        setSupplyDraftPreview(null)
+      }}
+      onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
+    />
+  )
+
   const handlePrepareSupplyOrderDrafts = async () => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
@@ -25207,20 +25237,7 @@ function App() {
           </div>
         ) : null}
 
-        <SupplyOrderDraftPreviewDialog
-          isOpen={Boolean(supplyDraftPreview)}
-          isLoading={Boolean(supplyDraftPreview?.loading)}
-          lines={supplyDraftPreview?.lines ?? []}
-          review={supplyDraftPreview?.review ?? []}
-          summary={supplyDraftPreview?.summary ?? ''}
-          message={supplyDraftPreview?.message ?? ''}
-          isSaving={isSavingStockOrder}
-          onCancel={() => {
-            if (isPreparingSupplyDrafts) return
-            setSupplyDraftPreview(null)
-          }}
-          onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
-        />
+        {renderSupplyDraftPreviewDialog()}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (
           <StockDashboardView
@@ -25802,6 +25819,7 @@ function App() {
                       : (scheduleWeekKeys.includes(currentDateKey) ? currentDateKey : scheduleWeekStart)
                     const portraitModuleScreens = new Set(['team', 'settings', 'time-clock', 'insights'])
                     return (
+                      <>
                       <MobileManagerApp
                         activeTab={managerPortraitTab}
                         onTabChange={handleMobileTabChange}
@@ -25815,6 +25833,7 @@ function App() {
                           isLoading: isManagerMobileStockLoading,
                           catalogLoadFailed: stockCatalogLoadFailed,
                           onRetryCatalogLoad: loadStockCatalog,
+                          suppliers,
                           canManageStock: canManageStockRole,
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
@@ -25950,6 +25969,8 @@ function App() {
                         }}
                         portraitModule={portraitModuleScreens.has(managerPortraitScreen) ? workspaceModules : null}
                       />
+                      {renderSupplyDraftPreviewDialog()}
+                      </>
                     )
                   }
 
@@ -26862,6 +26883,7 @@ function App() {
         {isDashboardStockCreateOrderOpen && canManageStockRole ? (
           <StockCreateOrderModal
             stockItems={stockItems}
+            suppliers={suppliers}
             onClose={() => setIsDashboardStockCreateOrderOpen(false)}
             onSubmit={handleCreateStockOrders}
             isSaving={isSavingStockOrder}

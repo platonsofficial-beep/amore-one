@@ -6,7 +6,8 @@ import {
   computeOrderLineTotal,
   UNASSIGNED_SUPPLIER,
 } from '../../lib/stockOrderUtils'
-import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
+import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
+import { formatInventoryUnitLabelForQuantity } from '../../lib/inventoryUnitDisplay'
 
 const UNDO_TOAST_MS = 6000
 
@@ -112,7 +113,7 @@ function SupplierOrderGroup({
                   )}
                 />
               </label>
-              <span className="stock-create-order-item-unit">{formatInventoryUnitLabel(item.unit) || 'units'}</span>
+              <span className="stock-create-order-item-unit">{formatInventoryUnitLabelForQuantity(item.quantity, item.unit) || 'units'}</span>
               <button
                 type="button"
                 className="icon-btn stock-create-order-remove-item"
@@ -151,6 +152,7 @@ function SupplierOrderGroup({
 
 export function StockCreateOrderModal({
   stockItems,
+  suppliers = [],
   initialGroups = null,
   onClose,
   onSubmit,
@@ -161,7 +163,7 @@ export function StockCreateOrderModal({
       return initialGroups
     }
 
-    return buildSupplierOrderGroups(stockItems ?? [])
+    return buildSupplierOrderGroups(stockItems ?? [], suppliers ?? [])
       .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
       .map((group) => ({
         ...group,
@@ -358,7 +360,7 @@ export function StockCreateOrderModal({
 
           {groups.some((group) => group.supplier === UNASSIGNED_SUPPLIER) ? (
             <p className="stock-create-order-hint">
-              Products without a supplier are grouped under &ldquo;{UNASSIGNED_SUPPLIER}&rdquo;.
+              Products without a supplier, or whose supplier is inactive, are grouped under &ldquo;{UNASSIGNED_SUPPLIER}&rdquo;.
             </p>
           ) : null}
         </div>

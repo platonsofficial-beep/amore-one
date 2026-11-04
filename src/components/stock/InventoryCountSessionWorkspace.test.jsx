@@ -1717,6 +1717,28 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     cleanup()
   })
 
+  it('S-12: technical preview failures show plain copy and a working Retry', async () => {
+    previewInventoryCountFinish.mockRejectedValueOnce(
+      new Error('Finish count preview response was empty or invalid.'),
+    )
+
+    const { container, cleanup } = await openFinishPreview()
+
+    expect(container.textContent).toContain('The count summary couldn’t be loaded. Check your connection and try again.')
+    expect(container.textContent).not.toContain('empty or invalid')
+    expect(container.textContent).toContain('Load the count summary to continue.')
+    expect(container.textContent).not.toContain('Resolve blocking issues')
+    expect(getButtonByText(container, 'Confirm Finish Count')?.disabled).toBe(true)
+
+    const callsBefore = previewInventoryCountFinish.mock.calls.length
+    await act(async () => {
+      getButtonByText(container, 'Retry').click()
+      await Promise.resolve()
+    })
+    expect(previewInventoryCountFinish.mock.calls.length).toBe(callsBefore + 1)
+    cleanup()
+  })
+
   it('renders stock_count blocker, counted zero, and refreshes RPC after cancel/reopen', async () => {
     previewInventoryCountFinish.mockResolvedValueOnce({
       sessionId: 'session-real-1',
