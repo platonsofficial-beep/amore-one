@@ -31,6 +31,6 @@ describe('top safe area', () => {
     expect(banner).toContain('top: var(--one-safe-top-chrome)')
     expect(banner).toContain('z-index: 90')
     expect(banner).not.toContain('top: 0')
-    expect(banner).toContain('background: #1a1408')
+    expect(banner).toContain('background: var(--one-surface-1)')
   })
 })

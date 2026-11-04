@@ -9,7 +9,7 @@
   padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.45);
-  background: rgba(18, 16, 12, 0.94);
+  background: rgba(18, 32, 51, 0.94);
   color: #e8c46e;
   font-size: 0.95rem;
   font-weight: 700;
@@ -62,7 +62,7 @@
   margin: 0;
   padding: 6px 108px 6px 12px;
   box-sizing: border-box;
-  background: #1a1408;
+  background: var(--one-surface-1);
   color: #f7efe1;
   border-bottom: 1px solid rgba(212, 175, 55, 0.45);
   font-size: 0.82rem;

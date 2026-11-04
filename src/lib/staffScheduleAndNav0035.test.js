@@ -30,7 +30,7 @@ describe('0035 staff bottom bar', () => {
   })
   it('staff bar floats like the manager bar', () => {
     const block = css.slice(css.indexOf('0035 (1)'))
-    expect(block).toMatch(/\.mobile-staff-app \.mobile-bottom-nav \{[^}]*border-radius: 24px[^}]*background: rgba\(11, 15, 23, 0\.92\)/)
+    expect(block).toMatch(/\.mobile-staff-app \.mobile-bottom-nav \{[^}]*border-radius: 24px[^}]*background: rgba\(18, 32, 51, 0\.92\)/)
     expect(block).toContain('bottom: calc(10px + env(safe-area-inset-bottom, 0px))')
   })
 })
