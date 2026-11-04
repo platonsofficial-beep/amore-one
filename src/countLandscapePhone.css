@@ -6,136 +6,148 @@
   Scroll owner (.inventory-count-session-sheet-scroll), 320px runway, frozen
   head, footer order and Enter -> Save -> Next logic are untouched; this only
   trims chrome around the table so more rows fit.
+  Gated by html.one-phone-landscape (src/lib/phoneLandscapeClass.js), not a
+  media query: on a real iOS 26 home-screen app the media query never matched.
 */
-@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
-  /* One slim header line. */
-  body .inventory-count-session.is-high-density .inventory-count-session-header {
-    min-height: 0;
-    padding: 4px 10px;
-    gap: 8px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-meta {
-    gap: 10px;
-    align-items: center;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-meta-label {
-    display: none;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-meta-value {
-    font-size: 0.8rem;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-header-actions .inventory-count-session-action-btn {
-    min-height: 30px;
-    padding: 0 10px;
-    font-size: 0.78rem;
-  }
+/* One slim header line. */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-header {
+  min-height: 0;
+  padding: 4px 10px;
+  gap: 8px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-meta {
+  gap: 10px;
+  align-items: center;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-meta-label {
+  display: none;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-meta-value {
+  font-size: 0.8rem;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-header-actions .inventory-count-session-action-btn {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+}
 
-  /* Location rail: narrow column (still tappable to switch location). */
-  body .inventory-count-session.is-high-density .inventory-count-session-body {
-    grid-template-columns: 112px minmax(0, 1fr);
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-rail-item {
-    width: 100%;
-    min-height: 0;
-    padding: 6px 8px;
-    grid-template-columns: 16px minmax(0, 1fr);
-    gap: 6px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-rail-state,
-  body .inventory-count-session.is-high-density .inventory-count-session-rail-progress {
-    display: none;
-  }
+/* Location rail: narrow column (still tappable to switch location). */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-body {
+  grid-template-columns: 112px minmax(0, 1fr);
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-rail-item {
+  width: 100%;
+  min-height: 0;
+  padding: 6px 8px;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: 6px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-rail-state,
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-rail-progress {
+  display: none;
+}
 
-  /* Search + progress on one compact row. */
-  body .inventory-count-session.is-high-density .inventory-count-session-toolbar {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-toolbar-left {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-search {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-search-input {
-    min-height: 30px;
-    height: 30px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-filter-btn {
-    min-height: 30px;
-    padding: 0 10px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-progress-card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 6px;
-    width: auto;
-    max-width: none;
-    min-height: 0;
-    padding: 4px 10px;
-    flex: 0 0 auto;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-progress-percent {
-    font-size: 0.95rem;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-progress-secondary,
-  body .inventory-count-session.is-high-density .inventory-count-session-location-readiness {
-    display: none;
-  }
+/* Search + progress on one compact row. */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-toolbar {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-toolbar-left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-search {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-search-input {
+  min-height: 30px;
+  height: 30px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-filter-btn {
+  min-height: 30px;
+  padding: 0 10px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-progress-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  max-width: none;
+  min-height: 0;
+  padding: 4px 10px;
+  flex: 0 0 auto;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-progress-percent {
+  font-size: 0.95rem;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-progress-secondary,
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-location-readiness {
+  display: none;
+}
 
-  /* Keep STATUS pills clear of the right edge (iOS draws a round control there). */
-  body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
-    padding-right: 16px;
-  }
+/* Keep STATUS pills clear of the right edge (iOS draws a round control there). */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
+  padding-right: 16px;
+}
 
-  /* Compact footer: one row. */
-  body .inventory-count-session.is-high-density .inventory-count-session-footer {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 4px 10px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-footer-label {
-    display: none;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-footer-value {
-    font-size: 0.8rem;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-footer-right {
-    width: auto;
-    gap: 6px;
-  }
-  body .inventory-count-session.is-high-density .inventory-count-session-footer .inventory-count-session-action-btn {
-    min-height: 32px;
-    padding: 0 12px;
-    font-size: 0.8rem;
-  }
+/* Compact footer: one row. */
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer-label {
+  display: none;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer-value {
+  font-size: 0.8rem;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer-right {
+  width: auto;
+  gap: 6px;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer .inventory-count-session-action-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+}
 
-  /* While a counted input is focused (keyboard up): only the table + footer. */
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-rail,
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-toolbar,
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) ~ .inventory-count-complete-disabled-reason,
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-complete-disabled-reason {
-    display: none;
-  }
-  body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .module-section-tabs,
-  body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .stock-focus-header,
-  body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .stock-focus-chrome,
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-header {
-    display: none;
-  }
-  body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/* While a counted input is focused (keyboard up): only the table + footer. */
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-rail,
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-toolbar,
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) ~ .inventory-count-complete-disabled-reason,
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-complete-disabled-reason {
+  display: none;
+}
+html.one-phone-landscape body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .module-section-tabs,
+html.one-phone-landscape body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .stock-focus-header,
+html.one-phone-landscape body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .stock-focus-chrome,
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-header {
+  display: none;
+}
+html.one-phone-landscape body .inventory-count-session.is-high-density:has(.inventory-count-session-counted-input:focus) .inventory-count-session-body {
+  grid-template-columns: minmax(0, 1fr);
+}
 
-  body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .main-panel-stock {
-    padding-top: 6px;
-  }
+html.one-phone-landscape body:has(.inventory-count-session.is-high-density .inventory-count-session-counted-input:focus) .app-shell.stock-focus-mode .main-panel-stock {
+  padding-top: 6px;
+}
+
+/* Complete Location note: small, muted. */
+html.one-phone-landscape body .inventory-count-complete-disabled-reason {
+  font-size: 0.74rem;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  color: var(--one-text-muted);
+}
+html.one-phone-landscape body .inventory-count-complete-disabled-reason strong {
+  color: var(--one-gold-light);
+  font-weight: 600;
 }

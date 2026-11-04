@@ -9,12 +9,14 @@ import { AuthGate } from './components/auth/AuthGate'
 import { ManagerLandscapeGate } from './components/shell/ManagerLandscapeGate.jsx'
 import { PwaShell } from './components/pwa/PwaShell.jsx'
 import { registerPwaServiceWorker } from './pwaRegister.js'
+import { bindPhoneLandscapeClass } from './lib/phoneLandscapeClass.js'
 import { WorkspaceKeyedApp } from './components/workspace/WorkspaceKeyedApp.jsx'
 import './safeOverlay.css'
 import './mobileTabBarLow.css'
 import './countLandscapePhone.css'
 import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 
+bindPhoneLandscapeClass()
 registerPwaServiceWorker()
 
 createRoot(document.getElementById('root')).render(

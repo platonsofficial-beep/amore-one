@@ -9,13 +9,15 @@ describe('phone-landscape Active Count compaction (authorised t462u)', () => {
   it('is imported by the app entry', () => {
     expect(entry).toMatch(/import ['"]\.\/countLandscapePhone\.css['"]/)
   })
-  it('every rule is gated to phone landscape only', () => {
-    const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '').trim()
-    expect(stripped.startsWith('@media (orientation: landscape) and (max-height: 500px) and (pointer: coarse)')).toBe(true)
-    expect((stripped.match(/@media/g) || []).length).toBe(1)
-    let depth = 0, closedAt = -1
-    for (let i = 0; i < stripped.length; i++) { if (stripped[i] === '{') depth++; if (stripped[i] === '}') { depth--; if (depth === 0) { closedAt = i; break } } }
-    expect(closedAt).toBe(stripped.length - 1)
+  it('every rule is gated by html.one-phone-landscape (no media query)', () => {
+    const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(stripped).not.toMatch(/@media/)
+    const selectors = stripped.split('}').map((r) => r.split('{')[0]).filter((x) => x.trim())
+    expect(selectors.length).toBeGreaterThan(10)
+    for (const sel of selectors) for (const part of sel.split(',')) expect(part.trim().startsWith('html.one-phone-landscape ')).toBe(true)
+  })
+  it('the app entry binds the class before rendering', () => {
+    expect(entry).toMatch(/bindPhoneLandscapeClass\(\)/)
   })
   it('gives STATUS 16px of right padding', () => {
     expect(css).toMatch(/\.inventory-count-session-spreadsheet\s*\{[^}]*padding-right:\s*16px/)
