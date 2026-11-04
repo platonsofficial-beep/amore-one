@@ -264,6 +264,7 @@ import { getInventoryItems } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
+import { resolveStockCatalogLoadFailure } from './lib/stockCatalogLoadFailure'
 import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
 import { prepareSupplyOrderDrafts, previewSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
 import { SupplyOrderDraftPreviewDialog } from './components/stock/SupplyOrderDraftPreviewDialog'
@@ -15142,6 +15143,10 @@ function App() {
   const isSavingReservationRef = useRef(false)
   const [inventoryItems, setInventoryItems] = useState([])
   const [stockItems, setStockItems] = useState([])
+  const stockItemsCountRef = useRef(0)
+  useEffect(() => {
+    stockItemsCountRef.current = stockItems.length
+  }, [stockItems])
   const [stockItemsNotice, setStockItemsNotice] = useState('')
   const [isStockItemsLoading, setIsStockItemsLoading] = useState(false)
   const [stockCatalogLoadFailed, setStockCatalogLoadFailed] = useState(false)
@@ -16897,7 +16902,7 @@ function App() {
     }
   }, [])
 
-  const refreshStockItems = useCallback(async () => {
+  const refreshStockItems = useCallback(async (options) => {
     if (!activeWorkspaceId) {
       setStockItems([])
       return []
@@ -16905,12 +16910,16 @@ function App() {
 
     markLoad('stockItems', 'start')
     try {
-      const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId)
+      const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId, {
+        throwOnError: options?.strict === true,
+      })
       setStockItems(remoteStockItems)
+      setStockCatalogLoadFailed(false)
       markLoad('stockItems', 'success')
       return remoteStockItems
     } catch (error) {
-      setStockItems([])
+      // S-11: a strict (catalog) load keeps the last loaded list instead of wiping it.
+      if (options?.strict !== true) setStockItems([])
       markLoad('stockItems', 'failure')
       throw error
     }
@@ -16923,10 +16932,13 @@ function App() {
     setStockItemsNotice('')
 
     try {
-      await refreshStockItems()
+      await refreshStockItems({ strict: true })
       setStockCatalogLoadFailed(false)
     } catch {
-      setStockCatalogLoadFailed(true)
+      // S-01/S-11: with nothing loaded yet show the Retry card; otherwise keep the last list and say so.
+      const failure = resolveStockCatalogLoadFailure(stockItemsCountRef.current)
+      setStockCatalogLoadFailed(failure.showRetryCard)
+      setStockItemsNotice(failure.notice)
     } finally {
       setIsStockItemsLoading(false)
     }

@@ -1780,16 +1780,16 @@ export function StockDashboardView({
         <div>
           <p className="stock-calm-kicker">Inventory</p>
           <h2 className="stock-calm-title">
-            {isLoading ? '—' : summary.totalItems}
-            <span>{isLoading ? ' items' : ` ${formatStockActiveCountWord(summary.totalItems)}`}</span>
+            {isLoading || catalogLoadFailed ? '—' : summary.totalItems}
+            <span>{isLoading || catalogLoadFailed ? ' items' : ` ${formatStockActiveCountWord(summary.totalItems)}`}</span>
           </h2>
-          {!isLoading && inactiveNote ? (
+          {!isLoading && !catalogLoadFailed && inactiveNote ? (
             <p className="stock-calm-inactive-note">{inactiveNote}</p>
           ) : null}
         </div>
         {canManage ? (
           <p className="stock-calm-value">
-            <strong>{isLoading ? '—' : formatStockInventoryValue(summary.totalValue)}</strong>
+            <strong>{isLoading || catalogLoadFailed ? '—' : formatStockInventoryValue(summary.totalValue)}</strong>
             <span>inventory value</span>
           </p>
         ) : null}

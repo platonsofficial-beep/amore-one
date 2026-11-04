@@ -104,6 +104,23 @@ describe('StockDashboardView load failure vs empty (P8.17.1)', () => {
     cleanup()
   })
 
+  it('S-01: header shows dashes, not 0 items / €0.00, while the load has failed', () => {
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [],
+      isLoading: false,
+      catalogLoadFailed: true,
+      onRetryCatalogLoad: vi.fn(),
+      canManage: true,
+      workspaceId: 'ws-1',
+      isWorkspaceReady: true,
+    }))
+    const header = container.querySelector('.stock-calm-header')
+    expect(header.textContent).toContain('—')
+    expect(header.textContent).not.toContain('€0.00')
+    expect(header.querySelector('.stock-calm-title').textContent).not.toMatch(/\b0\b/)
+    cleanup()
+  })
+
   it('Retry invokes the existing catalog load path and clears failure after success', async () => {
     const onRetryCatalogLoad = vi.fn(async () => {})
     const { container, cleanup, rerender } = render(createElement(StockDashboardView, {
@@ -304,6 +321,21 @@ describe('MobileManagerStockView load failure (P8.17.1)', () => {
     })
     expect(onRetryCatalogLoad).toHaveBeenCalledTimes(1)
 
+    cleanup()
+  })
+
+  it('S-01: mobile summary shows dashes instead of 0 counts while the load has failed', () => {
+    const { container, cleanup } = render(createElement(MobileManagerStockView, {
+      stockItems: [],
+      isLoading: false,
+      catalogLoadFailed: true,
+      onRetryCatalogLoad: vi.fn(),
+      canManageStock: true,
+      isWorkspaceReady: true,
+    }))
+    const stats = container.querySelector('.mobile-manager-stock-command-stats')
+    expect(stats.textContent).toContain('— items')
+    expect(stats.textContent).not.toMatch(/\b0 (items|low|out)/)
     cleanup()
   })
 

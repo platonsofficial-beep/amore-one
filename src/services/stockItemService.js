@@ -123,7 +123,7 @@ async function resolveStockItemSupplierId(workspaceId, item) {
   }
 }
 
-export async function getStockItems(workspaceId, { includeInactive = true } = {}) {
+export async function getStockItems(workspaceId, { includeInactive = true, throwOnError = false } = {}) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   if (!normalizedWorkspaceId) return []
 
@@ -142,6 +142,8 @@ export async function getStockItems(workspaceId, { includeInactive = true } = {}
   if (error) {
     console.warn('[stockItemService] getStockItems error:', error)
     if (isTableUnavailableError(error)) return []
+    // S-01: callers that show a load-failed state opt in, so a failed read is not shown as "No products yet".
+    if (throwOnError) throw new Error(error.message || 'Stock items could not be loaded.')
     return []
   }
 

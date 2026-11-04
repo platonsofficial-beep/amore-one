@@ -628,6 +628,7 @@ export function InventoryCountSessionWorkspace({
   const [hasPostedFinish, setHasPostedFinish] = useState(false)
   const [finishPreview, setFinishPreview] = useState(null)
   const [finishPreviewError, setFinishPreviewError] = useState('')
+  const [finishPreviewLoadFailed, setFinishPreviewLoadFailed] = useState(false)
   const [itemSearch, setItemSearch] = useState('')
   const [isKeyboardCompact, setIsKeyboardCompact] = useState(false)
   const loadRequestIdRef = useRef(0)
@@ -1321,6 +1322,7 @@ export function InventoryCountSessionWorkspace({
     setIsFinishPreviewOpen(true)
     setIsLoadingFinishPreview(true)
     setFinishPreviewError('')
+    setFinishPreviewLoadFailed(false)
     setFinishPreview(null)
     setSaveError('')
 
@@ -1331,7 +1333,14 @@ export function InventoryCountSessionWorkspace({
       })
       setFinishPreview(preview)
     } catch (error) {
-      setFinishPreviewError(error?.message || 'Unable to preview inventory count finish right now.')
+      // S-12: plain copy + Retry instead of the raw service message.
+      console.warn('[InventoryCountSessionWorkspace] finish preview failed:', error)
+      const rawMessage = `${error?.message ?? ''}`.trim()
+      const isTechnical = !rawMessage || /empty or invalid|failed to fetch|network|timeout|load failed/i.test(rawMessage)
+      setFinishPreviewError(isTechnical
+        ? 'The count summary couldn’t be loaded. Check your connection and try again.'
+        : rawMessage)
+      setFinishPreviewLoadFailed(true)
     } finally {
       setIsLoadingFinishPreview(false)
     }
@@ -1342,6 +1351,7 @@ export function InventoryCountSessionWorkspace({
     setIsFinishPreviewOpen(false)
     setFinishPreview(null)
     setFinishPreviewError('')
+    setFinishPreviewLoadFailed(false)
   }
 
   const refreshSessionAfterPost = async ({ workspaceId, sessionId }) => {
@@ -1879,6 +1889,18 @@ export function InventoryCountSessionWorkspace({
                   role="alert"
                 >
                   {finishPreviewError}
+                  {finishPreviewLoadFailed ? (
+                    <>
+                      {' '}
+                      <button
+                        type="button"
+                        className="ghost-btn inventory-count-finish-preview-retry"
+                        onClick={handleOpenFinishPreview}
+                      >
+                        Retry
+                      </button>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -2009,7 +2031,9 @@ export function InventoryCountSessionWorkspace({
                   ? 'Posting inventory count…'
                   : hasPostedFinish
                     ? 'Inventory count posted.'
-                    : finishPreview?.canPost
+                    : finishPreviewLoadFailed
+                      ? 'Load the count summary to continue.'
+                      : finishPreview?.canPost
                       ? 'Confirm posts stock adjustments and finalizes this count.'
                       : 'Resolve blocking issues before Confirm Finish Count is available.'}
               </p>
