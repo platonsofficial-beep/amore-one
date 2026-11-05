@@ -33,6 +33,7 @@ const VALID_SETTINGS_SECTIONS = new Set([
   'profile',
   'positions',
   'venue',
+  'reservations',
   'team',
   'notifications',
   'system',

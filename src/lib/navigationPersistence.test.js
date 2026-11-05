@@ -68,6 +68,21 @@ describe('navigationPersistence', () => {
     expect(saved.settingsSection).toBe('notifications')
   })
 
+  it('keeps the reservation seatings settings section', () => {
+    const setItem = vi.fn()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: () => null,
+        setItem,
+        removeItem: vi.fn(),
+      },
+    })
+
+    persistNavigation({ activeView: 'settings', settingsSection: 'reservations' })
+    const saved = JSON.parse(setItem.mock.calls.at(-1)[1])
+    expect(saved.settingsSection).toBe('reservations')
+  })
+
   it('keeps the privacy settings section', () => {
     const setItem = vi.fn()
     vi.stubGlobal('window', {

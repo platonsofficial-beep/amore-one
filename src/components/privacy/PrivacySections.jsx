@@ -16,10 +16,10 @@ import './privacy.css'
 
 export function LegalLinks({ className = '' }) {
   return (
-    <nav className={`legal-links ${className}`.trim()} aria-label="Νομικά">
-      <a href="/privacy" target="_blank" rel="noopener">Πολιτική Απορρήτου</a>
+    <nav className={`legal-links ${className}`.trim()} aria-label="Legal">
+      <a href="/privacy?lang=en" target="_blank" rel="noopener">Privacy policy</a>
       <span aria-hidden="true">·</span>
-      <a href="/terms" target="_blank" rel="noopener">Όροι Χρήσης</a>
+      <a href="/terms?lang=en" target="_blank" rel="noopener">Terms of use</a>
     </nav>
   )
 }
@@ -38,7 +38,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
     try {
       await onConfirm(value.trim())
     } catch (confirmError) {
-      setError(confirmError?.message || 'Κάτι πήγε στραβά.')
+      setError(confirmError?.message || 'Something went wrong.')
       setBusy(false)
     }
   }
@@ -49,20 +49,20 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         onClick={(event) => event.stopPropagation()} onSubmit={submit}>
         <header className="venue-sheet-header">
           <h3>{title}</h3>
-          <button type="button" className="venue-sheet-close" aria-label="Κλείσιμο" disabled={busy} onClick={onClose}>✕</button>
+          <button type="button" className="venue-sheet-close" aria-label="Close" disabled={busy} onClick={onClose}>✕</button>
         </header>
         <div className="privacy-sheet-body">{children}</div>
         {expected ? (
           <label className="venue-field">
-            <span>Γράψε «{expected}» για επιβεβαίωση</span>
+            <span>Type “{expected}” to confirm</span>
             <input value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" autoCapitalize="characters" />
           </label>
         ) : null}
         {error ? <p className="venue-sheet-error" role="alert">{error}</p> : null}
         <footer className="venue-sheet-actions">
-          <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>Ακύρωση</button>
+          <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>Cancel</button>
           <button type="submit" className={danger ? 'privacy-danger' : 'primary-btn'} disabled={busy || !matches}>
-            {busy ? 'Παρακαλώ περίμενε…' : confirmLabel}
+            {busy ? 'Please wait…' : confirmLabel}
           </button>
         </footer>
       </form>
@@ -86,31 +86,31 @@ export function PrivacyAccountSection() {
     try {
       const data = await exportMyData()
       downloadJson(data, buildExportFilename('one-my-data'))
-      setNotice('Τα δεδομένα σου κατέβηκαν σε αρχείο JSON.')
+      setNotice('Your data downloaded as a JSON file.')
     } catch (error) {
-      setNotice(error?.message || 'Η λήψη απέτυχε.')
+      setNotice(error?.message || 'The download failed.')
     } finally {
       setIsExporting(false)
     }
   }
 
   return (
-    <section className="privacy-section mobile-card" aria-label="Απόρρητο και λογαριασμός">
-      <p className="mobile-card-label">Απόρρητο</p>
+    <section className="privacy-section mobile-card" aria-label="Privacy and account">
+      <p className="mobile-card-label">Privacy</p>
       <div className="privacy-actions">
         <button type="button" className="ghost-btn" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? 'Ετοιμάζεται…' : '⬇︎ Λήψη των δεδομένων μου'}
+          {isExporting ? 'Preparing…' : 'Download my data'}
         </button>
         <button type="button" className="ghost-btn privacy-danger-text" onClick={() => setIsDeleteOpen(true)}>
-          Διαγραφή λογαριασμού
+          Delete account
         </button>
       </div>
       {notice ? <p className="privacy-notice" role="status">{notice}</p> : null}
       <LegalLinks />
       {isDeleteOpen ? (
         <ConfirmSheet
-          title="Διαγραφή λογαριασμού"
-          confirmLabel="Οριστική διαγραφή"
+          title="Delete account"
+          confirmLabel="Delete permanently"
           expected={DELETE_ACCOUNT_CONFIRM_WORD}
           onClose={() => setIsDeleteOpen(false)}
           onConfirm={async () => {
@@ -120,20 +120,20 @@ export function PrivacyAccountSection() {
             window.location.assign('/delete-account?done=1')
           }}
         >
-          <p>Ο λογαριασμός σου θα διαγραφεί οριστικά και δεν θα μπορείς να συνδεθείς ξανά.</p>
+          <p>Your account will be deleted permanently and you will not be able to sign in again.</p>
           <ul>
-            <li>Το όνομα, το email και η φωτογραφία σου αφαιρούνται.</li>
-            <li>Ειδοποιήσεις και συσκευές push διαγράφονται.</li>
-            <li>Ιστορικό που ανήκει στο venue (βάρδιες, παρουσίες, μηνύματα) μένει ανώνυμο.</li>
+            <li>Your name, email, and photo are removed.</li>
+            <li>Notifications and push devices are deleted.</li>
+            <li>History that belongs to the venue (shifts, attendance, messages) stays, without your name.</li>
           </ul>
-          <p>Πριν συνεχίσεις μπορείς να κατεβάσεις τα δεδομένα σου.</p>
+          <p>You can download your data before you continue.</p>
         </ConfirmSheet>
       ) : null}
     </section>
   )
 }
 
-/** Settings → Απόρρητο (owners): venue export, close / reopen venue. */
+/** Settings → Privacy (owners): venue export, close / reopen venue. */
 export function VenuePrivacySection() {
   const auth = useOptionalAuth()
   const [notice, setNotice] = useState('')
@@ -151,19 +151,19 @@ export function VenuePrivacySection() {
       await task()
       if (done) setNotice(done)
     } catch (error) {
-      setNotice(error?.message || 'Κάτι πήγε στραβά.')
+      setNotice(error?.message || 'Something went wrong.')
     } finally {
       setIsBusy(false)
     }
   }
 
   return (
-    <section className="privacy-section mobile-card" aria-label="Δεδομένα venue">
-      <p className="mobile-card-label">Δεδομένα venue</p>
+    <section className="privacy-section mobile-card" aria-label="Venue data">
+      <p className="mobile-card-label">Venue data</p>
       {closedAt ? (
         <p className="privacy-warning" role="status">
-          Το venue έχει κλείσει και θα διαγραφεί οριστικά στις{' '}
-          {new Date(workspace.purgeAfter).toLocaleDateString('el-GR')}.
+          This venue is closed and will be deleted permanently on{' '}
+          {new Date(workspace.purgeAfter).toLocaleDateString('en-GB')}.
         </p>
       ) : null}
       <div className="privacy-actions">
@@ -171,28 +171,28 @@ export function VenuePrivacySection() {
           onClick={() => run(async () => {
             const data = await exportWorkspaceData(workspaceId)
             downloadJson(data, buildExportFilename(`one-venue-${workspace?.slug || 'export'}`))
-          }, 'Η εξαγωγή του venue κατέβηκε.')}>
-          ⬇︎ Εξαγωγή όλων των δεδομένων του venue
+          }, 'The venue export downloaded.')}>
+          Download all venue data
         </button>
         {closedAt ? (
           <button type="button" className="primary-btn" disabled={isBusy}
             onClick={() => run(async () => {
               await reopenVenue(workspaceId)
               await auth?.switchWorkspace?.(workspaceId)
-            }, 'Το venue άνοιξε ξανά.')}>
-            Επαναφορά venue
+            }, 'The venue is open again.')}>
+            Reopen venue
           </button>
         ) : (
           <button type="button" className="ghost-btn privacy-danger-text" disabled={isBusy} onClick={() => setIsCloseOpen(true)}>
-            Κλείσιμο venue
+            Close venue
           </button>
         )}
       </div>
       {notice ? <p className="privacy-notice" role="status">{notice}</p> : null}
       {isCloseOpen ? (
         <ConfirmSheet
-          title="Κλείσιμο venue"
-          confirmLabel="Κλείσιμο venue"
+          title="Close venue"
+          confirmLabel="Close venue"
           expected={workspace?.name || ''}
           onClose={() => setIsCloseOpen(false)}
           onConfirm={async (typed) => {
@@ -201,9 +201,9 @@ export function VenuePrivacySection() {
             await auth?.switchWorkspace?.(workspaceId)
           }}
         >
-          <p>Το venue «{workspace?.name}» θα κλείσει για όλη την ομάδα.</p>
-          <p>Μπορείς να το επαναφέρεις μέσα σε <strong>30 ημέρες</strong>. Μετά διαγράφονται οριστικά όλα τα δεδομένα του.</p>
-          <p>Κατέβασε πρώτα την εξαγωγή αν τη χρειάζεσαι.</p>
+          <p>The venue “{workspace?.name}” will close for the whole team.</p>
+          <p>You can reopen it within <strong>30 days</strong>. After that, all of its data is deleted permanently.</p>
+          <p>Download the export first if you need it.</p>
         </ConfirmSheet>
       ) : null}
     </section>
@@ -215,10 +215,10 @@ export function PrivacySettingsSection() {
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Απόρρητο</p>
+          <p className="eyebrow">Privacy</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">🔒</span>
-            Απόρρητο & δεδομένα
+            Privacy & data
           </h3>
         </div>
       </div>

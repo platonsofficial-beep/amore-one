@@ -62,14 +62,14 @@ describe('privacyService', () => {
 
   it('keeps the avatar when deletion is blocked for a sole owner', async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: 'sole_owner', details: 'SENTIO' } })
-    await expect(deleteMyAccount(DELETE_ACCOUNT_CONFIRM_WORD, { avatarPath: 'u/a.jpg' })).rejects.toThrow(/μοναδικός ιδιοκτήτης.*SENTIO/)
+    await expect(deleteMyAccount(DELETE_ACCOUNT_CONFIRM_WORD, { avatarPath: 'u/a.jpg' })).rejects.toThrow(/only owner.*SENTIO/)
     expect(removeMock).not.toHaveBeenCalled()
   })
 
-  it('maps close-venue errors to Greek', async () => {
+  it('maps close-venue errors to English', async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: 'confirmation_mismatch' } })
-    await expect(closeVenue('ws', 'x')).rejects.toThrow(/δεν ταιριάζει/)
-    expect(formatPrivacyError({ message: 'not_reopenable' })).toMatch(/επαναφοράς/)
+    await expect(closeVenue('ws', 'x')).rejects.toThrow(/does not match/)
+    expect(formatPrivacyError({ message: 'not_reopenable' })).toMatch(/reopen period/)
   })
 
   it('builds dated export filenames', () => {
@@ -135,13 +135,14 @@ describe('privacy UI', () => {
 
   it('shows legal links', () => {
     const container = render(<LegalLinks />)
-    expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/privacy', '/terms'])
+    expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/privacy?lang=en', '/terms?lang=en'])
   })
 
-  it('profile shows export and delete actions in Greek', () => {
+  it('profile shows export and delete actions in English', () => {
     const container = render(<PrivacyAccountSection />)
-    expect(container.textContent).toContain('Λήψη των δεδομένων μου')
-    expect(container.textContent).toContain('Διαγραφή λογαριασμού')
+    expect(container.textContent).toContain('Download my data')
+    expect(container.textContent).toContain('Delete account')
+    expect(container.textContent).not.toMatch(/Απόρρητο|Λήψη|Διαγραφή/)
   })
 
   it('blocks closed venues for non-owners only', () => {

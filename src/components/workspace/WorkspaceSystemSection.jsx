@@ -7,15 +7,15 @@ const MODULE_ROWS = [
   { key: 'reservations', label: 'Reservations' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'tasks', label: 'Tasks' },
-  { key: 'suppliers', label: 'Suppliers' },
-  { key: 'stock', label: 'Stock / F&B' },
+  { key: 'stock', label: 'Stock' },
+  { key: 'suppliers', label: 'Suppliers', detail: 'Part of Stock' },
   { key: 'reports', label: 'Insights' },
 ]
 
 function resolveModuleStatus(connected) {
   if (connected === true) return { label: 'Connected', tone: 'connected' }
   if (connected === false) return { label: 'Not connected', tone: 'disconnected' }
-  return { label: 'Available', tone: 'available' }
+  return { label: 'No live check', tone: 'available' }
 }
 
 function BuildInfoBadge() {
@@ -72,7 +72,7 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
             System
           </h3>
           <p className="workspace-section-subtitle">
-            Application build information and connected module status.
+            Application build, and whether each module has live data loaded.
           </p>
         </div>
       </div>
@@ -94,13 +94,19 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
             <h3>Connection status</h3>
           </div>
         </div>
+        <p className="workspace-module-legend">
+          Connected means live data is loaded. Not connected means that data is not ready. No live check means the module is in ONE and this list does not probe a separate connection.
+        </p>
         <ul className="workspace-module-list">
-          {MODULE_ROWS.map(({ key, label }) => {
+          {MODULE_ROWS.map(({ key, label, detail }) => {
             const status = resolveModuleStatus(moduleConnections[key])
 
             return (
               <li key={key} className="workspace-module-row">
-                <span className="workspace-module-label">{label}</span>
+                <span className="workspace-module-label">
+                  {label}
+                  {detail ? <span className="workspace-module-detail">{detail}</span> : null}
+                </span>
                 <span className={`workspace-module-status workspace-module-status-${status.tone}`}>
                   {status.label}
                 </span>

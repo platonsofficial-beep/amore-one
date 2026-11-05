@@ -33,6 +33,6 @@ describe('AuthGate error title', () => {
     expect(r.buttons).toEqual(['Try again', 'Sign out'])
   })
   it('keeps the existing title for other join errors', () => {
-    expect(renderWith('Invite expired').title).toBe('Unable to join workspace')
+    expect(renderWith('Invite expired').title).toBe('Unable to join this venue')
   })
 })

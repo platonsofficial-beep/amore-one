@@ -49,8 +49,8 @@ export function AuthGate({ children }) {
           <OneFullLogo compact />
           <p className="auth-loading-text">
             {isJoiningWorkspace || readPendingInviteToken()
-              ? 'Joining your workspace…'
-              : 'Loading workspace…'}
+              ? 'Joining your venue…'
+              : 'Loading your venue…'}
           </p>
         </div>
       </div>
@@ -66,7 +66,7 @@ export function AuthGate({ children }) {
           <header className="auth-header">
             <OneFullLogo compact />
             <h1 className="auth-title">
-              {membershipLoadError === BOOTSTRAP_TIMEOUT_MESSAGE ? 'Πρόβλημα σύνδεσης' : 'Unable to join workspace'}
+              {membershipLoadError === BOOTSTRAP_TIMEOUT_MESSAGE ? 'Πρόβλημα σύνδεσης' : 'Unable to join this venue'}
             </h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">

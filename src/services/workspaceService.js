@@ -164,10 +164,10 @@ export async function resolveWorkspaceForMembership(workspaceId) {
 }
 
 const CREATE_VENUE_ERRORS = {
-  not_allowed: 'Μόνο ιδιοκτήτες ή γενικοί διευθυντές μπορούν να δημιουργήσουν νέο venue.',
-  invalid_venue_name: 'Το όνομα πρέπει να έχει 2–80 χαρακτήρες.',
-  invalid_timezone: 'Μη έγκυρη ζώνη ώρας.',
-  not_authenticated: 'Συνδέσου ξανά και δοκίμασε πάλι.',
+  not_allowed: 'Only owners or general managers can create a venue.',
+  invalid_venue_name: 'The name must be 2–80 characters.',
+  invalid_timezone: 'That time zone is not valid.',
+  not_authenticated: 'Sign in again and try once more.',
 }
 
 export function buildCreateVenueParams(input = {}) {
@@ -184,7 +184,7 @@ export function buildCreateVenueParams(input = {}) {
 export function formatCreateVenueError(error) {
   const message = `${error?.message ?? ''}`
   const key = Object.keys(CREATE_VENUE_ERRORS).find((code) => message.includes(code))
-  return key ? CREATE_VENUE_ERRORS[key] : (message || 'Δεν ήταν δυνατή η δημιουργία venue.')
+  return key ? CREATE_VENUE_ERRORS[key] : (message || 'The venue could not be created.')
 }
 
 /** Creates a venue via the create_workspace_venue RPC; the caller becomes its owner. */

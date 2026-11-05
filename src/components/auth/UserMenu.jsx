@@ -185,7 +185,7 @@ export function UserMenu({
               role="menuitem"
               onClick={handleOpenWorkspaceProfile}
             >
-              Open Workspace Profile
+              Open Settings
             </button>
           ) : null}
           {onOpenNotifications ? (

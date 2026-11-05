@@ -56,7 +56,7 @@ export function WorkspaceBusinessProfileSection({
           {noticeMessage}
         </div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">Loading workspace profile…</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading business profile…</div> : null}
       {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
         <div className="staff-status-banner">
           Set your business name and manager details so ONE can personalize dashboards and reports.
@@ -172,7 +172,7 @@ export function WorkspaceBusinessProfileSection({
               <div className="workspace-logo-field">
                 {workspaceProfile.logoUrl ? (
                   <div className="workspace-logo-preview">
-                    <img src={workspaceProfile.logoUrl} alt="Workspace logo preview" />
+                    <img src={workspaceProfile.logoUrl} alt="Business logo preview" />
                   </div>
                 ) : (
                   <div className="workspace-logo-placeholder">No logo uploaded</div>

@@ -3,16 +3,16 @@ import { supabase } from '../lib/supabaseClient'
 export const DELETE_ACCOUNT_CONFIRM_WORD = 'ΔΙΑΓΡΑΦΗ'
 
 const ERROR_MESSAGES = {
-  sole_owner: 'Είσαι ο μοναδικός ιδιοκτήτης σε ανοιχτό venue. Όρισε άλλον ιδιοκτήτη ή κλείσε το venue πρώτα.',
-  confirmation_required: `Γράψε ${DELETE_ACCOUNT_CONFIRM_WORD} για επιβεβαίωση.`,
-  confirmation_mismatch: 'Το όνομα δεν ταιριάζει με το όνομα του venue.',
-  already_closed: 'Το venue είναι ήδη κλειστό.',
-  not_reopenable: 'Η περίοδος επαναφοράς έχει λήξει.',
-  not_allowed: 'Δεν έχεις δικαίωμα για αυτή την ενέργεια.',
-  not_authenticated: 'Συνδέσου ξανά και δοκίμασε πάλι.',
+  sole_owner: 'You are the only owner of an open venue. Assign another owner or close the venue first.',
+  confirmation_required: `Type ${DELETE_ACCOUNT_CONFIRM_WORD} to confirm.`,
+  confirmation_mismatch: 'That name does not match the venue name.',
+  already_closed: 'This venue is already closed.',
+  not_reopenable: 'The reopen period has ended.',
+  not_allowed: 'You do not have permission for this action.',
+  not_authenticated: 'Sign in again and try once more.',
 }
 
-export function formatPrivacyError(error, fallback = 'Κάτι πήγε στραβά. Δοκίμασε ξανά.') {
+export function formatPrivacyError(error, fallback = 'Something went wrong. Try again.') {
   const message = `${error?.message ?? ''}`
   const code = Object.keys(ERROR_MESSAGES).find((key) => message.includes(key))
   if (!code) return message || fallback
