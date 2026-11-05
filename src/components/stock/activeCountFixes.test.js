@@ -38,6 +38,8 @@ describe('Active Count phone portrait layout', () => {
     expect(portraitCss).toMatch(/flex-direction:\s*row/)
     expect(portraitCss).toMatch(/body:has\(\.inventory-count-session\) \.mobile-bottom-nav/)
     expect(portraitCss).toMatch(/max-width:\s*560px/)
+    expect(portraitCss).toMatch(/mobile-expanded-scroll:has\(\.inventory-count-session\)[\s\S]*overflow:\s*hidden !important/)
+    expect(portraitCss).not.toMatch(/\.inventory-count-session\.is-high-density \{[^}]*max-height:\s*100dvh/)
   })
 
   it('raises phone-landscape header and filter taps', () => {

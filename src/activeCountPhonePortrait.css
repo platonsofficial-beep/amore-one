@@ -13,15 +13,44 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
 }
 
 @media (orientation: portrait) and (max-width: 560px) {
-  .app-shell.is-mobile-shell:has(.inventory-count-session),
-  .main-panel-stock:has(.inventory-count-session),
-  .main-panel:has(.inventory-count-session) {
+  /* Shell is already 100dvh. The session starts under Back/title and the
+     Stock tabs, so it must take only the leftover space — not another 100dvh. */
+  .app-shell.is-mobile-shell:has(.inventory-count-session) .mobile-app:has(.inventory-count-session) {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .app-shell.is-mobile-shell:has(.inventory-count-session) .mobile-expanded-scroll:has(.inventory-count-session),
+  .mobile-app:has(.inventory-count-session) .mobile-expanded-scroll:has(.inventory-count-session) {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     min-height: 0;
-    height: 100dvh;
-    max-height: 100dvh;
+    height: auto !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+    padding-bottom: 0 !important;
+  }
+
+  .mobile-expanded-scroll:has(.inventory-count-session) > .mobile-expanded-header {
+    flex: 0 0 auto;
+  }
+
+  .mobile-workspace-module.is-mobile-expanded:has(.inventory-count-session) {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto !important;
+    max-height: none !important;
     overflow: hidden;
+  }
+
+  .mobile-workspace-module:has(.inventory-count-session) > .stock-focus-chrome {
+    flex: 0 0 auto;
+  }
+
+  .app-shell.is-mobile-shell:has(.inventory-count-session) {
     --one-mobile-bottom-inset: 0px;
   }
 
@@ -30,8 +59,8 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    height: 100%;
-    max-height: 100dvh;
+    height: auto;
+    max-height: none;
     overflow: hidden;
   }
 
