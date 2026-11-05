@@ -196,7 +196,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
             <div className="stock-quick-take-empty" role="status">
               <strong>No supply storages yet</strong>
               <span>{canManage
-                ? 'Mark the storages staff take from: Stock → Storages → Edit → Mark as supply.'
+                ? 'Mark the storages staff take from: Stock → Storages → Edit → Supply.'
                 : 'A manager needs to mark which storages you take from.'}</span>
             </div>
           ) : null}

@@ -431,9 +431,11 @@ describe('StockStorageCenter UI', () => {
     expect(container.querySelector('[data-testid="supply-storage-pill"]')?.textContent).toBe('Supply')
     expect(container.querySelector('[data-testid="supply-storage-pill"]')?.getAttribute('title'))
       .toContain('Αποθήκη τροφοδοσίας')
-    expect(container.textContent).toContain('Mark as supply')
-    expect(container.textContent).toContain('Unmark supply')
-    expect(container.textContent).not.toContain('Mark as supply storage')
+    const supplyChips = [...container.querySelectorAll('[data-action="toggle-supply"]')]
+    expect(supplyChips.map((chip) => chip.getAttribute('aria-pressed'))).toContain('true')
+    expect(supplyChips.map((chip) => chip.getAttribute('aria-pressed'))).toContain('false')
+    expect(supplyChips.every((chip) => /Supply$/.test(chip.textContent))).toBe(true)
+    expect(container.textContent).toContain('Supply: staff take from it')
     expect(container.querySelectorAll('[data-testid="supply-storage-pill"]')).toHaveLength(2)
     expect(container.querySelector('[data-action="new-department"]')).toBeTruthy()
     expect(container.querySelector('[data-department-group="d-bar"] [data-action="rename-department"]')?.textContent).toBe('Rename department')
@@ -771,7 +773,8 @@ describe('StockStorageCenter UI', () => {
     })
 
     const button = container.querySelector('[data-action="toggle-buying"]')
-    expect(button?.textContent).toBe('Mark as buying')
+    expect(button?.textContent).toBe('+ Buying')
+    expect(button?.getAttribute('aria-pressed')).toBe('false')
     await act(async () => {
       button.click()
       await Promise.resolve()

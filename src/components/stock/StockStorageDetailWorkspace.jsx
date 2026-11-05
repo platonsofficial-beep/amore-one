@@ -840,6 +840,7 @@ export function StockStorageDetailWorkspace({
             </div>
           ) : null}
         </div>
+        <div className="stock-storage-detail-actions">
         <StockStorageDetailActionBar
           storage={storage}
           canManage={canManage}
@@ -861,7 +862,7 @@ export function StockStorageDetailWorkspace({
           <div className="stock-storage-refill-launch">
             <button
               type="button"
-              className="primary-btn stock-storage-detail-action-btn"
+              className="ghost-btn stock-storage-detail-action-btn is-accent"
               data-testid="supply-refill-open"
               disabled={(!canManage && !staffTakeReady) || storage?.active === false || isLaunchingFastCount || status === 'loading' || status === 'error'}
               title={
@@ -885,6 +886,7 @@ export function StockStorageDetailWorkspace({
             ) : null}
           </div>
         )}
+        </div>
         {isLaunchingFastCount ? (
           <div
             className="stock-storage-fast-count-status"
@@ -938,7 +940,7 @@ export function StockStorageDetailWorkspace({
 
       {parsAvailable && status !== 'loading' && status !== 'error' ? (
         <p className="stock-storage-par-note" data-testid="storage-par-note">
-          {STORAGE_PAR_LABEL}. A blank par means this item is not tracked on this shelf.
+          {STORAGE_PAR_LABEL}. Blank = not tracked on this shelf.
         </p>
       ) : null}
 
