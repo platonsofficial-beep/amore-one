@@ -288,6 +288,36 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       .toContain('Select at least one location')
   })
 
+  it('folds Transfer, Adjustment, Waste and Rename into a More sheet that still runs them (0012)', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow()],
+      summary: { productCount: 1, totalQuantity: 4, nonZeroBalanceCount: 1, inventoryValue: 40 },
+    }))
+    const onRename = vi.fn()
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main storage', active: true },
+      role: 'owner',
+      canManage: true,
+      loadProducts,
+      onRename,
+    })
+    await settle()
+    const toggle = container.querySelector('[data-storage-action="more"]')
+    const sheet = container.querySelector('[data-testid="stock-storage-detail-more"]')
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    for (const action of ['transfer', 'adjustment', 'waste', 'rename']) {
+      expect(sheet.querySelector(`[data-storage-action="${action}"]`)).toBeTruthy()
+    }
+    await act(async () => { toggle.click() })
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(sheet.className).toContain('is-open')
+    await act(async () => { sheet.querySelector('[data-storage-action="rename"]').click() })
+    expect(onRename).toHaveBeenCalledTimes(1)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+  })
+
   it('shows the storage name but never the raw location key (L-02)', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
