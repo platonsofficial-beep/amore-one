@@ -36,7 +36,6 @@ import { listInventoryCountHomeSessions } from '../../services/inventoryCountSer
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { StaffShelfCountSheet } from './StaffShelfCountSheet'
 import {
-  staffTakeFromSupplyAvailable,
   takeFromSupplyStorage,
   transferStockBetweenLocations,
 } from '../../services/stockMutationService'
@@ -353,7 +352,6 @@ function StorageProductRow({
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
  *   loadCountHome?: typeof listInventoryCountHomeSessions,
- *   staffTakeAvailable?: typeof staffTakeFromSupplyAvailable,
  * }} props
  */
 export function StockStorageDetailWorkspace({
@@ -382,7 +380,6 @@ export function StockStorageDetailWorkspace({
   loadCountHome = listInventoryCountHomeSessions,
   saveStoragePar = setStockItemStoragePar,
   clearStoragePar = clearStockItemStoragePar,
-  staffTakeAvailable = staffTakeFromSupplyAvailable,
   timeZone = '',
 } = {}) {
   const allowShelfCount = canSubmitStaffShelfCount(role)
@@ -407,7 +404,6 @@ export function StockStorageDetailWorkspace({
   const [wasteRow, setWasteRow] = useState(/** @type {object|null} */ (null))
   const [belowParOnly, setBelowParOnly] = useState(false)
   const [refillOpen, setRefillOpen] = useState(false)
-  const [staffTakeReady, setStaffTakeReady] = useState(false)
   const [parBusy, setParBusy] = useState(false)
   const [parError, setParError] = useState('')
   const [parFocusRequest, setParFocusRequest] = useState(0)
@@ -417,24 +413,9 @@ export function StockStorageDetailWorkspace({
 
   const storageId = `${storage?.id ?? ''}`.trim()
   const staffTakeOpen = !canManage && storage?.isSupply !== true
+  // No probe call on open. A blocked or missing take shows its reason when it is tried.
+  const staffTakeReady = staffTakeOpen
 
-  useEffect(() => {
-    if (!staffTakeOpen) {
-      setStaffTakeReady(false)
-      return undefined
-    }
-    let cancelled = false
-    staffTakeAvailable()
-      .then((ready) => {
-        if (!cancelled) setStaffTakeReady(Boolean(ready))
-      })
-      .catch(() => {
-        if (!cancelled) setStaffTakeReady(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [staffTakeOpen, staffTakeAvailable])
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
 
   const requestParFocus = (stockItemId) => {

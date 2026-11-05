@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { STAFF_SHELF_COUNT_UNAVAILABLE_MESSAGE } from '../../lib/staffShelfCount'
 import { describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -35,7 +36,6 @@ function renderSheet(props = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
   const root = createRoot(container)
-  const countAvailable = props.countAvailable ?? vi.fn(async () => true)
   const submitCount = props.submitCount ?? vi.fn(async () => ({ sessionId: 'session-1' }))
   act(() => {
     root.render(createElement(StaffShelfCountSheet, {
@@ -44,14 +44,12 @@ function renderSheet(props = {}) {
       products,
       parsAvailable: true,
       onClose: vi.fn(),
-      countAvailable,
       submitCount,
       ...props,
     }))
   })
   return {
     container,
-    countAvailable,
     submitCount,
     unmount: () => {
       act(() => root.unmount())
@@ -107,18 +105,23 @@ describe('StaffShelfCountSheet', () => {
     unmount()
   })
 
-  it('does not save when the function is not available yet', async () => {
-    const submitCount = vi.fn()
-    const { container, unmount } = renderSheet({
-      countAvailable: vi.fn(async () => false),
-      submitCount,
+  it('turns the sheet off when a real submit finds the function missing (no probe on open)', async () => {
+    const submitCount = vi.fn(async () => { throw new Error(STAFF_SHELF_COUNT_UNAVAILABLE_MESSAGE) })
+    const { container, unmount } = renderSheet({ submitCount })
+    await flush()
+    expect(container.querySelector('[data-testid="staff-shelf-count-unavailable"]')).toBeNull()
+    expect(container.querySelector('[data-testid="staff-shelf-count-submit"]').disabled).toBe(false)
+
+    await act(async () => {
+      container.querySelector('[data-testid="staff-shelf-count-submit"]').click()
+      await Promise.resolve()
     })
     await flush()
 
+    expect(submitCount).toHaveBeenCalledOnce()
     expect(container.querySelector('[data-testid="staff-shelf-count-unavailable"]')?.textContent)
       .toMatch(/not available yet/i)
     expect(container.querySelector('[data-testid="staff-shelf-count-submit"]').disabled).toBe(true)
-    expect(submitCount).not.toHaveBeenCalled()
 
     unmount()
   })

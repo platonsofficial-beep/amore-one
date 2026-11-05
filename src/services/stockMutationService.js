@@ -365,6 +365,17 @@ export function mapStockTransferRpcError(error) {
   return new Error(raw || 'Unable to transfer stock right now.')
 }
 
+/** Same text as STAFF_REFILL_BLOCKED_MESSAGE in lib/stockSupplyRefill. */
+export const TAKE_FROM_SUPPLY_BLOCKED_MESSAGE = 'Taking from supply is limited to managers. You can still count this shelf.'
+
+/** Missing function or no permission: checked when a real take fails (no probe call on open). */
+export function isTakeFromSupplyBlocked(error) {
+  if (isTakeFromSupplyRpcMissing(error)) return true
+  const code = `${error?.code ?? ''}`
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return code === '42501' || message.includes('permission denied')
+}
+
 export function isTakeFromSupplyRpcMissing(error) {
   const code = `${error?.code ?? ''}`
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -372,29 +383,6 @@ export function isTakeFromSupplyRpcMissing(error) {
     || code === '42883'
     || message.includes('could not find the function')
     || message.includes('schema cache')
-}
-
-/**
- * True when take_from_supply_storage exists for this client.
- * A missing function keeps staff on the current manager-only behavior.
- */
-export async function staffTakeFromSupplyAvailable() {
-  if (!supabase) return false
-  const { error } = await supabase.rpc(TAKE_FROM_SUPPLY_RPC, {
-    p_workspace_id: null,
-    p_stock_item_id: null,
-    p_source_workspace_storage_id: null,
-    p_destination_workspace_storage_id: null,
-    p_quantity: null,
-    p_expected_source_quantity_version: null,
-    p_expected_destination_quantity_version: null,
-  })
-  if (!error) return true
-  if (isTakeFromSupplyRpcMissing(error)) return false
-  const code = `${error.code ?? ''}`
-  const message = `${error.message ?? ''}`.toLowerCase()
-  if (code === '42501' || message.includes('permission denied')) return false
-  return true
 }
 
 async function callLocationTransferRpc(rpcName, {
@@ -448,6 +436,9 @@ async function callLocationTransferRpc(rpcName, {
 
   if (error) {
     console.error(`[stockMutationService] ${rpcName} error:`, error)
+    if (rpcName === TAKE_FROM_SUPPLY_RPC && isTakeFromSupplyBlocked(error)) {
+      throw new Error(TAKE_FROM_SUPPLY_BLOCKED_MESSAGE)
+    }
     throw mapStockTransferRpcError(error)
   }
 

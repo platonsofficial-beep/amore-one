@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
@@ -12,7 +12,6 @@ import {
   toStaffShelfCountRows,
 } from '../../lib/staffShelfCount'
 import {
-  staffShelfCountAvailable,
   submitStaffShelfCount,
 } from '../../services/staffShelfCountService'
 
@@ -35,7 +34,6 @@ function initialDrafts(rows) {
  *   products?: object[],
  *   parsAvailable?: boolean,
  *   onClose?: () => void,
- *   countAvailable?: typeof staffShelfCountAvailable,
  *   submitCount?: typeof submitStaffShelfCount,
  * }} props
  */
@@ -45,7 +43,6 @@ export function StaffShelfCountSheet({
   products = [],
   parsAvailable = false,
   onClose,
-  countAvailable = staffShelfCountAvailable,
   submitCount = submitStaffShelfCount,
 }) {
   const rows = useMemo(
@@ -70,24 +67,6 @@ export function StaffShelfCountSheet({
     if (!isSubmitting) onClose?.()
   }, { enabled: true })
 
-  useEffect(() => {
-    let cancelled = false
-    countAvailable()
-      .then((ready) => {
-        if (cancelled) return
-        setAvailable(Boolean(ready))
-        setChecked(true)
-      })
-      .catch(() => {
-        if (cancelled) return
-        setAvailable(false)
-        setChecked(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [countAvailable])
-
   const handleSubmit = async () => {
     if (isSubmitting || success) return
     if (!available) {
@@ -109,6 +88,11 @@ export function StaffShelfCountSheet({
       })
       setSuccess('Sent to a manager. Stock on this shelf stays as it is until they post the count.')
     } catch (submitError) {
+      // No probe on open: a real submit that finds the function missing turns the sheet off.
+      if (submitError?.message === STAFF_SHELF_COUNT_UNAVAILABLE_MESSAGE) {
+        setAvailable(false)
+        setChecked(true)
+      }
       setError(submitError?.message || 'Unable to submit this shelf count right now.')
     } finally {
       setIsSubmitting(false)

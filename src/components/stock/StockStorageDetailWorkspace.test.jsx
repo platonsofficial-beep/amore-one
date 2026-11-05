@@ -1140,7 +1140,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="supply-refill-open"]')).toBeNull()
   })
 
-  it('disables refill for staff and does not show cost', async () => {
+  it('keeps refill open for staff (blocked takes explain at action time) and does not show cost', async () => {
     renderWorkspace({
       workspaceId: 'ws-1',
       storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
@@ -1154,21 +1154,19 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     })
     await settle()
     const open = container.querySelector('[data-testid="supply-refill-open"]')
-    expect(open.disabled).toBe(true)
-    expect(container.querySelector('[data-testid="supply-refill-staff-note"]')?.textContent)
-      .toMatch(/limited to managers/)
+    expect(open.disabled).toBe(false)
+    expect(container.querySelector('[data-testid="supply-refill-staff-note"]')).toBeNull()
     expect(container.querySelector('[data-testid="supply-refill-sheet"]')).toBeNull()
     expect(container.textContent).not.toContain('Inventory value')
     expect(container.textContent).not.toContain('12')
   })
 
-  it('lets staff open take from supply when the staff function is available', async () => {
+  it('lets staff open take from supply without a probe call on open', async () => {
     renderWorkspace({
       workspaceId: 'ws-1',
       storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
       role: 'staff',
       canManage: false,
-      staffTakeAvailable: async () => true,
       loadProducts: async () => ({
         storageId: 's-bar',
         parsAvailable: true,
