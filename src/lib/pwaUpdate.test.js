@@ -7,6 +7,7 @@ import { resolve } from 'node:path'
 import {
   PWA_RELOAD_GUARD_KEY,
   PWA_RELOAD_GUARD_MS,
+  applyPendingPwaUpdateOnHidden,
   bindPwaFormDirtyTracking,
   bindPwaUpdateChecks,
   claimPwaUpdateReload,
@@ -170,5 +171,68 @@ describe('pwa update source safety', () => {
     expect(registerSource).toContain('onNeedReload')
     expect(registerSource).toContain('onRegisteredSW')
     expect(registerSource).toContain('onOfflineReady')
+  })
+})
+
+describe('pending update applies when the app goes to the background', () => {
+  const fakeWindow = (visibilityState = 'hidden') => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => visibilityState })
+    return { document, location: { reload: vi.fn() }, sessionStorage: memoryStorage() }
+  }
+  afterEach(() => { delete document.visibilityState })
+
+  it('reloads on hidden when an update is pending', () => {
+    const win = fakeWindow('hidden')
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 1_000)).toBe(true)
+    expect(win.location.reload).toHaveBeenCalledOnce()
+  })
+
+  it('does nothing without a pending update or while visible', () => {
+    const win = fakeWindow('hidden')
+    expect(applyPendingPwaUpdateOnHidden(win, 1_000)).toBe(false)
+    markPwaUpdateAvailable()
+    const visible = fakeWindow('visible')
+    expect(applyPendingPwaUpdateOnHidden(visible, 1_000)).toBe(false)
+    expect(visible.location.reload).not.toHaveBeenCalled()
+  })
+
+  it('runs at most once per pending update, so it cannot loop', () => {
+    const win = fakeWindow('hidden')
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 1_000)).toBe(true)
+    expect(applyPendingPwaUpdateOnHidden(win, 100_000)).toBe(false)
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 200_000)).toBe(false)
+    expect(win.location.reload).toHaveBeenCalledOnce()
+  })
+
+  it('respects the 15s guard after a recent update reload', () => {
+    const win = fakeWindow('hidden')
+    claimPwaUpdateReload(win.sessionStorage, 1_000)
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 2_000)).toBe(false)
+    expect(win.location.reload).not.toHaveBeenCalled()
+  })
+
+  it('a dirty form blocks it', () => {
+    const win = fakeWindow('hidden')
+    noteFormEdit()
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 1_000)).toBe(false)
+    expect(win.location.reload).not.toHaveBeenCalled()
+  })
+
+  it('an open dialog blocks it', () => {
+    const win = fakeWindow('hidden')
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    document.body.appendChild(dialog)
+    markPwaUpdateAvailable()
+    expect(applyPendingPwaUpdateOnHidden(win, 1_000)).toBe(false)
+  })
+
+  it('keeps the update pending when the guard ignores a reload', () => {
+    expect(readFileSync(resolve(process.cwd(), 'src/pwaRegister.js'), 'utf8')).toMatch(/else markPwaUpdateAvailable\(\)/)
   })
 })

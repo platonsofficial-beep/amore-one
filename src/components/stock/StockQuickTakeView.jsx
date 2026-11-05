@@ -13,7 +13,6 @@ import {
   QuickTakeUnavailableError,
   newQuickTakeKey,
   quickTakeErrorText,
-  quickTakeAvailable,
   takeStockFromStorage,
   undoQuickTake,
 } from '../../services/stockQuickTakeService'
@@ -65,11 +64,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
     return map
   }, [stockItems])
 
-  useEffect(() => {
-    let alive = true
-    quickTakeAvailable().then((ok) => { if (alive) setAvailable(ok) })
-    return () => { alive = false }
-  }, [])
+  // No probe call on open: 'not switched on' shows only when a real take says the function is missing.
 
   useEffect(() => {
     if (!workspaceId) return undefined

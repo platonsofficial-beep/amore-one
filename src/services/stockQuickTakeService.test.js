@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rpc = vi.fn()
 vi.mock('../lib/supabaseClient', () => ({ supabase: { rpc: (...args) => rpc(...args) } }))
 
-const { takeStockFromStorage, undoQuickTake, quickTakeAvailable, QuickTakeUnavailableError } = await import('./stockQuickTakeService')
+const { takeStockFromStorage, undoQuickTake, QuickTakeUnavailableError } = await import('./stockQuickTakeService')
 
 describe('stockQuickTakeService', () => {
   beforeEach(() => rpc.mockReset())
@@ -17,7 +17,6 @@ describe('stockQuickTakeService', () => {
   it('turns a missing function into a clear unavailable error', async () => {
     rpc.mockResolvedValue({ data: null, error: { code: 'PGRST202', message: 'Could not find the function' } })
     await expect(takeStockFromStorage({ workspaceId: 'w', storageId: 's', stockItemId: 'i', quantity: 1 })).rejects.toBeInstanceOf(QuickTakeUnavailableError)
-    expect(await quickTakeAvailable()).toBe(false)
   })
   it('maps an open count to a plain message', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'quick_take_count_open' } })
@@ -32,9 +31,9 @@ describe('stockQuickTakeService', () => {
     expect((await undoQuickTake('mv1')).quantityAfter).toBe(48)
     expect(rpc).toHaveBeenCalledWith('undo_quick_take', { p_movement_id: 'mv1' })
   })
-  it('treats other probe errors as available', async () => {
-    rpc.mockResolvedValue({ data: null, error: { message: 'quick_take_quantity_invalid' } })
-    expect(await quickTakeAvailable()).toBe(true)
+  it('no longer exports a probe that calls the RPC with nulls', async () => {
+    const mod = await import('./stockQuickTakeService')
+    expect(mod.quickTakeAvailable).toBeUndefined()
   })
 })
 

@@ -78,25 +78,6 @@ export function newQuickTakeKey() {
   return `qt-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
-/** True unless the server says the function does not exist. */
-export async function quickTakeAvailable() {
-  if (!supabase) return false
-  try {
-    const { error } = await withTimeout(supabase.rpc(QUICK_TAKE_RPC, {
-      p_workspace_id: null,
-      p_workspace_storage_id: null,
-      p_stock_item_id: null,
-      p_quantity: null,
-      p_idempotency_key: null,
-    }))
-    if (!error) return true
-    return !isTakeFromSupplyRpcMissing(error)
-  } catch {
-    // Offline or slow: show the screen; the take itself reports the problem.
-    return true
-  }
-}
-
 export async function takeStockFromStorage({ workspaceId, storageId, stockItemId, quantity, idempotencyKey, note = '' } = {}) {
   const p_quantity = Number(quantity)
   if (!workspaceId || !storageId || !stockItemId) throw new Error('Choose a storage and a product.')
