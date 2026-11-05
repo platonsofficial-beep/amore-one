@@ -26,7 +26,7 @@ html.one-phone-landscape body .inventory-count-session.is-high-density .inventor
   font-size: 0.8rem;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-header-actions .inventory-count-session-action-btn {
-  min-height: 30px;
+  min-height: 38px;
   padding: 0 10px;
   font-size: 0.78rem;
 }
@@ -64,11 +64,11 @@ html.one-phone-landscape body .inventory-count-session.is-high-density .inventor
   min-width: 0;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-search-input {
-  min-height: 30px;
-  height: 30px;
+  min-height: 38px;
+  height: 38px;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-filter-btn {
-  min-height: 30px;
+  min-height: 38px;
   padding: 0 10px;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-progress-card {
@@ -114,7 +114,7 @@ html.one-phone-landscape body .inventory-count-session.is-high-density .inventor
   gap: 6px;
 }
 html.one-phone-landscape body .inventory-count-session.is-high-density .inventory-count-session-footer .inventory-count-session-action-btn {
-  min-height: 32px;
+  min-height: 40px;
   padding: 0 12px;
   font-size: 0.8rem;
 }

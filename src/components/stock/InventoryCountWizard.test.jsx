@@ -815,4 +815,30 @@ describe('InventoryCountWizard live location scope (P8.21.1)', () => {
 
     cleanup()
   })
+
+  it('lets Take and Counts staff continue an in-progress count without post actions', async () => {
+    listInventoryCountHomeSessions.mockResolvedValue({
+      active: [{
+        id: 'session-staff-open',
+        status: 'in_progress',
+        statusLabel: 'In progress',
+        countTypeLabel: 'Full count',
+        startedAt: '2026-07-20T12:00:00.000Z',
+        operatorName: 'Alex',
+      }],
+      paused: [],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView, { canManage: false }))
+    await flushAsync()
+    await flushAsync()
+
+    expect(getButtonByText(container, 'Continue count')).toBeTruthy()
+    expect(container.textContent).not.toContain('Post Count')
+    expect(container.textContent).not.toContain('Start count')
+    expect(container.querySelector('[data-inventory-count-card-openable="true"]')).toBeTruthy()
+
+    cleanup()
+  })
 })

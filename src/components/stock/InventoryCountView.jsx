@@ -205,7 +205,8 @@ function InventoryCountSessionCard({
   const isCountingComplete = session.status === 'counting_complete'
   const isPosted = session.status === 'posted'
   const canOpenActive = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
-  const canOpen = canManage && (canOpenActive || isPosted)
+  const staffCanContinue = !canManage && session.status === 'in_progress'
+  const canOpen = staffCanContinue || (canManage && (canOpenActive || isPosted))
   const isBusy = Boolean(busyAction)
   const displayStatusLabel = formatInventoryCountSessionStatusLabel(session)
 
@@ -258,7 +259,7 @@ function InventoryCountSessionCard({
 
   return (
     <div
-      className={`inventory-count-session-card is-${session.status}${canOpen ? '' : ' is-readonly'}`}
+      className={`inventory-count-session-card is-${session.status}${canOpen ? '' : ' is-readonly'}${staffCanContinue ? ' has-actions' : ''}`}
       role={canOpen ? 'button' : undefined}
       tabIndex={canOpen && !isBusy ? 0 : undefined}
       aria-disabled={canOpen ? undefined : true}
@@ -281,6 +282,21 @@ function InventoryCountSessionCard({
         deleteDisabled={isBusy}
         timeZone={timeZone}
       />
+      {staffCanContinue ? (
+        <div className="inventory-count-session-card-actions">
+          <button
+            type="button"
+            className="primary-btn inventory-count-home-action-btn"
+            disabled={isBusy}
+            onClick={(event) => {
+              event.stopPropagation()
+              if (!isBusy) onOpen?.(session)
+            }}
+          >
+            Continue count
+          </button>
+        </div>
+      ) : null}
       {actionError ? (
         <p className="inventory-count-session-card-error" role="alert">{actionError}</p>
       ) : null}
@@ -530,7 +546,8 @@ export function InventoryCountView({
   }
 
   const openSession = (session) => {
-    if (!canManage) return
+    const staffCanContinue = !canManage && session?.status === 'in_progress'
+    if (!canManage && !staffCanContinue) return
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
     if (!sessionId || !nextWorkspaceId) return
@@ -756,6 +773,7 @@ export function InventoryCountView({
       <InventoryCountSessionWorkspace
         sessionId={activeSessionId}
         workspaceId={activeWorkspaceId}
+        canManage={canManage}
         onExit={handleExitSession}
         onPosted={handleSessionPosted}
       />
