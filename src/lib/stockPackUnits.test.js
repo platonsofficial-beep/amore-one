@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canUndoQuickTake, formatBalanceWithPack, normalizeUnitsPerPack, planQuickTake, resolveItemPack, toBaseQuantity } from './stockPackUnits'
+import { canUndoQuickTake, formatBalanceWithPack, formatQuantityWithUnit, normalizeUnitsPerPack, planQuickTake, resolveItemPack, toBaseQuantity } from './stockPackUnits'
 
 describe('stockPackUnits', () => {
   const pack = { packUnit: 'Case', unitsPerPack: 6 }
@@ -40,5 +40,16 @@ describe('stockPackUnits', () => {
     expect(canUndoQuickTake(now - 14 * 60000, now)).toBe(true)
     expect(canUndoQuickTake(now - 16 * 60000, now)).toBe(false)
     expect(canUndoQuickTake('bad', now)).toBe(false)
+  })
+})
+
+describe('measured units do not pluralise (T-03)', () => {
+  it('keeps kg, g, L and ml as they are', () => {
+    expect(formatQuantityWithUnit(2, 'kg')).toBe('2 kg')
+    expect(formatQuantityWithUnit(4, 'KG')).toBe('4 KG')
+    expect(formatQuantityWithUnit(500, 'g')).toBe('500 g')
+    expect(formatQuantityWithUnit(3, 'L')).toBe('3 L')
+    expect(formatQuantityWithUnit(750, 'ml')).toBe('750 ml')
+    expect(formatQuantityWithUnit(2, 'bottle')).toBe('2 bottles')
   })
 })

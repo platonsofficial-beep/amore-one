@@ -242,7 +242,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
               {categories.map(([name, count]) => (
                 <li key={name}>
                   <button type="button" className="stock-quick-take-tile" onClick={() => setCategory(name)}>
-                    <span><strong>{name}</strong></span>
+                    <span><strong>{name}</strong></span>{' '}
                     <span className="stock-quick-take-count">{count} ›</span>
                   </button>
                 </li>
@@ -258,9 +258,9 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
                   <li key={row.stockItemId}>
                     <button type="button" className="stock-quick-take-row" onClick={() => openSheet(row)}>
                       <span>
-                        <strong>{productName(row)}</strong>
+                        <strong>{productName(row)}</strong>{' '}
                         <small>{pack ? `${pack.packUnit} of ${pack.unitsPerPack}` : formatQuantityWithUnit(1, row.unit).replace(/^1 /, '')}</small>
-                      </span>
+                      </span>{' '}
                       <span className={`stock-quick-take-balance${row.quantity < 0 ? ' is-negative' : ''}`}>{formatBalanceWithPack(row.quantity, row.unit, pack)}</span>
                     </button>
                   </li>

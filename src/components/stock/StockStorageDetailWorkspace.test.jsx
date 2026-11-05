@@ -288,6 +288,25 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       .toContain('Select at least one location')
   })
 
+  it('shows the storage name but never the raw location key (L-02)', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow()],
+      summary: { productCount: 1, totalQuantity: 4, nonZeroBalanceCount: 1, inventoryValue: 40 },
+    }))
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main storage', locationKey: 'main', active: true },
+      role: 'owner',
+      canManage: true,
+      loadProducts,
+    })
+    await settle()
+    const header = container.querySelector('.stock-storage-detail-workspace-header-copy')
+    expect(header?.textContent).toBe('Main storage')
+    expect(container.querySelector('.stock-storage-detail-workspace-key')).toBeNull()
+  })
+
   it('shows a shelf count for staff and keeps manager stock actions hidden', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',

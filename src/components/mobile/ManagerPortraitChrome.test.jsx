@@ -26,6 +26,7 @@ function render(node) {
 
 describe('manager portrait chrome', () => {
   it('shows a dismissible sideways banner', () => {
+    window.localStorage.clear()
     const view = render(createElement(ManagerPortraitBanner, { area: 'stock-test' }))
     expect(view.container.textContent).toContain('Turn your phone sideways for the full view')
     const dismiss = view.container.querySelector('button[aria-label="Dismiss"]')
@@ -35,6 +36,22 @@ describe('manager portrait chrome', () => {
     })
     expect(view.container.textContent).not.toContain('Turn your phone sideways for the full view')
     view.unmount()
+  })
+
+  it('remembers the dismiss after a remount and on other portrait screens (P-01)', () => {
+    window.localStorage.clear()
+    const first = render(createElement(ManagerPortraitBanner, { area: 'stock' }))
+    act(() => {
+      first.container.querySelector('button[aria-label="Dismiss"]').click()
+    })
+    first.unmount()
+    const again = render(createElement(ManagerPortraitBanner, { area: 'stock' }))
+    expect(again.container.textContent).not.toContain('Turn your phone sideways')
+    again.unmount()
+    const other = render(createElement(ManagerPortraitBanner, { area: 'schedule' }))
+    expect(other.container.textContent).not.toContain('Turn your phone sideways')
+    other.unmount()
+    window.localStorage.clear()
   })
 
   it('opens every other permitted area from More', () => {

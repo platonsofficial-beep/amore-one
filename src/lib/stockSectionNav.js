@@ -73,3 +73,14 @@ export function shouldStaffLandOnTake({ previousView = null, activeView = '', ca
   if (previousView === 'stock') return false
   return stockSection !== 'take'
 }
+
+/**
+ * L-06: entering Stock from another module (or a cold open) always starts on the
+ * role default: managers on Dashboard, staff on Take. Returns null when no reset is needed.
+ */
+export function stockEntrySection({ previousView = null, activeView = '', canManage = false, stockSection = '' } = {}) {
+  if (activeView !== 'stock') return null
+  if (previousView === 'stock') return null
+  const target = defaultStockSection(canManage)
+  return stockSection === target ? null : target
+}

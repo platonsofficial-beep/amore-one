@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { defaultStockSection, nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav, shouldStaffLandOnTake } from './stockSectionNav'
+import { defaultStockSection, nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav, shouldStaffLandOnTake, stockEntrySection } from './stockSectionNav'
 
 describe('resolveStockSectionNav', () => {
   it('keeps every stock section for managers outside the phone shell', () => {
@@ -68,5 +68,18 @@ describe('shouldStaffLandOnTake', () => {
     expect(shouldStaffLandOnTake({ previousView: 'today', activeView: 'stock', canManage: true, stockSection: 'dashboard' })).toBe(false)
     expect(shouldStaffLandOnTake({ previousView: 'stock', activeView: 'stock', stockSection: 'count' })).toBe(false)
     expect(shouldStaffLandOnTake({ previousView: 'stock', activeView: 'today', stockSection: 'count' })).toBe(false)
+  })
+})
+
+describe('stockEntrySection (L-06)', () => {
+  it('sends managers entering Stock to Dashboard, staff to Take', () => {
+    expect(stockEntrySection({ previousView: 'today', activeView: 'stock', canManage: true, stockSection: 'migration' })).toBe('dashboard')
+    expect(stockEntrySection({ previousView: null, activeView: 'stock', canManage: true, stockSection: 'count' })).toBe('dashboard')
+    expect(stockEntrySection({ previousView: 'today', activeView: 'stock', canManage: false, stockSection: 'count' })).toBe('take')
+  })
+  it('leaves tabs alone inside Stock or when already on the default', () => {
+    expect(stockEntrySection({ previousView: 'stock', activeView: 'stock', canManage: true, stockSection: 'orders' })).toBe(null)
+    expect(stockEntrySection({ previousView: 'today', activeView: 'stock', canManage: true, stockSection: 'dashboard' })).toBe(null)
+    expect(stockEntrySection({ previousView: 'stock', activeView: 'today', canManage: true, stockSection: 'count' })).toBe(null)
   })
 })

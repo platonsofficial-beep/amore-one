@@ -814,9 +814,7 @@ export function StockStorageDetailWorkspace({
         </div>
         <div className="stock-storage-detail-workspace-header-copy">
           <h2 className="stock-storage-detail-workspace-title">{storageTitle}</h2>
-          {storage?.locationKey && storage.locationKey !== storageTitle ? (
-            <p className="stock-storage-detail-workspace-key">{storage.locationKey}</p>
-          ) : null}
+          {/* L-02: the internal location_key is never shown to people. */}
         </div>
         <div className="stock-storage-detail-workspace-stats">
           <div>

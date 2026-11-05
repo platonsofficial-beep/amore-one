@@ -650,7 +650,7 @@ import {
   nextStockSearchTerm,
   resolvePermittedStockSection,
   resolveStockSectionNav,
-  shouldStaffLandOnTake,
+  stockEntrySection,
 } from './lib/stockSectionNav'
 import {
   canAccessModule,
@@ -15816,14 +15816,15 @@ function App() {
     })
   }, [permissionAccess, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
-  // Staff open Stock straight on Take (take from storage). Managers keep their last tab.
+  // Entering Stock resets to the role default: staff on Take, managers on Dashboard (L-06).
   const stockEntryViewRef = useRef(null)
   useEffect(() => {
     if (!stockAccessReady) return
     const previousView = stockEntryViewRef.current
     stockEntryViewRef.current = activeView
-    if (!shouldStaffLandOnTake({ previousView, activeView, canManage: canManageStockRole, stockSection })) return
-    setStockSection('take')
+    const entrySection = stockEntrySection({ previousView, activeView, canManage: canManageStockRole, stockSection })
+    if (!entrySection) return
+    setStockSection(entrySection)
   }, [activeView, stockAccessReady, canManageStockRole, stockSection])
 
   const handleStockSectionChange = useCallback((nextSection) => {
