@@ -9525,8 +9525,10 @@ body:not(:has(.inventory-count-session)) :is(
   width: 100%;
   box-sizing: border-box;
   /* Content already starts below the portrait ?/bell band (safeOverlay.css). */
-  margin: 0 0 8px;
-  padding: 8px 8px 8px 12px;
+  margin: 0 0 6px;
+  /* P-01: slimmer banner; the whole bar is the 40px+ tap target. */
+  min-height: 40px;
+  padding: 2px 4px 2px 12px;
   border: 1px solid var(--one-gold-a32);
   border-radius: 14px;
   background: var(--one-gold-a12);
@@ -9554,12 +9556,12 @@ body:not(:has(.inventory-count-session)) :is(
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
   background: var(--one-overlay-06);
   color: var(--one-text);
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   line-height: 1;
 }
 

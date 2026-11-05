@@ -31,9 +31,16 @@
   display: inline-flex;
   position: fixed;
   z-index: 45;
-  /* 36px button centred on the 44px bell line. */
-  top: calc(var(--one-top-buttons-top, max(8px, var(--one-safe-top-chrome))) + 4px);
+  /* 40px button centred on the 44px bell line (A-01: 40px tap target). */
+  top: calc(var(--one-top-buttons-top, max(8px, var(--one-safe-top-chrome))) + 2px);
   right: calc(52px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
+}
+
+.app-shell.is-mobile-shell .help-mode-fallback .help-mode-toggle {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .app-shell:not(.is-mobile-shell):not(:has(.topbar)) .help-mode-fallback {

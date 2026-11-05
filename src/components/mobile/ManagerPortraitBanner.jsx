@@ -1,11 +1,14 @@
 import { useState } from 'react'
 
 const STORAGE_PREFIX = 'one.managerPortraitBanner.'
+/** P-01: one dismiss hides the hint on every manager portrait screen on this device. */
+export const PORTRAIT_BANNER_ALL_KEY = `${STORAGE_PREFIX}all`
 
 function readDismissed(area) {
   if (typeof window === 'undefined') return false
   try {
-    return window.localStorage.getItem(`${STORAGE_PREFIX}${area}`) === '1'
+    return window.localStorage.getItem(PORTRAIT_BANNER_ALL_KEY) === '1'
+      || window.localStorage.getItem(`${STORAGE_PREFIX}${area}`) === '1'
   } catch {
     return false
   }
@@ -19,6 +22,7 @@ export function ManagerPortraitBanner({ area = 'view' }) {
   const dismiss = () => {
     try {
       window.localStorage.setItem(`${STORAGE_PREFIX}${area}`, '1')
+      window.localStorage.setItem(PORTRAIT_BANNER_ALL_KEY, '1')
     } catch {
       // The banner still closes for this visit.
     }

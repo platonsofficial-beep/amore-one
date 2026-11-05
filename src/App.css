@@ -54183,3 +54183,38 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+
+/* 0010 Stock launch polish ---------------------------------------------- */
+
+/* L-05: a little air under the last product row above the Count / Suggest / Create order bar. */
+.mobile-manager-app .mobile-manager-stock-scroll-body {
+  padding-bottom: 12px;
+  scroll-padding-bottom: 12px;
+}
+
+/* O-04: on tablet / desktop the search row stops before the floating "?". */
+.app-shell.stock-focus-mode:not(.is-mobile-shell):has(.help-mode-fallback) .stock-focus-header {
+  margin-inline-end: 44px;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  /* 0009 leftover: Rename stays on the action row at 852 × 393. */
+  .stock-storage-detail-actions { gap: 4px; }
+  .stock-storage-detail-actions .stock-storage-detail-action-btn.ghost-btn:not(.is-tertiary),
+  .stock-storage-detail-actions .stock-storage-detail-action-btn.is-accent {
+    padding: 0 8px;
+    font-size: 0.86rem;
+  }
+  .stock-storage-detail-actions .stock-storage-detail-action-btn.is-tertiary {
+    margin-left: auto;
+    padding: 0 4px;
+  }
+  /* 0009 leftover: the ⌕ glyph reads as big as the tab pills. */
+  body .app-shell.stock-focus-mode .stock-focus-search > span[aria-hidden="true"] {
+    display: inline-block;
+    font-size: 1.1rem;
+    line-height: 1;
+    /* The ⌕ glyph is drawn tiny in most fonts; scale it to pill weight. */
+    transform: scale(1.55);
+  }
+}

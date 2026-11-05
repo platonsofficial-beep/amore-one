@@ -44,9 +44,13 @@ export function resolveItemPack(item) {
   return { packUnit, unitsPerPack }
 }
 
+/** T-03: measured units are abbreviations and never take an s ("2 kg", not "2 kgs"). */
+const MEASURED_UNITS = new Set(['kg', 'g', 'l', 'ml', 'cl', 'mg', 'lb', 'oz'])
+
 function pluralize(word, quantity) {
   const text = `${word ?? ''}`.trim()
   if (!text) return ''
+  if (MEASURED_UNITS.has(text.toLowerCase())) return text
   if (Math.abs(Number(quantity)) === 1) return text
   if (/(s|x|ch|sh)$/i.test(text)) return `${text}es`
   if (/[^aeiou]y$/i.test(text)) return `${text.slice(0, -1)}ies`
