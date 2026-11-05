@@ -3,6 +3,7 @@
  * Scoped to products with balances in the current storage.
  */
 
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 
@@ -32,6 +33,20 @@ export function StockStorageReceiveProductPicker({
 
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
   const list = Array.isArray(products) ? products : []
+  // Scroll hint: a soft fade at the bottom while more products sit below.
+  const listRef = useRef(null)
+  const [hasMoreBelow, setHasMoreBelow] = useState(false)
+  const updateMoreBelow = useCallback(() => {
+    const el = listRef.current
+    if (!el) return
+    setHasMoreBelow(el.scrollHeight - el.scrollTop - el.clientHeight > 4)
+  }, [])
+  useEffect(() => {
+    updateMoreBelow()
+    if (typeof window === 'undefined') return undefined
+    window.addEventListener('resize', updateMoreBelow)
+    return () => window.removeEventListener('resize', updateMoreBelow)
+  }, [updateMoreBelow, list.length])
 
   return (
     <div
@@ -62,7 +77,12 @@ export function StockStorageReceiveProductPicker({
               {emptyMessage}
             </div>
           ) : (
-            <div className="stock-storage-receive-picker-list" role="list">
+            <div
+              ref={listRef}
+              className={`stock-storage-receive-picker-list${hasMoreBelow ? ' has-more-below' : ''}`}
+              role="list"
+              onScroll={updateMoreBelow}
+            >
               {list.map((row) => {
                 const displayTitle = buildProductDisplayNameFromItem(row)
                 return (

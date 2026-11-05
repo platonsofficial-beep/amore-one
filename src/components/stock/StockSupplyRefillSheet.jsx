@@ -10,6 +10,8 @@ import { formatStockQuantity } from '../../lib/stockUtils'
 import {
   AD_HOC_TRANSFER_NOTE,
   NEEDS_SUPPLIER_ORDER_LABEL,
+  NOT_IN_SUPPLY_SHORT_LABEL,
+  SET_UP_SUPPLY_LABEL,
   NO_SUPPLY_STORAGE_HINT,
   REFILL_AT_PAR_LABEL,
   REFILL_TRANSFER_NOTE,
@@ -55,17 +57,41 @@ function qtyLabel(value, unit) {
  *   destinationStorage: object,
  *   products?: object[],
  *   onClose?: () => void,
+ *   onSetUpSupply?: () => void,
  *   onCompleted?: () => void|Promise<void>,
  *   loadCatalog?: typeof loadSupplyRefillCatalog,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   transfer?: typeof transferStockBetweenLocations,
  * }} props
  */
+/**
+ * "Needs supply" message. Managers get a calm link to Storages to mark a
+ * supply storage; everyone else sees plain text (no dead links).
+ */
+function SupplySetupMessage({ testId, plainText, className, onSetUpSupply }) {
+  if (!onSetUpSupply) {
+    return <p className={className} data-testid={testId}>{plainText}</p>
+  }
+  return (
+    <button
+      type="button"
+      className={`${className} stock-supply-setup-link`}
+      data-testid={testId}
+      data-supply-setup-link="true"
+      onClick={() => onSetUpSupply()}
+    >
+      <span>{NOT_IN_SUPPLY_SHORT_LABEL}</span>{' '}
+      <span className="stock-supply-setup-link-cta">{SET_UP_SUPPLY_LABEL} <span aria-hidden="true">›</span></span>
+    </button>
+  )
+}
+
 export function StockSupplyRefillSheet({
   workspaceId = '',
   destinationStorage,
   products = [],
   onClose,
+  onSetUpSupply,
   onCompleted,
   loadCatalog = loadSupplyRefillCatalog,
   loadProducts = getWorkspaceStorageProducts,
@@ -286,9 +312,14 @@ export function StockSupplyRefillSheet({
           <p className="stock-supply-refill-hint" role="status">{SUPPLY_FLAG_UNAVAILABLE_MESSAGE}</p>
         ) : null}
         {status === 'ready' && noSupply ? (
-          <p className="stock-supply-refill-hint" role="status" data-testid="supply-refill-empty-hint">
-            {NO_SUPPLY_STORAGE_HINT}
-          </p>
+          <div role="status">
+            <SupplySetupMessage
+              testId="supply-refill-empty-hint"
+              className="stock-supply-refill-hint"
+              plainText={NO_SUPPLY_STORAGE_HINT}
+              onSetUpSupply={onSetUpSupply}
+            />
+          </div>
         ) : null}
 
         {status === 'ready' && !supplyUnavailable && !noSupply ? (
@@ -348,9 +379,12 @@ export function StockSupplyRefillSheet({
                           {row.unit ? <span>{row.unit}</span> : null}
                         </div>
                         {row.sources.length === 0 ? (
-                          <p className="stock-supply-refill-order" data-testid="supply-take-needs-order">
-                            {NEEDS_SUPPLIER_ORDER_LABEL}
-                          </p>
+                          <SupplySetupMessage
+                            testId="supply-take-needs-order"
+                            className="stock-supply-refill-order"
+                            plainText={NEEDS_SUPPLIER_ORDER_LABEL}
+                            onSetUpSupply={onSetUpSupply}
+                          />
                         ) : (
                           <div className="stock-take-sources">
                             {row.sources.map((source) => (
@@ -500,9 +534,12 @@ export function StockSupplyRefillSheet({
                           </span>
                         </div>
                         {line.needsSupplierOrder ? (
-                          <p className="stock-supply-refill-order" data-testid="supply-refill-needs-order">
-                            {NEEDS_SUPPLIER_ORDER_LABEL}
-                          </p>
+                          <SupplySetupMessage
+                            testId="supply-refill-needs-order"
+                            className="stock-supply-refill-order"
+                            plainText={NEEDS_SUPPLIER_ORDER_LABEL}
+                            onSetUpSupply={onSetUpSupply}
+                          />
                         ) : (
                           <div className="stock-supply-refill-source">
                             {line.sources.length > 1 ? (
