@@ -22,6 +22,7 @@ const ERROR_MESSAGES = Object.freeze({
   quick_take_forbidden: 'You do not have permission to take stock.',
   quick_take_count_open: 'A count is open in this storage. Take after it is posted.',
   quick_take_storage_inactive: 'This storage is not active.',
+  quick_take_storage_not_supply: 'Take is only from supply storages.',
   quick_take_item_not_found: 'Product was not found.',
   quick_take_quantity_invalid: 'Enter a quantity above 0.',
   quick_take_undo_expired: 'Undo is only possible for 15 minutes.',
