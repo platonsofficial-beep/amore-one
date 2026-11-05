@@ -7,6 +7,7 @@ import {
   canConfigureReservationSeatings,
   canManageAttendance,
 } from './permissions'
+import { LIMITED_SETTINGS_SUBTITLE } from './settingsSections'
 
 export const MANAGER_PHONE_MAX_WIDTH = 760
 
@@ -164,10 +165,11 @@ export function buildManagerPortraitMoreItems(access, {
     })
   }
   if (canAccessModule(access, 'settings') || canConfigureReservationSeatings(access)) {
+    const limitedSettings = !canAccessModule(access, 'settings')
     items.push({
       id: 'settings',
       label: 'Settings',
-      subtitle: 'Venue preferences',
+      subtitle: limitedSettings ? LIMITED_SETTINGS_SUBTITLE : 'Venue preferences',
       icon: '⚙️',
     })
   }
@@ -191,7 +193,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'notifications',
       label: 'Notifications',
-      subtitle: 'Reminders, quiet hours and this device',
+      subtitle: 'Device alerts, quiet hours and this phone',
       icon: '🔔',
     })
   }

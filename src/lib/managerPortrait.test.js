@@ -81,6 +81,17 @@ describe('manager portrait shell', () => {
     expect(ids).not.toContain('tasks')
   })
 
+  it('names the three sections a manager can open in Settings', () => {
+    const owner = buildManagerPortraitMoreItems('owner').find((item) => item.id === 'settings')
+    const manager = buildManagerPortraitMoreItems('manager').find((item) => item.id === 'settings')
+    const staff = buildManagerPortraitMoreItems('staff').find((item) => item.id === 'settings')
+    expect(owner.subtitle).toBe('Venue preferences')
+    expect(manager.subtitle).toBe('Seatings, notifications & privacy')
+    expect(staff).toBeUndefined()
+    const alerts = buildManagerPortraitMoreItems('owner').find((item) => item.id === 'notifications')
+    expect(alerts.subtitle).toBe('Device alerts, quiet hours and this phone')
+  })
+
   it('hides areas the member cannot open', () => {
     const ids = buildManagerPortraitMoreItems({
       role: 'manager',

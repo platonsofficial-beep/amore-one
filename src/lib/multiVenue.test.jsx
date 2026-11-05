@@ -99,10 +99,10 @@ describe('createVenue', () => {
     expect(rpcMock).toHaveBeenCalledWith('create_workspace_venue', expect.objectContaining({ p_name: 'New Place' }))
   })
 
-  it('maps RPC errors to Greek messages', async () => {
+  it('maps RPC errors to English messages', async () => {
     rpcMock.mockResolvedValue({ data: null, error: { message: 'not_allowed' } })
-    await expect(createVenue({ name: 'New Place' })).rejects.toThrow(/ιδιοκτήτες/)
-    expect(formatCreateVenueError({ message: 'invalid_timezone' })).toMatch(/ζώνη/)
+    await expect(createVenue({ name: 'New Place' })).rejects.toThrow(/owners/)
+    expect(formatCreateVenueError({ message: 'invalid_timezone' })).toMatch(/time zone/)
   })
 
   it('rejects short names without calling the RPC', async () => {
@@ -142,13 +142,14 @@ describe('venue UI', () => {
     expect(shouldShowVenueSwitcher([{}, {}])).toBe(true)
   })
 
-  it('renders the Greek new-venue sheet with defaults', () => {
+  it('renders the English new-venue sheet with defaults', () => {
     const { container } = render(<NewVenueSheet onClose={() => {}} />)
-    expect(container.querySelector('[role="dialog"] h3').textContent).toBe('Νέο venue')
+    expect(container.querySelector('[role="dialog"] h3').textContent).toBe('New venue')
     const selects = container.querySelectorAll('select')
     expect(selects[0].value).toBe('Europe/Nicosia')
     expect(selects[1].value).toBe('EUR')
-    expect(container.textContent).toContain('Ζώνη ώρας')
+    expect(container.textContent).toContain('Time zone')
+    expect([...container.querySelectorAll('input')].map((input) => input.value)).toContain('Cyprus')
   })
 
   it('renders nothing outside AuthProvider for non-managers', () => {

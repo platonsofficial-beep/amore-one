@@ -571,6 +571,7 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { LIMITED_SETTINGS_SECTION_IDS } from './lib/settingsSections'
 import { VenueSwitcher } from './components/workspace/VenueManager'
 import { AttendanceBoard } from './components/attendance/AttendanceBoard'
 import { AttendanceClockScreen } from './components/attendance/AttendanceClockScreen'
@@ -15492,7 +15493,7 @@ function App() {
   const stockWorkspaceSetupMessage = useMemo(() => {
     if (isStockWorkspaceReady) return ''
     if (isAuthLoading || isAuthBootstrapping) {
-      return 'Loading workspace…'
+      return 'Loading your venue…'
     }
     if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
     return USER_WORKSPACE_LOADING_MESSAGE
@@ -15559,7 +15560,7 @@ function App() {
   const operationsWorkspaceSetupMessage = useMemo(() => {
     if (isOperationsWorkspaceReady) return ''
     if (isAuthLoading || isAuthBootstrapping) {
-      return 'Loading workspace…'
+      return 'Loading your venue…'
     }
     if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
     return USER_WORKSPACE_LOADING_MESSAGE
@@ -15918,7 +15919,7 @@ function App() {
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
     const seatingSettingsOnly = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
-    const permittedSection = seatingSettingsOnly && nextSection !== 'notifications'
+    const permittedSection = seatingSettingsOnly && !LIMITED_SETTINGS_SECTION_IDS.includes(nextSection)
       ? 'reservations'
       : nextSection
     setSettingsSection(permittedSection)
@@ -15941,7 +15942,7 @@ function App() {
   useEffect(() => {
     if (activeView !== 'settings') return
     if (!canConfigureReservationSeatingsRole || canOpenWorkspaceProfile) return
-    if (settingsSection === 'reservations' || settingsSection === 'notifications') return
+    if (LIMITED_SETTINGS_SECTION_IDS.includes(settingsSection)) return
     handleSettingsSectionChange('reservations')
   }, [
     activeView,
@@ -24036,13 +24037,17 @@ function App() {
   }
 
   const moduleTitle = getModuleTitle(activeView, { teamSection, stockSection, operationsSection })
-  const moduleSubtitle = getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection, operationsSection })
+  const settingsLimited = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+  const moduleSubtitle = activeView === 'settings' && settingsLimited
+    ? 'Seatings, notifications & privacy.'
+    : getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection, operationsSection })
   const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
   const hideStandardTopbar = shouldHideStandardTopbar(activeView, teamSection)
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
   // Phone landscape: Operations folds title + section tabs + ? / bell into one compact row.
   const operationsCompactHeader = isPhoneLandscapeHeader && activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
   const insightsCompactHeader = isPhoneLandscapeHeader && activeView === 'insights' && isActiveViewAllowed && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
+  const settingsCompactHeader = isPhoneLandscapeHeader && activeView === 'settings' && isActiveViewAllowed && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection, stockSection)
 
   const mobileExpandedTitle = useMemo(() => {
@@ -24911,7 +24916,7 @@ function App() {
             <>
         {isAuthLoading ? (
           <div className="staff-status-banner" role="status" aria-live="polite">
-            Loading workspace…
+            Loading your venue…
           </div>
         ) : null}
         {!isAuthLoading && visibleWorkspaceLoadError ? (
@@ -25578,7 +25583,8 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
-            visibleSectionIds={canOpenWorkspaceProfile ? null : ['reservations', 'notifications', 'privacy']}
+            visibleSectionIds={canOpenWorkspaceProfile ? null : LIMITED_SETTINGS_SECTION_IDS}
+            limitedAccess={settingsLimited}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
@@ -25680,7 +25686,7 @@ function App() {
                       <div className="auth-page auth-loading-page mobile-auth-loading" aria-busy="true" aria-live="polite">
                         <div className="auth-loading-card panel staff-panel">
                           <OneFullLogo compact />
-                          <p className="auth-loading-text">Loading workspace…</p>
+                          <p className="auth-loading-text">Loading your venue…</p>
                         </div>
                       </div>
                     )
@@ -26181,7 +26187,7 @@ function App() {
                     onAccountAction={handleStaffHostAccountAction}
                   />
                   ) : (
-                  <header className={`topbar${operationsCompactHeader ? ' topbar-operations-compact' : ''}${insightsCompactHeader ? ' topbar-insights-compact' : ''}`}>
+                  <header className={`topbar${operationsCompactHeader ? ' topbar-operations-compact' : ''}${insightsCompactHeader ? ' topbar-insights-compact' : ''}${settingsCompactHeader ? ' topbar-settings-compact' : ''}`}>
                     <div className="topbar-title-block">
                       <h2>{operationsCompactHeader ? 'Operations' : moduleTitle}</h2>
                       {operationsCompactHeader ? (

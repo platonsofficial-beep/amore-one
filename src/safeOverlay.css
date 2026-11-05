@@ -902,6 +902,71 @@ body {
     width: 36px;
     height: 36px;
   }
+
+  /* Settings: same one-row card as Insights (title, help, bell, avatar).
+     Subtitle, date, and the name beside the avatar drop. No search on Settings. */
+  .topbar.topbar-settings-compact {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    max-height: 56px;
+    padding: 4px 8px 4px 12px;
+    border-radius: 14px;
+    box-shadow: none;
+    animation: none;
+    position: static;
+    flex: 0 0 auto;
+  }
+
+  .topbar-settings-compact .topbar-title-block {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    min-width: 0;
+  }
+
+  .topbar-settings-compact .topbar-title-block h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .topbar-settings-compact .welcome-subtitle,
+  .topbar-settings-compact .date-pill,
+  .topbar-settings-compact .profile-chip > div:not(.profile-avatar) {
+    display: none;
+  }
+
+  .topbar-settings-compact .topbar-meta {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    width: auto;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .topbar-settings-compact .help-mode-toggle,
+  .topbar-settings-compact .icon-btn,
+  .topbar-settings-compact .profile-chip {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .topbar-settings-compact .profile-chip {
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .topbar-settings-compact .profile-avatar {
+    width: 36px;
+    height: 36px;
+  }
 }
 
 /*

@@ -89,7 +89,7 @@ describe('UserMenu', () => {
     expect(Number.parseFloat(panel.style.maxHeight)).toBeLessThanOrEqual(390 - 16)
 
     for (const label of [
-      'Open Workspace Profile',
+      'Open Settings',
       'Notifications',
       'My week',
       'Profile',

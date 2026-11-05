@@ -11,7 +11,7 @@ const MANAGER_ROLES = new Set(['owner', 'general_manager'])
 export const EMPTY_VENUE_FORM = {
   name: '',
   city: '',
-  countryName: 'Κύπρος',
+  countryName: 'Cyprus',
   countryCode: 'CY',
   timezone: DEFAULT_TIMEZONE,
   currency: 'EUR',
@@ -51,7 +51,7 @@ export function VenueSwitcher({ className = '' }) {
         className="venue-switcher-select"
         value={activeId}
         disabled={isSwitching}
-        aria-label="Αλλαγή venue"
+        aria-label="Switch venue"
         onChange={async (event) => {
           const nextId = event.target.value
           if (!nextId || nextId === activeId) return
@@ -88,7 +88,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
       const workspaceId = await createVenue(form)
       await onCreated?.(workspaceId)
     } catch (createError) {
-      setError(createError?.message || 'Δεν ήταν δυνατή η δημιουργία venue.')
+      setError(createError?.message || 'The venue could not be created.')
       setIsSaving(false)
     }
   }
@@ -104,38 +104,38 @@ export function NewVenueSheet({ onClose, onCreated }) {
         onSubmit={handleSubmit}
       >
         <header className="venue-sheet-header">
-          <h3 id="venue-sheet-title">Νέο venue</h3>
-          <button type="button" className="venue-sheet-close" aria-label="Κλείσιμο" disabled={isSaving} onClick={onClose}>✕</button>
+          <h3 id="venue-sheet-title">New venue</h3>
+          <button type="button" className="venue-sheet-close" aria-label="Close" disabled={isSaving} onClick={onClose}>✕</button>
         </header>
         <div className="venue-sheet-place">
           <label className="venue-field">
-            <span>Όνομα</span>
-            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder="π.χ. SENTIO.LIMASSOL" />
+            <span>Name</span>
+            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder="e.g. SENTIO.LIMASSOL" />
           </label>
           <label className="venue-field">
-            <span>Πόλη</span>
+            <span>City</span>
             <input value={form.city} onChange={update('city')} maxLength={80} />
           </label>
         </div>
         <div className="venue-field-row">
           <label className="venue-field">
-            <span>Χώρα</span>
+            <span>Country</span>
             <input value={form.countryName} onChange={update('countryName')} maxLength={80} />
           </label>
           <label className="venue-field venue-field-short">
-            <span>Κωδικός</span>
+            <span>Code</span>
             <input value={form.countryCode} onChange={update('countryCode')} maxLength={2} />
           </label>
         </div>
         <div className="venue-field-row">
           <label className="venue-field">
-            <span>Ζώνη ώρας</span>
+            <span>Time zone</span>
             <select value={form.timezone} onChange={update('timezone')}>
               {timezones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}
             </select>
           </label>
           <label className="venue-field venue-field-short">
-            <span>Νόμισμα</span>
+            <span>Currency</span>
             <select value={form.currency} onChange={update('currency')}>
               {CURRENCIES.map((code) => <option key={code} value={code}>{code}</option>)}
             </select>
@@ -143,9 +143,9 @@ export function NewVenueSheet({ onClose, onCreated }) {
         </div>
         {error ? <p className="venue-sheet-error" role="alert">{error}</p> : null}
         <footer className="venue-sheet-actions">
-          <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>Ακύρωση</button>
+          <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>Cancel</button>
           <button type="submit" className="primary-btn" disabled={isSaving || form.name.trim().length < 2}>
-            {isSaving ? 'Δημιουργία…' : 'Δημιουργία'}
+            {isSaving ? 'Creating…' : 'Create'}
           </button>
         </footer>
       </form>
@@ -153,7 +153,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
   )
 }
 
-/** Settings → Venue: switcher (2+ venues) and "Νέο venue" for owners/GMs. */
+/** Settings → Venue: switcher (2+ venues) and "New venue" for owners/GMs. */
 export function VenueManager() {
   const { membership, switchWorkspace, refreshMembership } = useOptionalAuth() ?? {}
   const [isSheetOpen, setIsSheetOpen] = useState(false)
@@ -167,7 +167,7 @@ export function VenueManager() {
     <div className="venue-manager">
       <VenueSwitcher className="venue-manager-switcher" />
       <button type="button" className="primary-btn venue-manager-new" onClick={() => setIsSheetOpen(true)}>
-        ＋ Νέο venue
+        + New venue
       </button>
       {isSheetOpen ? (
         <NewVenueSheet

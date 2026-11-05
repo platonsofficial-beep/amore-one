@@ -181,7 +181,7 @@ export function NotificationSettingsPanel({
             Notifications
           </h3>
           <p className="workspace-section-subtitle">
-            Choose what reaches your phone. The bell always keeps a copy.
+            Device alerts for your account. Quiet hours apply on every signed-in device. The bell always keeps a copy.
           </p>
         </div>
       </header>

@@ -2,10 +2,13 @@ import { useMemo } from 'react'
 import { NAV_ITEMS } from '../../lib/appNavigation'
 import {
   canAccessMobileExpandedModule,
+  canAccessModule,
+  canConfigureReservationSeatings,
   canOpenMobileFullSchedule,
   filterManagerMobileMenuNavItems,
   filterMobileMenuNavItems,
 } from '../../lib/permissions'
+import { LIMITED_SETTINGS_SUBTITLE } from '../../lib/settingsSections'
 
 const MANAGER_WORKSPACE_ORDER = [
   'reservations',
@@ -77,6 +80,9 @@ export function MobileMenuView({
     : filterMobileMenuNavItems(NAV_ITEMS, role)
   const showFullSchedule = canOpenMobileFullSchedule(role)
   const showSettings = canAccessMobileExpandedModule(role, 'settings')
+  const settingsSubtitle = !canAccessModule(role, 'settings') && canConfigureReservationSeatings(role)
+    ? LIMITED_SETTINGS_SUBTITLE
+    : 'Venue preferences'
   const isHostMenu = menuVariant === 'host'
   const allowedModuleIds = useMemo(
     () => new Set(visibleModules.map((item) => item.id)),
@@ -94,13 +100,15 @@ export function MobileMenuView({
           id: moduleId,
           icon: navItem?.icon ?? '⚙️',
           title: navItem?.label ?? 'Settings',
-          subtitle: MANAGER_WORKSPACE_SUBTITLES[moduleId] ?? '',
+          subtitle: moduleId === 'settings'
+            ? settingsSubtitle
+            : (MANAGER_WORKSPACE_SUBTITLES[moduleId] ?? ''),
           onClick: moduleId === 'settings'
             ? onOpenSettings
             : () => onNavigateModule?.(moduleId),
         }
       })
-  ), [allowedModuleIds, showSettings, onOpenSettings, onNavigateModule])
+  ), [allowedModuleIds, settingsSubtitle, showSettings, onOpenSettings, onNavigateModule])
 
   if (isHostMenu) {
     return (
@@ -227,7 +235,7 @@ export function MobileMenuView({
               <ManagerNavCard
                 icon="🔔"
                 title="Notifications"
-                subtitle="Reminders, quiet hours and this device"
+                subtitle="Device alerts, quiet hours and this phone"
                 onClick={onOpenNotifications}
               />
             ) : null}
