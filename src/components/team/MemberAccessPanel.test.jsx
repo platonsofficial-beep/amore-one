@@ -85,7 +85,7 @@ describe('MemberAccessPanel', () => {
     const buttonLabels = (label) => [...view.container.querySelectorAll('.member-access-row')]
       .find((row) => row.textContent.includes(label))
       .querySelectorAll('button')
-    expect([...buttonLabels('Stock')].map((button) => button.textContent)).toEqual(['None', 'View & count', 'Manage'])
+    expect([...buttonLabels('Stock')].map((button) => button.textContent)).toEqual(['None', 'Take & count', 'Manage'])
     expect([...buttonLabels('Schedule')].map((button) => button.textContent)).toEqual(['None', 'View', 'Manage'])
     expect([...buttonLabels('Clock in/out')].map((button) => button.textContent)).toEqual(['None', 'View', 'Manage'])
     expect(view.container.textContent).toContain('Reset to role default')

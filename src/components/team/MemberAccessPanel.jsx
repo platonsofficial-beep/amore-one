@@ -22,7 +22,7 @@ const LEVEL_OPTIONS = [
 function levelOptionsFor(area) {
   if (area.module !== 'stock') return LEVEL_OPTIONS
   return LEVEL_OPTIONS.map((option) => (
-    option.id === 'view' ? { ...option, label: 'View & count' } : option
+    option.id === 'view' ? { ...option, label: 'Take & count' } : option
   ))
 }
 

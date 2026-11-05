@@ -52,7 +52,7 @@ export const MEMBER_ACCESS_AREAS = [
   {
     module: 'stock',
     label: 'Stock',
-    hint: 'See stock and count shelves, or also manage items and orders.',
+    hint: 'Take and count shelves, or also see and manage all of Stock.',
     icon: '📦',
     control: 'level',
   },
