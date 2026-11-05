@@ -20,34 +20,44 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     overflow: hidden;
   }
 
-  .app-shell.is-mobile-shell:has(.inventory-count-session) .mobile-expanded-scroll:has(.inventory-count-session),
-  .mobile-app:has(.inventory-count-session) .mobile-expanded-scroll:has(.inventory-count-session) {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
-    height: auto !important;
+  /* Beat `.app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll`
+     (height:auto !important; overflow-y:auto !important). */
+  .app-shell.is-mobile-shell.is-mobile-expanded:has(.inventory-count-session) .mobile-expanded-scroll {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 0 !important;
     max-height: 100% !important;
     overflow: hidden !important;
     padding-bottom: 0 !important;
   }
 
-  .mobile-expanded-scroll:has(.inventory-count-session) > .mobile-expanded-header {
+  .app-shell.is-mobile-shell.is-mobile-expanded:has(.inventory-count-session) .mobile-expanded-header {
     flex: 0 0 auto;
   }
 
-  .mobile-workspace-module.is-mobile-expanded:has(.inventory-count-session) {
-    display: flex;
-    flex-direction: column;
-    flex: 1 1 auto;
-    min-height: 0;
+  /* Beat `.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded`
+     (flex: 0 0 auto), which let the module grow past the viewport. */
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded:has(.inventory-count-session) {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
     height: auto !important;
-    max-height: none !important;
-    overflow: hidden;
+    max-height: 100% !important;
+    overflow: hidden !important;
   }
 
-  .mobile-workspace-module:has(.inventory-count-session) > .stock-focus-chrome {
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded:has(.inventory-count-session) > .stock-focus-chrome {
     flex: 0 0 auto;
+  }
+
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded:has(.inventory-count-session) > .inventory-count-session.is-high-density {
+    flex: 1 1 0%;
+    min-height: 0;
+    height: auto;
+    max-height: none;
   }
 
   .app-shell.is-mobile-shell:has(.inventory-count-session) {

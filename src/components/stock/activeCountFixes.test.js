@@ -38,7 +38,7 @@ describe('Active Count phone portrait layout', () => {
     expect(portraitCss).toMatch(/flex-direction:\s*row/)
     expect(portraitCss).toMatch(/body:has\(\.inventory-count-session\) \.mobile-bottom-nav/)
     expect(portraitCss).toMatch(/max-width:\s*560px/)
-    expect(portraitCss).toMatch(/mobile-expanded-scroll:has\(\.inventory-count-session\)[\s\S]*overflow:\s*hidden !important/)
+    expect(portraitCss).toMatch(/\.app-shell\.is-mobile-shell \.mobile-workspace-module\.is-mobile-expanded:has\(\.inventory-count-session\) \{\s*display:\s*flex !important;[\s\S]*flex:\s*1 1 0% !important/)
     expect(portraitCss).not.toMatch(/\.inventory-count-session\.is-high-density \{[^}]*max-height:\s*100dvh/)
   })
 
