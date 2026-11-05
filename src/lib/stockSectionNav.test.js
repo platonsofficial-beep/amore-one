@@ -82,4 +82,28 @@ describe('stockEntrySection (L-06)', () => {
     expect(stockEntrySection({ previousView: 'today', activeView: 'stock', canManage: true, stockSection: 'dashboard' })).toBe(null)
     expect(stockEntrySection({ previousView: 'stock', activeView: 'today', canManage: true, stockSection: 'count' })).toBe(null)
   })
+
+  it('keeps an explicit section when Insights deep-links into Stock', () => {
+    expect(stockEntrySection({
+      previousView: 'insights',
+      activeView: 'stock',
+      canManage: true,
+      stockSection: 'dashboard',
+      requestedSection: 'suppliers',
+    })).toBe('suppliers')
+    expect(stockEntrySection({
+      previousView: 'insights',
+      activeView: 'stock',
+      canManage: true,
+      stockSection: 'suppliers',
+      requestedSection: 'suppliers',
+    })).toBe(null)
+    expect(stockEntrySection({
+      previousView: 'stock',
+      activeView: 'stock',
+      canManage: true,
+      stockSection: 'orders',
+      requestedSection: 'suppliers',
+    })).toBe(null)
+  })
 })

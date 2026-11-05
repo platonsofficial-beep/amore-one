@@ -579,7 +579,7 @@ body {
   }
   .app-shell.is-reservations-dedicated-shell .mobile-shell-bell.is-reservations-dedicated-bell {
     top: calc(var(--one-safe-top-chrome) + var(--one-res-header-top, 20px) + 2px);
-    right: calc(var(--safe-r) + 16px + 36px + 6px);
+    right: calc(var(--safe-r) + 16px + 44px + 6px);
   }
 }
 
@@ -822,6 +822,83 @@ body {
   }
 
   .topbar-operations-compact .profile-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Insights: one row (title, search, help, bell, avatar). Subtitle, date,
+     and the name beside the avatar drop so the card stops covering the page. */
+  .topbar.topbar-insights-compact {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 4px 8px 4px 12px;
+    border-radius: 14px;
+    box-shadow: none;
+    animation: none;
+    position: static;
+    flex: 0 0 auto;
+  }
+
+  .topbar-insights-compact .topbar-title-block {
+    flex: 0 1 auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    min-width: 0;
+  }
+
+  .topbar-insights-compact .topbar-title-block h2 {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .topbar-insights-compact .welcome-subtitle,
+  .topbar-insights-compact .date-pill,
+  .topbar-insights-compact .profile-chip > div:not(.profile-avatar) {
+    display: none;
+  }
+
+  .topbar-insights-compact .topbar-meta {
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    width: auto;
+    min-width: 0;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .topbar-insights-compact .search-bar {
+    flex: 1 1 8rem;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .topbar-insights-compact .search-bar input {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar-insights-compact .help-mode-toggle,
+  .topbar-insights-compact .icon-btn,
+  .topbar-insights-compact .profile-chip {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .topbar-insights-compact .profile-chip {
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .topbar-insights-compact .profile-avatar {
     width: 36px;
     height: 36px;
   }

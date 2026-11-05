@@ -15817,12 +15817,25 @@ function App() {
   }, [permissionAccess, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
   // Entering Stock resets to the role default: staff on Take, managers on Dashboard (L-06).
+  // stockEntryRequestRef keeps an explicit deep link (Insights → Suppliers) on that tab.
   const stockEntryViewRef = useRef(null)
+  const stockEntryRequestRef = useRef('')
   useEffect(() => {
     if (!stockAccessReady) return
     const previousView = stockEntryViewRef.current
     stockEntryViewRef.current = activeView
-    const entrySection = stockEntrySection({ previousView, activeView, canManage: canManageStockRole, stockSection })
+    const requestedRaw = stockEntryRequestRef.current
+    stockEntryRequestRef.current = ''
+    const requestedSection = requestedRaw
+      ? resolvePermittedStockSection(requestedRaw, canManageStockRole)
+      : ''
+    const entrySection = stockEntrySection({
+      previousView,
+      activeView,
+      canManage: canManageStockRole,
+      stockSection,
+      requestedSection,
+    })
     if (!entrySection) return
     setStockSection(entrySection)
   }, [activeView, stockAccessReady, canManageStockRole, stockSection])
@@ -22024,6 +22037,9 @@ function App() {
   const handleInsightsViewModule = (moduleId) => {
     const route = resolveInsightsModuleLink(moduleId)
     const permittedView = resolvePermittedActiveView(permissionAccess, route.activeView)
+    if (route.stockSection && permittedView === 'stock') {
+      stockEntryRequestRef.current = route.stockSection
+    }
     handleActiveViewChange(permittedView)
     if (route.teamSection && permittedView === 'team') {
       handleTeamSectionChange(resolvePermittedTeamSection(permissionAccess, route.teamSection))
@@ -24026,6 +24042,7 @@ function App() {
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
   // Phone landscape: Operations folds title + section tabs + ? / bell into one compact row.
   const operationsCompactHeader = isPhoneLandscapeHeader && activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
+  const insightsCompactHeader = isPhoneLandscapeHeader && activeView === 'insights' && isActiveViewAllowed && !useMobileExperience && !hideStandardTopbar && !useCommandTopbar
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection, stockSection)
 
   const mobileExpandedTitle = useMemo(() => {
@@ -25422,6 +25439,7 @@ function App() {
             attentionPermissions={todayAttentionPermissions}
             isLoading={isReportsLoading}
             loadError={reportsLoadError}
+            searchTerm={searchTerm}
             onViewModule={handleInsightsViewModule}
             onAttentionItemClick={handleTodayAttentionItemClick}
             onCompleteAttentionItem={handleCompleteStaleSeatedReservation}
@@ -26163,7 +26181,7 @@ function App() {
                     onAccountAction={handleStaffHostAccountAction}
                   />
                   ) : (
-                  <header className={`topbar${operationsCompactHeader ? ' topbar-operations-compact' : ''}`}>
+                  <header className={`topbar${operationsCompactHeader ? ' topbar-operations-compact' : ''}${insightsCompactHeader ? ' topbar-insights-compact' : ''}`}>
                     <div className="topbar-title-block">
                       <h2>{operationsCompactHeader ? 'Operations' : moduleTitle}</h2>
                       {operationsCompactHeader ? (
