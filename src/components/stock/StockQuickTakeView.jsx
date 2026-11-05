@@ -79,7 +79,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
       .then((payload) => {
         if (!alive) return
         const last = readLocal(LAST_STORAGE_KEY, '')
-        const storages = [...(payload?.storages ?? [])].filter((s) => s.isActive !== false)
+        const storages = [...(payload?.storages ?? [])].filter((s) => s.isActive !== false && s.active !== false && s.isSupply === true)
           .sort((a, b) => (b.id === last) - (a.id === last))
         setStorageState({ status: storages.length ? 'ready' : 'empty', storages, error: '' })
       })
@@ -197,7 +197,14 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
               <button type="button" className="stock-quick-take-ghost" onClick={() => setReload((n) => n + 1)}>Retry</button>
             </div>
           ) : null}
-          {storageState.status === 'empty' ? <p className="stock-quick-take-note">No storages yet. A manager can add them in Storages.</p> : null}
+          {storageState.status === 'empty' ? (
+            <div className="stock-quick-take-empty" role="status">
+              <strong>No supply storages yet</strong>
+              <span>{canManage
+                ? 'Mark the storages staff take from: Stock → Storages → Edit → Mark as supply.'
+                : 'A manager needs to mark which storages you take from.'}</span>
+            </div>
+          ) : null}
           <ul className="stock-quick-take-list">
             {storageState.storages.map((s, index) => (
               <li key={s.id}>

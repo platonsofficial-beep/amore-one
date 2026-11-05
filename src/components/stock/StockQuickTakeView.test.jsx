@@ -32,7 +32,7 @@ const take = vi.fn()
 const undo = vi.fn()
 const available = vi.fn()
 vi.mock('../../services/stockStorageCenterService', () => ({
-  getWorkspaceStorageSummaries: vi.fn(async () => ({ storages: [{ id: 'st1', name: 'Water storage', productCount: 1 }] })),
+  getWorkspaceStorageSummaries: vi.fn(async () => ({ storages: [{ id: 'st1', name: 'Water storage', productCount: 1, isSupply: true }, { id: 'st2', name: 'Bar shelf', productCount: 1, isSupply: false }] })),
   getWorkspaceStorageProducts: vi.fn(async () => ({ products: [{ stockItemId: 'w1', name: 'Water 1.5L', category: 'Still water', unit: 'Bottle', quantity: 48, active: true, costPrice: 9, item: {} }] })),
 }))
 vi.mock('../../services/stockQuickTakeService', async (orig) => {
@@ -77,5 +77,19 @@ describe('StockQuickTakeView', () => {
     available.mockResolvedValue(false)
     await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items }))
     expect(await screen.findByText(/not switched on yet/)).toBeTruthy()
+  })
+
+  it('lists only supply storages', async () => {
+    await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items }))
+    expect(await screen.findByText('Water storage')).toBeTruthy()
+    expect(screen.queryByText('Bar shelf')).toBeNull()
+  })
+
+  it('tells a manager where to mark supply storages when there are none', async () => {
+    const svc = await import('../../services/stockStorageCenterService')
+    svc.getWorkspaceStorageSummaries.mockResolvedValueOnce({ storages: [{ id: 'st2', name: 'Bar shelf', isSupply: false }] })
+    await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items, canManage: true }))
+    expect(await screen.findByText(/No supply storages yet/)).toBeTruthy()
+    expect(screen.getByText(/Storages → Edit → Mark as supply/)).toBeTruthy()
   })
 })
