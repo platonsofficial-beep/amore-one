@@ -4,6 +4,9 @@
   Phone portrait (max-width 560px) uses location chips, card rows,
   a session that fills the screen, and a footer that stays on screen.
   The app tab bar fades for the whole session, portrait and landscape.
+  Taller phones keep the same sheet, just with less empty chrome:
+  the progress summary is one line (its 176px iPad basis was becoming
+  height), chips and product cards are tighter, and the footer stays put.
 */
 
 body:has(.inventory-count-session) .mobile-bottom-nav {
@@ -87,10 +90,10 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     flex: 0 0 auto;
     flex-direction: row;
     align-items: stretch;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     max-height: none;
-    padding: 8px 10px;
+    padding: 4px 8px;
     border-right: 0;
     border-bottom: 1px solid var(--one-overlay-08);
     overflow-x: auto;
@@ -103,7 +106,29 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     min-width: 108px;
     min-height: 44px;
     grid-template-columns: 16px minmax(0, 1fr);
-    padding: 6px 10px;
+    align-items: center;
+    padding: 4px 8px;
+  }
+
+  /* Badge sits beside the name so a chip stays one line (44px tap). */
+  .inventory-count-session.is-high-density .inventory-count-session-rail-title-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-rail-title {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    max-height: none;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-rail-state {
+    display: none;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-main {
@@ -115,18 +140,63 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     overflow: hidden;
   }
 
+  /* Search and Filter share one row. The 900px sheet stacks the toolbar,
+     which turned the iPad progress flex-basis (176px) into a tall empty card. */
+  .inventory-count-session.is-high-density .inventory-count-session-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px 2px;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-toolbar-left {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    min-width: 0;
+    align-items: center;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-search {
+    flex: 1 1 0%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-filter-btn {
+    flex: 0 0 auto;
+  }
+
   .inventory-count-session.is-high-density .inventory-count-session-progress-card {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 4px 10px;
-    margin: 0 10px 6px;
-    padding: 6px 10px;
+    align-self: center;
+    justify-content: flex-start;
+    gap: 2px 8px;
+    width: auto;
+    max-width: none;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 100%;
+    margin: 0;
+    padding: 2px 2px 4px;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-progress-percent {
     font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-progress-secondary {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: 0;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-location-readiness {
+    display: none;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
@@ -160,11 +230,11 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
       "item unit status"
       "expected counted status";
     column-gap: 8px;
-    row-gap: 6px;
+    row-gap: 2px;
     align-items: center;
     width: 100%;
     min-width: 100%;
-    padding: 10px 4px;
+    padding: 4px 4px;
     border-bottom: 1px solid var(--one-overlay-08);
   }
 
@@ -193,6 +263,10 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     width: 6.5rem;
     min-width: 0;
     max-width: 100%;
+    box-sizing: border-box;
+    min-height: 32px;
+    height: 32px;
+    padding: 2px 8px;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet.is-blind-count .inventory-count-session-spreadsheet-row .is-counted {
@@ -217,7 +291,30 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     position: sticky;
     bottom: 0;
     flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 6px;
     z-index: 3;
     margin-top: auto;
+    padding: 4px 8px;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-footer-label {
+    display: none;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-footer-value {
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-footer-right {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-footer .inventory-count-session-action-btn {
+    min-height: 40px;
+    white-space: nowrap;
   }
 }

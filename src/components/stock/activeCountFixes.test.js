@@ -44,6 +44,18 @@ describe('Active Count phone portrait layout', () => {
     expect(portraitCss).not.toMatch(/\.inventory-count-session\.is-high-density \{[^}]*max-height:\s*100dvh/)
   })
 
+  it('keeps the portrait sheet dense without giving the progress card a tall flex basis', () => {
+    expect(portraitCss).toMatch(/inventory-count-session-progress-card \{[^}]*max-width:\s*none;[^}]*flex:\s*1 1 100%/)
+    expect(portraitCss).not.toMatch(/inventory-count-session-progress-card \{[^}]*176px/)
+    expect(portraitCss).toMatch(/inventory-count-session-spreadsheet-row \{[^}]*row-gap:\s*2px;[^}]*padding:\s*4px 4px/)
+    expect(portraitCss).toMatch(/inventory-count-session-counted-input \{[^}]*min-height:\s*32px;[^}]*height:\s*32px/)
+    expect(portraitCss).toMatch(/inventory-count-session-rail-item \{[^}]*min-height:\s*44px/)
+    expect(portraitCss).toMatch(/inventory-count-session-rail-state \{\s*display:\s*none/)
+    expect(portraitCss).toMatch(/inventory-count-session-footer \{[^}]*position:\s*sticky;[^}]*bottom:\s*0;[^}]*padding:\s*4px 8px/)
+    expect(portraitCss).toMatch(/inventory-count-session-footer \.inventory-count-session-action-btn \{\s*min-height:\s*40px/)
+    expect(portraitCss).not.toMatch(/--inventory-count-sheet-end-runway|visualViewport/)
+  })
+
   it('raises phone-landscape header and filter taps', () => {
     expect(landscapeCss).toMatch(/inventory-count-session-header-actions \.inventory-count-session-action-btn \{\s*min-height:\s*38px/)
     expect(landscapeCss).toMatch(/inventory-count-session-filter-btn \{\s*min-height:\s*38px/)
