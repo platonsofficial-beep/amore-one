@@ -14,6 +14,7 @@ import { WorkspaceKeyedApp } from './components/workspace/WorkspaceKeyedApp.jsx'
 import './safeOverlay.css'
 import './mobileTabBarLow.css'
 import './countLandscapePhone.css'
+import './activeCountPhonePortrait.css'
 import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 
 bindPhoneLandscapeClass()

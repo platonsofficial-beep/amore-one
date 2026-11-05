@@ -2430,7 +2430,7 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
     const { container, cleanup } = await renderWorkspace()
     const header = container.querySelector('.inventory-count-session-header')
     expect(header?.textContent).toContain('In Progress')
-    expect(header?.textContent).toContain('Blind Count')
+    expect(header?.textContent).toContain('Count')
     expect(header?.textContent).toContain('Progress')
     expect(getButtonByText(header, 'Pause')).toBeTruthy()
     expect(getButtonByText(header, 'Finish Count')).toBeTruthy()
@@ -2760,9 +2760,16 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
   })
 
   it('19–22. Blind mode labels, Complete Location, Pause/Exit remain; no mobile shell coupling', async () => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      visibility: 'blind',
+    })
     const { container, cleanup } = await renderWorkspace()
     const headerText = container.querySelector('.inventory-count-session-header')?.textContent || ''
     expect(headerText).toContain('Blind Count')
+    expect(container.querySelector('.is-expected')).toBeNull()
     expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
     expect(getButtonByText(container, 'Pause')).toBeTruthy()
     expect(getButtonByText(container, 'Exit')).toBeTruthy()
@@ -4584,7 +4591,7 @@ describe('InventoryCountSessionWorkspace header metadata hierarchy (P8.19.3)', (
     expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode']))
     expect(labels).not.toContain('Progress')
     expect(values.some((value) => /New Count/i.test(value))).toBe(true)
-    expect(values.some((value) => /Blind Count/i.test(value))).toBe(true)
+    expect(values.some((value) => /^Count$/i.test(value))).toBe(true)
     expect(progressCard).toBeTruthy()
     expect(footer).toBeTruthy()
     expect(scroll).toBeTruthy()

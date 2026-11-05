@@ -95,8 +95,16 @@ function formatLineStatus(lineStatus) {
   return LINE_STATUS_LABEL[normalized] ?? 'Pending'
 }
 
+function isNegativeCountedQuantity(value) {
+  if (value === null || value === undefined || value === '') return false
+  const numeric = Number(value)
+  return Number.isFinite(numeric) && numeric < 0
+}
+
 function mapItemForDisplay(item) {
-  const lineStatus = `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+  const storedStatus = `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+  const negative = isNegativeCountedQuantity(item.countedQuantity)
+  const lineStatus = negative ? 'pending' : storedStatus
   const category = `${item.category ?? ''}`.trim() || 'Other'
   const itemType = `${item.itemType ?? ''}`.trim() || 'Other'
   return {
@@ -105,13 +113,20 @@ function mapItemForDisplay(item) {
     meta: formatItemMetaLine(category, itemType),
     unit: item.unit || '—',
     expected: formatQuantity(item.expectedSnapshot),
-    counted: item.countedQuantity === null || item.countedQuantity === undefined
+    counted: item.countedQuantity === null || item.countedQuantity === undefined || negative
       ? ''
       : formatQuantity(item.countedQuantity),
     status: formatLineStatus(lineStatus),
     storageLocation: item.storageLocation || 'Other',
     lineStatus,
   }
+}
+
+export function inventoryCountModeLabel(visibility) {
+  const value = `${visibility ?? ''}`.trim().toLowerCase()
+  if (value === 'blind') return 'Blind Count'
+  if (value === 'open') return 'Open count'
+  return 'Count'
 }
 
 function recountLocationItems(items) {
@@ -242,10 +257,14 @@ export function getFinishCountDisabledReason(sessionStatus, locations = []) {
  * P8.19.5 — Show Finish Count banner only for actionable/blocking copy.
  * Routine pending-item text duplicates the progress KPI and stays on the button title.
  */
+export function isRoutinePendingCountReason(reason) {
+  return /^\d+ items? (?:is|are) still pending\.$/.test(`${reason ?? ''}`.trim())
+}
+
 export function shouldShowFinishCountDisabledBanner(reason) {
   const text = `${reason ?? ''}`.trim()
   if (!text) return false
-  if (/^\d+ items? (?:is|are) still pending\.$/.test(text)) return false
+  if (isRoutinePendingCountReason(text)) return false
   return true
 }
 
@@ -387,7 +406,7 @@ function findItemSnapshot(locations, itemId) {
   return null
 }
 
-function parseCountedDraft(rawValue) {
+export function parseCountedDraft(rawValue) {
   const trimmed = `${rawValue ?? ''}`.trim()
   if (trimmed === '') {
     return { ready: true, countedQuantity: null }
@@ -615,6 +634,7 @@ export function InventoryCountSessionWorkspace({
   onPosted,
   sessionId: sessionIdProp = '',
   workspaceId: workspaceIdProp = '',
+  canManage = true,
 }) {
   const { workspace } = useAuth()
   const [locations, setLocations] = useState([])
@@ -1121,6 +1141,11 @@ export function InventoryCountSessionWorkspace({
 
     const trimmed = `${nextValue ?? ''}`
     if (trimmed !== '' && !/^\d*\.?\d*$/.test(trimmed)) {
+      setSaveError('Counted quantity must be a valid non-negative number.')
+      return
+    }
+    if (isNegativeCountedQuantity(trimmed)) {
+      setSaveError('Counted quantity must be a valid non-negative number.')
       return
     }
 
@@ -1514,7 +1539,7 @@ export function InventoryCountSessionWorkspace({
             </span>
             <span className="inventory-count-session-meta-item">
               <span className="inventory-count-session-meta-label">Mode</span>
-              <span className="inventory-count-session-meta-value">Blind Count</span>
+              <span className="inventory-count-session-meta-value">{inventoryCountModeLabel(sessionVisibility)}</span>
             </span>
             <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
               <span className="inventory-count-session-meta-label">Started</span>
@@ -1538,6 +1563,7 @@ export function InventoryCountSessionWorkspace({
           >
             {pauseButtonLabel}
           </button>
+          {canManage ? (
           <button
             type="button"
             className="ghost-btn inventory-count-session-action-btn"
@@ -1550,6 +1576,7 @@ export function InventoryCountSessionWorkspace({
           >
             {isLoadingFinishPreview ? 'Loading…' : 'Finish Count'}
           </button>
+          ) : null}
           <button
             type="button"
             className="ghost-btn inventory-count-session-action-btn"
@@ -1775,6 +1802,7 @@ export function InventoryCountSessionWorkspace({
                               type="text"
                               className="inventory-count-session-counted-input"
                               inputMode="decimal"
+                              min="0"
                               enterKeyHint="next"
                               data-count-item-id={item.id}
                               aria-label={`Counted quantity for ${item.name}`}
@@ -1843,7 +1871,7 @@ export function InventoryCountSessionWorkspace({
               </button>
             </div>
           </footer>
-          {completeLocationDisabledReason ? (
+          {completeLocationDisabledReason && !isRoutinePendingCountReason(completeLocationDisabledReason) ? (
             <p className="inventory-count-complete-disabled-reason" role="status">
               <strong>Complete Location</strong>
               {' '}
