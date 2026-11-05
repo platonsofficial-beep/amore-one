@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav, shouldStaffLandOnTake } from './stockSectionNav'
+import { defaultStockSection, nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav, shouldStaffLandOnTake } from './stockSectionNav'
 
 describe('resolveStockSectionNav', () => {
   it('keeps every stock section for managers outside the phone shell', () => {
@@ -35,24 +35,22 @@ describe('resolveStockSectionNav', () => {
     ])
   })
 
-  it('hides import from staff without removing suppliers', () => {
+  it('shows staff only Take and Counts and lands them on Take', () => {
     const desktop = resolveStockSectionNav({ canManage: false, compactPhone: false })
     const phone = resolveStockSectionNav({ canManage: false, compactPhone: true })
 
-    expect(desktop.primary.map((section) => section.id)).toEqual([
-      'dashboard',
-      'take',
-      'count',
-      'storages',
-      'suppliers',
-      'orders',
-    ])
-    expect(phone.primary.map((section) => section.id)).toEqual(['take', 'dashboard', 'count', 'storages'])
-    expect(phone.overflow.map((section) => section.id)).toEqual(['orders', 'suppliers'])
-    expect(resolvePermittedStockSection('migration', false)).toBe('dashboard')
-    expect(resolvePermittedStockSection('inventory', false)).toBe('dashboard')
-    expect(resolvePermittedStockSection('orders', false)).toBe('orders')
+    expect(desktop.primary.map((section) => section.id)).toEqual(['take', 'count'])
+    expect(desktop.overflow).toEqual([])
+    expect(phone.primary.map((section) => section.id)).toEqual(['take', 'count'])
+    expect(phone.overflow).toEqual([])
+    for (const id of ['dashboard', 'storages', 'suppliers', 'orders', 'migration', 'inventory']) {
+      expect(resolvePermittedStockSection(id, false)).toBe('take')
+    }
+    expect(resolvePermittedStockSection('count', false)).toBe('count')
+    expect(defaultStockSection(false)).toBe('take')
+    expect(defaultStockSection(true)).toBe('dashboard')
     expect(resolvePermittedStockSection('migration', true)).toBe('migration')
+    expect(resolvePermittedStockSection('inventory', true)).toBe('dashboard')
   })
 
   it('clears stock search when the tab changes and keeps it on the same tab', () => {

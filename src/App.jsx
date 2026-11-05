@@ -646,6 +646,7 @@ import {
   shouldUseCommandTopbar,
 } from './lib/appNavigation'
 import {
+  defaultStockSection,
   nextStockSearchTerm,
   resolvePermittedStockSection,
   resolveStockSectionNav,
@@ -21886,7 +21887,7 @@ function App() {
   const handleDashboardViewStock = () => {
     if (!canAccessModule(permissionAccess, 'stock')) return
     handleActiveViewChange('stock')
-    handleStockSectionChange('dashboard')
+    handleStockSectionChange(defaultStockSection(canManageStockRole))
   }
 
   const handleDashboardViewSchedule = () => {
@@ -24103,7 +24104,7 @@ function App() {
         handleOperationsSectionChange('dashboard')
       } else if (tab === 'stock') {
         handleActiveViewChange('stock')
-        handleStockSectionChange('dashboard')
+        handleStockSectionChange(defaultStockSection(canManageStockRole))
       } else if (activeView === 'chat') {
         handleActiveViewChange(resolveDefaultModuleForRole(role))
       }
@@ -24190,7 +24191,7 @@ function App() {
         isManagementMobileRole(role) && useMobileExperience ? 'members' : 'schedule',
       )
     } else if (moduleId === 'stock') {
-      handleStockSectionChange('dashboard')
+      handleStockSectionChange(defaultStockSection(canManageStockRole))
     } else if (moduleId === 'operations') {
       handleOperationsSectionChange('dashboard')
     } else if (moduleId === 'settings') {
@@ -24231,7 +24232,7 @@ function App() {
     if (!canAccessMobileExpandedModule(permissionAccess, 'stock')) return
 
     handleActiveViewChange('stock')
-    handleStockSectionChange('dashboard')
+    handleStockSectionChange(defaultStockSection(canManageStockRole))
     setMobileMenuScreen('main')
     setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
   }, [permissionAccess, handleActiveViewChange, handleStockSectionChange, role, useMobileExperience])

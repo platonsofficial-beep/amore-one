@@ -3,8 +3,9 @@ import { STOCK_SECTIONS } from './appNavigation'
 /** Phone stock row. The rest stay reachable from More. */
 export const STOCK_PHONE_PRIMARY_SECTION_IDS = ['dashboard', 'count', 'storages', 'orders']
 
-/** Staff phones lead with Take (take from storage), Orders moves to More. */
-export const STOCK_STAFF_PHONE_PRIMARY_SECTION_IDS = ['take', 'dashboard', 'count', 'storages']
+/** Without Stock manage, staff only see Take and Counts (Platon, Nov 2026). */
+export const STOCK_STAFF_SECTION_IDS = ['take', 'count']
+export const STOCK_STAFF_PHONE_PRIMARY_SECTION_IDS = STOCK_STAFF_SECTION_IDS
 
 /** Spreadsheet import is a manager tool. Staff do not see it. */
 export const STOCK_MANAGER_ONLY_SECTION_IDS = ['migration']
@@ -13,12 +14,17 @@ export const STOCK_MANAGER_ONLY_SECTION_IDS = ['migration']
 const STOCK_PHONE_OVERFLOW_ORDER = ['take', 'orders', 'suppliers', 'migration']
 
 export function isStockSectionVisible(sectionId, canManage) {
-  if (!canManage && STOCK_MANAGER_ONLY_SECTION_IDS.includes(sectionId)) return false
+  if (!canManage && !STOCK_STAFF_SECTION_IDS.includes(sectionId)) return false
   return STOCK_SECTIONS.some((section) => section.id === sectionId)
 }
 
 export function resolvePermittedStockSection(sectionId, canManage) {
-  return isStockSectionVisible(sectionId, canManage) ? sectionId : 'dashboard'
+  return isStockSectionVisible(sectionId, canManage) ? sectionId : defaultStockSection(canManage)
+}
+
+/** Where Stock opens: managers on Dashboard, everyone else on Take. */
+export function defaultStockSection(canManage) {
+  return canManage ? 'dashboard' : 'take'
 }
 
 /**
