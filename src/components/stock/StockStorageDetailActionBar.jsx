@@ -1,6 +1,10 @@
 /**
  * P8.30.3 / P8.30.4 — Storage detail operational action bar.
+ * 0012: in phone landscape, Transfer / Adjustment / Waste / Rename fold into a
+ * "More" sheet (CSS only shows the toggle there). The buttons stay in the DOM
+ * everywhere, so every action keeps working.
  */
+import { useEffect, useState } from 'react'
 
 /**
  * @param {{
@@ -57,6 +61,41 @@ export function StockStorageDetailActionBar({
     )
   }
 
+  return (
+    <ManagerActionBar
+      storage={storage}
+      isLaunchingFastCount={isLaunchingFastCount}
+      onStartFastCount={onStartFastCount}
+      onReceive={onReceive}
+      onTransfer={onTransfer}
+      onAdjustment={onAdjustment}
+      onWaste={onWaste}
+      onRename={onRename}
+    />
+  )
+}
+
+function ManagerActionBar({
+  storage,
+  isLaunchingFastCount,
+  onStartFastCount,
+  onReceive,
+  onTransfer,
+  onAdjustment,
+  onWaste,
+  onRename,
+}) {
+  const [moreOpen, setMoreOpen] = useState(false)
+  useEffect(() => {
+    if (!moreOpen) return undefined
+    const onKey = (event) => { if (event.key === 'Escape') setMoreOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [moreOpen])
+  const runMore = (handler) => {
+    setMoreOpen(false)
+    handler?.(storage)
+  }
   const isArchived = storage?.active === false
   const fastCountDisabled = isArchived || isLaunchingFastCount
   const unavailableReason = isArchived
@@ -95,11 +134,36 @@ export function StockStorageDetailActionBar({
       </button>
       <button
         type="button"
+        className="ghost-btn stock-storage-detail-action-btn stock-storage-detail-more-toggle"
+        data-storage-action="more"
+        aria-haspopup="true"
+        aria-expanded={moreOpen}
+        onClick={() => setMoreOpen((open) => !open)}
+      >
+        More ⋯
+      </button>
+      {moreOpen ? (
+        <button
+          type="button"
+          className="stock-storage-detail-more-backdrop"
+          aria-label="Close more actions"
+          tabIndex={-1}
+          onClick={() => setMoreOpen(false)}
+        />
+      ) : null}
+      <div
+        className={`stock-storage-detail-more${moreOpen ? ' is-open' : ''}`}
+        data-testid="stock-storage-detail-more"
+        aria-label="More storage actions"
+      >
+      <p className="stock-storage-detail-more-title" aria-hidden="true">More actions</p>
+      <button
+        type="button"
         className="ghost-btn stock-storage-detail-action-btn"
         data-storage-action="transfer"
         disabled={isArchived || isLaunchingFastCount}
         title={unavailableReason}
-        onClick={() => onTransfer?.(storage)}
+        onClick={() => runMore(onTransfer)}
       >
         Transfer
       </button>
@@ -109,7 +173,7 @@ export function StockStorageDetailActionBar({
         data-storage-action="adjustment"
         disabled={isArchived || isLaunchingFastCount}
         title={unavailableReason}
-        onClick={() => onAdjustment?.(storage)}
+        onClick={() => runMore(onAdjustment)}
       >
         Adjustment
       </button>
@@ -119,7 +183,7 @@ export function StockStorageDetailActionBar({
         data-storage-action="waste"
         disabled={isArchived || isLaunchingFastCount}
         title={unavailableReason}
-        onClick={() => onWaste?.(storage)}
+        onClick={() => runMore(onWaste)}
       >
         Waste
       </button>
@@ -128,11 +192,12 @@ export function StockStorageDetailActionBar({
           type="button"
           className="stock-storage-detail-action-btn is-tertiary"
           data-storage-action="rename"
-          onClick={() => onRename(storage)}
+          onClick={() => runMore(onRename)}
         >
           Rename
         </button>
       ) : null}
+      </div>
     </div>
   )
 }
