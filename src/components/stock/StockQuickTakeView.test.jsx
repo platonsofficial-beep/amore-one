@@ -30,21 +30,22 @@ const waitFor = async (fn) => { await flush(); fn() }
 
 const take = vi.fn()
 const undo = vi.fn()
-const available = vi.fn()
+const rpc = vi.fn(async () => ({ data: null, error: null }))
+vi.mock('../../lib/supabaseClient', () => ({ supabase: { rpc: (...a) => rpc(...a) } }))
 vi.mock('../../services/stockStorageCenterService', () => ({
   getWorkspaceStorageSummaries: vi.fn(async () => ({ storages: [{ id: 'st1', name: 'Water storage', productCount: 1, isSupply: true }, { id: 'st2', name: 'Bar shelf', productCount: 1, isSupply: false }] })),
   getWorkspaceStorageProducts: vi.fn(async () => ({ products: [{ stockItemId: 'w1', name: 'Water 1.5L', category: 'Still water', unit: 'Bottle', quantity: 48, active: true, costPrice: 9, item: {} }] })),
 }))
 vi.mock('../../services/stockQuickTakeService', async (orig) => {
   const real = await orig()
-  return { ...real, quickTakeAvailable: () => available(), takeStockFromStorage: (...a) => take(...a), undoQuickTake: (...a) => undo(...a) }
+  return { ...real, takeStockFromStorage: (...a) => take(...a), undoQuickTake: (...a) => undo(...a) }
 })
 const { StockQuickTakeView } = await import('./StockQuickTakeView')
 const items = [{ id: 'w1', packUnit: 'Case', unitsPerPack: 6 }]
 
 describe('StockQuickTakeView', () => {
   afterEach(() => { act(() => root?.unmount()); container?.remove() })
-  beforeEach(() => { take.mockReset(); undo.mockReset(); available.mockResolvedValue(true); localStorage.clear() })
+  beforeEach(() => { take.mockReset(); undo.mockReset(); rpc.mockClear(); localStorage.clear() })
 
   it('takes 5 cases as 30 bottles and offers Undo', async () => {
     take.mockResolvedValue({ movementId: 'mv1', quantityAfter: 18 })
@@ -73,9 +74,21 @@ describe('StockQuickTakeView', () => {
     expect(screen.getByText('Done').closest('button').disabled).toBe(false)
   })
 
-  it('shows a clear message when the server feature is missing', async () => {
-    available.mockResolvedValue(false)
+  it('calls no RPC when the Take screen opens', async () => {
     await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items }))
+    expect(await screen.findByText('Water storage')).toBeTruthy()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(take).not.toHaveBeenCalled()
+  })
+
+  it('shows a clear message when a real take finds the server feature missing', async () => {
+    const { QuickTakeUnavailableError } = await import('../../services/stockQuickTakeService')
+    take.mockRejectedValue(new QuickTakeUnavailableError())
+    await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items }))
+    await fireEvent.click(await screen.findByText('Water storage'))
+    await fireEvent.click(await screen.findByText('Still water'))
+    await fireEvent.click(await screen.findByText('Water 1.5L'))
+    await fireEvent.click(screen.getByText('Done'))
     expect(await screen.findByText(/not switched on yet/)).toBeTruthy()
   })
 

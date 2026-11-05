@@ -1,5 +1,6 @@
 import {
   bindPwaFormDirtyTracking,
+  bindPwaHiddenReload,
   bindPwaUpdateChecks,
   decidePwaUpdateAction,
   markPwaUpdateAvailable,
@@ -10,6 +11,7 @@ export async function registerPwaServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
 
   bindPwaFormDirtyTracking(window)
+  bindPwaHiddenReload(window)
 
   const { registerSW } = await import('virtual:pwa-register')
   registerSW({
@@ -24,6 +26,8 @@ export async function registerPwaServiceWorker() {
         return
       }
       if (action === 'reload') window.location.reload()
+      // Reloaded <15s ago: keep the update pending so the banner or the next background applies it.
+      else markPwaUpdateAvailable()
     },
     onRegisteredSW(_swUrl, registration) {
       if (registration) bindPwaUpdateChecks(registration, window)

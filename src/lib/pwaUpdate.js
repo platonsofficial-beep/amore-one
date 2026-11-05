@@ -7,6 +7,8 @@ let formDirty = false
 let lastReloadAt = 0
 let formListenersBound = false
 let updateChecksBound = false
+let hiddenReloadBound = false
+let hiddenReloadUsed = false
 
 function isElement(value) {
   return Boolean(value) && value.nodeType === 1
@@ -103,6 +105,7 @@ export function reloadPwaForUpdate(location, storage, { force = false, now = Dat
 }
 
 export function markPwaUpdateAvailable() {
+  if (!updateAvailable) hiddenReloadUsed = false
   updateAvailable = true
   listeners.forEach((listener) => listener(true))
 }
@@ -167,7 +170,39 @@ export function bindPwaUpdateChecks(registration, targetWindow) {
   }
 }
 
+/**
+ * A pending update is applied when the app goes to the background:
+ * no form edits, no open dialog, at most once per pending update, and
+ * still behind the 15s reload guard so it can never loop.
+ */
+export function shouldReloadPwaOnHidden(doc) {
+  if (!updateAvailable || hiddenReloadUsed) return false
+  if (doc?.visibilityState !== 'hidden') return false
+  return !shouldDeferPwaRefresh(doc)
+}
+
+export function applyPendingPwaUpdateOnHidden(targetWindow, now = Date.now()) {
+  const doc = targetWindow?.document
+  if (!shouldReloadPwaOnHidden(doc)) return false
+  hiddenReloadUsed = true
+  return reloadPwaForUpdate(targetWindow.location, targetWindow.sessionStorage, { now })
+}
+
+export function bindPwaHiddenReload(targetWindow) {
+  const doc = targetWindow?.document
+  if (!doc || hiddenReloadBound) return () => {}
+  hiddenReloadBound = true
+  const onVisibility = () => { applyPendingPwaUpdateOnHidden(targetWindow) }
+  doc.addEventListener('visibilitychange', onVisibility)
+  return () => {
+    doc.removeEventListener('visibilitychange', onVisibility)
+    hiddenReloadBound = false
+  }
+}
+
 export function resetPwaUpdateSessionForTests() {
+  hiddenReloadBound = false
+  hiddenReloadUsed = false
   updateAvailable = false
   formDirty = false
   lastReloadAt = 0
