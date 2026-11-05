@@ -77,10 +77,22 @@ export function shouldStaffLandOnTake({ previousView = null, activeView = '', ca
 /**
  * L-06: entering Stock from another module (or a cold open) always starts on the
  * role default: managers on Dashboard, staff on Take. Returns null when no reset is needed.
+ * An explicit deep link (Insights "View Suppliers", for example) passes
+ * requestedSection and is kept instead of the role default.
  */
-export function stockEntrySection({ previousView = null, activeView = '', canManage = false, stockSection = '' } = {}) {
+export function stockEntrySection({
+  previousView = null,
+  activeView = '',
+  canManage = false,
+  stockSection = '',
+  requestedSection = '',
+} = {}) {
   if (activeView !== 'stock') return null
   if (previousView === 'stock') return null
+  const requested = `${requestedSection ?? ''}`.trim()
+  if (requested) {
+    return stockSection === requested ? null : requested
+  }
   const target = defaultStockSection(canManage)
   return stockSection === target ? null : target
 }

@@ -1,12 +1,17 @@
 import { useMemo, useState } from 'react'
 import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
+import { useMediaQuery } from '../../lib/useMediaQuery'
 import {
   REPORT_PERIOD_TODAY,
   REPORT_PERIOD_WEEK,
+  buildInsightsStockRemainders,
   buildReportsBundle,
   formatReportCurrency,
   formatReportMetricValue,
   formatReportPercent,
+  insightTextMatchesQuery,
+  normalizeInsightSearchQuery,
+  presentInsightsAttentionItem,
 } from '../../lib/reportsUtils'
 
 const EXECUTIVE_OVERVIEW_CARD_COUNT = 6
@@ -62,7 +67,6 @@ function ReportSection({
     <section className="reports-section panel staff-panel">
       <header className="reports-section-header">
         <div>
-          <p className="eyebrow">Module summary</p>
           <h3 className="reports-section-heading">
             {icon ? <span className="reports-section-icon" aria-hidden="true">{icon}</span> : null}
             {title}
@@ -92,8 +96,6 @@ function ReportSection({
           ))}
         </div>
       )}
-
-      <p className="reports-section-footer">{MODULE_FOOTER}</p>
     </section>
   )
 }
@@ -110,9 +112,11 @@ function formatSectionMetric(value, { connected = true, format = 'count' } = {})
 
 function InsightsAttentionPanel({
   attentionItems,
+  stockRemainders = [],
   attentionPermissions,
   onAttentionItemClick,
   onCompleteAttentionItem,
+  onViewModule,
   isLoading,
 }) {
   if (isLoading) {
@@ -128,7 +132,6 @@ function InsightsAttentionPanel({
           </div>
         </header>
         <ReportsLoadingState variant="section" />
-        <p className="reports-section-footer">{MODULE_FOOTER}</p>
       </section>
     )
   }
@@ -145,28 +148,49 @@ function InsightsAttentionPanel({
         </div>
       </header>
 
-      {attentionItems.length === 0 ? (
+      {attentionItems.length === 0 && stockRemainders.length === 0 ? (
         <div className="schedule-empty-state reports-section-empty">
           <p>No urgent issues right now.</p>
           <p className="reports-section-empty-guidance">Operational alerts from tasks, stock, schedule, and service will appear here.</p>
         </div>
-      ) : (
+      ) : attentionItems.length > 0 ? (
         <ul className="today-attention-list reports-attention-list">
           {attentionItems.map((item) => (
             <TodayAttentionListItem
               key={item.key}
-              item={item}
+              item={presentInsightsAttentionItem(item)}
               attentionPermissions={attentionPermissions}
               onAttentionItemClick={onAttentionItemClick}
               onCompleteAttentionItem={onCompleteAttentionItem}
             />
           ))}
         </ul>
-      )}
+      ) : null}
 
-      <p className="reports-section-footer">{MODULE_FOOTER}</p>
+      {stockRemainders.length > 0 ? (
+        <div className="reports-stock-remainders">
+          {stockRemainders.map((remainder) => (
+            <button
+              key={remainder.key}
+              type="button"
+              className="ghost-btn reports-stock-remainder-btn"
+              onClick={() => onViewModule?.(remainder.moduleId)}
+            >
+              {remainder.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   )
+}
+
+function sectionIsVisible(query, title, note, metrics, emptyMessage) {
+  if (!query) return { show: true, metrics }
+  if (insightTextMatchesQuery(query, title, note, emptyMessage)) return { show: true, metrics }
+  if (emptyMessage) return { show: false, metrics }
+  const matched = metrics.filter((metric) => insightTextMatchesQuery(query, metric.label, metric.value))
+  return { show: matched.length > 0, metrics: matched }
 }
 
 export default function ReportsView({
@@ -192,8 +216,11 @@ export default function ReportsView({
   timeZone = '',
   operationsTasks = [],
   announcements = [],
+  searchTerm = '',
 }) {
   const [period, setPeriod] = useState(REPORT_PERIOD_TODAY)
+  const attentionFirst = useMediaQuery('(max-width: 640px)')
+  const searchQuery = normalizeInsightSearchQuery(searchTerm)
 
   const reports = useMemo(() => buildReportsBundle({
     period,
@@ -378,12 +405,22 @@ export default function ReportsView({
     },
   ]
 
+  const openOrderCount = Number(reports.stockReport.metrics.pendingOrders) || 0
+  const awaitingDeliveryCount = Number(reports.stockReport.metrics.awaitingDelivery) || 0
+  const ordersToReviewCount = Math.max(0, openOrderCount - awaitingDeliveryCount)
   if (reports.stockReport.stockModuleConnected && reports.stockReport.metrics.pendingOrders != null) {
     stockMetrics.push(
       {
         key: 'pending-orders',
-        label: 'Pending orders',
+        label: 'Open orders',
         value: formatSectionMetric(reports.stockReport.metrics.pendingOrders, {
+          connected: stockConnected,
+        }),
+      },
+      {
+        key: 'orders-to-review',
+        label: 'Orders to review',
+        value: formatSectionMetric(ordersToReviewCount, {
           connected: stockConnected,
         }),
       },
@@ -397,10 +434,265 @@ export default function ReportsView({
     )
   }
 
+  const stockOrderNote = reports.stockReport.stockModuleConnected && openOrderCount > 0
+    ? 'Open orders include drafts to review and orders awaiting delivery.'
+    : null
+
   const scheduleNote = [
     reports.scheduleReport.usesDraftSchedule ? 'Draft schedule data' : null,
     reports.scheduleReport.coverageDetail,
   ].filter(Boolean).join(' · ') || null
+
+  const taskMetrics = [
+    {
+      key: 'active',
+      label: 'Active',
+      value: formatSectionMetric(reports.tasksReport.metrics.active, {
+        connected: reports.tasksReport.connected,
+      }),
+    },
+    {
+      key: 'overdue',
+      label: 'Overdue',
+      value: formatSectionMetric(reports.tasksReport.metrics.overdue, {
+        connected: reports.tasksReport.connected,
+      }),
+    },
+    {
+      key: 'urgent',
+      label: 'Urgent',
+      value: formatSectionMetric(reports.tasksReport.metrics.urgent, {
+        connected: reports.tasksReport.connected,
+      }),
+    },
+    {
+      key: 'completed',
+      label: period === REPORT_PERIOD_TODAY ? 'Completed today' : 'Completed',
+      value: formatSectionMetric(reports.tasksReport.metrics.completed, {
+        connected: reports.tasksReport.connected,
+      }),
+    },
+    ...(period === REPORT_PERIOD_TODAY
+      ? [{
+        key: 'completion',
+        label: 'Completion %',
+        value: formatSectionMetric(reports.tasksReport.metrics.completionPercent, {
+          connected: reports.tasksReport.connected,
+          format: 'percent',
+        }),
+      }]
+      : []),
+  ]
+
+  const scheduleMetrics = [
+    {
+      key: 'scheduled-staff',
+      label: 'Scheduled staff',
+      value: formatSectionMetric(reports.scheduleReport.metrics.scheduledStaff, {
+        connected: reports.scheduleReport.connected,
+      }),
+    },
+    {
+      key: 'scheduled-hours',
+      label: 'Scheduled hours',
+      value: reports.scheduleReport.connected
+        ? `${reports.scheduleReport.metrics.scheduledHoursLabel || '0'}h`
+        : 'Not connected',
+    },
+    ...(period === REPORT_PERIOD_TODAY
+      ? [{
+        key: 'issues',
+        label: 'Schedule issues',
+        value: formatSectionMetric(reports.scheduleReport.metrics.issues, {
+          connected: reports.scheduleReport.connected,
+        }),
+      }]
+      : []),
+  ]
+
+  const supplierMetrics = [
+    {
+      key: 'total',
+      label: 'Total suppliers',
+      value: formatSectionMetric(reports.suppliersReport.metrics.totalSuppliers, {
+        connected: reports.suppliersReport.connected,
+      }),
+    },
+    {
+      key: 'linked',
+      label: 'Linked to stock',
+      value: formatSectionMetric(reports.suppliersReport.metrics.linkedToStock, {
+        connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
+      }),
+    },
+    {
+      key: 'unlinked',
+      label: 'Without stock items',
+      value: formatSectionMetric(reports.suppliersReport.metrics.withoutStockItems, {
+        connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
+      }),
+    },
+  ]
+
+  const filtering = Boolean(searchQuery) && !isLoading
+  const briefMatches = !filtering || insightTextMatchesQuery(
+    searchQuery,
+    'Manager Brief',
+    'Executive summary',
+    reports.healthSummary,
+  )
+  const visibleOverview = briefMatches
+    ? reports.overview
+    : reports.overview.filter((metric) => insightTextMatchesQuery(searchQuery, metric.label))
+  const showBrief = isLoading || briefMatches || visibleOverview.length > 0
+
+  const stockRemainders = showAttentionPanel
+    ? buildInsightsStockRemainders(reports.insightsAttention, reports.stockReport)
+    : []
+  const attentionMatches = !filtering || insightTextMatchesQuery(
+    searchQuery,
+    'Needs attention',
+    'Actionable insights',
+  )
+  const visibleAttention = attentionMatches
+    ? reports.insightsAttention
+    : reports.insightsAttention.filter((item) => insightTextMatchesQuery(searchQuery, item.label, item.detail))
+  const visibleRemainders = !filtering
+    ? stockRemainders
+    : stockRemainders.filter((remainder) => insightTextMatchesQuery(searchQuery, remainder.label, 'low', 'out', 'stock'))
+  const showAttention = showAttentionPanel && (
+    isLoading || attentionMatches || visibleAttention.length > 0 || visibleRemainders.length > 0
+  )
+
+  const moduleSections = [
+    {
+      key: 'reservations',
+      title: 'Reservations',
+      icon: '📅',
+      metrics: reservationMetrics,
+      emptyMessage: !reports.reservationsReport.connected
+        ? 'Reservations module is not connected.'
+        : reservationsEmpty,
+      emptyGuidance: reservationsEmpty ? EMPTY_STATE_GUIDANCE.reservations : null,
+      viewModuleLabel: 'View Reservations →',
+      moduleId: 'reservations',
+    },
+    {
+      key: 'tasks',
+      title: 'Tasks',
+      icon: '✓',
+      metrics: taskMetrics,
+      emptyMessage: !reports.tasksReport.connected
+        ? 'Tasks module is not connected.'
+        : tasksEmpty,
+      emptyGuidance: tasksEmpty ? EMPTY_STATE_GUIDANCE.tasks : null,
+      viewModuleLabel: 'View Tasks →',
+      moduleId: 'tasks',
+    },
+    {
+      key: 'stock',
+      title: 'Stock',
+      icon: '📦',
+      note: stockOrderNote,
+      metrics: stockMetrics,
+      emptyMessage: !stockConnected
+        ? 'Stock module is not connected.'
+        : stockEmpty,
+      emptyGuidance: stockEmpty ? EMPTY_STATE_GUIDANCE.stock : null,
+      viewModuleLabel: 'View Stock →',
+      moduleId: 'stock',
+    },
+    {
+      key: 'schedule',
+      title: 'Schedule',
+      icon: '🕒',
+      note: scheduleNote,
+      metrics: scheduleMetrics,
+      emptyMessage: !reports.scheduleReport.connected
+        ? 'Schedule module is not connected.'
+        : scheduleEmpty,
+      emptyGuidance: scheduleEmpty ? EMPTY_STATE_GUIDANCE.schedule : null,
+      viewModuleLabel: 'View Schedule →',
+      moduleId: 'schedule',
+    },
+    {
+      key: 'suppliers',
+      title: 'Suppliers',
+      icon: '🚚',
+      metrics: supplierMetrics,
+      emptyMessage: !reports.suppliersReport.connected
+        ? 'Suppliers module is not connected.'
+        : suppliersEmpty,
+      emptyGuidance: suppliersEmpty ? EMPTY_STATE_GUIDANCE.suppliers : null,
+      viewModuleLabel: 'View Suppliers →',
+      moduleId: 'suppliers',
+    },
+  ].map((section) => {
+    const visibility = sectionIsVisible(
+      filtering ? searchQuery : '',
+      section.title,
+      section.note,
+      section.metrics,
+      section.emptyMessage,
+    )
+    return { ...section, ...visibility }
+  }).filter((section) => section.show)
+
+  const showOpenOrderNote = !isLoading && visibleOverview.some((metric) => metric.key === 'pending-orders')
+  const anyCards = showBrief || showAttention || moduleSections.length > 0
+
+  const attentionPanel = showAttention ? (
+    <InsightsAttentionPanel
+      attentionItems={visibleAttention}
+      stockRemainders={visibleRemainders}
+      attentionPermissions={attentionPermissions}
+      onAttentionItemClick={onAttentionItemClick}
+      onCompleteAttentionItem={onCompleteAttentionItem}
+      onViewModule={onViewModule}
+      isLoading={isLoading}
+    />
+  ) : null
+
+  const briefPanel = showBrief ? (
+    <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
+      <header className="reports-overview-header">
+        <div>
+          <p className="eyebrow">Executive summary</p>
+          <h3 className="reports-section-heading">
+            <span className="reports-section-icon" aria-hidden="true">⚡</span>
+            Manager Brief
+          </h3>
+          <p className="reports-overview-subtitle">
+            {isLoading ? 'Loading operational overview…' : reports.healthSummary}
+          </p>
+        </div>
+      </header>
+
+      {isLoading ? (
+        <ReportsLoadingState variant="overview" />
+      ) : (
+        <div className="reports-overview-grid">
+          {visibleOverview.map((metric) => (
+            <ReportMetric
+              key={metric.key}
+              label={metric.label}
+              value={formatReportMetricValue(metric.value, {
+                connected: metric.connected,
+                format: metric.format,
+              })}
+              emphasize
+            />
+          ))}
+        </div>
+      )}
+
+      {showOpenOrderNote ? (
+        <p className="reports-overview-note">
+          Open orders include drafts to review and orders awaiting delivery.
+        </p>
+      ) : null}
+    </section>
+  ) : null
 
   return (
     <section className="staff-page reports-page">
@@ -427,203 +719,36 @@ export default function ReportsView({
         </div>
       ) : null}
 
-      <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
-        <header className="reports-overview-header">
-          <div>
-            <p className="eyebrow">Executive summary</p>
-            <h3 className="reports-section-heading">
-              <span className="reports-section-icon" aria-hidden="true">⚡</span>
-              Manager Brief
-            </h3>
-            <p className="reports-overview-subtitle">
-              {isLoading ? 'Loading operational overview…' : reports.healthSummary}
-            </p>
-          </div>
-        </header>
-
-        {isLoading ? (
-          <ReportsLoadingState variant="overview" />
-        ) : (
-          <div className="reports-overview-grid">
-            {reports.overview.map((metric) => (
-              <ReportMetric
-                key={metric.key}
-                label={metric.label}
-                value={formatReportMetricValue(metric.value, {
-                  connected: metric.connected,
-                  format: metric.format,
-                })}
-                emphasize
-              />
-            ))}
-          </div>
-        )}
-
-        <p className="reports-section-footer">{MODULE_FOOTER}</p>
-      </section>
-
-      {showAttentionPanel ? (
-        <InsightsAttentionPanel
-          attentionItems={reports.insightsAttention}
-          attentionPermissions={attentionPermissions}
-          onAttentionItemClick={onAttentionItemClick}
-          onCompleteAttentionItem={onCompleteAttentionItem}
-          isLoading={isLoading}
-        />
+      {filtering && !anyCards ? (
+        <div className="schedule-empty-state reports-section-empty reports-search-empty">
+          <p>No insights match that search.</p>
+        </div>
       ) : null}
 
-      <div className="reports-sections">
-        <ReportSection
-          title="Reservations"
-          icon="📅"
-          metrics={reservationMetrics}
-          emptyMessage={!reports.reservationsReport.connected
-            ? 'Reservations module is not connected.'
-            : reservationsEmpty}
-          emptyGuidance={reservationsEmpty ? EMPTY_STATE_GUIDANCE.reservations : null}
-          isLoading={isLoading}
-          onViewModule={() => onViewModule?.('reservations')}
-          viewModuleLabel="View Reservations →"
-        />
+      {attentionFirst ? attentionPanel : null}
+      {briefPanel}
+      {attentionFirst ? null : attentionPanel}
 
-        <ReportSection
-          title="Tasks"
-          icon="✓"
-          metrics={[
-            {
-              key: 'active',
-              label: 'Active',
-              value: formatSectionMetric(reports.tasksReport.metrics.active, {
-                connected: reports.tasksReport.connected,
-              }),
-            },
-            {
-              key: 'overdue',
-              label: 'Overdue',
-              value: formatSectionMetric(reports.tasksReport.metrics.overdue, {
-                connected: reports.tasksReport.connected,
-              }),
-            },
-            {
-              key: 'urgent',
-              label: 'Urgent',
-              value: formatSectionMetric(reports.tasksReport.metrics.urgent, {
-                connected: reports.tasksReport.connected,
-              }),
-            },
-            {
-              key: 'completed',
-              label: period === REPORT_PERIOD_TODAY ? 'Completed today' : 'Completed',
-              value: formatSectionMetric(reports.tasksReport.metrics.completed, {
-                connected: reports.tasksReport.connected,
-              }),
-            },
-            {
-              key: 'completion',
-              label: 'Completion %',
-              value: period === REPORT_PERIOD_TODAY
-                ? formatSectionMetric(reports.tasksReport.metrics.completionPercent, {
-                  connected: reports.tasksReport.connected,
-                  format: 'percent',
-                })
-                : '—',
-            },
-          ]}
-          emptyMessage={!reports.tasksReport.connected
-            ? 'Tasks module is not connected.'
-            : tasksEmpty}
-          emptyGuidance={tasksEmpty ? EMPTY_STATE_GUIDANCE.tasks : null}
-          isLoading={isLoading}
-          onViewModule={() => onViewModule?.('tasks')}
-          viewModuleLabel="View Tasks →"
-        />
+      {moduleSections.length > 0 ? (
+        <div className="reports-sections">
+          {moduleSections.map((section) => (
+            <ReportSection
+              key={section.key}
+              title={section.title}
+              icon={section.icon}
+              note={section.note}
+              metrics={section.metrics}
+              emptyMessage={section.emptyMessage}
+              emptyGuidance={section.emptyGuidance}
+              isLoading={isLoading}
+              onViewModule={() => onViewModule?.(section.moduleId)}
+              viewModuleLabel={section.viewModuleLabel}
+            />
+          ))}
+        </div>
+      ) : null}
 
-        <ReportSection
-          title="Stock"
-          icon="📦"
-          metrics={stockMetrics}
-          emptyMessage={!stockConnected
-            ? 'Stock module is not connected.'
-            : stockEmpty}
-          emptyGuidance={stockEmpty ? EMPTY_STATE_GUIDANCE.stock : null}
-          isLoading={isLoading}
-          onViewModule={() => onViewModule?.('stock')}
-          viewModuleLabel="View Stock →"
-        />
-
-        <ReportSection
-          title="Schedule"
-          icon="🕒"
-          note={scheduleNote}
-          metrics={[
-            {
-              key: 'scheduled-staff',
-              label: 'Scheduled staff',
-              value: formatSectionMetric(reports.scheduleReport.metrics.scheduledStaff, {
-                connected: reports.scheduleReport.connected,
-              }),
-            },
-            {
-              key: 'scheduled-hours',
-              label: 'Scheduled hours',
-              value: reports.scheduleReport.connected
-                ? `${reports.scheduleReport.metrics.scheduledHoursLabel ?? '—'}h`
-                : 'Not connected',
-            },
-            {
-              key: 'issues',
-              label: 'Schedule issues',
-              value: period === REPORT_PERIOD_TODAY
-                ? formatSectionMetric(reports.scheduleReport.metrics.issues, {
-                  connected: reports.scheduleReport.connected,
-                })
-                : '—',
-            },
-          ]}
-          emptyMessage={!reports.scheduleReport.connected
-            ? 'Schedule module is not connected.'
-            : scheduleEmpty}
-          emptyGuidance={scheduleEmpty ? EMPTY_STATE_GUIDANCE.schedule : null}
-          isLoading={isLoading}
-          onViewModule={() => onViewModule?.('schedule')}
-          viewModuleLabel="View Schedule →"
-        />
-
-        <ReportSection
-          title="Suppliers"
-          icon="🚚"
-          metrics={[
-            {
-              key: 'total',
-              label: 'Total suppliers',
-              value: formatSectionMetric(reports.suppliersReport.metrics.totalSuppliers, {
-                connected: reports.suppliersReport.connected,
-              }),
-            },
-            {
-              key: 'linked',
-              label: 'Linked to stock',
-              value: formatSectionMetric(reports.suppliersReport.metrics.linkedToStock, {
-                connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
-              }),
-            },
-            {
-              key: 'unlinked',
-              label: 'Without stock items',
-              value: formatSectionMetric(reports.suppliersReport.metrics.withoutStockItems, {
-                connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
-              }),
-            },
-          ]}
-          emptyMessage={!reports.suppliersReport.connected
-            ? 'Suppliers module is not connected.'
-            : suppliersEmpty}
-          emptyGuidance={suppliersEmpty ? EMPTY_STATE_GUIDANCE.suppliers : null}
-          isLoading={isLoading}
-          onViewModule={() => onViewModule?.('suppliers')}
-          viewModuleLabel="View Suppliers →"
-        />
-      </div>
+      <p className="reports-page-footer">{MODULE_FOOTER}</p>
     </section>
   )
 }

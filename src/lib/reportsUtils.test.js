@@ -4,7 +4,10 @@ import {
   REPORT_PERIOD_WEEK,
   buildInsightsAttentionItems,
   buildInsightsHealthSummary,
+  buildInsightsStockRemainders,
   buildInsightsStockReport,
+  insightTextMatchesQuery,
+  presentInsightsAttentionItem,
   buildReportsBundle,
   buildReportsOverview,
   buildReservationsReport,
@@ -398,6 +401,7 @@ describe('reportsUtils', () => {
 
     expect(overview.find((card) => card.key === 'covers')?.value).toBe(12)
     expect(overview.find((card) => card.key === 'pending-orders')?.value).toBe(4)
+    expect(overview.find((card) => card.key === 'pending-orders')?.label).toBe('Open orders')
     expect(overview.find((card) => card.key === 'tasks-overdue')?.value).toBe(2)
   })
 
@@ -436,7 +440,49 @@ describe('reportsUtils', () => {
     })
 
     expect(stable).toBe('Service: On track')
-    expect(urgent).toBe('2 areas need attention today')
+    expect(urgent).toBe('2 items need attention today')
+  })
+
+  it('writes a week summary instead of a bare zero-hours headline', () => {
+    const quiet = buildInsightsHealthSummary({
+      period: REPORT_PERIOD_WEEK,
+      reservationsReport: { connected: true, metrics: { bookings: 0 } },
+      tasksReport: { connected: true, metrics: { completed: 0 } },
+      scheduleReport: { connected: true, metrics: { scheduledHours: 0, scheduledHoursLabel: '0' } },
+    })
+    const active = buildInsightsHealthSummary({
+      period: REPORT_PERIOD_WEEK,
+      reservationsReport: { connected: true, metrics: { bookings: 4 } },
+      tasksReport: { connected: true, metrics: { completed: 2 } },
+      scheduleReport: { connected: true, metrics: { scheduledHours: 12, scheduledHoursLabel: '12' } },
+    })
+
+    expect(quiet).toBe('No bookings, no tasks completed, and no hours scheduled this week.')
+    expect(quiet).not.toContain('0h')
+    expect(active).toBe('4 bookings · 2 tasks completed · 12h scheduled')
+  })
+
+  it('names low stock the attention list left out', () => {
+    const remainders = buildInsightsStockRemainders([
+      { key: 'stock:1', detail: 'Out of stock' },
+      { key: 'stock:2', detail: 'Out of stock' },
+      { key: 'stock:3', detail: 'Out of stock' },
+      { key: 'orders:draft', detail: 'Review before sending to supplier' },
+      { key: 'stock:4', detail: 'Low' },
+      { key: 'stock:5', detail: 'Low' },
+    ], {
+      connected: true,
+      metrics: { lowStock: 8, outOfStock: 3 },
+    })
+
+    expect(remainders.map((entry) => entry.label)).toEqual(['+6 more low → Stock'])
+    expect(presentInsightsAttentionItem({
+      key: 'orders:draft',
+      label: '1 order to review',
+      detail: 'Review before sending to supplier',
+    }).detail).toMatch(/Draft, not sent yet/)
+    expect(insightTextMatchesQuery('stock', 'Stock value')).toBe(true)
+    expect(insightTextMatchesQuery('stock', 'Bookings')).toBe(false)
   })
 
   it('builds a reports bundle with service pressure and stock module data', () => {

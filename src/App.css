@@ -28015,13 +28015,40 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   word-break: break-word;
 }
 
-.reports-section-footer {
+.reports-section-footer,
+.reports-page-footer {
   margin: 12px 0 0;
   padding-top: 10px;
   border-top: 1px solid var(--one-overlay-06);
   color: var(--one-text-subtle);
   font-size: 0.74rem;
   letter-spacing: 0.02em;
+}
+
+.reports-page-footer {
+  margin: 2px 4px 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.reports-overview-note {
+  margin: 10px 0 0;
+  color: var(--one-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.reports-stock-remainders {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reports-stock-remainder-btn {
+  min-height: 44px;
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .reports-section-heading {
@@ -28091,9 +28118,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 @media (max-width: 640px) {
-  .reports-overview-grid,
   .reports-section-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .reports-overview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .reports-section-header {
@@ -45394,8 +45424,48 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 @media (max-width: 560px) {
-  .reports-period-filters .filter-chip {
-    flex: 1 1 100%;
+  .reports-period-filters,
+  .app-shell.is-mobile-shell .reports-period-filters {
+    flex-wrap: nowrap;
+  }
+
+  .reports-period-filters .filter-chip,
+  .app-shell.is-mobile-shell .reports-period-filters .filter-chip {
+    flex: 1 1 0;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .reports-overview .reports-metric {
+    min-height: 58px;
+    padding: 8px 10px;
+  }
+}
+
+/* Short phone landscape: the header stays in normal flow and the page
+   scrolls once. overflow-x: hidden on .reports-page would compute overflow-y
+   to auto and trap the cards in a nested scroller under the header. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  .app-shell:not(.is-mobile-shell) .main-panel:has(.reports-page) {
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 8px 10px 12px;
+    gap: 8px;
+  }
+
+  .app-shell:not(.is-mobile-shell) .main-panel:has(.reports-page) > .topbar {
+    position: static;
+    flex: 0 0 auto;
+    z-index: 1;
+  }
+
+  .app-shell:not(.is-mobile-shell) .reports-page {
+    flex: 0 0 auto;
+    height: auto;
+    max-height: none;
+    min-height: min-content;
+    overflow: visible;
+    gap: 10px;
   }
 }
 

@@ -379,6 +379,101 @@ export function buildInsightsAttentionItems(attentionItems = [], { limit = 6 } =
   return (attentionItems ?? []).slice(0, limit)
 }
 
+export function normalizeInsightSearchQuery(value) {
+  return `${value ?? ''}`.trim().toLowerCase()
+}
+
+export function insightTextMatchesQuery(query, ...parts) {
+  const needle = normalizeInsightSearchQuery(query)
+  if (!needle) return true
+  return parts.some((part) => `${part ?? ''}`.toLowerCase().includes(needle))
+}
+
+/**
+ * Draft orders ("to review") are not the same number as open orders.
+ * Insights shows that on the row itself so it does not read as a second pending count.
+ */
+export function presentInsightsAttentionItem(item) {
+  if (`${item?.key ?? ''}` !== 'orders:draft') return item
+  return {
+    ...item,
+    detail: 'Draft, not sent yet. Separate from open orders awaiting delivery.',
+  }
+}
+
+function countShownStockRows(attentionItems, { summaryKey, detail }) {
+  if ((attentionItems ?? []).some((item) => item?.key === summaryKey)) return null
+  return (attentionItems ?? []).filter((item) => (
+    `${item?.key ?? ''}`.startsWith('stock:') && item?.detail === detail
+  )).length
+}
+
+/**
+ * The attention list only names a few stock rows. Say how many low or out
+ * items were left off, with a link back to Stock.
+ */
+export function buildInsightsStockRemainders(attentionItems = [], stockReport = {}) {
+  if (!stockReport?.connected) return []
+
+  const remainders = []
+  const lowTotal = Math.max(0, Number(stockReport.metrics?.lowStock) || 0)
+  const shownLow = countShownStockRows(attentionItems, { summaryKey: 'stock-module:low', detail: 'Low' })
+  const moreLow = shownLow == null ? 0 : Math.max(0, lowTotal - shownLow)
+  if (moreLow > 0) {
+    remainders.push({
+      key: 'more-low',
+      moduleId: 'stock',
+      label: moreLow === 1 ? '+1 more low → Stock' : `+${moreLow} more low → Stock`,
+    })
+  }
+
+  const outTotal = Math.max(0, Number(stockReport.metrics?.outOfStock) || 0)
+  const shownOut = countShownStockRows(attentionItems, { summaryKey: 'stock-module:out', detail: 'Out of stock' })
+  const moreOut = shownOut == null ? 0 : Math.max(0, outTotal - shownOut)
+  if (moreOut > 0) {
+    remainders.push({
+      key: 'more-out',
+      moduleId: 'stock',
+      label: moreOut === 1 ? '+1 more out → Stock' : `+${moreOut} more out → Stock`,
+    })
+  }
+
+  return remainders
+}
+
+function joinEnglishList(parts) {
+  if (parts.length <= 1) return parts[0] ?? ''
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`
+}
+
+function buildInsightsWeekSummary({ reservationsReport, tasksReport, scheduleReport }) {
+  const parts = []
+  const bookings = Number(reservationsReport?.metrics?.bookings) || 0
+  const completed = Number(tasksReport?.metrics?.completed) || 0
+  const hours = Number(scheduleReport?.metrics?.scheduledHours) || 0
+  const hoursLabel = `${scheduleReport?.metrics?.scheduledHoursLabel ?? ''}`.trim()
+
+  if (reservationsReport?.connected && bookings > 0) {
+    parts.push(bookings === 1 ? '1 booking' : `${bookings} bookings`)
+  }
+  if (tasksReport?.connected && completed > 0) {
+    parts.push(completed === 1 ? '1 task completed' : `${completed} tasks completed`)
+  }
+  if (scheduleReport?.connected && hours > 0) {
+    parts.push(`${hoursLabel || hours}h scheduled`)
+  }
+  if (parts.length > 0) return parts.join(' · ')
+
+  const quiet = []
+  if (reservationsReport?.connected) quiet.push('no bookings')
+  if (tasksReport?.connected) quiet.push('no tasks completed')
+  if (scheduleReport?.connected) quiet.push('no hours scheduled')
+  if (quiet.length === 0) return 'Weekly overview from connected modules.'
+  const sentence = joinEnglishList(quiet)
+  return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} this week.`
+}
+
 export function buildInsightsHealthSummary({
   period = REPORT_PERIOD_TODAY,
   attentionItems = [],
@@ -389,23 +484,7 @@ export function buildInsightsHealthSummary({
   serviceSnapshot = null,
 } = {}) {
   if (period === REPORT_PERIOD_WEEK) {
-    const parts = []
-
-    if (tasksReport?.connected && Number(tasksReport.metrics.completed) > 0) {
-      parts.push(`${tasksReport.metrics.completed} tasks completed this week`)
-    }
-
-    if (scheduleReport?.connected && scheduleReport.metrics.scheduledHoursLabel) {
-      parts.push(`${scheduleReport.metrics.scheduledHoursLabel}h scheduled`)
-    }
-
-    if (reservationsReport?.connected && Number(reservationsReport.metrics.bookings) > 0) {
-      parts.push(`${reservationsReport.metrics.bookings} bookings`)
-    }
-
-    return parts.length > 0
-      ? parts.join(' · ')
-      : 'Weekly overview from connected modules.'
+    return buildInsightsWeekSummary({ reservationsReport, tasksReport, scheduleReport })
   }
 
   const moduleReports = [reservationsReport, tasksReport, stockReport, scheduleReport]
@@ -417,7 +496,9 @@ export function buildInsightsHealthSummary({
 
   const attentionCount = (attentionItems ?? []).length
   if (attentionCount > 0) {
-    return `${attentionCount} area${attentionCount === 1 ? '' : 's'} need attention today`
+    return attentionCount === 1
+      ? '1 item needs attention today'
+      : `${attentionCount} items need attention today`
   }
 
   if (reservationsReport?.connected && serviceSnapshot?.overallStatus) {
@@ -478,7 +559,7 @@ export function buildReportsOverview({
       },
       {
         key: hasPendingOrders ? 'pending-orders' : 'items-to-order',
-        label: hasPendingOrders ? 'Pending orders' : 'Items to order',
+        label: hasPendingOrders ? 'Open orders' : 'Items to order',
         value: stockReport?.connected
           ? (hasPendingOrders
             ? stockReport.metrics.pendingOrders

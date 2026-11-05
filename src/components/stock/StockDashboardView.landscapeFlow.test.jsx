@@ -15,9 +15,22 @@ import { computeMenuPosition, StockItemMoreMenu } from './StockItemMoreMenu'
 const APP_CSS = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
 function shortLandscapeBlock() {
-  const start = APP_CSS.indexOf('@media (orientation: landscape) and (max-height: 520px)')
-  const next = APP_CSS.indexOf('@media', start + 10)
-  return APP_CSS.slice(start, next)
+  // Several short-landscape queries share this prefix (Insights scroll, then
+  // Stock). Keep the Stock dashboard contract: the block that actually sets
+  // the product grid and supplier cards.
+  const marker = '@media (orientation: landscape) and (max-height: 520px)'
+  let from = 0
+  while (from < APP_CSS.length) {
+    const start = APP_CSS.indexOf(marker, from)
+    if (start === -1) break
+    const next = APP_CSS.indexOf('@media', start + marker.length)
+    const block = APP_CSS.slice(start, next === -1 ? undefined : next)
+    if (block.includes('.stock-item-grid') && block.includes('.stock-supplier-card-grid')) {
+      return block
+    }
+    from = start + marker.length
+  }
+  return ''
 }
 
 function ruleStarting(css, selector) {
