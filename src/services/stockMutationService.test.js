@@ -32,7 +32,6 @@ import {
   recordStockMutation,
   recordStockMutationLegacy,
   recordStockMutationLocationAware,
-  staffTakeFromSupplyAvailable,
   takeFromSupplyStorage,
   transferStockBetweenLocations,
 } from './stockMutationService'
@@ -643,11 +642,22 @@ describe('transferStockBetweenLocations — P8.30.6', () => {
     expect(mapStockTransferRpcError({ message: 'take_from_supply_source_not_supply' }).message)
       .toMatch(/supply storage/i)
 
+    const takeInput = {
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      sourceWorkspaceStorageId: 'supply-1',
+      destinationWorkspaceStorageId: 'shelf-1',
+      quantity: 2,
+      expectedSourceQuantityVersion: 3,
+      expectedDestinationQuantityVersion: 1,
+    }
     rpcMock.mockResolvedValueOnce({
       data: null,
       error: { code: 'PGRST202', message: 'Could not find the function take_from_supply_storage' },
     })
-    await expect(staffTakeFromSupplyAvailable()).resolves.toBe(false)
+    await expect(takeFromSupplyStorage(takeInput)).rejects.toThrow(/limited to managers/i)
+    rpcMock.mockResolvedValueOnce({ data: null, error: { code: '42501', message: 'permission denied' } })
+    await expect(takeFromSupplyStorage(takeInput)).rejects.toThrow(/limited to managers/i)
 
     rpcMock.mockResolvedValueOnce({
       data: { ok: true, origin_workflow: 'take_from_supply' },

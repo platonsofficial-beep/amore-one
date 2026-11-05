@@ -13,7 +13,6 @@ vi.mock('../lib/supabaseClient', () => ({
 import {
   isStaffShelfCountRpcMissing,
   mapStaffShelfCountError,
-  staffShelfCountAvailable,
   submitStaffShelfCount,
 } from './staffShelfCountService'
 
@@ -34,12 +33,6 @@ describe('submitStaffShelfCount', () => {
       data: null,
       error: { code: 'PGRST202', message: 'Could not find the function submit_staff_shelf_count' },
     })
-    await expect(staffShelfCountAvailable()).resolves.toBe(false)
-
-    rpcMock.mockResolvedValueOnce({
-      data: null,
-      error: { code: 'PGRST202', message: 'Could not find the function submit_staff_shelf_count' },
-    })
     await expect(submitStaffShelfCount({
       workspaceId: 'ws-1',
       workspaceStorageId: 'shelf-1',
@@ -48,12 +41,6 @@ describe('submitStaffShelfCount', () => {
   })
 
   it('submits quantities only and returns the session id', async () => {
-    rpcMock.mockResolvedValueOnce({
-      data: null,
-      error: { message: 'staff_shelf_count_workspace_required' },
-    })
-    await expect(staffShelfCountAvailable()).resolves.toBe(true)
-
     rpcMock.mockResolvedValueOnce({
       data: {
         ok: true,

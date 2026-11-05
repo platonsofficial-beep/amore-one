@@ -355,7 +355,6 @@ function Screen() {
             active: true,
           }))}
           parsAvailable
-          countAvailable={() => Promise.resolve(true)}
           submitCount={() => Promise.resolve()}
           onClose={noop}
         />

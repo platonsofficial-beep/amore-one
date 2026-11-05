@@ -41,25 +41,6 @@ export function mapStaffShelfCountError(error) {
 }
 
 /**
- * True when submit_staff_shelf_count exists.
- * A missing function leaves the sheet unable to save. Balances stay unchanged.
- */
-export async function staffShelfCountAvailable() {
-  if (!supabase) return false
-  const { error } = await supabase.rpc(SUBMIT_STAFF_SHELF_COUNT_RPC, {
-    p_workspace_id: null,
-    p_workspace_storage_id: null,
-    p_lines: [],
-  })
-  if (!error) return true
-  if (isStaffShelfCountRpcMissing(error)) return false
-  const code = `${error.code ?? ''}`
-  const message = `${error.message ?? ''}`.toLowerCase()
-  if (code === '42501' || message.includes('permission denied')) return false
-  return true
-}
-
-/**
  * Submit one shelf for manager approval. Does not change balances.
  *
  * @param {{
