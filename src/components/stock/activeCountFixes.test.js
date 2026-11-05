@@ -32,6 +32,8 @@ describe('Active Count quantity and copy', () => {
 
 describe('Active Count phone portrait layout', () => {
   it('uses card rows, location chips, and hides the app tab bar', () => {
+    expect(portraitCss).toMatch(/grid-template-columns:\s*minmax\(8rem,\s*1fr\) auto auto/)
+    expect(portraitCss).toMatch(/inventory-count-session-item-name \{\s*display:\s*block;\s*min-width:\s*8rem/)
     expect(portraitCss).toMatch(/grid-template-areas:\s*"item unit status"/)
     expect(portraitCss).toMatch(/flex-direction:\s*row/)
     expect(portraitCss).toMatch(/body:has\(\.inventory-count-session\) \.mobile-bottom-nav/)

@@ -30,8 +30,8 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    height: auto;
-    max-height: none;
+    height: 100%;
+    max-height: 100dvh;
     overflow: hidden;
   }
 
@@ -115,20 +115,24 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    /* minmax(0, 1fr) let the item track shrink to 0px, so names letter-stacked. */
+    grid-template-columns: minmax(8rem, 1fr) auto auto;
     grid-template-areas:
       "item unit status"
       "expected counted status";
     column-gap: 8px;
     row-gap: 6px;
     align-items: center;
-    min-width: 0;
+    width: 100%;
+    min-width: 100%;
     padding: 10px 4px;
     border-bottom: 1px solid var(--one-overlay-08);
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row .inventory-count-session-item-cell {
     grid-area: item;
+    min-width: 8rem;
+    max-width: 100%;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row .is-unit {
@@ -143,6 +147,13 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row .is-counted {
     grid-area: counted;
+    min-width: 0;
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-spreadsheet-row .inventory-count-session-counted-input {
+    width: 6.5rem;
+    min-width: 0;
+    max-width: 100%;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-spreadsheet.is-blind-count .inventory-count-session-spreadsheet-row .is-counted {
@@ -155,8 +166,12 @@ body:has(.inventory-count-session) .mobile-bottom-nav {
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-item-name {
+    display: block;
+    min-width: 8rem;
+    max-width: 100%;
     white-space: normal;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-footer {
