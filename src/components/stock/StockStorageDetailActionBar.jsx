@@ -126,7 +126,7 @@ export function StockStorageDetailActionBar({
       {onRename ? (
         <button
           type="button"
-          className="ghost-btn stock-storage-detail-action-btn"
+          className="stock-storage-detail-action-btn is-tertiary"
           data-storage-action="rename"
           onClick={() => onRename(storage)}
         >

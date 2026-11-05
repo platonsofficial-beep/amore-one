@@ -2,7 +2,7 @@ import { isBelowStoragePar, normalizeStorageParQuantity, storageParShort } from 
 
 export const REFILL_ACTION_LABEL = 'Refill / Αναπλήρωση'
 export const TAKE_SELECTED_LABEL = 'Take selected / Λήψη'
-export const TAKE_FROM_SUPPLY_LABEL = 'Take from supply / Από τροφοδοσία'
+export const TAKE_FROM_SUPPLY_LABEL = 'Take from supply'
 export const TAKE_SUBMIT_LABEL = 'Take / Λήψη'
 export const TAKE_LIST_LABEL = 'Take list'
 export const SUGGESTED_TAB_LABEL = 'Suggested / Πρόταση'

@@ -103,6 +103,6 @@ describe('StockQuickTakeView', () => {
     svc.getWorkspaceStorageSummaries.mockResolvedValueOnce({ storages: [{ id: 'st2', name: 'Bar shelf', isSupply: false }] })
     await render(createElement(StockQuickTakeView, { workspaceId: 'ws', stockItems: items, canManage: true }))
     expect(await screen.findByText(/No supply storages yet/)).toBeTruthy()
-    expect(screen.getByText(/Storages → Edit → Mark as supply/)).toBeTruthy()
+    expect(screen.getByText(/Storages → Edit → Supply/)).toBeTruthy()
   })
 })

@@ -184,30 +184,37 @@ function StorageSummaryCard({
               ))}
             </select>
           </label>
-          <button
-            type="button"
-            className="stock-storage-supply-toggle"
-            data-action="toggle-supply"
-            aria-pressed={storage.isSupply === true}
-            disabled={actionsDisabled}
-            onClick={() => onToggleSupply?.(storage)}
-          >
-            {storage.isSupply ? 'Unmark supply' : 'Mark as supply'}
-          </button>
-          {showBuyingToggle ? (
+          <div className="stock-storage-role-chips" role="group" aria-label={`Roles for ${storage.name || 'storage'}`}>
             <button
               type="button"
-              className="stock-storage-buying-toggle"
-              data-action="toggle-buying"
-              aria-pressed={storage.isBuying === true}
+              className="stock-storage-supply-toggle"
+              data-action="toggle-supply"
+              aria-pressed={storage.isSupply === true}
               disabled={actionsDisabled}
-              onClick={() => onToggleBuying?.(storage)}
+              onClick={() => onToggleSupply?.(storage)}
             >
-              {storage.isBuying ? 'Unmark buying' : 'Mark as buying'}
+              <span aria-hidden="true">{storage.isSupply ? '✓ ' : '+ '}</span>Supply
             </button>
-          ) : null}
+            {showBuyingToggle ? (
+              <button
+                type="button"
+                className="stock-storage-buying-toggle"
+                data-action="toggle-buying"
+                aria-pressed={storage.isBuying === true}
+                disabled={actionsDisabled}
+                onClick={() => onToggleBuying?.(storage)}
+              >
+                <span aria-hidden="true">{storage.isBuying ? '✓ ' : '+ '}</span>Buying
+              </button>
+            ) : null}
+          </div>
+          <p className="stock-storage-role-hint">
+            Supply: staff take from it, counts for supplier orders.
+            {showBuyingToggle ? ' Buying: counts for supplier orders only.' : ''}
+          </p>
           </>
           ) : null}
+          <div className="stock-storage-edit-row">
           {canRename ? (
             <button
               type="button"
@@ -229,6 +236,7 @@ function StorageSummaryCard({
           >
             Cancel
           </button>
+          </div>
         </div>
         </details>
       ) : null}
@@ -648,7 +656,7 @@ export function StockStorageCenter({
         <div className="stock-storage-center-header-copy">
           <h2 className="stock-storage-center-title">Storages</h2>
           <p className="stock-storage-center-subtitle">
-            Understand and manage stock by physical location.
+            Stock by physical location.
           </p>
         </div>
         {canManage && departmentsReady ? (
@@ -680,7 +688,7 @@ export function StockStorageCenter({
 
       {status === 'ready' ? (
         <p className="stock-storage-par-note">
-          Shelf levels here are for this storage only. “To order” uses each product’s total across all storages, so the numbers can differ.
+          Numbers here are per storage. “To order” uses each product’s total across all storages.
         </p>
       ) : null}
 

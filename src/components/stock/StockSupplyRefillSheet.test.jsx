@@ -90,7 +90,7 @@ describe('StockSupplyRefillSheet', () => {
     })
     await settle()
 
-    expect(container.querySelector('#supply-refill-title')?.textContent).toContain('Από τροφοδοσία')
+    expect(container.querySelector('#supply-refill-title')?.textContent).toContain('Take from supply')
     expect(container.querySelector('[data-testid="supply-refill-line"]')).toBeNull()
     expect(rowIds(container)).toEqual(['cola', 'tonic', 'vodka', 'apple'])
     expect(container.textContent).not.toContain('99.99')
