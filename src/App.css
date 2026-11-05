@@ -54218,3 +54218,73 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
     transform: scale(1.55);
   }
 }
+
+/* 0011 Import: Recent imports always fit their card --------------------- */
+.inventory-import-history {
+  container-type: inline-size;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.inventory-import-history-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.inventory-import-history .inventory-import-history-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+.inventory-import-history-table th:nth-child(1) { width: 14%; }
+.inventory-import-history-table th:nth-child(2) { width: 14%; }
+.inventory-import-history-table th:nth-child(4) { width: 16%; }
+.inventory-import-history-table th:nth-child(5) { width: 15%; }
+.inventory-import-history-table th:nth-child(6) { width: 17%; }
+.inventory-import-history-table td {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.inventory-import-history-table .inventory-import-status-pill {
+  white-space: nowrap;
+}
+.inventory-import-history-table .inventory-import-undo-btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+/* Narrow card (tablet split view, phone landscape): each import becomes a small stacked card. */
+@container (max-width: 820px) {
+  .inventory-import-history .inventory-import-history-table,
+  .inventory-import-history .inventory-import-history-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .inventory-import-history .inventory-import-history-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .inventory-import-history .inventory-import-history-table .inventory-import-history-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 10px 0;
+  }
+  .inventory-import-history .inventory-import-history-table td {
+    display: block;
+    padding: 0;
+    width: auto;
+  }
+  .inventory-import-history .inventory-import-history-table td:nth-child(1) { grid-column: 1; grid-row: 1; font-size: 0.85rem; }
+  .inventory-import-history .inventory-import-history-table td:nth-child(5) { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+  .inventory-import-history .inventory-import-history-table td:nth-child(2) { grid-column: 1; grid-row: 2; font-size: 0.85rem; }
+  .inventory-import-history .inventory-import-history-table td:nth-child(3),
+  .inventory-import-history .inventory-import-history-table td:nth-child(4),
+  .inventory-import-history .inventory-import-history-table td:nth-child(6) { grid-column: 1 / -1; }
+  .inventory-import-history .inventory-import-history-table td:nth-child(3) { color: var(--one-text); }
+  .inventory-import-history .inventory-import-history-table td:nth-child(6):empty { display: none; }
+}
