@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   QUICK_TAKE_UNDO_WINDOW_MS,
@@ -40,6 +41,9 @@ function productName(row) {
  * Stock → Take. Storage → Category → Product → quantity → Done.
  * No prices, costs or supplier contacts are shown here (staff safe).
  */
+// Sheet renders on <body> so it sits above the mobile tab bar (same as the reservation status menu).
+const portalToBody = (node) => (typeof document !== 'undefined' && document.body ? createPortal(node, document.body) : node)
+
 export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTerm = '', onStockItemsChanged, canManage = false }) {
   const [available, setAvailable] = useState(null)
   const [storageState, setStorageState] = useState({ status: 'loading', storages: [], error: '' })
@@ -265,7 +269,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
         </>
       )}
 
-      {sheet && plan ? (
+      {sheet && plan ? portalToBody(
         <div className="stock-quick-take-scrim" onClick={() => !sheet.saving && setSheet(null)}>
           <div className="stock-quick-take-sheet" role="dialog" aria-modal="true" aria-label={`Take ${productName(sheet.row)}`} onClick={(event) => event.stopPropagation()}>
             <div className="stock-quick-take-grip" aria-hidden="true" />
@@ -307,7 +311,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
               {sheet.saving ? 'Saving…' : 'Done'}
             </button>
           </div>
-        </div>
+        </div>,
       ) : null}
 
       {toast && !sheet ? (
