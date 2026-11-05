@@ -28698,8 +28698,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     padding: 0;
     border: 0;
     border-radius: 999px;
-    background: rgba(10, 22, 40, 0.92);
-    color: #f3ead8;
+    background: var(--one-bg);
+    color: var(--one-text);
     font-size: 1.4rem;
     line-height: 1;
     cursor: pointer;
@@ -28715,19 +28715,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .workspace-nav.can-scroll-end .workspace-nav-links {
     padding-right: 36px;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent);
-    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 48px), transparent);
+    -webkit-mask-image: linear-gradient(to right, var(--one-text) 0, var(--one-text) calc(100% - 48px), transparent);
+    mask-image: linear-gradient(to right, var(--one-text) 0, var(--one-text) calc(100% - 48px), transparent);
   }
 
   .workspace-nav.can-scroll-start .workspace-nav-links {
     padding-left: 36px;
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 100%);
-    mask-image: linear-gradient(to right, transparent, #000 48px, #000 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) 100%);
+    mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) 100%);
   }
 
   .workspace-nav.can-scroll-start.can-scroll-end .workspace-nav-links {
-    -webkit-mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
-    mask-image: linear-gradient(to right, transparent, #000 48px, #000 calc(100% - 48px), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) calc(100% - 48px), transparent);
+    mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) calc(100% - 48px), transparent);
   }
 }
 
