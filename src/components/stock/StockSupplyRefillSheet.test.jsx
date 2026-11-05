@@ -204,7 +204,7 @@ describe('StockSupplyRefillSheet', () => {
     })
 
     const submit = container.querySelector('[data-testid="supply-take-submit"]')
-    expect(submit.textContent).toContain('Take / Λήψη (2)')
+    expect(submit.textContent).toContain('Take (2)')
     await act(async () => {
       submit.click()
       submit.click()
@@ -351,5 +351,64 @@ describe('StockSupplyRefillSheet', () => {
     expect(container.querySelector('[data-testid="supply-refill-empty-hint"]')?.textContent)
       .toBe(NO_SUPPLY_STORAGE_HINT)
     expect(container.querySelector('[data-testid="supply-take-submit"]')).toBeNull()
+  })
+
+  it('lets a manager tap "Set up supply" and keeps plain text for staff', async () => {
+    const onSetUpSupply = vi.fn()
+    renderSheet({
+      workspaceId: 'ws-1',
+      destinationStorage: { id: 'back-bar', name: 'Back bar' },
+      products,
+      loadCatalog: async () => catalog,
+      loadProducts: async () => ({ products }),
+      transfer: vi.fn(),
+      onSetUpSupply,
+    })
+    await settle()
+    const link = row(container, 'tonic').querySelector('[data-testid="supply-take-needs-order"]')
+    expect(link.tagName).toBe('BUTTON')
+    expect(link.textContent).toContain('Not in a supply storage')
+    expect(link.textContent).toContain('Set up supply')
+    await act(async () => { link.click() })
+    expect(onSetUpSupply).toHaveBeenCalledTimes(1)
+
+    act(() => { root.unmount() })
+    container.remove()
+    renderSheet({
+      workspaceId: 'ws-1',
+      destinationStorage: { id: 'back-bar', name: 'Back bar' },
+      products,
+      loadCatalog: async () => catalog,
+      loadProducts: async () => ({ products }),
+      transfer: vi.fn(),
+    })
+    await settle()
+    const plain = row(container, 'tonic').querySelector('[data-testid="supply-take-needs-order"]')
+    expect(plain.tagName).toBe('P')
+    expect(plain.textContent).toBe(NEEDS_SUPPLIER_ORDER_LABEL)
+    expect(container.querySelector('[data-supply-setup-link]')).toBeNull()
+  })
+
+  it('makes the no-supply hint a Set up supply link for managers', async () => {
+    const onSetUpSupply = vi.fn()
+    renderSheet({
+      workspaceId: 'ws-1',
+      destinationStorage: { id: 'back-bar', name: 'Back bar' },
+      products,
+      loadCatalog: async () => ({
+        supplyReady: true,
+        storages: [{ id: 'bar', name: 'Back bar', isSupply: false, active: true }],
+        balances: [],
+        itemsById: new Map(),
+      }),
+      loadProducts: async () => ({ products }),
+      transfer: vi.fn(),
+      onSetUpSupply,
+    })
+    await settle()
+    const hint = container.querySelector('[data-testid="supply-refill-empty-hint"]')
+    expect(hint.tagName).toBe('BUTTON')
+    await act(async () => { hint.click() })
+    expect(onSetUpSupply).toHaveBeenCalledTimes(1)
   })
 })

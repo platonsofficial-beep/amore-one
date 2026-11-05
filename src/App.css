@@ -54371,3 +54371,80 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   min-width: 40px;
   min-height: 40px;
 }
+
+/* 0013 Product picker cards never clip their category line ------------- */
+/* The picker list is a height-capped flex column, so its cards were being
+   squeezed below their content height. Cards keep their natural height and
+   the list scrolls instead (Receive, Transfer, Adjustment, Waste). */
+.stock-storage-receive-picker-list > .stock-storage-receive-picker-item {
+  flex: 0 0 auto;
+  height: auto;
+  max-height: none;
+}
+
+/* Help "?" centred on the Stock tab pills (40px button, 38px pills). */
+@media (orientation: landscape) and (max-height: 520px) {
+  html.one-phone-landscape .app-shell.stock-focus-mode .help-mode-fallback {
+    translate: 0 -2px;
+  }
+}
+@media (orientation: portrait) and (min-width: 700px) {
+  .app-shell.stock-focus-mode .help-mode-fallback {
+    translate: 0 -3px;
+  }
+}
+@media (min-width: 1000px) and (min-height: 600px) {
+  .app-shell.stock-focus-mode:not(.is-mobile-shell) .help-mode-fallback {
+    translate: 0 1px;
+  }
+}
+
+/* Phone landscape: the picker list and its Cancel both fit the dialog, so
+   only the list scrolls (no list-inside-dialog double scroll). */
+@media (orientation: landscape) and (max-height: 520px) {
+  .stock-storage-receive-picker-list {
+    max-height: max(120px, calc(100dvh - 256px));
+  }
+  .stock-storage-receive-picker-list > .stock-storage-receive-picker-item {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+}
+
+/* Scroll hint: the list fades out at the bottom while more products sit
+   below, and stops fading at the end. A mask, so the fade is always the
+   sheet's own background (no bar). */
+.stock-storage-receive-picker-list.has-more-below {
+  -webkit-mask-image: linear-gradient(to bottom, var(--one-navy-800) calc(100% - 36px), transparent);
+  mask-image: linear-gradient(to bottom, var(--one-navy-800) calc(100% - 36px), transparent);
+}
+
+/* "Not in a supply storage — Set up supply ›": calm link for managers. */
+.stock-supply-setup-link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 6px 0 0;
+  padding: 6px 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--one-gold-a32);
+  border-radius: 12px;
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light, var(--one-gold));
+  font: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+}
+.stock-supply-setup-link-cta {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.stock-supply-setup-link:focus-visible {
+  outline: 2px solid var(--one-gold);
+  outline-offset: 2px;
+}

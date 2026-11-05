@@ -994,6 +994,10 @@ export function StockStorageDetailWorkspace({
             if (isLaunchingFastCount) return
             setRefillOpen(false)
           }}
+          onSetUpSupply={canManage && onBack ? () => {
+            setRefillOpen(false)
+            onBack()
+          } : undefined}
           onCompleted={async () => {
             setReloadToken((token) => token + 1)
             await onSupplyRefillComplete?.()
