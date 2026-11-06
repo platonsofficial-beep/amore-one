@@ -106,7 +106,7 @@ import {
   buildReservationLinkGroups,
   buildReservationLinkTableMeta,
   clampHostFloorPan,
-  computeHostFloorWholeAreaFit,
+  computeHostFloorServiceFit,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
   readHostFloorAspect,
@@ -10551,7 +10551,8 @@ function FloorPlanView({
     const layoutSpace = viewport?.querySelector('.floor-plan-layout-space')
     if (!viewport || !layoutSpace) return null
     const aspect = readHostFloorAspect(layoutSpace)
-    const box = computeHostFloorWholeAreaFit({
+    const box = computeHostFloorServiceFit({
+      tables: visibleTableStatesRef.current.map((tableState) => tableState.table),
       viewportWidth: viewport.clientWidth,
       viewportHeight: viewport.clientHeight,
       aspectWidth: aspect.aspectWidth,
@@ -10565,13 +10566,14 @@ function FloorPlanView({
     layoutSpace.style.maxHeight = 'none'
     const stage = layoutSpace.parentElement
     if (stage) {
-      stage.style.justifyContent = 'center'
-      stage.style.alignItems = 'center'
+      const contained = box.contained && box.width <= viewport.clientWidth && box.height <= viewport.clientHeight
+      stage.style.justifyContent = contained ? 'center' : 'flex-start'
+      stage.style.alignItems = contained ? 'center' : 'flex-start'
       stage.style.width = '100%'
       stage.style.minHeight = '100%'
     }
-    viewport.scrollTop = 0
-    viewport.scrollLeft = 0
+    viewport.scrollTop = box.scrollTop || 0
+    viewport.scrollLeft = box.scrollLeft || 0
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
     return box

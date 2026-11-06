@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatHostLoadError, isHostLoadFailureMessage } from './hostLoadNotice'
 import { formatReservationDayMonth } from './timeFormatUtils'
-import { computeHostFloorWholeAreaFit } from './hostFloorPlanViewport'
+import { computeHostFloorServiceFit, computeHostFloorWholeAreaFit } from './hostFloorPlanViewport'
 import {
   normalizeHostDiningTimerDurationPolicy,
   readHostDiningTimerDurationPolicy,
@@ -24,7 +24,7 @@ describe('reservations product-ready helpers', () => {
     expect(formatReservationDayMonth('2026-11-06')).toBe('6 Nov')
   })
 
-  it('fits the whole floor inside the viewport with padding', () => {
+  it('fits the whole floor inside the viewport with padding when tables stay readable', () => {
     const fit = computeHostFloorWholeAreaFit({
       viewportWidth: 640,
       viewportHeight: 200,
@@ -37,6 +37,19 @@ describe('reservations product-ready helpers', () => {
     expect(fit.scrollLeft).toBe(0)
     expect(fit.scrollTop).toBe(0)
     expect(fit.width / fit.height).toBeCloseTo(1000 / 700, 1)
+  })
+
+  it('does not shrink a table under 44px to force the whole floor on screen', () => {
+    const fit = computeHostFloorServiceFit({
+      tables: [{ id: 'a', x: 10, y: 10, widthPercent: 4, heightPercent: 6 }],
+      viewportWidth: 320,
+      viewportHeight: 140,
+      aspectWidth: 2200,
+      aspectHeight: 1400,
+      minTablePx: 44,
+    })
+    expect(fit.contained).toBe(false)
+    expect(fit.width * 0.04).toBeGreaterThanOrEqual(44)
   })
 
   it('keeps timer minutes in the existing policy without a schema change', () => {

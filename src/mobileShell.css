@@ -10304,15 +10304,6 @@ body:not(:has(.inventory-count-session)) :is(
     padding-inline-end: 8px;
   }
 
-  .mobile-host-reservations.is-landscape .floor-plan-toolbar {
-    flex-wrap: nowrap;
-  }
-
-  .mobile-host-reservations.is-landscape .floor-plan-toolbar > :first-child,
-  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions {
-    flex: 1 1 auto;
-  }
-
   .mobile-host-reservations.is-landscape .floor-seating-selector-chip-metrics,
   .mobile-host-reservations.is-landscape .floor-seating-selector-chip-count {
     display: none;
