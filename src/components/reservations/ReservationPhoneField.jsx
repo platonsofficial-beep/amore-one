@@ -1,8 +1,11 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react'
 import {
+  DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
   formatReservationPhone,
-  getDefaultReservationPhoneCountryCode,
+  getWorkspaceDefaultPhoneCountryCode,
   parseReservationPhone,
+  resolveWorkspaceDefaultPhoneCountryCode,
+  subscribeWorkspaceDefaultPhoneCountryCode,
 } from '../../lib/reservationPhoneUtils'
 import { PhoneCountryPicker } from './PhoneCountryPicker'
 
@@ -15,24 +18,44 @@ export function ReservationPhoneField({
   id,
   placeholder = 'Local number',
   autoComplete = 'tel-national',
+  workspaceProfile = null,
 }) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
-  const parsed = parseReservationPhone(value, { fallbackCode: getDefaultReservationPhoneCountryCode() })
+  const storedDefault = useSyncExternalStore(
+    subscribeWorkspaceDefaultPhoneCountryCode,
+    getWorkspaceDefaultPhoneCountryCode,
+    getWorkspaceDefaultPhoneCountryCode,
+  )
+  const fallbackCode = workspaceProfile
+    ? resolveWorkspaceDefaultPhoneCountryCode(workspaceProfile)
+    : (storedDefault || DEFAULT_RESERVATION_PHONE_COUNTRY_CODE)
+  const parsed = parseReservationPhone(value, { fallbackCode })
   const [countryCode, setCountryCode] = useState(parsed.countryCode)
   const [localNumber, setLocalNumber] = useState(parsed.localNumber)
+  const countryOverriddenRef = useRef(false)
 
   useEffect(() => {
-    const next = parseReservationPhone(value, { fallbackCode: getDefaultReservationPhoneCountryCode() })
-    setCountryCode(next.countryCode)
-    setLocalNumber(next.localNumber)
-  }, [value])
+    const next = parseReservationPhone(value, { fallbackCode })
+    if (next.localNumber) {
+      countryOverriddenRef.current = false
+      setCountryCode(next.countryCode)
+      setLocalNumber(next.localNumber)
+      return
+    }
+
+    setLocalNumber('')
+    if (!countryOverriddenRef.current) {
+      setCountryCode(next.countryCode)
+    }
+  }, [value, fallbackCode])
 
   const emitChange = (nextCode, nextLocal) => {
     onChange?.(formatReservationPhone(nextCode, nextLocal))
   }
 
   const handleCountryChange = (nextCode) => {
+    countryOverriddenRef.current = true
     setCountryCode(nextCode)
     emitChange(nextCode, localNumber)
   }
