@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
+import { EmbeddedFloorPlanEditor } from '../floor/EmbeddedFloorPlanEditor'
 import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
 import { formatPartialSeatLabel, getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
@@ -81,10 +82,12 @@ export function MobileManagerReservationsView({
   onCreateReservation,
   onEditReservation,
   onQuickStatusUpdate = null,
+  canEditFloorPlan = false,
 }) {
   const { layout } = usePublishedFloorPlan()
   const selectedDate = dateKey || todayKey
   const [createOpen, setCreateOpen] = useState(false)
+  const [editingLayout, setEditingLayout] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [statusPicker, setStatusPicker] = useState(null)
   const canChangeStatus = canManage && typeof onQuickStatusUpdate === 'function'
@@ -168,6 +171,14 @@ export function MobileManagerReservationsView({
     const saved = result?.saved === true
     if (saved) setEditingReservation(null)
     return saved
+  }
+
+  if (editingLayout) {
+    return (
+      <div className="mobile-host-floor-plan-editor manager-portrait-floor-editor">
+        <EmbeddedFloorPlanEditor onExit={() => setEditingLayout(false)} />
+      </div>
+    )
   }
 
   return (
@@ -282,7 +293,19 @@ export function MobileManagerReservationsView({
       </section>
 
       <section aria-label="Tables">
-        <h2>Tables</h2>
+        <div className="manager-portrait-tables-header">
+          <h2>Tables</h2>
+          {canEditFloorPlan ? (
+            <button
+              type="button"
+              className="manager-portrait-edit-layout"
+              data-help="reservations.edit-layout"
+              onClick={() => setEditingLayout(true)}
+            >
+              Edit layout
+            </button>
+          ) : null}
+        </div>
         {tables.length === 0 ? (
           <p className="manager-portrait-empty">No published tables yet.</p>
         ) : (

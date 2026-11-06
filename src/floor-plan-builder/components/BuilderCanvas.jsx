@@ -47,8 +47,15 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     return () => observer.disconnect()
   }, [containerRef, measureViewport])
 
-  const handleMoveObject = useCallback((objectId, position) => {
-    dispatch({ type: 'MOVE_OBJECT', payload: { objectId, position } })
+  const handleMoveObject = useCallback((objectId, position, meta) => {
+    dispatch({
+      type: 'MOVE_OBJECT',
+      payload: {
+        objectId,
+        position,
+        historyKey: meta?.historyKey,
+      },
+    })
   }, [dispatch])
 
   const handleSelectObject = useCallback((objectId) => {
@@ -59,7 +66,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     dispatch({ type: 'TOGGLE_OBJECT_SELECTION', payload: { objectId } })
   }, [dispatch])
 
-  const handleTransformTable = useCallback((objectId, preview) => {
+  const handleTransformTable = useCallback((objectId, preview, meta) => {
     dispatch({
       type: 'TRANSFORM_TABLE',
       payload: {
@@ -67,6 +74,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         position: preview.position,
         size: preview.size,
         rotation: preview.rotation,
+        historyKey: meta?.historyKey,
       },
     })
   }, [dispatch])

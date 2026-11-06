@@ -49,7 +49,11 @@ export class ObjectDragManager {
   flushPendingMove(session) {
     if (!session?.pendingMovePosition) return
 
-    this.onMoveObject?.(session.objectId, session.pendingMovePosition)
+    this.onMoveObject?.(
+      session.objectId,
+      session.pendingMovePosition,
+      session.historyKey ? { historyKey: session.historyKey } : undefined,
+    )
     session.committedPosition = { ...session.pendingMovePosition }
     session.pendingMovePosition = null
   }
@@ -113,6 +117,7 @@ export class ObjectDragManager {
       originPosition: { ...object.position },
       previewPosition: { ...object.position },
       committedPosition: { ...object.position },
+      historyKey: `move:${object.id}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
       pendingMovePosition: null,
       moveRafId: null,
       snapEnabled,
@@ -177,7 +182,11 @@ export class ObjectDragManager {
       || this.hasPositionChanged(session.originPosition, finalPosition)
 
     if (moved) {
-      this.onMoveObject?.(session.objectId, finalPosition)
+      this.onMoveObject?.(
+        session.objectId,
+        finalPosition,
+        session.historyKey ? { historyKey: session.historyKey } : undefined,
+      )
     }
 
     try {

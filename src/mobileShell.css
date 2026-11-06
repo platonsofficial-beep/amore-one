@@ -9605,6 +9605,34 @@ body:not(:has(.inventory-count-session)) :is(
   color: var(--one-danger);
 }
 
+.manager-portrait-tables-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.manager-portrait-tables-header h2 {
+  margin: 0;
+}
+
+.manager-portrait-edit-layout {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--one-gold-a24);
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.manager-portrait-floor-editor {
+  min-height: 100%;
+  height: 100%;
+}
+
 .manager-portrait-add,
 .manager-portrait-date-nav button,
 .manager-more-item,

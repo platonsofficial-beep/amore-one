@@ -1062,6 +1062,13 @@
   cursor: grabbing;
 }
 
+.fpb-handle-rotate-glyph {
+  color: var(--one-on-gold);
+  font-size: calc(16px / var(--fpb-camera-zoom, 1));
+  line-height: 1;
+  pointer-events: none;
+}
+
 .fpb-canvas-object[data-tool='pan'] {
   pointer-events: none;
 }
@@ -1843,11 +1850,21 @@
   height: 100%;
 }
 
+.unified-floor-editor .fpb-editor-toolbar {
+  overflow: visible;
+  height: auto;
+  padding: 8px 10px;
+}
+
+.fpb-editor-embedded.is-more-open .fpb-editor-toolbar {
+  z-index: 46;
+}
+
 .unified-floor-editor-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px 12px;
   flex-wrap: wrap;
 }
 
@@ -1889,6 +1906,63 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 0;
+}
+
+.unified-floor-editor-toolbar-group,
+.unified-floor-editor-toolbar-commit {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.unified-floor-editor-toolbar-group {
+  padding: 2px;
+  border-radius: 12px;
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-overlay-02);
+}
+
+.unified-floor-editor-toolbar-commit {
+  margin-left: auto;
+}
+
+.unified-floor-editor .fpb-toolbar-btn {
+  white-space: nowrap;
+}
+
+.unified-floor-editor-more {
+  position: relative;
+}
+
+.unified-floor-editor-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 24px));
+  max-height: min(70vh, 420px);
+  overflow: auto;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--one-overlay-08);
+  background: var(--one-surface);
+  box-shadow: 0 12px 32px var(--one-overlay-16);
+}
+
+.unified-floor-editor-more-menu .unified-floor-editor-canvas-size {
+  flex-wrap: wrap;
+}
+
+.unified-floor-editor-more-menu .fpb-toolbar-btn,
+.unified-floor-editor-more-menu .unified-floor-editor-canvas-size {
+  width: 100%;
 }
 
 .unified-floor-editor-canvas-size {
@@ -2163,16 +2237,28 @@
   font-size: 0.72rem;
 }
 
-.fpb-editor-embedded .fpb-handle-rotate,
-.fpb-editor-embedded .fpb-rotate-stem {
-  display: none;
-}
-
 .fpb-editor-embedded .fpb-handle {
   width: var(--fpb-handle-size, 18px);
   height: var(--fpb-handle-size, 18px);
   min-width: var(--fpb-handle-size, 18px);
   min-height: var(--fpb-handle-size, 18px);
+}
+
+.fpb-editor-embedded .fpb-handle.fpb-handle-rotate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(44px / var(--fpb-camera-zoom, 1));
+  height: calc(44px / var(--fpb-camera-zoom, 1));
+  min-width: calc(44px / var(--fpb-camera-zoom, 1));
+  min-height: calc(44px / var(--fpb-camera-zoom, 1));
+  top: calc((44px / var(--fpb-camera-zoom, 1)) * -1 - 8px);
+}
+
+.fpb-editor-embedded .fpb-rotate-stem {
+  display: block;
+  top: calc((44px / var(--fpb-camera-zoom, 1)) * -0.45);
+  height: calc(14px / var(--fpb-camera-zoom, 1));
 }
 
 @media (max-width: 1180px) {
@@ -2205,9 +2291,7 @@
   .fpb-editor-embedded.is-tablet-layout .fpb-handle-nw,
   .fpb-editor-embedded.is-tablet-layout .fpb-handle-ne,
   .fpb-editor-embedded.is-tablet-layout .fpb-handle-se,
-  .fpb-editor-embedded.is-tablet-layout .fpb-handle-sw,
-  .fpb-editor-embedded.is-tablet-layout .fpb-rotate-stem,
-  .fpb-editor-embedded.is-tablet-layout .fpb-handle-rotate {
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-sw {
     display: none;
   }
 
@@ -2220,10 +2304,6 @@
   gap: 6px;
 }
 
-.mobile-host-floor-plan-editor .unified-floor-editor-canvas-size {
-  display: none;
-}
-
 .mobile-host-floor-plan-editor .unified-floor-editor-clear-layout-btn {
   min-height: 44px;
 }
@@ -2234,4 +2314,139 @@
 
 .mobile-host-floor-plan-editor .fpb-editor-embedded .fpb-editor-canvas {
   min-width: 0;
+}
+
+/*
+  Phone and tablet edit layout.
+  - ≤1180: Tools / Properties collapse; toggles show and hide those panels.
+  - ≤900 wide, or ≤520 tall (phone landscape ~844×390, short tablet): panels
+    overlay the canvas instead of shrinking it. Inspector and tools scroll
+    inside the overlay. Phone portrait (~390×844) uses a bottom sheet so the
+    floor stays visible above it. Phone landscape uses a side drawer
+    (max 42vw) so Publish / Exit and the floor stay reachable.
+  - ≤520 wide: Save draft, Exit, and Publish wrap onto their own rows.
+*/
+@media (max-width: 900px), (max-height: 520px) {
+  .fpb-editor-embedded.is-tablet-layout.is-tools-open,
+  .fpb-editor-embedded.is-tablet-layout.is-inspector-open {
+    --fpb-sidebar-width: 0px;
+    --fpb-inspector-width: 0px;
+  }
+
+  .fpb-editor-embedded.is-tablet-layout.is-tools-open .fpb-editor-sidebar,
+  .fpb-editor-embedded.is-tablet-layout.is-inspector-open .fpb-editor-inspector {
+    display: flex;
+    z-index: 40;
+    width: min(320px, 46vw);
+    max-width: 360px;
+    overflow: hidden;
+    border: 1px solid var(--one-overlay-08);
+    background: var(--one-bg);
+    box-shadow: 0 16px 40px var(--one-overlay-16);
+  }
+
+  .fpb-editor-embedded.is-tablet-layout .fpb-toolbox-simple,
+  .fpb-editor-embedded.is-tablet-layout .fpb-inspector-simple {
+    min-height: 0;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 520px) and (orientation: portrait) {
+  .fpb-editor-embedded.is-tablet-layout.is-tools-open .fpb-editor-sidebar,
+  .fpb-editor-embedded.is-tablet-layout.is-inspector-open .fpb-editor-inspector {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-width: none;
+    height: min(52%, 420px);
+    max-height: min(52%, 420px);
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .fpb-editor-embedded.is-tablet-layout.is-tools-open .fpb-editor-sidebar {
+    left: 0;
+    right: auto;
+    top: var(--fpb-toolbar-height);
+    bottom: 0;
+    width: min(280px, 42vw);
+    height: auto;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .fpb-editor-embedded.is-tablet-layout.is-inspector-open .fpb-editor-inspector {
+    left: auto;
+    right: 0;
+    top: var(--fpb-toolbar-height);
+    bottom: 0;
+    width: min(280px, 42vw);
+    height: auto;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .unified-floor-editor-toolbar {
+    padding: 4px 8px;
+    gap: 6px;
+  }
+
+  .unified-floor-editor-toolbar-actions {
+    flex: 1 1 100%;
+  }
+
+  .unified-floor-editor-more-menu {
+    position: fixed;
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: none;
+    z-index: 80;
+  }
+}
+
+@media (max-width: 900px) {
+  .unified-floor-editor-more-menu {
+    position: fixed;
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: none;
+    z-index: 80;
+  }
+}
+
+@media (max-width: 520px) {
+  .unified-floor-editor-toolbar-commit {
+    flex: 1 1 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .unified-floor-editor-toolbar-commit .fpb-toolbar-btn {
+    width: 100%;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  .unified-floor-editor-toolbar-commit .unified-floor-editor-exit-btn {
+    order: 2;
+  }
+
+  .unified-floor-editor-toolbar-commit .fpb-toolbar-btn-primary {
+    order: 3;
+    grid-column: 1 / -1;
+  }
 }

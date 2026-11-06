@@ -663,6 +663,7 @@ export function MobileReservationsHostView({
         isSaving={isSaving}
         noticeMessage={noticeMessage}
         canManage={typeof onCreateReservation === 'function'}
+        canEditFloorPlan={canEditFloorPlan}
         seatings={reservationSeatings}
         onDateChange={onSelectDate}
         onCreateReservation={onCreateReservation}

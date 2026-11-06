@@ -45,11 +45,16 @@ export class TableTransformManager {
       return false
     }
 
-    this.onTransformTable(session.objectId, {
+    const previewPayload = {
       position: { ...preview.position },
       size: { ...preview.size },
       rotation: preview.rotation,
-    })
+    }
+    if (session.historyKey) {
+      this.onTransformTable(session.objectId, previewPayload, { historyKey: session.historyKey })
+    } else {
+      this.onTransformTable(session.objectId, previewPayload)
+    }
 
     session.lastCommitted = {
       position: { ...preview.position },
@@ -135,7 +140,11 @@ export class TableTransformManager {
     }
 
     this.element = element
-    this.session = session
+    this.session = {
+      ...session,
+      historyKey: session.historyKey
+        || `${session.mode || 'transform'}:${session.objectId}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`,
+    }
 
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId)

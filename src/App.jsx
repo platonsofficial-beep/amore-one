@@ -26006,6 +26006,7 @@ function App() {
                           onCreateReservation: handleMobileHostReservationCreate,
                           onEditReservation: handleHostEditSave,
                           onQuickStatusUpdate: handleQuickReservationStatus,
+                          canEditFloorPlan: canEditFloorPlanRole,
                         }}
                         scheduleProps={{
                           shifts,

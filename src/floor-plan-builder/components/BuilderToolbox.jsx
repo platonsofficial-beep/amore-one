@@ -17,7 +17,7 @@ const SHAPE_ADD_LABELS = {
   rectangle: '+ Rectangle table',
 }
 
-export function BuilderToolbox({ onClose, showCloseButton = false }) {
+export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 'Close panel' }) {
   const {
     dispatch,
     state,
@@ -112,6 +112,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false }) {
           title="Areas"
           onClose={onClose}
           showClose={showCloseButton}
+          closeLabel={closeLabel}
         />
 
         <div className="fpb-area-panel">

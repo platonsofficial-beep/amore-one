@@ -67,13 +67,21 @@ describe('ObjectDragManager', () => {
     manager.move(move)
     vi.runAllTimers()
 
-    expect(onMoveObject).toHaveBeenCalledWith('table-1', { x: 150, y: 170 })
+    expect(onMoveObject).toHaveBeenCalledWith(
+      'table-1',
+      { x: 150, y: 170 },
+      expect.objectContaining({ historyKey: expect.any(String) }),
+    )
     expect(move.preventDefault).toHaveBeenCalled()
 
     const up = createPointerEvent('pointerup', { clientX: 160, clientY: 180 })
     manager.end(up)
 
-    expect(onMoveObject).toHaveBeenLastCalledWith('table-1', { x: 150, y: 170 })
+    expect(onMoveObject).toHaveBeenLastCalledWith(
+      'table-1',
+      { x: 150, y: 170 },
+      expect.objectContaining({ historyKey: onMoveObject.mock.calls[0][2].historyKey }),
+    )
     expect(onDragComplete).toHaveBeenCalledWith({ objectId: 'table-1', moved: true })
   })
 
