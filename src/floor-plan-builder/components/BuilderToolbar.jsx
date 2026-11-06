@@ -82,8 +82,9 @@ export function BuilderToolbar({ onBack, onViewFit }) {
               type="button"
               className="fpb-toolbar-btn"
               onClick={onViewFit}
+              aria-label="Fit to view"
             >
-              View fit
+              Fit
             </button>
             <button
               type="button"
@@ -120,8 +121,9 @@ export function BuilderToolbar({ onBack, onViewFit }) {
               type="button"
               className="fpb-toolbar-btn"
               onClick={onViewFit}
+              aria-label="Fit to view"
             >
-              View fit
+              Fit
             </button>
             <button
               type="button"

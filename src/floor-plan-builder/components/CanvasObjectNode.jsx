@@ -67,6 +67,7 @@ function CanvasObjectNodeComponent({
         touchAction: isEditable ? 'none' : 'auto',
         '--fpb-handle-size': `${handleSize}px`,
         '--fpb-selection-chrome-inset': `-${chromeInset}px`,
+        '--fpb-camera-zoom': String(Math.max(Number(cameraZoom) || 1, 0.05)),
       }}
       data-camera-zoom={cameraZoom}
       onPointerDown={(event) => {
@@ -136,7 +137,9 @@ function CanvasObjectNodeComponent({
               }}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
-            />
+            >
+              <span className="fpb-handle-rotate-glyph" aria-hidden="true">↻</span>
+            </button>
           </div>
         ) : null}
       </div>

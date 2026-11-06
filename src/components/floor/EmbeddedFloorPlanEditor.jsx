@@ -18,23 +18,30 @@ import { FLOOR_PLAN_OBJECT_TYPES } from '../../floor-plan-builder/models/floorPl
 import '../../floor-plan-builder/floorPlanBuilder.css'
 
 const TABLET_EDITOR_BREAKPOINT = 1180
+const OVERLAY_LAYOUT_QUERY = '(max-width: 900px), (max-height: 520px)'
 
-function useEditorTabletLayout() {
-  const [isTablet, setIsTablet] = useState(() => (
-    typeof window !== 'undefined' ? window.innerWidth <= TABLET_EDITOR_BREAKPOINT : false
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
   ))
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
-    const mediaQuery = window.matchMedia(`(max-width: ${TABLET_EDITOR_BREAKPOINT}px)`)
-    const update = () => setIsTablet(mediaQuery.matches)
+    const mediaQuery = window.matchMedia(query)
+    const update = () => setMatches(mediaQuery.matches)
     update()
     mediaQuery.addEventListener('change', update)
     return () => mediaQuery.removeEventListener('change', update)
-  }, [])
+  }, [query])
 
-  return isTablet
+  return matches
+}
+
+function isEditableKeyboardTarget(target) {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable
 }
 
 function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
@@ -83,6 +90,47 @@ function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
   )
 }
 
+function CanvasSizeControls({
+  canvasWidth,
+  canvasHeight,
+  onExpandWidth,
+  onExpandHeight,
+  onReset,
+}) {
+  return (
+    <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
+      <span className="unified-floor-editor-canvas-size-label">Canvas</span>
+      <span className="unified-floor-editor-canvas-size-value">
+        {canvasWidth}×{canvasHeight}
+      </span>
+      <button
+        type="button"
+        className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-canvas-size-btn"
+        onClick={onExpandWidth}
+        title={`Add ${WORKSPACE_EXPAND_STEP}px to the right`}
+      >
+        + Width
+      </button>
+      <button
+        type="button"
+        className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-canvas-size-btn"
+        onClick={onExpandHeight}
+        title={`Add ${WORKSPACE_EXPAND_STEP}px to the bottom`}
+      >
+        + Height
+      </button>
+      <button
+        type="button"
+        className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-canvas-size-btn"
+        onClick={onReset}
+        title={`Reset to ${DEFAULT_FLOOR_SIZE.width}×${DEFAULT_FLOOR_SIZE.height}`}
+      >
+        Reset size
+      </button>
+    </div>
+  )
+}
+
 function EmbeddedFloorPlanEditorShell({
   containerRef,
   onExit,
@@ -109,7 +157,12 @@ function EmbeddedFloorPlanEditorShell({
   const [inspectorPanelOpen, setInspectorPanelOpen] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth > TABLET_EDITOR_BREAKPOINT : true
   ))
-  const isTabletLayout = useEditorTabletLayout()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const moreMenuRef = useRef(null)
+  const isTabletLayout = useMediaQuery(`(max-width: ${TABLET_EDITOR_BREAKPOINT}px)`)
+  const isOverlayLayout = useMediaQuery(OVERLAY_LAYOUT_QUERY)
+  const toolsOpen = isTabletLayout ? toolsPanelOpen : true
+  const inspectorOpen = isTabletLayout ? inspectorPanelOpen : true
 
   const getFitCamera = useCallback((width, height) => (
     getResetCameraForEditorWorkspace(activeWorkspaceBounds, width, height)
@@ -186,8 +239,54 @@ function EmbeddedFloorPlanEditorShell({
   useEffect(() => {
     if (selectionCount > 0) {
       setInspectorPanelOpen(true)
+      if (isOverlayLayout) setToolsPanelOpen(false)
     }
-  }, [selectionCount])
+  }, [isOverlayLayout, selectionCount])
+
+  useEffect(() => {
+    if (!moreOpen) return undefined
+
+    const closeOnPointerDown = (event) => {
+      if (moreMenuRef.current?.contains(event.target)) return
+      setMoreOpen(false)
+    }
+    const closeOnKey = (event) => {
+      if (event.key === 'Escape') setMoreOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeOnPointerDown)
+    document.addEventListener('keydown', closeOnKey)
+    return () => {
+      document.removeEventListener('pointerdown', closeOnPointerDown)
+      document.removeEventListener('keydown', closeOnKey)
+    }
+  }, [moreOpen])
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (!(event.metaKey || event.ctrlKey)) return
+      if (isEditableKeyboardTarget(event.target)) return
+
+      const key = event.key.toLowerCase()
+      if (key === 'z' && event.shiftKey) {
+        event.preventDefault()
+        dispatch({ type: 'REDO' })
+        return
+      }
+      if (key === 'z') {
+        event.preventDefault()
+        dispatch({ type: 'UNDO' })
+        return
+      }
+      if (key === 'y') {
+        event.preventDefault()
+        dispatch({ type: 'REDO' })
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [dispatch])
 
   const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight
 
@@ -278,16 +377,29 @@ function EmbeddedFloorPlanEditorShell({
     await handleReturnToHost()
   }
 
-  const handleCancel = () => {
-    dispatch({ type: 'CANCEL_EDITING' })
-    exitEditMode()
-  }
-
   const handleExit = () => {
     if (state.hasUnsavedChanges) {
+      const confirmed = window.confirm('Discard unsaved layout changes and exit?')
+      if (!confirmed) return
       dispatch({ type: 'CANCEL_EDITING' })
     }
     exitEditMode()
+  }
+
+  const toggleToolsPanel = () => {
+    setToolsPanelOpen((current) => {
+      const next = !current
+      if (next && isOverlayLayout) setInspectorPanelOpen(false)
+      return next
+    })
+  }
+
+  const toggleInspectorPanel = () => {
+    setInspectorPanelOpen((current) => {
+      const next = !current
+      if (next && isOverlayLayout) setToolsPanelOpen(false)
+      return next
+    })
   }
 
   const handleAreaChange = (floorId) => {
@@ -337,6 +449,9 @@ function EmbeddedFloorPlanEditorShell({
     object.floorId === state.activeFloorId && object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
   )).length
   const isBusy = isSavingDraft || isPublishingLayout
+  const canUndo = (state.undoStack?.length ?? 0) > 0
+  const canRedo = (state.redoStack?.length ?? 0) > 0
+  const exitLabel = state.hasUnsavedChanges ? 'Discard & exit' : 'Exit'
 
   const handleClearLayout = () => {
     if (activeFloorTableCount === 0) return
@@ -347,7 +462,18 @@ function EmbeddedFloorPlanEditorShell({
     if (!confirmed) return
 
     dispatch({ type: 'CLEAR_ACTIVE_FLOOR_LAYOUT' })
+    setMoreOpen(false)
   }
+
+  const canvasSizeControls = (
+    <CanvasSizeControls
+      canvasWidth={canvasWidth}
+      canvasHeight={canvasHeight}
+      onExpandWidth={handleExpandCanvasWidth}
+      onExpandHeight={handleExpandCanvasHeight}
+      onReset={handleResetCanvasSize}
+    />
+  )
 
   return (
     <div className="unified-floor-editor">
@@ -383,7 +509,7 @@ function EmbeddedFloorPlanEditorShell({
       ) : null}
       <div
         ref={editorRef}
-        className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsPanelOpen ? ' is-tools-open' : ''}${inspectorPanelOpen ? ' is-inspector-open' : ''}${isTabletLayout ? ' is-tablet-layout' : ''}`}
+        className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsOpen ? ' is-tools-open' : ''}${inspectorOpen ? ' is-inspector-open' : ''}${isTabletLayout ? ' is-tablet-layout' : ''}${isOverlayLayout ? ' is-overlay-layout' : ''}${moreOpen ? ' is-more-open' : ''}`}
         data-builder-mode={state.mode}
         style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
@@ -405,62 +531,64 @@ function EmbeddedFloorPlanEditorShell({
             ) : null}
           </div>
           <div className="unified-floor-editor-toolbar-actions">
-            <button
-              type="button"
-              className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-multi-select-toggle${state.multiSelectEnabled ? ' is-active' : ''}`}
-              onClick={() => dispatch({
-                type: 'SET_MULTI_SELECT_ENABLED',
-                payload: { enabled: !state.multiSelectEnabled },
-              })}
-              aria-pressed={state.multiSelectEnabled}
-            >
-              Select multiple
-            </button>
-            <button
-              type="button"
-              className={`fpb-toolbar-btn unified-floor-editor-panel-toggle${toolsPanelOpen ? ' is-active' : ''}`}
-              onClick={() => setToolsPanelOpen((current) => !current)}
-              aria-pressed={toolsPanelOpen}
-            >
-              Tools
-            </button>
-            <button
-              type="button"
-              className={`fpb-toolbar-btn unified-floor-editor-panel-toggle${inspectorPanelOpen ? ' is-active' : ''}`}
-              onClick={() => setInspectorPanelOpen((current) => !current)}
-              aria-pressed={inspectorPanelOpen}
-            >
-              Properties
-            </button>
-            <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
-              <span className="unified-floor-editor-canvas-size-label">Canvas</span>
-              <span className="unified-floor-editor-canvas-size-value">
-                {canvasWidth}×{canvasHeight}
-              </span>
+            <div className="unified-floor-editor-toolbar-group" role="group" aria-label="Edit tools">
               <button
                 type="button"
-                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
-                onClick={handleExpandCanvasWidth}
-                title={`Add ${WORKSPACE_EXPAND_STEP}px to the right`}
+                className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-multi-select-toggle${state.multiSelectEnabled ? ' is-active' : ''}`}
+                onClick={() => dispatch({
+                  type: 'SET_MULTI_SELECT_ENABLED',
+                  payload: { enabled: !state.multiSelectEnabled },
+                })}
+                aria-pressed={state.multiSelectEnabled}
               >
-                + Width
+                Select multiple
               </button>
               <button
                 type="button"
-                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
-                onClick={handleExpandCanvasHeight}
-                title={`Add ${WORKSPACE_EXPAND_STEP}px to the bottom`}
+                className="fpb-toolbar-btn fpb-toolbar-btn-touch"
+                onClick={() => dispatch({ type: 'UNDO' })}
+                disabled={!canUndo || isBusy}
+                aria-keyshortcuts="Control+Z Meta+Z"
+                title="Undo"
               >
-                + Height
+                Undo
               </button>
               <button
                 type="button"
-                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
-                onClick={handleResetCanvasSize}
-                title={`Reset to ${DEFAULT_FLOOR_SIZE.width}×${DEFAULT_FLOOR_SIZE.height}`}
+                className="fpb-toolbar-btn fpb-toolbar-btn-touch"
+                onClick={() => dispatch({ type: 'REDO' })}
+                disabled={!canRedo || isBusy}
+                aria-keyshortcuts="Control+Shift+Z Control+Y Meta+Shift+Z"
+                title="Redo"
               >
-                Reset size
+                Redo
               </button>
+              {isTabletLayout ? (
+                <>
+                  <button
+                    type="button"
+                    className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-panel-toggle${toolsOpen ? ' is-active' : ''}`}
+                    onClick={toggleToolsPanel}
+                    aria-pressed={toolsOpen}
+                    aria-expanded={toolsOpen}
+                    aria-controls="fpb-embedded-tools"
+                    aria-label={toolsOpen ? 'Hide tools' : 'Show tools'}
+                  >
+                    Tools
+                  </button>
+                  <button
+                    type="button"
+                    className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-panel-toggle${inspectorOpen ? ' is-active' : ''}`}
+                    onClick={toggleInspectorPanel}
+                    aria-pressed={inspectorOpen}
+                    aria-expanded={inspectorOpen}
+                    aria-controls="fpb-embedded-properties"
+                    aria-label={inspectorOpen ? 'Hide properties' : 'Show properties'}
+                  >
+                    Properties
+                  </button>
+                </>
+              ) : null}
             </div>
             {state.multiSelectEnabled && selectionCount >= 2 ? (
               <span className="unified-floor-editor-selection-count" role="status">
@@ -473,43 +601,74 @@ function EmbeddedFloorPlanEditorShell({
               onZoomOut={viewportControls.zoomOut}
               onViewFit={viewportControls.fitFloor}
             />
-            <button
-              type="button"
-              className="fpb-toolbar-btn fpb-toolbar-btn-danger unified-floor-editor-clear-layout-btn"
-              onClick={handleClearLayout}
-              disabled={activeFloorTableCount === 0 || isBusy}
-            >
-              Clear layout
-            </button>
-            <button type="button" className="fpb-toolbar-btn" onClick={handleCancel}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="fpb-toolbar-btn"
-              onClick={handleSaveDraft}
-              disabled={isBusy}
-            >
-              {isSavingDraft ? 'Saving…' : 'Save draft'}
-            </button>
-            <button
-              type="button"
-              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
-              onClick={handlePublish}
-              disabled={isBusy}
-            >
-              {isPublishingLayout ? 'Publishing…' : 'Publish layout'}
-            </button>
-            <button type="button" className="fpb-toolbar-btn" onClick={handleExit}>
-              Exit edit
-            </button>
+            {isTabletLayout ? null : canvasSizeControls}
+            <div className="unified-floor-editor-more" ref={moreMenuRef}>
+              <button
+                type="button"
+                className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-more-btn${moreOpen ? ' is-active' : ''}`}
+                onClick={() => setMoreOpen((current) => !current)}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+                aria-controls="fpb-embedded-more"
+              >
+                More
+              </button>
+              {moreOpen ? (
+                <div
+                  id="fpb-embedded-more"
+                  className="unified-floor-editor-more-menu"
+                  role="menu"
+                  aria-label="More layout actions"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-danger unified-floor-editor-clear-layout-btn"
+                    onClick={handleClearLayout}
+                    disabled={activeFloorTableCount === 0 || isBusy}
+                  >
+                    Clear layout
+                  </button>
+                  {isTabletLayout ? canvasSizeControls : null}
+                </div>
+              ) : null}
+            </div>
+            <div className="unified-floor-editor-toolbar-commit" role="group" aria-label="Save layout">
+              <button
+                type="button"
+                className="fpb-toolbar-btn fpb-toolbar-btn-touch"
+                onClick={handleSaveDraft}
+                disabled={isBusy}
+                title="Save without publishing"
+              >
+                {isSavingDraft ? 'Saving…' : 'Save draft'}
+              </button>
+              <button
+                type="button"
+                className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary"
+                onClick={handlePublish}
+                disabled={isBusy}
+                title="Publish to the host floor"
+              >
+                {isPublishingLayout ? 'Publishing…' : 'Publish layout'}
+              </button>
+              <button
+                type="button"
+                className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-exit-btn"
+                onClick={handleExit}
+                title={state.hasUnsavedChanges ? 'Discard unsaved changes and exit' : 'Exit layout editor'}
+              >
+                {exitLabel}
+              </button>
+            </div>
           </div>
         </div>
 
-        <div ref={sidebarRef} className="fpb-editor-sidebar">
+        <div id="fpb-embedded-tools" ref={sidebarRef} className="fpb-editor-sidebar">
           <BuilderToolbox
             onClose={() => setToolsPanelOpen(false)}
             showCloseButton={isTabletLayout}
+            closeLabel="Close tools"
           />
         </div>
 
@@ -521,11 +680,12 @@ function EmbeddedFloorPlanEditorShell({
           />
         </div>
 
-        <div className="fpb-editor-inspector">
+        <div id="fpb-embedded-properties" className="fpb-editor-inspector">
           <BuilderInspector
             onClose={() => setInspectorPanelOpen(false)}
             showCloseButton={isTabletLayout}
             isTabletLayout={isTabletLayout}
+            closeLabel="Close properties"
           />
         </div>
       </div>

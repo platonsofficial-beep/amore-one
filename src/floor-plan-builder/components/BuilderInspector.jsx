@@ -105,7 +105,12 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
   )
 }
 
-export function BuilderInspector({ onClose, showCloseButton = false, isTabletLayout = false }) {
+export function BuilderInspector({
+  onClose,
+  showCloseButton = false,
+  isTabletLayout = false,
+  closeLabel = 'Close panel',
+}) {
   const { state, dispatch, selectedObject } = useFloorPlanBuilder()
   const { floors } = state
   const isReadOnly = state.mode !== 'editing'
@@ -120,6 +125,7 @@ export function BuilderInspector({ onClose, showCloseButton = false, isTabletLay
           title={`${selectionCount} tables selected`}
           onClose={onClose}
           showClose={showCloseButton}
+          closeLabel={closeLabel}
         />
         <InspectorMultiSelectPanel count={selectionCount} isReadOnly={isReadOnly} dispatch={dispatch} />
       </aside>
@@ -134,6 +140,7 @@ export function BuilderInspector({ onClose, showCloseButton = false, isTabletLay
           title="Table"
           onClose={onClose}
           showClose={showCloseButton}
+          closeLabel={closeLabel}
         />
         <InspectorEmptyState />
       </aside>
@@ -189,6 +196,7 @@ export function BuilderInspector({ onClose, showCloseButton = false, isTabletLay
         title={displayLabel}
         onClose={onClose}
         showClose={showCloseButton}
+        closeLabel={closeLabel}
       >
         {isReadOnly ? <p className="fpb-inspector-readonly-note">View mode — click Edit layout to change tables.</p> : null}
       </PanelHeader>

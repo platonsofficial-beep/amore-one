@@ -112,6 +112,123 @@ function createLayoutSnapshot(state) {
   })
 }
 
+/** In-editor step history. Cancel/exit still restores the saved snapshot. */
+export const LAYOUT_HISTORY_LIMIT = 40
+
+const LAYOUT_HISTORY_ACTIONS = new Set([
+  'MOVE_OBJECT',
+  'TRANSFORM_TABLE',
+  'ADD_OBJECT',
+  'UPDATE_TABLE',
+  'DELETE_OBJECT',
+  'DELETE_SELECTED_TABLES',
+  'CLEAR_ACTIVE_FLOOR_LAYOUT',
+  'ADD_FLOOR',
+  'RENAME_FLOOR',
+  'UPDATE_FLOOR_WORKSPACE',
+  'MATCH_SELECTED_TABLE_SIZE',
+  'ALIGN_SELECTED_HORIZONTAL',
+  'ALIGN_SELECTED_VERTICAL',
+  'AUTO_ARRANGE_FLOOR',
+  'DELETE_FLOOR',
+])
+
+function emptyLayoutHistory() {
+  return {
+    undoStack: [],
+    redoStack: [],
+    historyCoalesceKey: null,
+  }
+}
+
+function layoutsMatch(left, right) {
+  if (!left || !right) return false
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function layoutChanged(previous, next) {
+  return previous.floors !== next.floors
+    || previous.objects !== next.objects
+    || previous.activeFloorId !== next.activeFloorId
+}
+
+function withLayoutHistory(previous, next, action) {
+  if (next === previous) return previous
+  if (!LAYOUT_HISTORY_ACTIONS.has(action.type)) return next
+  if (!layoutChanged(previous, next)) return next
+
+  const coalesceKey = action.payload?.historyKey || null
+  if (coalesceKey && previous.historyCoalesceKey === coalesceKey) {
+    return {
+      ...next,
+      undoStack: previous.undoStack ?? [],
+      redoStack: previous.redoStack ?? [],
+      historyCoalesceKey: coalesceKey,
+    }
+  }
+
+  const undoStack = [...(previous.undoStack ?? []), createLayoutSnapshot(previous)]
+  const trimmed = undoStack.length > LAYOUT_HISTORY_LIMIT
+    ? undoStack.slice(undoStack.length - LAYOUT_HISTORY_LIMIT)
+    : undoStack
+
+  return {
+    ...next,
+    undoStack: trimmed,
+    redoStack: [],
+    historyCoalesceKey: coalesceKey,
+  }
+}
+
+function restoreHistorySnapshot(state, snapshot, { undoStack, redoStack }) {
+  const next = {
+    ...state,
+    ...cloneLayoutData(snapshot),
+    undoStack,
+    redoStack,
+    historyCoalesceKey: null,
+    selectedTableIds: (state.selectedTableIds ?? []).filter((id) => (
+      snapshot.objects.some((object) => object.id === id)
+    )),
+  }
+  next.hasUnsavedChanges = !layoutsMatch(createLayoutSnapshot(next), state.savedSnapshot)
+  return next
+}
+
+function applyHistoryStep(state, action) {
+  if (!isBuilderEditing(state)) return state
+
+  if (action.type === 'UNDO') {
+    const undoStack = state.undoStack ?? []
+    if (!undoStack.length) return state
+    const snapshot = undoStack[undoStack.length - 1]
+    const redoStack = [...(state.redoStack ?? []), createLayoutSnapshot(state)]
+    const trimmedRedo = redoStack.length > LAYOUT_HISTORY_LIMIT
+      ? redoStack.slice(redoStack.length - LAYOUT_HISTORY_LIMIT)
+      : redoStack
+    return restoreHistorySnapshot(state, snapshot, {
+      undoStack: undoStack.slice(0, -1),
+      redoStack: trimmedRedo,
+    })
+  }
+
+  if (action.type === 'REDO') {
+    const redoStack = state.redoStack ?? []
+    if (!redoStack.length) return state
+    const snapshot = redoStack[redoStack.length - 1]
+    const undoStack = [...(state.undoStack ?? []), createLayoutSnapshot(state)]
+    const trimmedUndo = undoStack.length > LAYOUT_HISTORY_LIMIT
+      ? undoStack.slice(undoStack.length - LAYOUT_HISTORY_LIMIT)
+      : undoStack
+    return restoreHistorySnapshot(state, snapshot, {
+      undoStack: trimmedUndo,
+      redoStack: redoStack.slice(0, -1),
+    })
+  }
+
+  return state
+}
+
 function createInitialBuilderState({ initialEditing = false, initialLayout = null } = {}) {
   const persisted = initialLayout ?? loadFloorPlanLayout()
   const floors = persisted?.floors ?? createInitialFloors()
@@ -138,6 +255,7 @@ function createInitialBuilderState({ initialEditing = false, initialLayout = nul
   return {
     ...baseState,
     savedSnapshot: createLayoutSnapshot(baseState),
+    ...emptyLayoutHistory(),
   }
 }
 
@@ -145,7 +263,7 @@ function isBuilderEditing(state) {
   return state.mode === 'editing'
 }
 
-function floorPlanBuilderReducer(state, action) {
+function applyFloorPlanBuilderAction(state, action) {
   switch (action.type) {
     case 'SELECT_OBJECT': {
       const { objectId } = action.payload
@@ -237,6 +355,7 @@ function floorPlanBuilderReducer(state, action) {
         savedSnapshot: createLayoutSnapshot(state),
         toolboxSelectionId: null,
         selectedTableIds: [],
+        ...emptyLayoutHistory(),
       }
     case 'MARK_DRAFT_SAVED': {
       const snapshot = createLayoutSnapshot(state)
@@ -260,6 +379,7 @@ function floorPlanBuilderReducer(state, action) {
         savedSnapshot: snapshot,
         toolboxSelectionId: null,
         selectedTableIds: [],
+        ...emptyLayoutHistory(),
       }
     }
     case 'PUBLISH_LAYOUT': {
@@ -276,6 +396,7 @@ function floorPlanBuilderReducer(state, action) {
         savedSnapshot: snapshot,
         toolboxSelectionId: null,
         selectedTableIds: [],
+        ...emptyLayoutHistory(),
       }
     }
     case 'CANCEL_EDITING': {
@@ -287,25 +408,33 @@ function floorPlanBuilderReducer(state, action) {
         hasUnsavedChanges: false,
         toolboxSelectionId: null,
         selectedTableIds: [],
+        ...emptyLayoutHistory(),
       }
     }
-    case 'MOVE_OBJECT':
+    case 'MOVE_OBJECT': {
       if (!isBuilderEditing(state)) return state
+      const { objectId, position } = action.payload ?? {}
+      if (!objectId || !position) return state
+      const current = state.objects.find((object) => object.id === objectId)
+      if (!current) return state
+      if (current.position?.x === position.x && current.position?.y === position.y) return state
+
       return {
         ...state,
         hasUnsavedChanges: true,
         objects: state.objects.map((object) => (
-          object.id === action.payload.objectId
+          object.id === objectId
             ? {
               ...object,
               position: {
-                x: action.payload.position.x,
-                y: action.payload.position.y,
+                x: position.x,
+                y: position.y,
               },
             }
             : object
         )),
       }
+    }
     case 'TRANSFORM_TABLE': {
       if (!isBuilderEditing(state)) return state
       const { objectId, position, size, rotation } = action.payload
@@ -665,6 +794,7 @@ function floorPlanBuilderReducer(state, action) {
         ...nextState,
         mode: 'viewing',
         savedSnapshot: snapshot,
+        ...emptyLayoutHistory(),
       }
     }
     case 'DELETE_FLOOR': {
@@ -689,6 +819,14 @@ function floorPlanBuilderReducer(state, action) {
     default:
       return state
   }
+}
+
+function floorPlanBuilderReducer(state, action) {
+  if (action.type === 'UNDO' || action.type === 'REDO') {
+    return applyHistoryStep(state, action)
+  }
+
+  return withLayoutHistory(state, applyFloorPlanBuilderAction(state, action), action)
 }
 
 export { createInitialBuilderState, floorPlanBuilderReducer }

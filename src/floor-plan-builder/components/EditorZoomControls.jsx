@@ -30,10 +30,11 @@ export function EditorZoomControls({
       </button>
       <button
         type="button"
-        className="fpb-toolbar-btn fpb-editor-zoom-fit-btn"
+        className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-editor-zoom-fit-btn"
         onClick={onViewFit}
+        aria-label="Fit to view"
       >
-        View fit
+        Fit
       </button>
     </div>
   )

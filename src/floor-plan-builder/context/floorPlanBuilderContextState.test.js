@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialBuilderState, floorPlanBuilderReducer } from './floorPlanBuilderContextState'
+import {
+  LAYOUT_HISTORY_LIMIT,
+  createInitialBuilderState,
+  floorPlanBuilderReducer,
+} from './floorPlanBuilderContextState'
 import { FLOOR_PLAN_OBJECT_TYPES, buildTableSizePresetPatch } from '../models/floorPlanObject'
 
 function createTable(id, floorId = 'main') {
@@ -488,5 +492,132 @@ describe('CLEAR_ACTIVE_FLOOR_LAYOUT', () => {
     expect(nextState.objects).toHaveLength(1)
     expect(nextState.objects[0].id).toBe('table-2')
     expect(nextState.selectedTableIds).toEqual([])
+  })
+})
+
+describe('layout undo and redo', () => {
+  function editingState(overrides = {}) {
+    const state = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      ...overrides,
+    }
+    return {
+      ...state,
+      hasUnsavedChanges: false,
+      savedSnapshot: {
+        floors: state.floors,
+        objects: state.objects,
+        activeFloorId: state.activeFloorId,
+      },
+    }
+  }
+
+  it('undoes and redoes a table move as one step', () => {
+    const initialState = editingState({
+      objects: [createTable('table-1')],
+    })
+
+    const moved = floorPlanBuilderReducer(initialState, {
+      type: 'MOVE_OBJECT',
+      payload: { objectId: 'table-1', position: { x: 280, y: 320 } },
+    })
+    expect(moved.objects[0].position).toEqual({ x: 280, y: 320 })
+    expect(moved.undoStack).toHaveLength(1)
+    expect(moved.redoStack).toHaveLength(0)
+
+    const undone = floorPlanBuilderReducer(moved, { type: 'UNDO' })
+    expect(undone.objects[0].position).toEqual({ x: 100, y: 100 })
+    expect(undone.hasUnsavedChanges).toBe(false)
+    expect(undone.redoStack).toHaveLength(1)
+
+    const redone = floorPlanBuilderReducer(undone, { type: 'REDO' })
+    expect(redone.objects[0].position).toEqual({ x: 280, y: 320 })
+    expect(redone.hasUnsavedChanges).toBe(true)
+  })
+
+  it('coalesces drag frames that share a history key', () => {
+    let state = editingState({ objects: [createTable('table-1')] })
+    state = floorPlanBuilderReducer(state, {
+      type: 'MOVE_OBJECT',
+      payload: { objectId: 'table-1', position: { x: 140, y: 140 }, historyKey: 'move-1' },
+    })
+    state = floorPlanBuilderReducer(state, {
+      type: 'MOVE_OBJECT',
+      payload: { objectId: 'table-1', position: { x: 180, y: 200 }, historyKey: 'move-1' },
+    })
+
+    expect(state.undoStack).toHaveLength(1)
+    expect(state.objects[0].position).toEqual({ x: 180, y: 200 })
+
+    const undone = floorPlanBuilderReducer(state, { type: 'UNDO' })
+    expect(undone.objects[0].position).toEqual({ x: 100, y: 100 })
+  })
+
+  it('records resize, rotate, add, delete, and area rename', () => {
+    let state = editingState({ objects: [createTable('table-1')] })
+
+    state = floorPlanBuilderReducer(state, {
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 80, y: 80 },
+        size: { width: 180, height: 180 },
+        rotation: 45,
+      },
+    })
+    state = floorPlanBuilderReducer(state, {
+      type: 'ADD_OBJECT',
+      payload: { object: createTable('table-2') },
+    })
+    state = floorPlanBuilderReducer(state, {
+      type: 'RENAME_FLOOR',
+      payload: { floorId: state.activeFloorId, label: 'Patio' },
+    })
+    state = floorPlanBuilderReducer(state, {
+      type: 'DELETE_OBJECT',
+      payload: { objectId: 'table-2' },
+    })
+
+    expect(state.undoStack).toHaveLength(4)
+    expect(state.objects.map((object) => object.id)).toEqual(['table-1'])
+    expect(state.floors.find((floor) => floor.id === state.activeFloorId)?.label).toBe('Patio')
+
+    const undoneDelete = floorPlanBuilderReducer(state, { type: 'UNDO' })
+    expect(undoneDelete.objects.map((object) => object.id)).toEqual(['table-1', 'table-2'])
+
+    const undoneRename = floorPlanBuilderReducer(undoneDelete, { type: 'UNDO' })
+    expect(undoneRename.floors.find((floor) => floor.id === undoneRename.activeFloorId)?.label).not.toBe('Patio')
+  })
+
+  it('does not record camera or selection changes', () => {
+    const initialState = editingState({ objects: [createTable('table-1')] })
+    const selected = floorPlanBuilderReducer(initialState, {
+      type: 'SELECT_OBJECT',
+      payload: { objectId: 'table-1' },
+    })
+    const zoomed = floorPlanBuilderReducer(selected, {
+      type: 'SET_CAMERA',
+      payload: { zoom: 1.4 },
+    })
+
+    expect(zoomed.undoStack).toEqual([])
+    expect(zoomed.selectedTableIds).toEqual(['table-1'])
+  })
+
+  it('caps history and ignores undo after cancel leaves editing', () => {
+    let state = editingState({ objects: [createTable('table-1')] })
+    for (let step = 1; step <= LAYOUT_HISTORY_LIMIT + 5; step += 1) {
+      state = floorPlanBuilderReducer(state, {
+        type: 'MOVE_OBJECT',
+        payload: { objectId: 'table-1', position: { x: 100 + step, y: 100 } },
+      })
+    }
+
+    expect(state.undoStack).toHaveLength(LAYOUT_HISTORY_LIMIT)
+
+    const cancelled = floorPlanBuilderReducer(state, { type: 'CANCEL_EDITING' })
+    expect(cancelled.mode).toBe('viewing')
+    expect(cancelled.undoStack).toEqual([])
+    expect(floorPlanBuilderReducer(cancelled, { type: 'UNDO' })).toBe(cancelled)
   })
 })

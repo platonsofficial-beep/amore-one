@@ -3,6 +3,7 @@ export function PanelHeader({
   title,
   onClose,
   showClose = false,
+  closeLabel = 'Close panel',
   children,
   className = '',
 }) {
@@ -18,7 +19,7 @@ export function PanelHeader({
             type="button"
             className="fpb-panel-close-btn"
             onClick={onClose}
-            aria-label="Close panel"
+            aria-label={closeLabel}
           >
             ×
           </button>
