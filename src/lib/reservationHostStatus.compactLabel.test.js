@@ -13,7 +13,7 @@ describe('getHostListCompactStatusLabel', () => {
     expect(getHostListCompactStatusLabel('Walk In')).toBe('Walk-in')
     expect(getHostListCompactStatusLabel('Waiting')).toBe('Arrived')
     expect(getHostListCompactStatusLabel('Not Shown')).toBe('No-show')
-    expect(getHostListCompactStatusLabel('Checked Out')).toBe('Completed')
+    expect(getHostListCompactStatusLabel('Checked Out')).toBe('Finished')
     expect(getHostListCompactStatusLabel('Confirmed')).toBe('Confirmed')
   })
 })

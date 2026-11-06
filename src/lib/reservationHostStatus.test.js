@@ -68,7 +68,7 @@ describe('getHostStationStatusMenuOptions', () => {
       'Confirmed',
       'Arrived',
       'Seated',
-      'Completed',
+      'Finished',
       'No-show',
       'Cancelled',
     ])

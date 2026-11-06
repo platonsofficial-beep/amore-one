@@ -244,7 +244,7 @@ describe('MobileReservationQuickCreateSheet walk-in mode', () => {
     expect(container.querySelector('[data-testid="host-quick-create-primary-action"]')?.textContent)
       .toBe('Save reservation')
     expect(container.querySelector('.mobile-host-form-hint')?.textContent)
-      .toContain('Pending status')
+      .toContain('Saved as Pending')
 
     unmount()
   })

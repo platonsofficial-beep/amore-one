@@ -14,6 +14,7 @@ import {
 } from '../../lib/reservationHostStatus'
 import { getTableDayViewStatusPresentation } from '../../lib/tableDayView'
 import { formatTime24 } from '../../lib/timeFormatUtils'
+import { NoServiceHoursNotice } from '../reservations/NoServiceHoursNotice'
 
 function TableDayViewRowDivider() {
   return <div className="floor-table-day-row-divider" aria-hidden="true" />
@@ -729,6 +730,7 @@ export function HostTableInspectorContent({
   reservationSeatings = [],
   titleId = 'host-table-inspector-title',
   animateEntrance = true,
+  onOpenSeatingHours,
 }) {
   const safeRows = Array.isArray(rows) ? rows : []
   const useDrawerHierarchy = variant === 'drawer'
@@ -862,7 +864,7 @@ export function HostTableInspectorContent({
           })}
         </ul>
       ) : (
-        <p className="floor-table-seating-dialog-empty">No active seatings configured for this date.</p>
+        <NoServiceHoursNotice onOpenSeatingHours={onOpenSeatingHours} />
       )}
     </>
   )

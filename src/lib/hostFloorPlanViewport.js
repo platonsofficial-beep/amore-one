@@ -269,6 +269,32 @@ export function clampHostFloorPan(
   }
 }
 
+export const HOST_FLOOR_WHOLE_AREA_PADDING_PX = 16
+
+/** Fit the whole active area inside the viewport, with padding, centered. */
+export function computeHostFloorWholeAreaFit({
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+  paddingPx = HOST_FLOOR_WHOLE_AREA_PADDING_PX,
+} = {}) {
+  const pad = Math.max(0, Number(paddingPx) || 0)
+  const box = computeHostFloorContainBox({
+    viewportWidth: Math.max(1, viewportWidth - pad * 2),
+    viewportHeight: Math.max(1, viewportHeight - pad * 2),
+    aspectWidth,
+    aspectHeight,
+  })
+  return {
+    ...box,
+    scrollLeft: 0,
+    scrollTop: 0,
+    zoom: 1,
+    paddingPx: pad,
+  }
+}
+
 export function computeHostFloorFit({
   viewportWidth,
   viewportHeight,

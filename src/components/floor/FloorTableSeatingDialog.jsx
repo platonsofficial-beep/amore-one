@@ -28,6 +28,7 @@ export function FloorTableSeatingDialog({
   todayKey = '',
   floorLayout = null,
   reservationSeatings = [],
+  onOpenSeatingHours,
 }) {
   const isPhone = useMediaQuery('(max-width: 720px)')
   const overlayClassName = getFloorTableSeatingDialogOverlayClass(isPhone)
@@ -73,6 +74,7 @@ export function FloorTableSeatingDialog({
           reservationSeatings={reservationSeatings}
           titleId="floor-table-seating-dialog-title"
           animateEntrance={false}
+          onOpenSeatingHours={onOpenSeatingHours}
         />
       </div>
     </div>,

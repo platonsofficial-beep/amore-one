@@ -10287,6 +10287,56 @@ body:not(:has(.inventory-count-session)) :is(
     flex: 0 1 auto;
     min-width: 0;
   }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-title {
+    flex: 0 0 auto;
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-date-calendar-btn {
+    display: none;
+  }
+
+  .app-shell.is-reservations-host-mode .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .app-shell.is-reservations-dedicated-shell .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
+    padding-inline-end: 8px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar > :first-child,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions {
+    flex: 1 1 auto;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip-metrics,
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip-count {
+    display: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-scroll {
+    padding-inline-end: 28px;
+  }
+
+  .mobile-host-floor-stage:has(.is-floor-interaction-locked),
+  .mobile-host-reservations-right-pane:has(.is-floor-interaction-locked) {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .mobile-host-reservations.is-host-mode > .host-load-notice {
+    position: absolute;
+    z-index: 6;
+    top: 48px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    margin: 0;
+  }
 }
 
 .operations-unified-tabs {

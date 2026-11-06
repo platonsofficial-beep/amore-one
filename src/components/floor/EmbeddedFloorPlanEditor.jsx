@@ -142,6 +142,7 @@ function EmbeddedFloorPlanEditorShell({
   hasUnpublishedDraft,
   initialAreaId,
   onActiveAreaChange,
+  canPublishLayout = true,
 }) {
   const editorRef = useRef(null)
   const toolbarRef = useRef(null)
@@ -295,6 +296,7 @@ function EmbeddedFloorPlanEditorShell({
   }, [onExit])
 
   const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
   const [isPublishingLayout, setIsPublishingLayout] = useState(false)
   const [publishError, setPublishError] = useState(null)
   const [publishSuccess, setPublishSuccess] = useState(false)
@@ -453,16 +455,24 @@ function EmbeddedFloorPlanEditorShell({
   const canRedo = (state.redoStack?.length ?? 0) > 0
   const exitLabel = state.hasUnsavedChanges ? 'Discard & exit' : 'Exit'
 
-  const handleClearLayout = () => {
+  const requestClearLayout = () => {
     if (activeFloorTableCount === 0) return
-
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this layout? This will remove all tables from this area.',
-    )
-    if (!confirmed) return
-
-    dispatch({ type: 'CLEAR_ACTIVE_FLOOR_LAYOUT' })
     setMoreOpen(false)
+    setConfirmAction(canPublishLayout ? 'clear' : 'blocked')
+  }
+
+  const requestPublishLayout = () => {
+    setConfirmAction(canPublishLayout ? 'publish' : 'blocked')
+  }
+
+  const commitClearLayout = () => {
+    dispatch({ type: 'CLEAR_ACTIVE_FLOOR_LAYOUT' })
+    setConfirmAction(null)
+  }
+
+  const commitPublishLayout = () => {
+    setConfirmAction(null)
+    handlePublish()
   }
 
   const canvasSizeControls = (
@@ -477,6 +487,46 @@ function EmbeddedFloorPlanEditorShell({
 
   return (
     <div className="unified-floor-editor">
+      {confirmAction ? (
+        <div className="unified-floor-editor-confirm" role="presentation">
+          <div
+            className="unified-floor-editor-confirm-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="floor-publish-confirm-title"
+          >
+            <h3 id="floor-publish-confirm-title">
+              {confirmAction === 'blocked'
+                ? 'Ask a manager'
+                : confirmAction === 'clear'
+                  ? 'Clear this area?'
+                  : 'Publish the live floor?'}
+            </h3>
+            <p>
+              {confirmAction === 'blocked'
+                ? 'Ask a manager to publish or clear the live floor. You can still save a draft.'
+                : confirmAction === 'clear'
+                  ? 'This removes every table in this area for the whole team.'
+                  : 'This changes the live floor for the whole team.'}
+            </p>
+            <div className="unified-floor-editor-confirm-actions">
+              <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch" onClick={() => setConfirmAction(null)}>
+                Cancel
+              </button>
+              {confirmAction === 'clear' ? (
+                <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-danger" onClick={commitClearLayout}>
+                  Clear area
+                </button>
+              ) : null}
+              {confirmAction === 'publish' ? (
+                <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary" onClick={commitPublishLayout}>
+                  Publish
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
       {publishSuccess ? (
         <div className="unified-floor-editor-publish-success" role="status">
           <div className="unified-floor-editor-publish-success-copy">
@@ -624,7 +674,7 @@ function EmbeddedFloorPlanEditorShell({
                     type="button"
                     role="menuitem"
                     className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-danger unified-floor-editor-clear-layout-btn"
-                    onClick={handleClearLayout}
+                    onClick={requestClearLayout}
                     disabled={activeFloorTableCount === 0 || isBusy}
                   >
                     Clear layout
@@ -646,7 +696,7 @@ function EmbeddedFloorPlanEditorShell({
               <button
                 type="button"
                 className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary"
-                onClick={handlePublish}
+                onClick={requestPublishLayout}
                 disabled={isBusy}
                 title="Publish to the host floor"
               >
@@ -698,6 +748,7 @@ export function EmbeddedFloorPlanEditor({
   initialAreaId,
   onActiveAreaChange,
   onReturnToHost,
+  canPublishLayout = true,
 }) {
   const containerRef = useRef(null)
   const {
@@ -739,6 +790,7 @@ export function EmbeddedFloorPlanEditor({
         hasUnpublishedDraft={hasUnpublishedDraft}
         initialAreaId={initialAreaId}
         onActiveAreaChange={onActiveAreaChange}
+        canPublishLayout={canPublishLayout}
       />
     </FloorPlanBuilderProvider>
   )

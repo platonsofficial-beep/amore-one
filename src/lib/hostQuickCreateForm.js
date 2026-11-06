@@ -298,13 +298,15 @@ export function buildHostQuickCreateTableOptions({
   seatings = [],
   assignedUnits = [],
 } = {}) {
-  if (!seatingId || !areaId) {
+  const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
+  const afterHours = !seatingId && activeSeatings.length === 0
+  if (!areaId || (!seatingId && !afterHours)) {
     return { options: [], availableCount: 0, canSelect: false }
   }
 
   const seatingsById = buildSeatingsById(seatings)
-  const selectedSeating = seatingsById.get(seatingId)
-  const hasSchedulingContext = Boolean(dateKey && (time || selectedSeating))
+  const selectedSeating = seatingId ? seatingsById.get(seatingId) : null
+  const hasSchedulingContext = Boolean(dateKey && (time || selectedSeating || afterHours))
   if (!hasSchedulingContext) {
     return { options: [], availableCount: 0, canSelect: false }
   }
@@ -364,6 +366,9 @@ export function getHostQuickCreateTableHelperText(form, tableOptions, seatings =
   }
 
   if (!form.seatingId) {
+    if (getActiveSeatingsForDate(seatings, form.date).length === 0) {
+      return form.seatingAreaId ? '' : 'Choose an area to view available tables'
+    }
     return 'Choose a seating to view available tables'
   }
 
@@ -494,7 +499,9 @@ function clearInvalidAssignedUnits(form, context) {
 
 export function refreshHostQuickCreateAssignedUnits(form, context = {}) {
   if (!form?.assignedUnits?.length) return form
-  if (!form.seatingId || !form.seatingAreaId) return form
+  const afterHours = !form.seatingId
+    && getActiveSeatingsForDate(context.seatings ?? [], form.date).length === 0
+  if ((!form.seatingId && !afterHours) || !form.seatingAreaId) return form
 
   const cleared = clearInvalidAssignedUnits(form, context)
   if (

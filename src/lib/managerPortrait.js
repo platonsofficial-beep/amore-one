@@ -1,4 +1,5 @@
-import { getReservationsForFloorTable } from './floorAssignmentMapping'
+import { getReservationDateKey, getReservationsForFloorTable } from './floorAssignmentMapping'
+import { normalizeReservationStatus } from './reservationHostStatus'
 import { readLiveViewportBox } from './viewportUtils'
 import { resolveFloorTableOperationalState } from './floorTableOperationalState'
 import {
@@ -216,6 +217,53 @@ export const PORTRAIT_TABLE_STATUS_LABELS = {
   upcoming: 'Upcoming',
   cleaning: 'Cleaning',
   reserved: 'Reserved',
+  stale: 'Still seated',
+}
+
+const PORTRAIT_LEFTOVER_STATUSES = new Set([
+  'Waiting',
+  'Checked In',
+  'Checked In (Partial)',
+  'Walk In',
+])
+
+export function listPortraitSeatingLeftovers(reservations = [], dateKey = '') {
+  const viewed = `${dateKey ?? ''}`.slice(0, 10)
+  if (!viewed) return []
+
+  return (reservations ?? []).filter((reservation) => {
+    const status = normalizeReservationStatus(reservation?.status)
+    if (!PORTRAIT_LEFTOVER_STATUSES.has(status)) return false
+    const day = getReservationDateKey(reservation)
+    return Boolean(day) && day < viewed
+  })
+}
+
+export function applyPortraitSeatingLeftovers(tables = [], leftovers = [], layoutTables = []) {
+  if (!leftovers.length) return tables
+
+  return tables.map((row) => {
+    if (row.status && row.status !== 'available') return row
+    const table = layoutTables.find((entry) => `${entry?.id ?? ''}` === `${row.id}`)
+    if (!table) return row
+
+    const match = leftovers.find((reservation) => (
+      getReservationsForFloorTable(
+        table,
+        [reservation],
+        getReservationDateKey(reservation),
+        { floorUnits: layoutTables },
+      ).length > 0
+    ))
+    if (!match) return row
+
+    return {
+      ...row,
+      status: 'stale',
+      guest: `${match.guestName ?? ''}`.trim() || row.guest,
+      leftoverReservationId: match.id ?? null,
+    }
+  })
 }
 
 export function portraitTableStatusLabel(status) {
@@ -244,8 +292,10 @@ export function buildPortraitFloorTables({
       id: `${table?.id ?? index}`,
       label,
       seats,
+      zoneId: table?.zoneId ?? '',
       status: operational.floorStatus || 'available',
       guest,
+      reservationId: operational.displayReservation?.id ?? null,
     }
   })
 }

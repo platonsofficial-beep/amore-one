@@ -15,6 +15,52 @@ export const HOST_DINING_TIMER_DURATION_POLICY_MINUTES = {
   drinks: 90,
 }
 
+export const HOST_DINING_TIMER_POLICY_STORAGE_KEY = 'one.hostDiningTimerMinutes'
+
+function clampHostDiningTimerMinutes(value, fallback) {
+  const minutes = Math.round(Number(value))
+  if (!Number.isFinite(minutes)) return fallback
+  return Math.min(24 * 60, Math.max(15, minutes))
+}
+
+export function normalizeHostDiningTimerDurationPolicy(policy = {}) {
+  return {
+    dinner: clampHostDiningTimerMinutes(
+      policy?.dinner,
+      HOST_DINING_TIMER_DURATION_POLICY_MINUTES.dinner,
+    ),
+    drinks: clampHostDiningTimerMinutes(
+      policy?.drinks,
+      HOST_DINING_TIMER_DURATION_POLICY_MINUTES.drinks,
+    ),
+  }
+}
+
+export function readHostDiningTimerDurationPolicy() {
+  try {
+    if (typeof localStorage === 'undefined') {
+      return { ...HOST_DINING_TIMER_DURATION_POLICY_MINUTES }
+    }
+    const raw = localStorage.getItem(HOST_DINING_TIMER_POLICY_STORAGE_KEY)
+    if (!raw) return { ...HOST_DINING_TIMER_DURATION_POLICY_MINUTES }
+    return normalizeHostDiningTimerDurationPolicy(JSON.parse(raw))
+  } catch {
+    return { ...HOST_DINING_TIMER_DURATION_POLICY_MINUTES }
+  }
+}
+
+export function writeHostDiningTimerDurationPolicy(policy = {}) {
+  const normalized = normalizeHostDiningTimerDurationPolicy(policy)
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(HOST_DINING_TIMER_POLICY_STORAGE_KEY, JSON.stringify(normalized))
+    }
+  } catch {
+    // Private mode can reject storage. The next read falls back to the defaults.
+  }
+  return normalized
+}
+
 export const HOST_DINING_TIMER_URGENCY_LEVELS = {
   NORMAL: 'normal',
   APPROACHING: 'approaching',
@@ -68,9 +114,9 @@ export function formatServiceDayMinutesAsTime24(serviceDayMinutes) {
 }
 
 export function getHostDiningTimerExpectedDurationMinutes(reservation) {
+  const policy = readHostDiningTimerDurationPolicy()
   const purpose = getReservationPurpose(reservation)
-  return HOST_DINING_TIMER_DURATION_POLICY_MINUTES[purpose]
-    ?? HOST_DINING_TIMER_DURATION_POLICY_MINUTES.dinner
+  return policy[purpose] ?? policy.dinner
 }
 
 export function resolveHostDiningTimerUrgency(elapsedMinutes, expectedDurationMinutes) {

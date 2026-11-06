@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { logPublishBreadcrumbsOnError } from '../../lib/publishFloorPlanDiagnostics'
+import { formatHostLoadError } from '../../lib/hostLoadNotice'
 
 export class HostStationErrorBoundary extends Component {
   constructor(props) {
@@ -35,8 +36,8 @@ export class HostStationErrorBoundary extends Component {
 
     return (
       <div className="host-station-error-boundary" role="alert">
-        <h3>Host Station could not load.</h3>
-        <p>{error?.message || 'Something went wrong while loading the host floor view.'}</p>
+        <h3>Couldn&apos;t load</h3>
+        <p>{formatHostLoadError(error?.message) || 'Something went wrong while loading the host floor.'}</p>
         <div className="host-station-error-actions">
           <button type="button" className="host-station-error-retry" onClick={this.handleRetry}>
             Retry
