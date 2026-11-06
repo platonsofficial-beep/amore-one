@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildHostServiceDashboard,
   countHostListFilterMatches,
@@ -75,6 +75,11 @@ describe('Host Service Dashboard', () => {
 })
 
 describe('workspace phone default resolution', () => {
+  afterEach(() => {
+    setWorkspaceDefaultPhoneCountryCode('')
+    vi.unstubAllGlobals()
+  })
+
   it('resolves Cyprus workspace country to +357', () => {
     expect(resolveWorkspaceDefaultPhoneCountryCode({
       countryCode: 'CY',
@@ -84,8 +89,18 @@ describe('workspace phone default resolution', () => {
     })).toBe('+357')
   })
 
-  it('uses workspace default before browser locale fallback', () => {
-    setWorkspaceDefaultPhoneCountryCode('+357')
+  it('keeps the venue dial code when the browser locale is en-US', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    setWorkspaceDefaultPhoneCountryCode(resolveWorkspaceDefaultPhoneCountryCode({
+      countryCode: 'CY',
+      defaultPhoneCountryCode: '+357',
+    }))
+    expect(getDefaultReservationPhoneCountryCode()).toBe('+357')
+  })
+
+  it('uses +357 when the venue country is unset', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    expect(resolveWorkspaceDefaultPhoneCountryCode({})).toBe('+357')
     expect(getDefaultReservationPhoneCountryCode()).toBe('+357')
   })
 })

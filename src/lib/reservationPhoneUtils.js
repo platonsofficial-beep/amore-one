@@ -2,7 +2,6 @@ import {
   DEFAULT_PHONE_COUNTRY_CODE,
   PHONE_COUNTRY_CODES_BY_LENGTH,
   PRIORITY_PHONE_COUNTRIES,
-  detectDefaultPhoneCountryCode,
   findPhoneCountryByCode,
   findPhoneCountryByIso2,
 } from './phoneCountries'
@@ -19,9 +18,24 @@ export {
 } from './phoneCountries'
 
 let workspaceDefaultPhoneCountryCode = null
+const workspaceDefaultPhoneCountryListeners = new Set()
 
 export function setWorkspaceDefaultPhoneCountryCode(code) {
-  workspaceDefaultPhoneCountryCode = `${code ?? ''}`.trim() || null
+  const next = `${code ?? ''}`.trim() || null
+  if (next === workspaceDefaultPhoneCountryCode) return
+  workspaceDefaultPhoneCountryCode = next
+  workspaceDefaultPhoneCountryListeners.forEach((listener) => listener())
+}
+
+export function getWorkspaceDefaultPhoneCountryCode() {
+  return workspaceDefaultPhoneCountryCode
+}
+
+export function subscribeWorkspaceDefaultPhoneCountryCode(listener) {
+  workspaceDefaultPhoneCountryListeners.add(listener)
+  return () => {
+    workspaceDefaultPhoneCountryListeners.delete(listener)
+  }
 }
 
 export function resolveWorkspaceDefaultPhoneCountryCode(profile = {}) {
@@ -34,7 +48,9 @@ export function resolveWorkspaceDefaultPhoneCountryCode(profile = {}) {
     if (country) return country.code
   }
 
-  return detectDefaultPhoneCountryCode({ fallbackCode: DEFAULT_PHONE_COUNTRY_CODE })
+  // Unset venue country stays on Cyprus. Browser locale is not used here:
+  // an en-US browser would otherwise show +1.
+  return DEFAULT_PHONE_COUNTRY_CODE
 }
 
 function normalizeLocalDigits(value = '') {
@@ -46,11 +62,7 @@ export function getDefaultReservationPhoneCountryCode(profile = null) {
     return resolveWorkspaceDefaultPhoneCountryCode(profile)
   }
 
-  if (workspaceDefaultPhoneCountryCode) {
-    return workspaceDefaultPhoneCountryCode
-  }
-
-  return detectDefaultPhoneCountryCode({ fallbackCode: DEFAULT_PHONE_COUNTRY_CODE })
+  return workspaceDefaultPhoneCountryCode || DEFAULT_PHONE_COUNTRY_CODE
 }
 
 export function parseReservationPhone(phone = '', options = {}) {

@@ -1,11 +1,15 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
+import {
+  resolveWorkspaceDefaultPhoneCountryCode,
+  setWorkspaceDefaultPhoneCountryCode,
+} from '../../../lib/reservationPhoneUtils'
 
 vi.mock('../../../lib/PublishedFloorPlanContext', () => ({
   usePublishedFloorPlan: () => ({
@@ -391,6 +395,42 @@ describe('MobileReservationQuickCreateSheet walk-in name validation', () => {
       notes: 'Birthday table',
     })
 
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet venue phone default', () => {
+  afterEach(() => {
+    setWorkspaceDefaultPhoneCountryCode('')
+    vi.unstubAllGlobals()
+  })
+
+  it('starts an empty walk-in phone on the venue dial code', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    setWorkspaceDefaultPhoneCountryCode(resolveWorkspaceDefaultPhoneCountryCode({
+      countryCode: 'CY',
+      defaultPhoneCountryCode: '+357',
+    }))
+
+    const { container, unmount } = renderWalkInSheet({ prefill: { phone: '' } })
+    const label = container.querySelector('.reservation-phone-field-country-picker-trigger-label')?.textContent ?? ''
+
+    expect(label).toContain('🇨🇾')
+    expect(label).toContain('+357')
+
+    unmount()
+  })
+
+  it('uses a business profile passed into quick create', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+
+    const { container, unmount } = renderSheet({
+      mode: 'create',
+      workspaceProfile: { countryCode: 'CY' },
+    })
+    const label = container.querySelector('.reservation-phone-field-country-picker-trigger-label')?.textContent ?? ''
+
+    expect(label).toContain('+357')
     unmount()
   })
 })

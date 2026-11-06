@@ -1,9 +1,13 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { detectDefaultPhoneCountryCode } from './phoneCountries'
 import {
   DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
   formatReservationPhone,
+  getDefaultReservationPhoneCountryCode,
   parseReservationPhone,
   RESERVATION_PHONE_COUNTRIES,
+  resolveWorkspaceDefaultPhoneCountryCode,
+  setWorkspaceDefaultPhoneCountryCode,
 } from './reservationPhoneUtils'
 
 describe('parseReservationPhone', () => {
@@ -63,5 +67,43 @@ describe('formatReservationPhone', () => {
 
   it('defaults missing country code to Cyprus', () => {
     expect(formatReservationPhone(undefined, '1234567')).toBe('+3571234567')
+  })
+})
+
+describe('venue phone country default', () => {
+  afterEach(() => {
+    setWorkspaceDefaultPhoneCountryCode('')
+    vi.unstubAllGlobals()
+  })
+
+  it('prefers the saved dial code over the venue ISO country', () => {
+    expect(resolveWorkspaceDefaultPhoneCountryCode({
+      default_phone_country_code: '+44',
+      countryCode: 'CY',
+    })).toBe('+44')
+  })
+
+  it('maps a venue ISO country to its dial code', () => {
+    expect(resolveWorkspaceDefaultPhoneCountryCode({ country_code: 'cy' })).toBe('+357')
+    expect(resolveWorkspaceDefaultPhoneCountryCode({ countryCode: 'GR' })).toBe('+30')
+  })
+
+  it('stays on +357 when the venue country is unset, even for en-US', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+
+    expect(detectDefaultPhoneCountryCode()).toBe('+1')
+    expect(resolveWorkspaceDefaultPhoneCountryCode({})).toBe(DEFAULT_RESERVATION_PHONE_COUNTRY_CODE)
+    expect(resolveWorkspaceDefaultPhoneCountryCode({ countryCode: 'ZZ' })).toBe('+357')
+    expect(getDefaultReservationPhoneCountryCode()).toBe('+357')
+  })
+
+  it('applies the resolved venue code for later empty phone fields', () => {
+    vi.stubGlobal('navigator', { language: 'en-US', languages: ['en-US'] })
+    setWorkspaceDefaultPhoneCountryCode(resolveWorkspaceDefaultPhoneCountryCode({
+      countryCode: 'CY',
+    }))
+
+    expect(getDefaultReservationPhoneCountryCode()).toBe('+357')
+    expect(parseReservationPhone('')).toMatchObject({ countryCode: '+357', localNumber: '' })
   })
 })

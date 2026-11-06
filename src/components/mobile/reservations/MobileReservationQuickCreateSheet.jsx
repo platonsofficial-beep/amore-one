@@ -50,6 +50,7 @@ function HostReservationQuickCreateFields({
   mode = 'create',
   primaryActionLabel = 'Save reservation',
   showPendingHint = true,
+  workspaceProfile = null,
 }) {
   const formRef = useRef(form)
   useEffect(() => {
@@ -208,6 +209,7 @@ function HostReservationQuickCreateFields({
           value={form.phone}
           onChange={(phone) => updateForm({ phone })}
           placeholder="Optional"
+          workspaceProfile={workspaceProfile}
         />
       </label>
 
@@ -403,6 +405,7 @@ export function MobileReservationQuickCreateSheet({
   reservations = [],
   onClose,
   onSubmit,
+  workspaceProfile = null,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
@@ -572,6 +575,7 @@ export function MobileReservationQuickCreateSheet({
       mode={mode}
       primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
       showPendingHint={!isEditMode && !isWalkInMode}
+      workspaceProfile={workspaceProfile}
     />
   )
 

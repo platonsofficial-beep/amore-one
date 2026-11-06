@@ -95,6 +95,7 @@ export function HostReservationEditPanel({
   todayKey,
   layout,
   seatings = [],
+  workspaceProfile = null,
 }) {
   const [notesExpanded, setNotesExpanded] = useState(false)
   const isDrawer = variant === 'drawer'
@@ -248,6 +249,7 @@ export function HostReservationEditPanel({
             <ReservationPhoneField
               value={form.phone}
               onChange={(phone) => updateField({ phone })}
+              workspaceProfile={workspaceProfile}
             />
           </label>
 

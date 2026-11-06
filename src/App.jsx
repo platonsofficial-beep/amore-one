@@ -15970,6 +15970,7 @@ function App() {
 
   const workspaceTimeZone = workspaceProfile.timezone
 
+  // Walk-in, quick create, and host edit read this for an empty phone.
   useEffect(() => {
     setWorkspaceDefaultPhoneCountryCode(resolveWorkspaceDefaultPhoneCountryCode(workspaceProfile))
   }, [workspaceProfile])
@@ -26395,6 +26396,7 @@ function App() {
                           value={normalizeEmployeePhoneForDisplay(employeeForm.phone)}
                           onChange={(phone) => setEmployeeForm((current) => ({ ...current, phone }))}
                           placeholder="Local number"
+                          workspaceProfile={workspaceProfile}
                         />
                       </div>
                     </label>
@@ -26846,6 +26848,7 @@ function App() {
                     <ReservationPhoneField
                       value={reservationForm.phone}
                       onChange={(phone) => setReservationForm((current) => ({ ...current, phone }))}
+                      workspaceProfile={workspaceProfile}
                     />
                   </label>
                   <label className="form-field">
@@ -26960,6 +26963,7 @@ function App() {
             isSaving={isSavingReservation}
             seatings={reservationSeatings}
             reservations={reservations}
+            workspaceProfile={workspaceProfile}
             onClose={() => setIsDashboardReservationQuickCreateOpen(false)}
             onSubmit={async (form) => {
               const created = await handleMobileHostReservationCreate(form)
