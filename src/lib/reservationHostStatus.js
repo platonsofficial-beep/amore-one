@@ -69,7 +69,7 @@ export const HOST_RESERVATION_STATUSES = [
   },
   {
     id: 'Checked Out',
-    label: 'Completed',
+    label: 'Finished',
     icon: '✓',
     tone: 'checked-out',
     groupId: 'completed',
@@ -286,7 +286,7 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   'Checked In (Partial)': 'Seated · partly',
   'Checked In': 'Seated',
   'Walk In': 'Walk-in',
-  'Checked Out': 'Completed',
+  'Checked Out': 'Finished',
   Cancelled: 'Cancelled',
   'Not Shown': 'No-show',
   Rejected: 'Rejected',
@@ -368,7 +368,7 @@ const HOST_FLOOR_SELECTION_STATUS_LABELS = {
   'Checked In (Partial)': 'Seated · partly',
   'Walk In': 'Walk-in',
   'Not Shown': 'No-show',
-  'Checked Out': 'Completed',
+  'Checked Out': 'Finished',
 }
 
 const HOST_FLOOR_SELECTION_STATUS_ICONS = {
@@ -427,7 +427,7 @@ export const HOST_STATION_STATUS_MENU_OPTIONS = [
   { status: 'Confirmed', menuLabel: 'Confirmed' },
   { status: 'Waiting', menuLabel: 'Arrived' },
   { status: 'Checked In', menuLabel: 'Seated' },
-  { status: 'Checked Out', menuLabel: 'Completed' },
+  { status: 'Checked Out', menuLabel: 'Finished' },
   { status: 'Not Shown', menuLabel: 'No-show' },
   { status: 'Cancelled', menuLabel: 'Cancelled' },
 ]

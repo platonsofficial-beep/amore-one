@@ -43,6 +43,7 @@ import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreat
 import { buildHostWalkInCreatePrefill } from '../../../lib/hostQuickCreateForm'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
+import { HostLoadNotice } from '../../reservations/HostLoadNotice'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
 import { MobileHostReservationDateNav } from './MobileHostReservationDateNav'
 import { MobileManagerReservationsView } from '../MobileManagerReservationsView'
@@ -57,6 +58,7 @@ export function MobileReservationsHostView({
   isLoading = false,
   isSaving = false,
   noticeMessage = '',
+  onRetryReservations = null,
   onQuickStatusUpdate,
   onHostEditSave,
   onHostEditDelete,
@@ -64,6 +66,7 @@ export function MobileReservationsHostView({
   onCreateReservation,
   onExitHostMode,
   canEditFloorPlan = false,
+  canPublishFloorPlan = true,
   reservationSeatings = [],
   selectedServiceSeatingId = '',
   selectedSeating = null,
@@ -521,6 +524,16 @@ export function MobileReservationsHostView({
         <div className="mobile-host-reservations-empty" role="status">
           <p className="mobile-host-reservations-empty-title">{emptyState.title}</p>
           <p className="mobile-host-reservations-empty-copy">{emptyState.copy}</p>
+          {typeof onCreateReservation === 'function' && activeFilterCount === 0 && !searchTerm.trim() ? (
+            <div className="mobile-host-reservations-empty-actions">
+              <button type="button" className="mobile-host-reservations-walk-in-btn" onClick={handleOpenWalkInCreate}>
+                Walk-in
+              </button>
+              <button type="button" className="mobile-host-reservations-add-btn" onClick={handleOpenStandardCreate}>
+                + Reservation
+              </button>
+            </div>
+          ) : null}
         </div>
       )
     })()
@@ -662,10 +675,13 @@ export function MobileReservationsHostView({
         isLoading={isLoading}
         isSaving={isSaving}
         noticeMessage={noticeMessage}
+        onRetryLoad={onRetryReservations}
         canManage={typeof onCreateReservation === 'function'}
         canEditFloorPlan={canEditFloorPlan}
+        canPublishFloorPlan={canPublishFloorPlan}
         seatings={reservationSeatings}
         onDateChange={onSelectDate}
+        onOpenReservationServices={onOpenReservationServices}
         onCreateReservation={onCreateReservation}
         onEditReservation={onHostEditSave}
         onQuickStatusUpdate={onQuickStatusUpdate}
@@ -699,7 +715,8 @@ export function MobileReservationsHostView({
               type="button"
               className="mobile-host-services-btn"
               onClick={onOpenReservationServices}
-              aria-label="Reservation services"
+              aria-label="Seating hours"
+              title="Brunch, lunch and dinner hours"
             >
               Services
             </button>
@@ -728,9 +745,11 @@ export function MobileReservationsHostView({
         </div>
       </header>
 
-      {noticeMessage ? (
-        <div className="mobile-host-reservations-notice" role="status">{noticeMessage}</div>
-      ) : null}
+      <HostLoadNotice
+        message={noticeMessage}
+        onRetry={onRetryReservations}
+        className="mobile-host-reservations-notice"
+      />
 
       {isSplitLayout ? (
         <div className="mobile-host-reservations-landscape">
@@ -769,6 +788,7 @@ export function MobileReservationsHostView({
             reservations={reservations}
             onClose={handleCloseQuickCreate}
             onSubmit={handleCreateSubmit}
+            onOpenSeatingHours={onOpenReservationServices}
           />
 
           <MobileReservationQuickCreateSheet
@@ -782,6 +802,7 @@ export function MobileReservationsHostView({
             reservations={reservations}
             onClose={() => setEditingReservation(null)}
             onSubmit={handleEditSubmit}
+            onOpenSeatingHours={onOpenReservationServices}
           />
         </>
       ) : null}

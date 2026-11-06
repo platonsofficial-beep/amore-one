@@ -87,9 +87,7 @@ export function ReservationTableSelector({
     }))
   ), [layout])
 
-  const visibleAreas = areaChoices.filter((entry) => (
-    entry.tableCount > 0 || entry.zone.id === selectedAreaId
-  ))
+  const visibleAreas = areaChoices
   const selectedAreaHasNoTables = areaChoices.some((entry) => (
     entry.zone.id === selectedAreaId && entry.tableCount === 0
   ))
@@ -136,7 +134,7 @@ export function ReservationTableSelector({
         >
           {visibleAreas.map(({ zone, tableCount }) => (
             <option key={zone.id} value={zone.id} disabled={tableCount === 0}>
-              {tableCount === 0 ? `${zone.label} (no tables)` : zone.label}
+              {tableCount === 0 ? `${zone.label} — no tables yet` : zone.label}
             </option>
           ))}
         </select>

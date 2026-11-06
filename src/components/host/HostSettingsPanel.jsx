@@ -1,4 +1,9 @@
 import { findPhoneCountryByIso2 } from '../../lib/phoneCountries'
+import { useState } from 'react'
+import {
+  readHostDiningTimerDurationPolicy,
+  writeHostDiningTimerDurationPolicy,
+} from '../../lib/hostDiningTimer'
 import { resolveSupplierOrderVenueName } from '../../lib/stockOrderSend'
 
 export function HostSettingsPanel({
@@ -9,6 +14,7 @@ export function HostSettingsPanel({
   onClose,
   onSignOut,
 }) {
+  const [timerPolicy, setTimerPolicy] = useState(() => readHostDiningTimerDurationPolicy())
   const country = findPhoneCountryByIso2(workspaceProfile.countryCode)
   const phoneDefault = workspaceProfile.defaultPhoneCountryCode || country?.code || ''
   const venueName = resolveSupplierOrderVenueName(
@@ -46,6 +52,43 @@ export function HostSettingsPanel({
           ) : null}
           {workspaceProfile.timezone ? <p>Timezone: {workspaceProfile.timezone}</p> : null}
           {phoneDefault ? <p>Default phone: {phoneDefault}</p> : null}
+        </section>
+
+        <section className="host-settings-section" data-testid="host-dining-timer-settings">
+          <h3>Table timers</h3>
+          <p>Saved on this device until a venue-wide setting is approved.</p>
+          <label>
+            Dinner minutes
+            <input
+              type="number"
+              min="15"
+              max="1440"
+              value={timerPolicy.dinner}
+              data-testid="host-timer-dinner-minutes"
+              onChange={(event) => {
+                setTimerPolicy(writeHostDiningTimerDurationPolicy({
+                  ...timerPolicy,
+                  dinner: event.target.value,
+                }))
+              }}
+            />
+          </label>
+          <label>
+            Drinks minutes
+            <input
+              type="number"
+              min="15"
+              max="1440"
+              value={timerPolicy.drinks}
+              data-testid="host-timer-drinks-minutes"
+              onChange={(event) => {
+                setTimerPolicy(writeHostDiningTimerDurationPolicy({
+                  ...timerPolicy,
+                  drinks: event.target.value,
+                }))
+              }}
+            />
+          </label>
         </section>
       </div>
 

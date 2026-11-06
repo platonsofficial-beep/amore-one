@@ -134,8 +134,8 @@ describe('manager portrait shell', () => {
       nowMinutes: 12 * 60,
     })
     expect(rows).toEqual([
-      { id: 't1', label: '12', seats: 4, status: 'available', guest: '' },
-      { id: 't2', label: 'Bar 1', seats: 2, status: 'available', guest: '' },
+      { id: 't1', label: '12', seats: 4, zoneId: '', status: 'available', guest: '', reservationId: null },
+      { id: 't2', label: 'Bar 1', seats: 2, zoneId: '', status: 'available', guest: '', reservationId: null },
     ])
   })
 })

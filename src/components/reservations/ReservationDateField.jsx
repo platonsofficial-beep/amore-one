@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { normalizeReservationDateKey } from '../../lib/timeFormatUtils'
+import { formatReservationDayMonth, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { HostWorkspaceDatePicker } from './HostWorkspaceDatePicker'
 import { ReservationCalendarIcon } from './ReservationCalendarIcon'
 
@@ -116,9 +116,10 @@ export function ReservationDateField({
     <div className={className} ref={rootRef}>
       <input
         id={fieldId}
-        type="date"
+        type="text"
+        inputMode="none"
         className={`${className}-input`}
-        value={normalizedValue}
+        value={formatReservationDayMonth(normalizedValue, { year: true })}
         readOnly
         onClick={openPicker}
         onKeyDown={(event) => {
@@ -131,6 +132,7 @@ export function ReservationDateField({
         aria-haspopup="dialog"
         aria-expanded={isPickerOpen}
         aria-label="Reservation date"
+        data-date-key={normalizedValue}
       />
 
       <div className={`${className}-picker-anchor`} ref={anchorRef}>

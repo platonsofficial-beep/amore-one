@@ -5,7 +5,7 @@ import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { HostQuickCreateTimePicker } from './HostQuickCreateTimePicker'
 import { GUEST_TYPE_OPTIONS } from '../../../lib/reservationCustomerType'
 import { RESERVATION_PURPOSE_OPTIONS } from '../../../lib/reservationPurpose'
-import { HOST_RESERVATION_STATUSES } from '../../../lib/reservationHostStatus'
+import { HOST_RESERVATION_STATUSES, getHostStatusMeta } from '../../../lib/reservationHostStatus'
 import {
   handleReservationFormEnterKey,
   preventReservationFormSubmit,
@@ -26,6 +26,7 @@ import {
   toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
+import { NoServiceHoursNotice } from '../../reservations/NoServiceHoursNotice'
 import { buildQuickCreateEditHydration } from './hostQuickCreateEditHydration'
 
 const EDIT_RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
@@ -51,7 +52,10 @@ function HostReservationQuickCreateFields({
   primaryActionLabel = 'Save reservation',
   showPendingHint = true,
   workspaceProfile = null,
+  onOpenSeatingHours,
 }) {
+  const [showWalkInDetails, setShowWalkInDetails] = useState(false)
+  const walkInShort = mode === 'walk-in' && !showWalkInDetails
   const formRef = useRef(form)
   useEffect(() => {
     formRef.current = form
@@ -72,9 +76,7 @@ function HostReservationQuickCreateFields({
     zone,
     tableCount: getLayoutUnitsForArea(layout, zone.id).length,
   }))
-  const visibleAreas = areaChoices.filter((entry) => (
-    entry.tableCount > 0 || entry.zone.id === form.seatingAreaId
-  ))
+  const visibleAreas = areaChoices
   const selectedAreaHasNoTables = areaChoices.some((entry) => (
     entry.zone.id === form.seatingAreaId && entry.tableCount === 0
   ))
@@ -203,7 +205,7 @@ function HostReservationQuickCreateFields({
         <div className="mobile-host-reservations-notice" role="alert" ref={errorRef}>{nameError}</div>
       ) : null}
 
-      <label className="mobile-host-form-field">
+      <label className="mobile-host-form-field" hidden={walkInShort}>
         <span>Phone</span>
         <ReservationPhoneField
           value={form.phone}
@@ -213,7 +215,7 @@ function HostReservationQuickCreateFields({
         />
       </label>
 
-      <label className="mobile-host-form-field">
+      <label className="mobile-host-form-field" hidden={walkInShort}>
         <span>Date</span>
         <ReservationDateField
           value={form.date}
@@ -228,7 +230,7 @@ function HostReservationQuickCreateFields({
       </label>
 
       <div className="mobile-host-form-row">
-        <label className="mobile-host-form-field">
+        <label className="mobile-host-form-field" hidden={walkInShort}>
           <span>Time</span>
           <HostQuickCreateTimePicker
             value={form.time}
@@ -252,22 +254,29 @@ function HostReservationQuickCreateFields({
       </div>
 
       <div className="mobile-host-form-row">
-        <label className="mobile-host-form-field">
+        <label className="mobile-host-form-field" hidden={walkInShort && activeSeatings.length > 0}>
           <span>Seating</span>
-          <select
-            value={form.seatingId ?? ''}
-            onChange={(event) => updateForm({
-              seatingId: event.target.value || null,
-            })}
-            data-testid="host-quick-create-seating"
-          >
-            <option value="">Choose a seating</option>
-            {activeSeatings.map((seating) => (
-              <option key={seating.id} value={seating.id}>
-                {formatHostQuickCreateSeatingOptionLabel(seating)}
-              </option>
-            ))}
-          </select>
+          {activeSeatings.length === 0 ? (
+            <NoServiceHoursNotice
+              onOpenSeatingHours={onOpenSeatingHours}
+              afterHours={mode === 'walk-in'}
+            />
+          ) : (
+            <select
+              value={form.seatingId ?? ''}
+              onChange={(event) => updateForm({
+                seatingId: event.target.value || null,
+              })}
+              data-testid="host-quick-create-seating"
+            >
+              <option value="">Choose a seating</option>
+              {activeSeatings.map((seating) => (
+                <option key={seating.id} value={seating.id}>
+                  {formatHostQuickCreateSeatingOptionLabel(seating)}
+                </option>
+              ))}
+            </select>
+          )}
         </label>
 
         <label className="mobile-host-form-field">
@@ -281,7 +290,7 @@ function HostReservationQuickCreateFields({
             <option value="">Choose an area</option>
             {visibleAreas.map(({ zone, tableCount }) => (
               <option key={zone.id} value={zone.id} disabled={tableCount === 0}>
-                {tableCount === 0 ? `${zone.label} (no tables)` : zone.label}
+                {tableCount === 0 ? `${zone.label} — no tables yet` : zone.label}
               </option>
             ))}
           </select>
@@ -303,7 +312,7 @@ function HostReservationQuickCreateFields({
         onToggleExtraChair={handleToggleExtraChair}
       />
 
-      <div className="mobile-host-form-row">
+      <div className="mobile-host-form-row" hidden={walkInShort}>
         <label className="mobile-host-form-field">
           <span>Reservation Type</span>
           <select
@@ -339,14 +348,14 @@ function HostReservationQuickCreateFields({
               data-testid="host-quick-create-status"
             >
               {EDIT_RESERVATION_STATUSES.map((status) => (
-                <option key={status} value={status}>{status}</option>
+                <option key={status} value={status}>{getHostStatusMeta(status).label}</option>
               ))}
             </select>
           </label>
         ) : null}
       </div>
 
-      <label className="mobile-host-form-field">
+      <label className="mobile-host-form-field" hidden={walkInShort}>
         <span>Notes</span>
         <textarea
           rows={3}
@@ -358,8 +367,19 @@ function HostReservationQuickCreateFields({
 
       {showPendingHint ? (
         <p className="mobile-host-form-hint">
-          Pending status · tap date or calendar to change service day
+          Saved as Pending until you confirm or seat them.
         </p>
+      ) : null}
+
+      {mode === 'walk-in' ? (
+        <button
+          type="button"
+          className="host-walk-in-more"
+          data-testid="host-walk-in-more"
+          onClick={() => setShowWalkInDetails((current) => !current)}
+        >
+          {showWalkInDetails ? 'Less' : 'More'}
+        </button>
       ) : null}
 
       {/* Keep focus in the field on press: blurring it removed is-composer-focused,
@@ -406,6 +426,7 @@ export function MobileReservationQuickCreateSheet({
   onClose,
   onSubmit,
   workspaceProfile = null,
+  onOpenSeatingHours,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
@@ -576,6 +597,7 @@ export function MobileReservationQuickCreateSheet({
       primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
       showPendingHint={!isEditMode && !isWalkInMode}
       workspaceProfile={workspaceProfile}
+      onOpenSeatingHours={onOpenSeatingHours}
     />
   )
 
