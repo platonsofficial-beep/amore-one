@@ -149,7 +149,11 @@ export function useObjectDrag({
   }, [dragManager])
 
   useEffect(() => () => {
-    dragManager.dispose()
+    try {
+      dragManager.dispose()
+    } catch {
+      // Cleanup must not throw. An effect error unmounts the app root.
+    }
   }, [dragManager])
 
   return {

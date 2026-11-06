@@ -71,7 +71,11 @@ export function useTableTransform({
   }, [transformManager])
 
   useEffect(() => () => {
-    transformManager.dispose()
+    try {
+      transformManager.dispose()
+    } catch {
+      // Cleanup must not throw. An effect error unmounts the app root.
+    }
   }, [transformManager])
 
   return {

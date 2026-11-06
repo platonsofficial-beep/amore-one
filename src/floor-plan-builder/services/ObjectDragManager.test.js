@@ -105,6 +105,13 @@ describe('ObjectDragManager', () => {
     expect(onDragComplete).toHaveBeenCalledWith({ objectId: 'table-2', moved: false })
   })
 
+  it('disposes safely when no drag is active', () => {
+    const { manager } = createDragManager()
+    expect(() => manager.dispose()).not.toThrow()
+    expect(() => manager.cancel()).not.toThrow()
+    expect(manager.isActive()).toBe(false)
+  })
+
   it('does not preventDefault on pointerdown start', () => {
     const { manager } = createDragManager()
     const down = createPointerEvent('pointerdown', { clientX: 50, clientY: 50 })
