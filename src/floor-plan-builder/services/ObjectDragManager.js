@@ -210,8 +210,12 @@ export class ObjectDragManager {
   }
 
   cancel() {
-    if (this.session?.moveRafId !== null) {
-      window.cancelAnimationFrame(this.session.moveRafId)
+    // No session: optional chaining yields undefined, and `undefined !== null`
+    // is true. Reading moveRafId after that threw on editor unmount and React
+    // tore down the whole app (blank screen after Exit / Discard & exit).
+    const rafId = this.session?.moveRafId
+    if (rafId != null) {
+      window.cancelAnimationFrame(rafId)
     }
     this.detachWindowListeners()
     this.clearDragSurface()
