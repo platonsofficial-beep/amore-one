@@ -73,6 +73,10 @@ export class ObjectDragManager {
 
     this.boundMove = (event) => this.move(event)
     this.boundEnd = (event) => this.end(event)
+    this.boundCancel = (event) => {
+      if (!this.session || event.pointerId !== this.session.pointerId) return
+      this.abort()
+    }
     this.boundTouchMove = (event) => {
       if (!this.session) return
       event.preventDefault()
@@ -81,7 +85,7 @@ export class ObjectDragManager {
     const captureOptions = { capture: true }
     window.addEventListener('pointermove', this.boundMove, captureOptions)
     window.addEventListener('pointerup', this.boundEnd, captureOptions)
-    window.addEventListener('pointercancel', this.boundEnd, captureOptions)
+    window.addEventListener('pointercancel', this.boundCancel, captureOptions)
     window.addEventListener('touchmove', this.boundTouchMove, { capture: true, passive: false })
   }
 
@@ -90,14 +94,17 @@ export class ObjectDragManager {
 
     window.removeEventListener('pointermove', this.boundMove, true)
     window.removeEventListener('pointerup', this.boundEnd, true)
-    window.removeEventListener('pointercancel', this.boundEnd, true)
+    window.removeEventListener('pointercancel', this.boundCancel, true)
     window.removeEventListener('touchmove', this.boundTouchMove, true)
     this.boundMove = null
     this.boundEnd = null
+    this.boundCancel = null
     this.boundTouchMove = null
   }
 
   start(event, object, { snapEnabled, floorBounds }) {
+    if (this.session) return false
+    if (event.isPrimary === false) return false
     if (event.pointerType === 'mouse' && event.button !== 0) return false
 
     const world = this.getClientToWorld(event.clientX, event.clientY)
@@ -207,6 +214,39 @@ export class ObjectDragManager {
     this.onDragComplete?.({ objectId, moved })
 
     return moved
+  }
+
+  abort() {
+    const session = this.session
+    if (!session) return false
+
+    if (session.moveRafId != null) {
+      window.cancelAnimationFrame(session.moveRafId)
+      session.moveRafId = null
+    }
+
+    if (session.moved) {
+      this.onMoveObject?.(
+        session.objectId,
+        { ...session.originPosition },
+        session.historyKey ? { historyKey: session.historyKey } : undefined,
+      )
+    }
+
+    try {
+      if (this.element?.hasPointerCapture?.(session.pointerId)) {
+        this.element.releasePointerCapture(session.pointerId)
+      }
+    } catch {
+      // Ignore capture release failures on touch browsers.
+    }
+
+    this.detachWindowListeners()
+    this.clearDragSurface()
+    this.session = null
+    this.element = null
+    this.onDragCancelled?.()
+    return true
   }
 
   cancel() {

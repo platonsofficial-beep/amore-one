@@ -86,6 +86,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     handleRotatePointerDown,
     handleTransformMove,
     endTransform,
+    cancelTransform,
   } = useTableTransform({
     containerRef,
     camera: state.camera,
@@ -99,6 +100,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     handleObjectPointerDown,
     handleDragMove,
     endDrag,
+    cancelDrag,
     isDragging,
   } = useObjectDrag({
     containerRef,
@@ -115,22 +117,23 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
   })
 
   const handleObjectPointerDownWrapped = useCallback((event, object) => {
+    if (viewportControls.isPinching?.()) return false
     if (!isEditing) {
       handleSelectObject(object.id)
       return false
     }
     return handleObjectPointerDown(event, object)
-  }, [handleObjectPointerDown, handleSelectObject, isEditing])
+  }, [handleObjectPointerDown, handleSelectObject, isEditing, viewportControls])
 
   const handleResizePointerDownWrapped = useCallback((event, object, handle) => {
-    if (!isEditing) return false
+    if (!isEditing || viewportControls.isPinching?.()) return false
     return handleResizePointerDown(event, object, handle)
-  }, [handleResizePointerDown, isEditing])
+  }, [handleResizePointerDown, isEditing, viewportControls])
 
   const handleRotatePointerDownWrapped = useCallback((event, object) => {
-    if (!isEditing) return false
+    if (!isEditing || viewportControls.isPinching?.()) return false
     return handleRotatePointerDown(event, object)
-  }, [handleRotatePointerDown, isEditing])
+  }, [handleRotatePointerDown, isEditing, viewportControls])
 
   const handleViewportPointerDown = useCallback((event) => {
     const startedPan = viewportControls.tryStartPan(event, 'select')
@@ -156,6 +159,13 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     if (isDragging || isTransforming || viewportControls.isPanning()) return
     handlePointerUp(event)
   }, [handlePointerUp, isDragging, isTransforming, viewportControls])
+
+  const handlePointerCancel = useCallback((event) => {
+    cancelTransform()
+    cancelDrag()
+    viewportControls.handlePointerCancel?.(event)
+    event.currentTarget.classList.remove('is-panning')
+  }, [cancelDrag, cancelTransform, viewportControls])
 
   const handleFloorBackgroundPointerUp = useCallback((event) => {
     if (isDragging || isTransforming || viewportControls.isPanning()) return
@@ -235,23 +245,30 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     if (!container || !isEditing) return undefined
 
     const onTouchStart = (event) => {
-      if (event.touches.length === 2) {
-        viewportControls.tryStartPinch?.(event)
-      }
+      if (event.touches.length < 2) return
+      cancelDrag()
+      cancelTransform()
+      viewportControls.tryStartPinch?.(event)
+      if (event.cancelable) event.preventDefault()
     }
 
     const onTouchMove = (event) => {
       if (viewportControls.isPinching?.()) {
         viewportControls.handlePinchMove?.(event)
+        if (event.cancelable) event.preventDefault()
+        return
+      }
+      if (viewportControls.isPanning?.() && event.cancelable) {
         event.preventDefault()
       }
     }
 
-    const onTouchEnd = () => {
+    const onTouchEnd = (event) => {
+      if (event.touches.length >= 2) return
       viewportControls.endPinch?.()
     }
 
-    container.addEventListener('touchstart', onTouchStart, { passive: true })
+    container.addEventListener('touchstart', onTouchStart, { passive: false })
     container.addEventListener('touchmove', onTouchMove, { passive: false })
     container.addEventListener('touchend', onTouchEnd, { passive: true })
     container.addEventListener('touchcancel', onTouchEnd, { passive: true })
@@ -262,7 +279,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
       container.removeEventListener('touchend', onTouchEnd)
       container.removeEventListener('touchcancel', onTouchEnd)
     }
-  }, [containerRef, isEditing, viewportControls])
+  }, [cancelDrag, cancelTransform, containerRef, isEditing, viewportControls])
 
   const canvasCursor = isDragging
     ? 'grabbing'
@@ -285,6 +302,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         onPointerDown={handleViewportPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
         onPointerLeave={handlePointerLeave}
         onAuxClick={(event) => event.preventDefault()}
       >

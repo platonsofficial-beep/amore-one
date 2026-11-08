@@ -736,6 +736,7 @@
     #121110;
 }
 
+.fpb-canvas-shell.is-editing,
 .fpb-canvas-shell.is-editing .fpb-canvas-viewport,
 .fpb-canvas-shell.is-editing .fpb-canvas-stage,
 .fpb-canvas-shell.is-editing .fpb-world-root,

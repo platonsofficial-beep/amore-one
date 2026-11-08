@@ -40,6 +40,10 @@ export function useTableTransform({
     onTransformTable,
   }), [clientToWorld, onTransformTable])
 
+  transformManager.onTransformCancelled = () => {
+    setTransformingObjectId(null)
+  }
+
   const handleResizePointerDown = useCallback((event, object, handle) => {
     event.stopPropagation()
     const started = transformManager.startResize(event, object, handle, {
@@ -70,6 +74,11 @@ export function useTableTransform({
     setTransformingObjectId(null)
   }, [transformManager])
 
+  const cancelTransform = useCallback(() => {
+    if (!transformManager.abort()) return
+    setTransformingObjectId(null)
+  }, [transformManager])
+
   useEffect(() => () => {
     try {
       transformManager.dispose()
@@ -85,5 +94,6 @@ export function useTableTransform({
     handleRotatePointerDown,
     handleTransformMove,
     endTransform,
+    cancelTransform,
   }
 }

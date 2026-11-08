@@ -108,6 +108,10 @@ export class TableTransformManager {
 
     this.boundMove = (event) => this.move(event)
     this.boundEnd = (event) => this.end(event)
+    this.boundCancel = (event) => {
+      if (!this.session || event.pointerId !== this.session.pointerId) return
+      this.abort()
+    }
     this.boundTouchMove = (event) => {
       if (!this.session) return
       event.preventDefault()
@@ -116,7 +120,7 @@ export class TableTransformManager {
     const captureOptions = { capture: true }
     window.addEventListener('pointermove', this.boundMove, captureOptions)
     window.addEventListener('pointerup', this.boundEnd, captureOptions)
-    window.addEventListener('pointercancel', this.boundEnd, captureOptions)
+    window.addEventListener('pointercancel', this.boundCancel, captureOptions)
     window.addEventListener('touchmove', this.boundTouchMove, { capture: true, passive: false })
   }
 
@@ -125,14 +129,17 @@ export class TableTransformManager {
 
     window.removeEventListener('pointermove', this.boundMove, true)
     window.removeEventListener('pointerup', this.boundEnd, true)
-    window.removeEventListener('pointercancel', this.boundEnd, true)
+    window.removeEventListener('pointercancel', this.boundCancel, true)
     window.removeEventListener('touchmove', this.boundTouchMove, true)
     this.boundMove = null
     this.boundEnd = null
+    this.boundCancel = null
     this.boundTouchMove = null
   }
 
   beginSession(event, element, session) {
+    if (this.session) return false
+    if (event.isPrimary === false) return false
     if (event.pointerType === 'mouse' && event.button !== 0) return false
 
     if (event.cancelable) {
@@ -157,6 +164,7 @@ export class TableTransformManager {
   }
 
   startResize(event, object, handle, { floorBounds }) {
+    if (this.session || event.isPrimary === false) return false
     const element = event.currentTarget.closest('.fpb-canvas-object')
     if (!element) return false
 
@@ -218,6 +226,7 @@ export class TableTransformManager {
   }
 
   startRotate(event, object) {
+    if (this.session || event.isPrimary === false) return false
     const element = event.currentTarget.closest('.fpb-canvas-object')
     if (!element) return false
 
@@ -250,6 +259,7 @@ export class TableTransformManager {
       floorBounds: null,
       startPointerAngle,
       startRotation: normalizeRotation(object.rotation ?? 0),
+      origin: initialPreview,
       preview: initialPreview,
       lastCommitted: initialPreview,
     })
@@ -333,6 +343,32 @@ export class TableTransformManager {
     this.element = null
     this.rafId = null
     this.clearSessionSurface(element)
+  }
+
+  abort() {
+    const session = this.session
+    if (!session) return false
+
+    if (this.rafId !== null) {
+      window.cancelAnimationFrame(this.rafId)
+      this.rafId = null
+    }
+
+    if (session.origin) {
+      this.onTransformTable?.(session.objectId, {
+        position: { ...session.origin.position },
+        size: { ...session.origin.size },
+        rotation: session.origin.rotation,
+      }, session.historyKey ? { historyKey: session.historyKey } : undefined)
+    }
+
+    const element = this.element
+    this.detachWindowListeners()
+    this.session = null
+    this.element = null
+    this.clearSessionSurface(element)
+    this.onTransformCancelled?.()
+    return true
   }
 
   cancel() {

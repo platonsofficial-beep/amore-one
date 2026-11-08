@@ -137,6 +137,41 @@ describe('TableTransformManager', () => {
     expect(element.style.width).toBe('')
   })
 
+  it('reverts a resize when the gesture is aborted', () => {
+    manager.abort()
+
+    expect(onTransformTable).toHaveBeenCalledWith('table-1', {
+      position: { x: 100, y: 100 },
+      size: { width: 200, height: 200 },
+      rotation: 0,
+    }, undefined)
+    expect(manager.session).toBeNull()
+  })
+
+  it('does not replace an active resize for a second finger', () => {
+    const secondFinger = {
+      isPrimary: false,
+      pointerId: 2,
+      pointerType: 'touch',
+      button: 0,
+      clientX: 20,
+      clientY: 20,
+      cancelable: false,
+      preventDefault: vi.fn(),
+      currentTarget: { closest: () => element },
+    }
+
+    expect(manager.startResize(secondFinger, {
+      id: 'table-other',
+      position: { x: 0, y: 0 },
+      size: { width: 40, height: 40 },
+      rotation: 0,
+      properties: { shape: 'square' },
+    }, 'se', { floorBounds: manager.session.floorBounds })).toBe(false)
+    expect(manager.session.objectId).toBe('table-1')
+    expect(manager.session.origin.size).toEqual({ width: 200, height: 200 })
+  })
+
   it('cleans up session styles on pointercancel', () => {
     manager.end({ pointerId: 1, type: 'pointercancel' })
 
