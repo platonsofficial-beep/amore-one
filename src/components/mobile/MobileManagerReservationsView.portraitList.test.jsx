@@ -84,6 +84,8 @@ describe('portrait reservations list', () => {
     expect(container.querySelector('[data-testid="portrait-seatings"]')).toBeTruthy()
     const css = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
     expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*overflow-x:\s*auto/s)
+    expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*padding-bottom:\s*12px/s)
+    expect(css).not.toMatch(/\.manager-portrait-seatings \{[^}]*scrollbar-width:\s*none/s)
     expect(css).toMatch(/\.manager-portrait-seatings button \{[^}]*flex:\s*0 0 auto/s)
   })
 })

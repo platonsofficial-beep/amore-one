@@ -53537,10 +53537,22 @@ summary:focus-visible {
   flex-wrap: nowrap;
   gap: 8px;
   margin: 8px 0;
+  /* Phones paint the horizontal indicator on the scrollport edge. */
+  padding-bottom: 12px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
   scroll-padding-inline: 8px;
+  scrollbar-color: var(--one-scrollbar-thumb) transparent;
+}
+
+.manager-portrait-seatings::-webkit-scrollbar {
+  height: 4px;
+}
+
+.manager-portrait-seatings::-webkit-scrollbar-thumb {
+  background-color: var(--one-scrollbar-thumb);
+  border-radius: 999px;
 }
 
 .manager-portrait-seatings button {

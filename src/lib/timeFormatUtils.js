@@ -131,6 +131,13 @@ export function getReservationTimeSelectOptions(value) {
   return options
 }
 
+export function currentReservationQuarterTime(now = new Date()) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime())) return ''
+  return snapReservationTimeToQuarter(
+    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+  )
+}
+
 export function snapReservationTimeToQuarter(value) {
   const normalized = normalizeTimeValue(value)
   if (!normalized) return ''
