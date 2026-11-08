@@ -10,7 +10,7 @@ import {
   handleReservationFormEnterKey,
   preventReservationFormSubmit,
 } from '../../../lib/reservationFormNavigation'
-import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
+import { currentReservationQuarterTime, normalizeReservationDateKey, normalizeReservationTimeValue } from '../../../lib/timeFormatUtils'
 import { validateReservationFormFields } from '../../../lib/reservationFormValidation'
 import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
 import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
@@ -481,7 +481,9 @@ export function MobileReservationQuickCreateSheet({
       date: normalizeReservationDateKey(prefill?.date ?? todayKey),
       guests: `${prefill?.guests ?? '2'}`,
       phone: `${prefill?.phone ?? ''}`,
-      time: `${prefill?.time ?? ''}`,
+      time: mode === 'walk-in'
+        ? (normalizeReservationTimeValue(prefill?.time) || currentReservationQuarterTime())
+        : `${prefill?.time ?? ''}`,
       notes: `${prefill?.notes ?? ''}`,
       seatingId: prefill?.seatingId ?? null,
       seatingAreaId: prefill?.seatingAreaId ?? '',

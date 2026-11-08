@@ -212,6 +212,37 @@ describe('MobileReservationQuickCreateSheet walk-in mode', () => {
     unmount()
   })
 
+  it('seats a short walk-in at the current quarter hour without opening More', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 10, 8, 19, 7, 0))
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      mode: 'walk-in',
+      prefill: { date: '2026-11-08' },
+      onSubmit,
+    })
+
+    const trigger = container.querySelector('[data-testid="host-quick-create-time-trigger"]')
+    expect(trigger?.closest('[hidden]')).toBeTruthy()
+
+    fillGuestName(container, 'Late', 'Guest')
+
+    await act(async () => {
+      container.querySelector('[data-testid="host-quick-create-primary-action"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      walkIn: true,
+      guestName: 'Late Guest',
+      time: '19:00',
+    })
+
+    unmount()
+    vi.useRealTimers()
+  })
+
   it('allows walk-in submit without a table when validation passes', async () => {
     const onSubmit = vi.fn(async () => true)
     const { container, unmount } = renderSheet({
