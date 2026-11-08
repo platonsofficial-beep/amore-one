@@ -4,7 +4,7 @@
 import { act, createElement, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { PUBLISHED_LAYOUT_EVENT } from '../floor-plan-builder/lib/floorPlanStorage'
+import { PUBLISHED_LAYOUT_EVENT, saveLocalFloorPlanLayout } from '../floor-plan-builder/lib/floorPlanStorage'
 
 const floorReads = []
 
@@ -63,11 +63,12 @@ vi.mock('./supabaseClient', () => {
 const { PublishedFloorPlanProvider, usePublishedFloorPlan } = await import('./PublishedFloorPlanContext')
 
 function Probe() {
-  const { isLoading, loadError, hasDisplayableLayout } = usePublishedFloorPlan()
+  const { isLoading, loadError, hasDisplayableLayout, layout } = usePublishedFloorPlan()
   return createElement('p', {
     'data-loading': isLoading ? 'yes' : 'no',
     'data-error': loadError || '',
     'data-layout': hasDisplayableLayout ? 'yes' : 'no',
+    'data-table': layout?.tables?.[0]?.label || '',
   })
 }
 
@@ -175,7 +176,52 @@ describe('floor plan load does not retrigger itself', () => {
       await new Promise((resolve) => setTimeout(resolve, 30))
     })
 
-    expect(floorReads.filter((name) => name === 'floor_plans').length).toBeLessThanOrEqual(1)
+    expect(floorReads.filter((name) => name === 'floor_plans')).toHaveLength(1)
+    view.unmount()
+  })
+
+  it('a genuine publish still announces, and a valid layout is applied without another read', async () => {
+    const view = renderHarness({ workspaceId: 'ws-publish' })
+    await flush()
+    const before = floorReads.filter((name) => name === 'floor_plans').length
+    act(() => {
+      saveLocalFloorPlanLayout({
+        floors: [{ id: 'main', label: 'Main', workspace: { width: 1000, height: 700, x: 0, y: 0 } }],
+        activeFloorId: 'main',
+        objects: [{
+          id: 't9',
+          type: 'table',
+          floorId: 'main',
+          position: { x: 120, y: 120 },
+          size: { width: 80, height: 80 },
+          properties: { shape: 'round', tableNumber: '9', minGuests: 1, maxGuests: 4, visible: true },
+        }],
+      }, 'ws-publish')
+    })
+    await flush()
+
+    expect(view.container.querySelector('[data-table]')?.getAttribute('data-table')).toBe('9')
+    expect(floorReads.filter((name) => name === 'floor_plans')).toHaveLength(before)
+    view.unmount()
+  })
+
+  it('a genuine publish of a layout with no floors reloads once and then stops', async () => {
+    const view = renderHarness({ workspaceId: 'ws-publish-empty' })
+    await flush()
+    const before = floorReads.filter((name) => name === 'floor_plans').length
+    act(() => {
+      saveLocalFloorPlanLayout({
+        floors: [],
+        activeFloorId: null,
+        objects: [],
+      }, 'ws-publish-empty')
+    })
+    await flush()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+
+    expect(floorReads.filter((name) => name === 'floor_plans')).toHaveLength(before + 1)
     view.unmount()
   })
 

@@ -29,3 +29,5 @@ jobs:
           sudo apt-get install -y google-chrome-stable
       - name: Phone viewport matrix
         run: npm run test:viewports
+      - name: Activated service worker ignores Supabase
+        run: npm run test:service-worker
