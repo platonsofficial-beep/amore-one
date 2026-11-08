@@ -113,6 +113,7 @@ import {
 } from './lib/hostFloorPlanViewport'
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
+import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, resolveWorkspaceLoadGate, reservationScopesMatch } from './lib/hostLoadRecovery'
 import {
   advanceHostFloorPointerInteraction,
   beginHostFloorPointerInteraction,
@@ -9173,6 +9174,7 @@ function buildFloorPlanSnapshot({
   seatingsById = new Map(),
   seatings = [],
   selectedReservation = null,
+  bookingCertainty = 'current',
 }) {
   if (!layout?.tables?.length) {
     return {
@@ -9216,7 +9218,7 @@ function buildFloorPlanSnapshot({
       tableReservations,
       nowMinutes,
       todayKey,
-      { needsCleaning: cleaningFlags.has(table.id) },
+      { needsCleaning: cleaningFlags.has(table.id), bookingCertainty },
     )
     const reservation = operational.displayReservation
       ?? operational.activeReservation
@@ -9241,6 +9243,7 @@ function buildFloorPlanSnapshot({
           ? buildTableSeatingDayIndicators(table, enrichedReservations, todayKey, seatings, {
             layout,
             seatingsById,
+            bookingCertainty,
           })
           : [],
       },
@@ -9256,6 +9259,7 @@ function buildFloorPlanSnapshot({
       layout,
       selectedReservation,
       nowMinutes,
+      bookingCertainty,
     })
   }
 
@@ -9966,6 +9970,9 @@ function FloorPlanView({
   onSelectedSeatingChange,
   hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS,
   onTableInspectorChange = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  bookingCertainty = 'current',
 }) {
   const {
     clearSelection,
@@ -9998,7 +10005,7 @@ function FloorPlanView({
     startHostMultiTableSelect,
     cancelHostMultiTableSelect,
   } = useReservationWorkspace()
-  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout, reload } = usePublishedFloorPlan()
+  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout, isLoading: isPublishedLayoutLoading, reload } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -10444,6 +10451,7 @@ function FloorPlanView({
       seatingsById,
       seatings: effectiveSeatings,
       selectedReservation,
+      bookingCertainty,
     })
   ), [
     assignmentReservations,
@@ -10453,6 +10461,7 @@ function FloorPlanView({
     layout,
     nowMinutes,
     selectedReservation,
+    bookingCertainty,
     selectedSeating,
     seatingsById,
     todayKey,
@@ -10491,6 +10500,7 @@ function FloorPlanView({
         seatingsById,
         nowMinutes,
         todayKey,
+        bookingCertainty,
       },
     )
   }, [
@@ -10501,6 +10511,7 @@ function FloorPlanView({
     resolvedScheduleCardTable,
     seatingsById,
     todayKey,
+    bookingCertainty,
   ])
 
   const reservationLinkGroups = useMemo(
@@ -11405,9 +11416,15 @@ function FloorPlanView({
       floorLayout: layout,
       reservationSeatings: effectiveSeatings,
       onOpenSeatingHours,
+      seatingsLoading,
+      seatingsLoadFailed,
+      bookingCertainty,
     }
   }, [
     onOpenSeatingHours,
+    seatingsLoadFailed,
+    seatingsLoading,
+    bookingCertainty,
     canManageAssignment,
     closeScheduleCardTable,
     effectiveSeatings,
@@ -11508,15 +11525,30 @@ function FloorPlanView({
     todayKey,
   ])
 
-  if (!hasDisplayableLayout) {
-    if (isRefreshingPublishedLayout) {
-      return (
-        <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
-          <p>Updating published layout…</p>
-        </div>
-      )
-    }
+  const floorLayoutStatus = resolveFloorPlanEmptyPresentation({
+    hasDisplayableLayout,
+    isLoading: isPublishedLayoutLoading,
+    isRefreshing: isRefreshingPublishedLayout,
+    loadError,
+  })
 
+  if (floorLayoutStatus === 'loading') {
+    return (
+      <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
+        <p>{isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…'}</p>
+      </div>
+    )
+  }
+
+  if (floorLayoutStatus === 'error') {
+    return (
+      <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
+        <HostLoadNotice message={loadError} onRetry={() => reload()} className="floor-plan-persistence-notice" />
+      </div>
+    )
+  }
+
+  if (floorLayoutStatus === 'empty') {
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
         {loadError ? (
@@ -11710,6 +11742,7 @@ function FloorPlanView({
           onSelect={onSelectedSeatingChange}
           summaries={seatingSummaries}
           legendItems={HOST_FLOOR_PLAN_LEGEND_ITEMS}
+          bookingCertainty={bookingCertainty}
         />
       ) : null}
 
@@ -11959,6 +11992,11 @@ function MobileReservationsHostShell({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
   onOpenReservationServices = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  reservationsLoadFailed = false,
+  bookingCertainty = 'unknown',
+  onVisibleReservationDateChange = null,
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -11977,6 +12015,10 @@ function MobileReservationsHostShell({
   const handleSelectDate = useCallback((dateKey) => {
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
   }, [])
+
+  useEffect(() => {
+    onVisibleReservationDateChange?.(selectedDateKey)
+  }, [onVisibleReservationDateChange, selectedDateKey])
 
   useEffect(() => {
     if (!reservationAttentionFocus?.dateKey) return
@@ -12028,6 +12070,10 @@ function MobileReservationsHostShell({
         canUndoAutoClose={canUndoAutoClose}
         onUndoAutoClose={onUndoAutoClose}
         onOpenReservationServices={onOpenReservationServices}
+        seatingsLoading={seatingsLoading}
+        seatingsLoadFailed={seatingsLoadFailed}
+        reservationsLoadFailed={reservationsLoadFailed}
+        bookingCertainty={bookingCertainty}
       />
     </ReservationWorkspaceProvider>
   )
@@ -12062,6 +12108,10 @@ function MobileReservationsHostShellBody({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
   onOpenReservationServices = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  reservationsLoadFailed = false,
+  bookingCertainty = 'unknown',
 }) {
   const {
     selectedReservation,
@@ -12291,16 +12341,17 @@ function MobileReservationsHostShellBody({
     )
   }
 
-  if (isRefreshingPublishedLayout && !hasDisplayableLayout) {
-    return (
-      <div className="mobile-host-floor-refreshing" role="status">
-        <p>Updating published layout…</p>
-        <button type="button" className="mobile-host-floor-refresh-retry" onClick={() => reload()}>
-          Retry
-        </button>
-      </div>
-    )
-  }
+  const floorLayoutStatus = resolveFloorPlanEmptyPresentation({
+    hasDisplayableLayout,
+    isLoading: isPublishedLayoutLoading,
+    isRefreshing: isRefreshingPublishedLayout,
+    loadError: publishedLayoutLoadError,
+  })
+  const floorLayoutMessage = floorLayoutStatus === 'loading'
+    ? (isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…')
+    : floorLayoutStatus === 'error'
+      ? "Couldn't load"
+      : ''
 
   const buildFloorPlanContent = (hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS) => (
     hasDisplayableLayout ? (
@@ -12332,8 +12383,25 @@ function MobileReservationsHostShellBody({
           onSelectedSeatingChange={handleSelectedSeatingChange}
           hostQueueAreaFilterId={hostQueueAreaFilterId}
           onTableInspectorChange={setTableInspectorProps}
+          seatingsLoading={seatingsLoading}
+          seatingsLoadFailed={seatingsLoadFailed}
+          bookingCertainty={bookingCertainty}
         />
       </HostStationErrorBoundary>
+    ) : floorLayoutStatus === 'loading' ? (
+      <div className="mobile-host-floor-refreshing" role="status">
+        <p>{floorLayoutMessage}</p>
+      </div>
+    ) : floorLayoutStatus === 'error' ? (
+      <div className="host-station-error-boundary" role="alert">
+        <h3>Couldn't load</h3>
+        <p>The floor plan did not load. This is not an empty layout.</p>
+        <div className="host-station-error-actions">
+          <button type="button" className="host-station-error-retry" onClick={() => reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
     ) : (
       <div className="mobile-host-floor-empty" role="status">
         <p>No published floor layout yet.</p>
@@ -12366,6 +12434,9 @@ function MobileReservationsHostShellBody({
         isCompact: true,
       })}
       tableInspectorProps={tableInspectorProps}
+      layoutStatus={floorLayoutStatus}
+      layoutMessage={floorLayoutMessage}
+      onRetryLayout={() => reload()}
     />
   )
 
@@ -12408,6 +12479,10 @@ function MobileReservationsHostShellBody({
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={handleHostSelectReservation}
       onClearAssignmentSelection={handleClearAssignmentSelection}
+      seatingsLoading={seatingsLoading}
+      seatingsLoadFailed={seatingsLoadFailed}
+      reservationsLoadFailed={reservationsLoadFailed}
+      bookingCertainty={bookingCertainty}
     />
   )
 }
@@ -15111,6 +15186,15 @@ function App() {
   const [reservations, setReservations] = useState([])
   const [reservationNotice, setReservationNotice] = useState('')
   const [isReservationsLoading, setIsReservationsLoading] = useState(true)
+  const [reservationsLoadFailed, setReservationsLoadFailed] = useState(false)
+  const [bookingCertainty, setBookingCertainty] = useState('unknown')
+  const [hostVisibleDateKey, setHostVisibleDateKey] = useState('')
+  const reservationsRef = useRef(reservations)
+  const reservationLoadSeqRef = useRef(0)
+  const reservationSnapshotScopeRef = useRef(null)
+  const reservationScopeRef = useRef({ workspaceId: '', dateKey: '' })
+  const reservationSeatingsRef = useRef(reservationSeatings)
+  const seatingLoadSeqRef = useRef(0)
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
   const [isDashboardReservationQuickCreateOpen, setIsDashboardReservationQuickCreateOpen] = useState(false)
   const [isDashboardAnnouncementFormOpen, setIsDashboardAnnouncementFormOpen] = useState(false)
@@ -15974,6 +16058,10 @@ function App() {
   }, [workspaceProfile])
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
   const currentDateKey = getCurrentDateKey(localNow, workspaceTimeZone)
+  reservationScopeRef.current = {
+    workspaceId: activeWorkspaceId || '',
+    dateKey: hostVisibleDateKey || currentDateKey || '',
+  }
   const currentTimeGreeting = getTimeGreeting(localNow, workspaceTimeZone)
   const hostNowMinutes = getWorkspaceNowMinutes(localNow, workspaceTimeZone).minutes ?? 0
   const todayWeekStart = useMemo(
@@ -16879,34 +16967,87 @@ function App() {
     [membership, scheduleEmployees],
   )
 
+  useEffect(() => {
+    reservationsRef.current = reservations
+  }, [reservations])
+
+  useEffect(() => {
+    reservationSeatingsRef.current = reservationSeatings
+  }, [reservationSeatings])
+
   const refreshReservations = useCallback(async () => {
-    if (!activeWorkspaceId) {
-      setReservations([])
+    const requestScope = {
+      workspaceId: activeWorkspaceId || '',
+      dateKey: hostVisibleDateKey || currentDateKey || '',
+    }
+    if (resolveWorkspaceLoadGate({ hasWorkspace: Boolean(activeWorkspaceId) }) === 'error') {
       setIsReservationsModuleConnected(false)
-      return []
+      setBookingCertainty('unknown')
+      throw new Error("Couldn't load")
     }
 
+    const requestId = ++reservationLoadSeqRef.current
     markLoad('reservations', 'start')
+    const applyReservationRead = (decision) => {
+      if (!decision.apply) return
+      reservationsRef.current = decision.list
+      reservationSnapshotScopeRef.current = decision.scope
+      setReservations(decision.list)
+    }
     try {
       const remoteReservations = await getReservations(activeWorkspaceId)
-      setReservations(remoteReservations)
-      setIsReservationsModuleConnected(true)
-      markLoad('reservations', 'success')
-      return remoteReservations
+      const decision = resolveScopedReservationRead({
+        previous: reservationsRef.current,
+        previousScope: reservationSnapshotScopeRef.current,
+        next: remoteReservations,
+        failed: false,
+        requestScope,
+        currentScope: reservationScopeRef.current,
+        requestId,
+        currentRequestId: reservationLoadSeqRef.current,
+      })
+      applyReservationRead(decision)
+      if (requestId === reservationLoadSeqRef.current && reservationScopesMatch(requestScope, reservationScopeRef.current)) {
+        setBookingCertainty(decision.certainty)
+        setIsReservationsModuleConnected(true)
+        setReservationsLoadFailed(false)
+      }
+      markLoad('reservations', requestId === reservationLoadSeqRef.current ? 'success' : 'failure')
+      return decision.list
     } catch (error) {
-      setReservations([])
-      setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
-      markLoad('reservations', 'failure')
+      const decision = resolveScopedReservationRead({
+        previous: reservationsRef.current,
+        previousScope: reservationSnapshotScopeRef.current,
+        next: [],
+        failed: true,
+        requestScope,
+        currentScope: reservationScopeRef.current,
+        requestId,
+        currentRequestId: reservationLoadSeqRef.current,
+      })
+      applyReservationRead(decision)
+      if (requestId === reservationLoadSeqRef.current && reservationScopesMatch(requestScope, reservationScopeRef.current)) {
+        setBookingCertainty(decision.certainty)
+        setIsReservationsModuleConnected(
+          decision.certainty === 'stale' && !isModuleUnavailableMessage(error.message),
+        )
+        markLoad('reservations', 'failure')
+      }
       throw error
     }
-  }, [activeWorkspaceId, markLoad])
+  }, [activeWorkspaceId, currentDateKey, hostVisibleDateKey, markLoad])
 
   const retryReservationLoad = useCallback(async () => {
+    setIsReservationsLoading(true)
+    setReservationsLoadFailed(false)
     try {
       await refreshReservations()
       setReservationNotice('')
     } catch (error) {
+      setReservationsLoadFailed(true)
       setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
+    } finally {
+      setIsReservationsLoading(false)
     }
   }, [refreshReservations])
 
@@ -17753,25 +17894,28 @@ function App() {
     loadEmployees()
 
     const loadSeatings = async () => {
-      if (!activeWorkspaceId) {
-        setReservationSeatings([])
+      if (resolveWorkspaceLoadGate({ hasWorkspace: Boolean(activeWorkspaceId) }) === 'error') {
         setIsReservationSeatingsLoading(false)
+        if (!reservationSeatingsRef.current.length) {
+          setReservationSeatingsNotice("Couldn't load")
+        }
         return
       }
 
+      const requestId = ++seatingLoadSeqRef.current
       setIsReservationSeatingsLoading(true)
       setReservationSeatingsNotice('')
 
       try {
         const remoteSeatings = await getReservationSeatings(activeWorkspaceId, { includeInactive: true })
-        if (!isMounted) return
+        if (!isMounted || requestId !== seatingLoadSeqRef.current) return
+        reservationSeatingsRef.current = remoteSeatings
         setReservationSeatings(remoteSeatings)
       } catch (error) {
-        if (!isMounted) return
-        setReservationSeatings([])
+        if (!isMounted || requestId !== seatingLoadSeqRef.current) return
         setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
       } finally {
-        if (isMounted) {
+        if (isMounted && requestId === seatingLoadSeqRef.current) {
           setIsReservationSeatingsLoading(false)
         }
       }
@@ -18223,13 +18367,22 @@ function App() {
     let isMounted = true
 
     const loadReservations = async () => {
+      const scope = reservationScopeRef.current
+      if (!reservationScopesMatch(reservationSnapshotScopeRef.current, scope)) {
+        reservationsRef.current = []
+        reservationSnapshotScopeRef.current = null
+        setReservations([])
+        setBookingCertainty('unknown')
+      }
       setIsReservationsLoading(true)
       setReservationNotice('')
+      setReservationsLoadFailed(false)
 
       try {
         await refreshReservations()
       } catch (error) {
         if (!isMounted) return
+        setReservationsLoadFailed(true)
         setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
       } finally {
         if (isMounted) {
@@ -18243,17 +18396,17 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [refreshReservations])
+  }, [activeWorkspaceId, refreshReservations])
 
   useEffect(() => {
-    if (!reservationNotice || isHostLoadFailureMessage(reservationNotice)) return undefined
+    if (!reservationNotice || reservationsLoadFailed || isHostLoadFailureMessage(reservationNotice)) return undefined
 
     const timer = window.setTimeout(() => {
       setReservationNotice('')
     }, 3000)
 
     return () => window.clearTimeout(timer)
-  }, [reservationNotice])
+  }, [reservationNotice, reservationsLoadFailed])
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -25230,6 +25383,11 @@ function App() {
               onRetryReservations={retryReservationLoad}
               canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
+              seatingsLoading={isReservationSeatingsLoading}
+              seatingsLoadFailed={Boolean(reservationSeatingsNotice) && reservationSeatings.length === 0}
+              reservationsLoadFailed={reservationsLoadFailed}
+              bookingCertainty={bookingCertainty}
+              onVisibleReservationDateChange={setHostVisibleDateKey}
               workspaceId={activeWorkspaceId}
               useControlledReloadReturn={isHostMobileRole(role)}
               reservationAttentionFocus={reservationAttentionFocus}
@@ -25843,6 +26001,11 @@ function App() {
                       canPublishFloorPlan={isManagerRole(role)}
                       onRetryReservations={retryReservationLoad}
                       reservationSeatings={reservationSeatings}
+                      seatingsLoading={isReservationSeatingsLoading}
+                      seatingsLoadFailed={Boolean(reservationSeatingsNotice) && reservationSeatings.length === 0}
+                      reservationsLoadFailed={reservationsLoadFailed}
+                      bookingCertainty={bookingCertainty}
+                      onVisibleReservationDateChange={setHostVisibleDateKey}
                       workspaceId={activeWorkspaceId}
                       useControlledReloadReturn
                       hostSettingsProps={{

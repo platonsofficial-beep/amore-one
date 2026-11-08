@@ -10,7 +10,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:viewports": "node scripts/phone-viewport-matrix.mjs"
+    "test:viewports": "node scripts/phone-viewport-matrix.mjs",
+    "test:service-worker": "node scripts/supabase-service-worker-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.2",

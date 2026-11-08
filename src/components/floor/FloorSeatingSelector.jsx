@@ -17,6 +17,7 @@ export function FloorSeatingSelector({
   onSelect,
   summaries = {},
   legendItems = null,
+  bookingCertainty = 'current',
 }) {
   const compactLegend = useMediaQuery(COMPACT_LEGEND_QUERY)
   const [legendOpen, setLegendOpen] = useState(false)
@@ -59,14 +60,22 @@ export function FloorSeatingSelector({
           {seatings.map((seating) => {
             const summary = summaries[seating.id]
             const tableAvailability = summary?.tableAvailability
-            const summaryCount = tableAvailability
-              ? formatHostSeatingTableAvailabilityDisplay(tableAvailability)
-              : summary?.bookedCovers != null && summary?.totalCapacity != null
-                ? `${summary.bookedCovers}/${summary.totalCapacity}`
-                : ''
-            const summaryAccessibleLabel = tableAvailability
-              ? formatHostSeatingTableAvailabilityAccessible(tableAvailability)
-              : ''
+            const summaryCount = bookingCertainty === 'unknown'
+              ? 'Unverified'
+              : bookingCertainty === 'stale'
+                ? 'Last loaded'
+                : tableAvailability
+                  ? formatHostSeatingTableAvailabilityDisplay(tableAvailability)
+                  : summary?.bookedCovers != null && summary?.totalCapacity != null
+                    ? `${summary.bookedCovers}/${summary.totalCapacity}`
+                    : ''
+            const summaryAccessibleLabel = bookingCertainty === 'unknown'
+              ? 'Availability unverified'
+              : bookingCertainty === 'stale'
+                ? 'Last loaded, not rechecked'
+                : tableAvailability
+                  ? formatHostSeatingTableAvailabilityAccessible(tableAvailability)
+                  : ''
             const metricsLine = summary?.operationalMetrics
               ? formatHostQueueSeatingChipMetricsLine(summary.operationalMetrics)
               : ''

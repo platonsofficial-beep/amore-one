@@ -12,9 +12,11 @@ import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUt
 import {
   getHostFloorSelectionStatusPresentation,
 } from '../../lib/reservationHostStatus'
-import { getTableDayViewStatusPresentation } from '../../lib/tableDayView'
+import { applyBookingReadCertainty, buildFloorTableDayViewRows, getTableDayViewStatusPresentation } from '../../lib/tableDayView'
+import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
+import { seatingHoursPanelKind } from '../../lib/hostLoadRecovery'
 import { formatTime24 } from '../../lib/timeFormatUtils'
-import { NoServiceHoursNotice } from '../reservations/NoServiceHoursNotice'
+import { SeatingHoursFallback } from '../reservations/NoServiceHoursNotice'
 
 function TableDayViewRowDivider() {
   return <div className="floor-table-day-row-divider" aria-hidden="true" />
@@ -601,6 +603,26 @@ function TableDayViewRow({
     )
   }
 
+  if (row.availabilityCertainty === 'unverified') {
+    return (
+      <li
+        className="floor-table-day-row is-unverified"
+        data-testid="floor-table-day-row-unverified"
+      >
+        <div className="floor-table-day-row-head">
+          <strong className="floor-table-day-seating-name">{seating.name}</strong>
+          <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
+        </div>
+        <TableDayViewRowDivider />
+        <div className="floor-table-day-row-body">
+          <span className="availability-state is-unverified" aria-label="Availability unverified">
+            Availability unverified
+          </span>
+        </div>
+      </li>
+    )
+  }
+
   if (isAvailable) {
     return (
       <li
@@ -657,6 +679,9 @@ function TableDayViewRow({
       </div>
       <TableDayViewRowDivider />
       <div className="floor-table-day-row-body">
+        {row.availabilityCertainty === 'stale' ? (
+          <p className="floor-table-day-row-notes" role="status">Last loaded. Not rechecked.</p>
+        ) : null}
         <div className="floor-table-day-guest-headline">
           <h4 className="floor-table-day-guest-name">{guestName}</h4>
           {row.statusLabel ? (
@@ -731,13 +756,29 @@ export function HostTableInspectorContent({
   titleId = 'host-table-inspector-title',
   animateEntrance = true,
   onOpenSeatingHours,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  bookingCertainty = 'current',
 }) {
   const safeRows = Array.isArray(rows) ? rows : []
   const useDrawerHierarchy = variant === 'drawer'
-  const displayRows = useDrawerHierarchy
+  const sortedRows = useDrawerHierarchy
     ? sortInspectorRowsForPresentation(safeRows)
     : safeRows
-  const primaryRowId = useDrawerHierarchy ? resolveInspectorPrimaryRowId(safeRows) : null
+  const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
+  const rebuiltRows = sortedRows.length === 0 && table && activeSeatings.length > 0
+    ? buildFloorTableDayViewRows(table, [], todayKey, reservationSeatings)
+    : []
+  const preparedRows = sortedRows.length > 0
+    ? sortedRows
+    : (useDrawerHierarchy ? sortInspectorRowsForPresentation(rebuiltRows) : rebuiltRows)
+  const displayRows = applyBookingReadCertainty(preparedRows, bookingCertainty)
+  const seatingHoursKind = seatingHoursPanelKind({
+    activeCount: displayRows.length,
+    isLoading: seatingsLoading,
+    loadFailed: seatingsLoadFailed,
+  })
+  const primaryRowId = useDrawerHierarchy ? resolveInspectorPrimaryRowId(displayRows) : null
   const releaseTableLabel = formatHostListUnitLabel(tableLabel?.replace(/^TABLE\s*/i, 'T') ?? table?.label ?? '')
   const needsSeatingChoice = Boolean(assignmentContext?.reservation) && !assignmentContext?.seatingId
   const tableCapacity = table ? formatTableDayViewCapacity(table) : ''
@@ -810,7 +851,7 @@ export function HostTableInspectorContent({
         </button>
       </header>
 
-      {useDrawerHierarchy ? <InspectorContextStrip rows={safeRows} /> : null}
+      {useDrawerHierarchy ? <InspectorContextStrip rows={displayRows} /> : null}
 
       {displayRows.length > 0 ? (
         <ul
@@ -864,7 +905,10 @@ export function HostTableInspectorContent({
           })}
         </ul>
       ) : (
-        <NoServiceHoursNotice onOpenSeatingHours={onOpenSeatingHours} />
+        <SeatingHoursFallback
+          kind={seatingHoursKind}
+          onOpenSeatingHours={onOpenSeatingHours}
+        />
       )}
     </>
   )

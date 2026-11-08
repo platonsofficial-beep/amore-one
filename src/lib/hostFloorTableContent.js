@@ -88,6 +88,20 @@ export function buildHostFloorCompactTableContent({
   const reservation = displayReservation ?? operational?.displayReservation ?? null
   const isOccupied = OCCUPIED_SEMANTIC_CLASSES.has(resolvedSemanticClass) && reservation
 
+  if (resolvedSemanticClass === 'is-unverified' || operational?.hostIndicator === 'unverified') {
+    return {
+      mode: 'unverified',
+      tier,
+      semanticClass: 'is-unverified',
+      tableLabel,
+      tableLabelClass: resolveHostFloorTableLabelLengthClass(tableLabel, tier),
+      timeLabel: null,
+      partyLabel: formatHostFloorCompactCapacityLabel(table),
+      showChairDots: false,
+      statusBadgeText: null,
+    }
+  }
+
   if (!isOccupied) {
     return {
       mode: 'available',
@@ -114,7 +128,8 @@ export function buildHostFloorCompactTableContent({
     timeLabel,
     partyLabel: formatHostFloorCompactPartyLabel(guestCount),
     showChairDots: false,
-    statusBadgeText: null,
+    statusBadgeText: operational?.bookingStale ? 'Last loaded' : null,
+    bookingStale: Boolean(operational?.bookingStale),
   }
 }
 
@@ -140,9 +155,14 @@ export function buildHostFloorCompactAriaLabel(content) {
 
   if (content.mode === 'occupied') {
     const parts = [content.tableLabel]
+    if (content.bookingStale) parts.push('last loaded')
     if (content.timeLabel) parts.push(content.timeLabel)
     if (guestCount !== null) parts.push(`${guestCount} guests`)
     return parts.join(', ')
+  }
+
+  if (content.mode === 'unverified') {
+    return [content.tableLabel, 'availability unverified'].join(', ')
   }
 
   const parts = [content.tableLabel, 'available']

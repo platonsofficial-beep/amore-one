@@ -1,7 +1,7 @@
 export const HOST_LOAD_FAILED_COPY = "Couldn't load"
 export const HOST_LOAD_RETRY_LABEL = 'Retry'
 
-const TECHNICAL_LOAD_ERROR = /failed to fetch|typeerror|networkerror|network request failed|load failed|fetch failed/i
+const TECHNICAL_LOAD_ERROR = /failed to fetch|typeerror|networkerror|network request failed|load failed|fetch failed|cannot read properties of|is not a function/i
 
 export function formatHostLoadError(message = '') {
   const raw = `${message ?? ''}`.trim()

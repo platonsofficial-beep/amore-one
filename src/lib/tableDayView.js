@@ -127,12 +127,13 @@ export function buildFloorTableDayViewRows(
     seatingsById = null,
     nowMinutes = 0,
     todayKey = '',
+    bookingCertainty = 'current',
   } = {},
 ) {
   const byId = seatingsById ?? new Map(seatings.map((entry) => [entry.id, entry]))
   const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
 
-  return activeSeatings.map((seating) => {
+  const rows = activeSeatings.map((seating) => {
     const conflicts = findAllReservationsForTableSeating(
       reservations,
       table,
@@ -163,6 +164,33 @@ export function buildFloorTableDayViewRows(
       quickActions,
       hasNotes,
       statusLabel: reservation?.status ?? '',
+    }
+  })
+  return applyBookingReadCertainty(rows, bookingCertainty)
+}
+
+export function applyBookingReadCertainty(rows = [], certainty = 'current') {
+  const normalized = certainty === 'stale' || certainty === 'unknown' ? certainty : 'current'
+  if (normalized === 'current') {
+    return rows.map((row) => ({ ...row, availabilityCertainty: 'current' }))
+  }
+
+  return rows.map((row) => {
+    if (row?.reservation || row?.hasConflict) {
+      return {
+        ...row,
+        isAvailable: false,
+        availabilityCertainty: 'stale',
+      }
+    }
+
+    return {
+      ...row,
+      isAvailable: false,
+      state: 'unverified',
+      hostIndicator: 'unverified',
+      availabilityCertainty: 'unverified',
+      quickActions: [],
     }
   })
 }

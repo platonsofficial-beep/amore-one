@@ -125,11 +125,26 @@ function pickActiveReservation(reservations, nowMinutes, todayKey) {
   )) ?? null
 }
 
+function unverifiedFloorTableState(reservationCount = 0) {
+  return {
+    phase: 'unverified',
+    hostIndicator: 'unverified',
+    floorStatus: 'unverified',
+    displayReservation: null,
+    activeReservation: null,
+    nextReservation: null,
+    nextReservationTime: null,
+    reservationCount,
+    upcomingCount: 0,
+    bookingStale: false,
+  }
+}
+
 export function resolveFloorTableOperationalState(
   reservations = [],
   nowMinutes,
   todayKey,
-  { needsCleaning = false } = {},
+  { needsCleaning = false, bookingCertainty = 'current' } = {},
 ) {
   if (needsCleaning) {
     return {
@@ -146,6 +161,7 @@ export function resolveFloorTableOperationalState(
   }
 
   if (!reservations.length) {
+    if (bookingCertainty !== 'current') return unverifiedFloorTableState(0)
     return {
       phase: FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE,
       hostIndicator: 'empty',
@@ -156,6 +172,7 @@ export function resolveFloorTableOperationalState(
       nextReservationTime: null,
       reservationCount: 0,
       upcomingCount: 0,
+      bookingStale: false,
     }
   }
 
@@ -207,7 +224,7 @@ export function resolveFloorTableOperationalState(
       break
   }
 
-  return {
+  const state = {
     phase: tablePhase,
     hostIndicator,
     floorStatus,
@@ -217,7 +234,14 @@ export function resolveFloorTableOperationalState(
     nextReservationTime,
     reservationCount: reservations.length,
     upcomingCount,
+    bookingStale: false,
   }
+
+  if (bookingCertainty === 'current') return state
+  if (!state.displayReservation && state.floorStatus === 'available') {
+    return unverifiedFloorTableState(reservations.length)
+  }
+  return { ...state, bookingStale: true }
 }
 
 export function getScheduleEntryActionKind(reservation, nowMinutes, todayKey) {

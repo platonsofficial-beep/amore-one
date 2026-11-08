@@ -34,6 +34,7 @@ export function resolveHostFloorSemanticClass(operational, { hasSeatingConflict 
   if (hostIndicator === 'seated' || phase === 'seated') return 'is-seated'
   if (hostIndicator === 'waiting' || phase === 'waiting') return 'is-arrived'
   if (hostIndicator === 'confirmed' || phase === 'upcoming') return 'is-reserved'
+  if (hostIndicator === 'unverified' || phase === 'unverified') return 'is-unverified'
 
   return 'is-available'
 }
@@ -86,6 +87,7 @@ export function applyHostFloorSelectedSeatingContext(
     selectedReservation = null,
     nowMinutes = null,
     liveDateKey = localDateKey(),
+    bookingCertainty = 'current',
   },
 ) {
   if (!selectedSeating) return tableStates
@@ -223,6 +225,23 @@ export function applyHostFloorSelectedSeatingContext(
       ) === FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE
 
     if (!conflict || conflictHoldExpired) {
+      if (bookingCertainty !== 'current') {
+        return {
+          ...tableState,
+          reservation: null,
+          status: 'unverified',
+          operational: {
+            ...tableState.operational,
+            phase: 'unverified',
+            hostIndicator: 'unverified',
+            floorStatus: 'unverified',
+            displayReservation: null,
+            activeReservation: null,
+            hasSeatingConflict: false,
+            bookingStale: false,
+          },
+        }
+      }
       return {
         ...tableState,
         reservation: null,
@@ -235,6 +254,7 @@ export function applyHostFloorSelectedSeatingContext(
           displayReservation: null,
           activeReservation: null,
           hasSeatingConflict: false,
+          bookingStale: false,
         },
       }
     }
@@ -260,6 +280,7 @@ export function applyHostFloorSelectedSeatingContext(
         floorStatus: seatingStatus.floorStatus,
         displayReservation: conflictReservation ?? tableState.operational?.displayReservation,
         hasSeatingConflict: false,
+        bookingStale: bookingCertainty !== 'current',
       },
     }
   })

@@ -44,6 +44,7 @@ import { buildHostWalkInCreatePrefill } from '../../../lib/hostQuickCreateForm'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
 import { HostLoadNotice } from '../../reservations/HostLoadNotice'
+import { isHostLoadFailureMessage } from '../../../lib/hostLoadNotice'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
 import { MobileHostReservationDateNav } from './MobileHostReservationDateNav'
 import { MobileManagerReservationsView } from '../MobileManagerReservationsView'
@@ -86,6 +87,10 @@ export function MobileReservationsHostView({
   focusToken = 0,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  reservationsLoadFailed = false,
+  bookingCertainty = 'unknown',
 }) {
   const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -254,14 +259,23 @@ export function MobileReservationsHostView({
     }
   }, [layout, nowMinutes, serviceMetrics, todayKey, workspaceReservations])
 
+  const reservationLoadFailed = reservationsLoadFailed || isHostLoadFailureMessage(noticeMessage)
   const queueEmptyState = useMemo(
     () => buildHostQueueEmptyState({
       selectedSeatingName: selectedSeating?.name ?? '',
       selectedAreaLabel: areaFilterId === HOST_QUEUE_ALL_AREAS ? '' : selectedAreaLabel,
       activeFilterCount,
       searchTerm,
+      loadFailed: reservationLoadFailed,
     }),
-    [activeFilterCount, areaFilterId, searchTerm, selectedAreaLabel, selectedSeating?.name],
+    [
+      activeFilterCount,
+      areaFilterId,
+      reservationLoadFailed,
+      searchTerm,
+      selectedAreaLabel,
+      selectedSeating?.name,
+    ],
   )
 
   const effectiveWorkspaceTodayKey = workspaceTodayKey || todayKey
@@ -428,10 +442,19 @@ export function MobileReservationsHostView({
 
   const listControls = (
     <div className="mobile-host-list-controls">
+      {isSplitLayout && bookingCertainty === 'stale' ? (
+        <p className="host-queue-list-metrics" role="status">Last loaded. Not rechecked.</p>
+      ) : null}
       {isSplitLayout ? (
-        // Emoji + words live above the list in landscape (Platon t370u), so the
-        // one-row header never overflows on narrow phones (568x320).
-        <HostQueueServiceSummary {...visibleServiceMetrics} className="host-queue-list-metrics" />
+        reservationLoadFailed && reservations.length === 0 ? (
+          <p className="host-queue-list-metrics" role="status">
+            Service summary unavailable until reservations load.
+          </p>
+        ) : (
+          // Emoji + words live above the list in landscape (Platon t370u), so the
+          // one-row header never overflows on narrow phones (568x320).
+          <HostQueueServiceSummary {...visibleServiceMetrics} className="host-queue-list-metrics" />
+        )
       ) : null}
       <div className="mobile-host-reservations-toolbar host-queue-search-row">
         <label className="mobile-host-reservations-search">
@@ -507,7 +530,7 @@ export function MobileReservationsHostView({
     <p className="mobile-host-reservations-loading">Loading reservations…</p>
   ) : visibleReservations.length === 0 ? (
     (() => {
-      const emptyState = activeFilterCount > 0 || searchTerm.trim()
+      const emptyState = reservationLoadFailed || activeFilterCount > 0 || searchTerm.trim()
         ? queueEmptyState
         : getHostListEmptyState({
           filter: activeTab === 'upcoming' ? 'Upcoming'
@@ -524,7 +547,7 @@ export function MobileReservationsHostView({
         <div className="mobile-host-reservations-empty" role="status">
           <p className="mobile-host-reservations-empty-title">{emptyState.title}</p>
           <p className="mobile-host-reservations-empty-copy">{emptyState.copy}</p>
-          {typeof onCreateReservation === 'function' && activeFilterCount === 0 && !searchTerm.trim() ? (
+          {typeof onCreateReservation === 'function' && !reservationLoadFailed && activeFilterCount === 0 && !searchTerm.trim() ? (
             <div className="mobile-host-reservations-empty-actions">
               <button type="button" className="mobile-host-reservations-walk-in-btn" onClick={handleOpenWalkInCreate}>
                 Walk-in
@@ -636,6 +659,8 @@ export function MobileReservationsHostView({
         reservations={reservations}
         onClose={handleCloseQuickCreate}
         onSubmit={handleCreateSubmit}
+        seatingsLoading={seatingsLoading}
+        seatingsLoadFailed={seatingsLoadFailed}
       />
     ) : (
       <MobileReservationQuickCreateSheet
@@ -649,6 +674,8 @@ export function MobileReservationsHostView({
         reservations={reservations}
         onClose={() => setEditingReservation(null)}
         onSubmit={handleEditSubmit}
+        seatingsLoading={seatingsLoading}
+        seatingsLoadFailed={seatingsLoadFailed}
       />
     )
   ) : rightPaneContent
@@ -789,6 +816,8 @@ export function MobileReservationsHostView({
             onClose={handleCloseQuickCreate}
             onSubmit={handleCreateSubmit}
             onOpenSeatingHours={onOpenReservationServices}
+            seatingsLoading={seatingsLoading}
+            seatingsLoadFailed={seatingsLoadFailed}
           />
 
           <MobileReservationQuickCreateSheet
@@ -803,6 +832,8 @@ export function MobileReservationsHostView({
             onClose={() => setEditingReservation(null)}
             onSubmit={handleEditSubmit}
             onOpenSeatingHours={onOpenReservationServices}
+            seatingsLoading={seatingsLoading}
+            seatingsLoadFailed={seatingsLoadFailed}
           />
         </>
       ) : null}

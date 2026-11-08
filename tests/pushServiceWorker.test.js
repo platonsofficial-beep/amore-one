@@ -12,6 +12,8 @@ describe('push service worker contract', () => {
     expect(viteConfig).toContain('injectRegister: null')
     expect(viteConfig).toContain("importScripts: ['push-sw.js']")
     expect(viteConfig).not.toContain('injectManifest')
+    expect(viteConfig).not.toContain('supabase.co')
+    expect(viteConfig).not.toContain("handler: 'NetworkOnly'")
   })
 
   it('shows the notification and opens or focuses the payload url', () => {

@@ -23,8 +23,39 @@ export function MobileReservationsHostRightPane({
   floorLayout = null,
   reservationSeatings = [],
   tableInspectorProps = null,
+  layoutStatus = hasLayout ? 'floor' : 'empty',
+  layoutMessage = '',
+  onRetryLayout = null,
 }) {
-  if (!hasLayout) {
+  if (layoutStatus === 'loading') {
+    return (
+      <div className="mobile-host-reservations-right-pane">
+        <div className="mobile-host-floor-refreshing" role="status">
+          <p>{layoutMessage || 'Loading published layout…'}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (layoutStatus === 'error') {
+    return (
+      <div className="mobile-host-reservations-right-pane">
+        <div className="host-station-error-boundary" role="alert">
+          <h3>{layoutMessage || "Couldn't load"}</h3>
+          <p>The floor plan did not load. This is not an empty layout.</p>
+          {typeof onRetryLayout === 'function' ? (
+            <div className="host-station-error-actions">
+              <button type="button" className="host-station-error-retry" onClick={onRetryLayout}>
+                Retry
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  if (!hasLayout || layoutStatus === 'empty') {
     return (
       <div className="mobile-host-reservations-right-pane">
         <div className="mobile-host-floor-empty" role="status">

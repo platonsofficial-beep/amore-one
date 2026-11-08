@@ -68,14 +68,16 @@ function readStorageKey(key) {
   }
 }
 
-function writeStorageLayout(payload, workspaceId = '') {
+function writeStorageLayout(payload, workspaceId = '', { notify = true } = {}) {
   if (typeof window === 'undefined') return null
 
   try {
     window.localStorage.setItem(getFloorPlanStorageKey(workspaceId), JSON.stringify(payload))
     window.localStorage.removeItem(DRAFT_STORAGE_KEY)
     window.localStorage.removeItem(LEGACY_STORAGE_KEY)
-    window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: payload }))
+    if (notify) {
+      window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: payload }))
+    }
     return payload
   } catch {
     return null
@@ -137,7 +139,7 @@ export function loadFloorPlanLayout(workspaceId = '') {
   return loadLocalFloorPlanLayout(workspaceId)
 }
 
-export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects }, workspaceId = '') {
+export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects }, workspaceId = '', { notify = true } = {}) {
   const payload = {
     version: 1,
     floors: JSON.parse(JSON.stringify(floors)),
@@ -146,7 +148,7 @@ export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects }, wor
     publishedAt: new Date().toISOString(),
   }
 
-  return writeStorageLayout(payload, workspaceId)
+  return writeStorageLayout(payload, workspaceId, { notify })
 }
 
 export function loadLocalDraftFloorPlanLayout(workspaceId = '') {
