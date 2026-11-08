@@ -113,7 +113,7 @@ import {
 } from './lib/hostFloorPlanViewport'
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
-import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, reservationScopesMatch } from './lib/hostLoadRecovery'
+import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, resolveWorkspaceLoadGate, reservationScopesMatch } from './lib/hostLoadRecovery'
 import {
   advanceHostFloorPointerInteraction,
   beginHostFloorPointerInteraction,
@@ -16980,9 +16980,10 @@ function App() {
       workspaceId: activeWorkspaceId || '',
       dateKey: hostVisibleDateKey || currentDateKey || '',
     }
-    if (!activeWorkspaceId) {
+    if (resolveWorkspaceLoadGate({ hasWorkspace: Boolean(activeWorkspaceId) }) === 'error') {
       setIsReservationsModuleConnected(false)
-      return reservationsRef.current
+      setBookingCertainty('unknown')
+      throw new Error("Couldn't load")
     }
 
     const requestId = ++reservationLoadSeqRef.current
@@ -17893,8 +17894,11 @@ function App() {
     loadEmployees()
 
     const loadSeatings = async () => {
-      if (!activeWorkspaceId) {
-        setIsReservationSeatingsLoading(reservationSeatingsRef.current.length === 0)
+      if (resolveWorkspaceLoadGate({ hasWorkspace: Boolean(activeWorkspaceId) }) === 'error') {
+        setIsReservationSeatingsLoading(false)
+        if (!reservationSeatingsRef.current.length) {
+          setReservationSeatingsNotice("Couldn't load")
+        }
         return
       }
 
@@ -18361,13 +18365,6 @@ function App() {
 
   useEffect(() => {
     let isMounted = true
-
-    if (!activeWorkspaceId) {
-      setIsReservationsLoading(true)
-      return () => {
-        isMounted = false
-      }
-    }
 
     const loadReservations = async () => {
       const scope = reservationScopeRef.current

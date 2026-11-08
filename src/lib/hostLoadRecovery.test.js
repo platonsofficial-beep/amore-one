@@ -6,6 +6,7 @@ import {
   resolveListAfterRefresh,
   resolvePublishedLayoutApply,
   resolveScopedReservationRead,
+  resolveWorkspaceLoadGate,
   seatingHoursPanelKind,
 } from './hostLoadRecovery'
 
@@ -213,6 +214,11 @@ describe('floor and seating load presentation', () => {
     expect(decision.list).toEqual([])
     expect(decision.certainty).toBe('unknown')
     expect(decision.list).not.toContainEqual(expect.objectContaining({ date: '2026-11-08' }))
+  })
+
+  it('finishes a missing venue as an error instead of an open loading state', () => {
+    expect(resolveWorkspaceLoadGate({ hasWorkspace: false })).toBe('error')
+    expect(resolveWorkspaceLoadGate({ hasWorkspace: true })).toBe('load')
   })
 
   it('shows seating hours as loading, failed, empty, or ready', () => {

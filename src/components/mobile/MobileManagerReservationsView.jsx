@@ -5,6 +5,7 @@ import { listPortraitSeatingLeftovers } from '../../lib/managerPortrait'
 import { filterReservationsBySelectedSeating, reservationMatchesHostQueueOperationalFilter } from '../../lib/hostQueuePipeline'
 import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
 import { HostLoadNotice } from '../reservations/HostLoadNotice'
+import { isHostLoadFailureMessage } from '../../lib/hostLoadNotice'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
 import { formatPartialSeatLabel, getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
 import { getHostQueueNameIndicators } from '../../lib/hostQueuePipeline'
@@ -147,7 +148,11 @@ export function MobileManagerReservationsView({
       })
     })
   }, [activeSeatings, dayReservations, nowMinutes, problemsOnly, searchTerm, selectedDate, selectedSeating])
-  const daySummary = useMemo(() => summarizePortraitDay(dayReservations), [dayReservations])
+  const loadFailed = isHostLoadFailureMessage(noticeMessage)
+  const summaryUnavailable = loadFailed && dayReservations.length === 0
+  const daySummary = useMemo(() => (
+    summaryUnavailable ? 'Bookings unavailable' : summarizePortraitDay(dayReservations)
+  ), [dayReservations, summaryUnavailable])
   // Same emoji + word metrics as the landscape header, for the whole day.
   const dayMetrics = useMemo(() => buildHostQueueServiceMetrics(dayReservations, {
     layout,
@@ -224,7 +229,10 @@ export function MobileManagerReservationsView({
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
           {!isLoading ? <p className="manager-portrait-day-summary">{daySummary}</p> : null}
-          {!isLoading ? (
+          {!isLoading && summaryUnavailable ? (
+            <p className="manager-portrait-day-summary" role="status">Service summary unavailable until reservations load.</p>
+          ) : null}
+          {!isLoading && !summaryUnavailable ? (
             <HostQueueServiceSummary {...dayMetrics} className="manager-portrait-day-metrics" />
           ) : null}
         </div>
@@ -328,8 +336,13 @@ export function MobileManagerReservationsView({
         {isLoading ? <p className="manager-portrait-empty">Loading reservations…</p> : null}
         {!isLoading && visibleReservations.length === 0 ? (
           <div className="manager-portrait-empty">
-            <p>{searchTerm.trim() || problemsOnly || selectedSeating ? 'No bookings match.' : 'No bookings for this day.'}</p>
-            {canManage && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
+            <p>{loadFailed
+              ? "Couldn't load reservations"
+              : searchTerm.trim() || problemsOnly || selectedSeating
+                ? 'No bookings match.'
+                : 'No bookings for this day.'}</p>
+            {loadFailed ? <p>Retry to load the queue. An empty list is not confirmed.</p> : null}
+            {canManage && !loadFailed && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
               <div className="manager-portrait-create-actions">
                 <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
                   Walk-in

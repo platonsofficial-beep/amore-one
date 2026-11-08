@@ -84,6 +84,10 @@ export function resolveFloorPlanEmptyPresentation({
   return 'empty'
 }
 
+export function resolveWorkspaceLoadGate({ hasWorkspace = false } = {}) {
+  return hasWorkspace ? 'load' : 'error'
+}
+
 export function seatingHoursPanelKind({
   activeCount = 0,
   isLoading = false,

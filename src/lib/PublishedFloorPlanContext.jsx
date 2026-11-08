@@ -120,7 +120,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
         publishedLayout,
         draftLayout,
         publishedAt: publishedLayout?.publishedAt ?? null,
-        error: null,
+        error: publishedLayout ? null : "Couldn't load",
       }
     }
 

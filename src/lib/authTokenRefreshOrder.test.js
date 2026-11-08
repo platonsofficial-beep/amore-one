@@ -71,6 +71,19 @@ describe('auth token refresh before data reads', () => {
     await vi.advanceTimersByTimeAsync(700)
     expect(calls.filter((path) => path.startsWith('/auth/v1/token')).length).toBeGreaterThanOrEqual(3)
     expect(calls.some((path) => path.startsWith('/rest/v1'))).toBe(false)
+
+    let settled = null
+    pendingRead.then((result) => {
+      settled = result
+    }, () => {
+      settled = { error: new Error('rejected') }
+    })
+    for (let step = 0; step < 40 && !settled; step += 1) {
+      await vi.advanceTimersByTimeAsync(1000)
+    }
+    expect(settled?.error).toBeTruthy()
+    expect(settled?.data ?? null).toBeFalsy()
+    expect(calls.filter((path) => path.startsWith('/auth/v1/token')).length).toBeLessThan(30)
   })
 
   it('shares one in-flight refresh across overlapping session reads', async () => {
