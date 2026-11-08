@@ -44,12 +44,9 @@ export default defineConfig({
         clientsClaim: true,
         importScripts: ['push-sw.js'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: 'NetworkOnly',
-          },
-        ],
+        // Do not intercept Supabase. A NetworkOnly route still calls
+        // respondWith, and a failed GET throws Workbox no-response. DevTools
+        // then shows a second floor_plans request from the service worker.
       },
       devOptions: {
         enabled: false,

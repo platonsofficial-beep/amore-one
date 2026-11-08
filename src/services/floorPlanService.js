@@ -131,7 +131,7 @@ export async function loadFloorPlanWorkspace(workspaceId = '') {
 
     if (publishedLayout) {
       setActivePublishedLayoutCache(publishedLayout)
-      saveLocalFloorPlanLayout(publishedLayout, normalizedWorkspaceId)
+      saveLocalFloorPlanLayout(publishedLayout, normalizedWorkspaceId, { notify: false })
     }
 
     if (draftLayout) {

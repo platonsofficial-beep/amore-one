@@ -17,9 +17,14 @@ vi.mock('./supabaseClient', () => {
       maybeSingle() { return api },
       then(onFulfilled, onRejected) {
         floorReads.push(table)
+        if (floorReads.length > 25) {
+          return Promise.resolve({ data: null, error: { message: 'stopped' } }).then(onFulfilled, onRejected)
+        }
         const layout = {
           version: 1,
-          floors: [{ id: 'main', label: 'Main', workspace: { width: 1000, height: 700, x: 0, y: 0 } }],
+          floors: globalThis.__floorEmpty
+            ? []
+            : [{ id: 'main', label: 'Main', workspace: { width: 1000, height: 700, x: 0, y: 0 } }],
           activeFloorId: 'main',
           objects: [{
             id: 't1',
@@ -106,6 +111,7 @@ describe('floor plan load does not retrigger itself', () => {
   afterEach(() => {
     floorReads.length = 0
     globalThis.__floorFailOnce = false
+    globalThis.__floorEmpty = false
     window.localStorage.clear()
   })
 
@@ -158,6 +164,18 @@ describe('floor plan load does not retrigger itself', () => {
     await flush()
 
     expect(floorReads.filter((name) => name === 'floor_plans').length).toBe(before)
+    view.unmount()
+  })
+
+  it('does not refetch when the saved layout has no floors', async () => {
+    globalThis.__floorEmpty = true
+    const view = renderHarness({ workspaceId: 'ws-empty' })
+    await flush()
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30))
+    })
+
+    expect(floorReads.filter((name) => name === 'floor_plans').length).toBeLessThanOrEqual(1)
     view.unmount()
   })
 
