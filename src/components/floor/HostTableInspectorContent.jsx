@@ -12,9 +12,11 @@ import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUt
 import {
   getHostFloorSelectionStatusPresentation,
 } from '../../lib/reservationHostStatus'
-import { getTableDayViewStatusPresentation } from '../../lib/tableDayView'
+import { buildFloorTableDayViewRows, getTableDayViewStatusPresentation } from '../../lib/tableDayView'
+import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
+import { seatingHoursPanelKind } from '../../lib/hostLoadRecovery'
 import { formatTime24 } from '../../lib/timeFormatUtils'
-import { NoServiceHoursNotice } from '../reservations/NoServiceHoursNotice'
+import { SeatingHoursFallback } from '../reservations/NoServiceHoursNotice'
 
 function TableDayViewRowDivider() {
   return <div className="floor-table-day-row-divider" aria-hidden="true" />
@@ -731,13 +733,27 @@ export function HostTableInspectorContent({
   titleId = 'host-table-inspector-title',
   animateEntrance = true,
   onOpenSeatingHours,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
 }) {
   const safeRows = Array.isArray(rows) ? rows : []
   const useDrawerHierarchy = variant === 'drawer'
-  const displayRows = useDrawerHierarchy
+  const sortedRows = useDrawerHierarchy
     ? sortInspectorRowsForPresentation(safeRows)
     : safeRows
-  const primaryRowId = useDrawerHierarchy ? resolveInspectorPrimaryRowId(safeRows) : null
+  const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
+  const rebuiltRows = sortedRows.length === 0 && table && activeSeatings.length > 0
+    ? buildFloorTableDayViewRows(table, [], todayKey, reservationSeatings)
+    : []
+  const displayRows = sortedRows.length > 0
+    ? sortedRows
+    : (useDrawerHierarchy ? sortInspectorRowsForPresentation(rebuiltRows) : rebuiltRows)
+  const seatingHoursKind = seatingHoursPanelKind({
+    activeCount: displayRows.length,
+    isLoading: seatingsLoading,
+    loadFailed: seatingsLoadFailed,
+  })
+  const primaryRowId = useDrawerHierarchy ? resolveInspectorPrimaryRowId(displayRows) : null
   const releaseTableLabel = formatHostListUnitLabel(tableLabel?.replace(/^TABLE\s*/i, 'T') ?? table?.label ?? '')
   const needsSeatingChoice = Boolean(assignmentContext?.reservation) && !assignmentContext?.seatingId
   const tableCapacity = table ? formatTableDayViewCapacity(table) : ''
@@ -810,7 +826,7 @@ export function HostTableInspectorContent({
         </button>
       </header>
 
-      {useDrawerHierarchy ? <InspectorContextStrip rows={safeRows} /> : null}
+      {useDrawerHierarchy ? <InspectorContextStrip rows={displayRows} /> : null}
 
       {displayRows.length > 0 ? (
         <ul
@@ -864,7 +880,10 @@ export function HostTableInspectorContent({
           })}
         </ul>
       ) : (
-        <NoServiceHoursNotice onOpenSeatingHours={onOpenSeatingHours} />
+        <SeatingHoursFallback
+          kind={seatingHoursKind}
+          onOpenSeatingHours={onOpenSeatingHours}
+        />
       )}
     </>
   )

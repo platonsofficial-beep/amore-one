@@ -616,7 +616,17 @@ export function buildHostQueueEmptyState({
   selectedAreaLabel = '',
   activeFilterCount = 0,
   searchTerm = '',
+  loadFailed = false,
 } = {}) {
+  if (loadFailed) {
+    return {
+      title: "Couldn't load reservations",
+      copy: 'Retry to load the queue. An empty list is not confirmed.',
+      showClearFilters: false,
+      loadFailed: true,
+    }
+  }
+
   const scopeParts = [selectedSeatingName, selectedAreaLabel].filter(Boolean)
   const scopeLabel = scopeParts.join(' · ')
 

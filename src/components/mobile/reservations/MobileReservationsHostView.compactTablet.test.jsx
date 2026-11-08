@@ -256,6 +256,28 @@ describe('MobileReservationsHostView compact tablet list', () => {
 
     unmount()
   })
+
+  it('keeps the last queue when a refresh fails', () => {
+    const { container, unmount } = renderSplitHostView({
+      noticeMessage: "Couldn't load",
+    })
+
+    expect(container.textContent).toContain('Maria')
+    expect(container.textContent).not.toContain('No reservations in this queue')
+    unmount()
+  })
+
+  it('does not describe a failed empty load as an empty queue', () => {
+    const { container, unmount } = renderSplitHostView({
+      reservations: [],
+      noticeMessage: "Couldn't load",
+    })
+
+    expect(container.textContent).toContain("Couldn't load reservations")
+    expect(container.textContent).toContain('Service summary unavailable until reservations load.')
+    expect(container.textContent).not.toContain('No reservations in this queue')
+    unmount()
+  })
 })
 
 describe('MobileReservationsHostView clear filters behavior', () => {

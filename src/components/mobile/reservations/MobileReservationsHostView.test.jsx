@@ -81,6 +81,18 @@ describe('MobileReservationsHostView header actions', () => {
     })
   })
 
+  it('does not describe a failed portrait load as a quiet service', () => {
+    const { container, unmount } = renderHostView({
+      reservations: [],
+      noticeMessage: "Couldn't load",
+    })
+
+    expect(container.textContent).toContain("Couldn't load reservations")
+    expect(container.textContent).not.toContain('Quiet service right now')
+    expect(container.textContent).not.toContain('No reservations in this view')
+    unmount()
+  })
+
   it('keeps portrait filter tabs outside split layout', () => {
     const { container, unmount } = renderHostView()
 
@@ -179,6 +191,47 @@ describe('MobileReservationsHostView header actions', () => {
 
     splitViewportMock.isSplit = false
     unmount()
+  })
+
+  it('distinguishes seating hours that are still loading, failed, or confirmed empty', async () => {
+    splitViewportMock.isSplit = true
+
+    const loading = renderHostView({
+      reservationSeatings: [],
+      seatingsLoading: true,
+    })
+    await act(async () => {
+      loading.container.querySelector('[data-testid="host-standard-create-btn"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(loading.container.textContent).toContain('Loading seating hours…')
+    expect(loading.container.querySelector('[data-testid="host-no-service-hours"]')).toBeNull()
+    loading.unmount()
+
+    const failed = renderHostView({
+      reservationSeatings: [],
+      seatingsLoadFailed: true,
+    })
+    await act(async () => {
+      failed.container.querySelector('[data-testid="host-standard-create-btn"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(failed.container.textContent).toContain("Couldn't load seating hours.")
+    expect(failed.container.querySelector('[data-testid="host-no-service-hours"]')).toBeNull()
+    failed.unmount()
+
+    const empty = renderHostView({
+      reservationSeatings: [],
+    })
+    await act(async () => {
+      empty.container.querySelector('[data-testid="host-standard-create-btn"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(empty.container.querySelector('[data-testid="host-no-service-hours"]')?.textContent)
+      .toContain('No service hours for this day.')
+    empty.unmount()
+
+    splitViewportMock.isSplit = false
   })
 })
 

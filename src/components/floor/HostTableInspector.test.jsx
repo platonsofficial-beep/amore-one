@@ -587,6 +587,57 @@ describe('HostTableInspector', () => {
     expect(query('.floor-table-day-assignment-blocked')).not.toBeNull()
     cleanup()
   })
+
+  it('uses active seatings when the row list is empty', () => {
+    const { cleanup } = renderInspector({
+      rows: [],
+      todayKey: '2026-11-08',
+      reservationSeatings: [{
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        isActive: true,
+      }],
+    })
+
+    expect(document.body.textContent).toContain('Dinner 1')
+    expect(document.querySelector('[data-testid="host-no-service-hours"]')).toBeNull()
+    cleanup()
+  })
+
+  it('does not call a failed or in-flight seating load an empty service day', () => {
+    const loading = renderInspector({
+      rows: [],
+      reservationSeatings: [],
+      seatingsLoading: true,
+    })
+    expect(loading.container.textContent).toContain('Loading seating hours…')
+    expect(document.querySelector('[data-testid="host-no-service-hours"]')).toBeNull()
+    loading.cleanup()
+
+    const failed = renderInspector({
+      rows: [],
+      reservationSeatings: [],
+      seatingsLoadFailed: true,
+    })
+    expect(failed.container.textContent).toContain("Couldn't load seating hours.")
+    expect(document.querySelector('[data-testid="host-no-service-hours"]')).toBeNull()
+    failed.cleanup()
+  })
+
+  it('shows no service hours only after seatings load successfully empty', () => {
+    const { cleanup } = renderInspector({
+      rows: [],
+      reservationSeatings: [],
+      todayKey: '2026-11-08',
+    })
+
+    expect(document.querySelector('[data-testid="host-no-service-hours"]')?.textContent)
+      .toContain('No service hours for this day.')
+    cleanup()
+  })
 })
 
 describe('useHostTableInspectorEscape', () => {

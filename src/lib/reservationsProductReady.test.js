@@ -15,7 +15,9 @@ import { getHostListCompactStatusLabel } from './reservationHostStatus'
 describe('reservations product-ready helpers', () => {
   it('turns a fetch TypeError into a short retry message', () => {
     expect(formatHostLoadError('TypeError: Failed to fetch')).toBe("Couldn't load")
+    expect(formatHostLoadError("Cannot read properties of null (reading 'from')")).toBe("Couldn't load")
     expect(isHostLoadFailureMessage('Failed to fetch')).toBe(true)
+    expect(isHostLoadFailureMessage("Cannot read properties of null (reading 'from')")).toBe(true)
     expect(formatHostLoadError('Reservation updated.')).toBe('Reservation updated.')
   })
 

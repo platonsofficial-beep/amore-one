@@ -26,7 +26,8 @@ import {
   toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
-import { NoServiceHoursNotice } from '../../reservations/NoServiceHoursNotice'
+import { SeatingHoursFallback } from '../../reservations/NoServiceHoursNotice'
+import { seatingHoursPanelKind } from '../../../lib/hostLoadRecovery'
 import { buildQuickCreateEditHydration } from './hostQuickCreateEditHydration'
 
 const EDIT_RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
@@ -53,6 +54,8 @@ function HostReservationQuickCreateFields({
   showPendingHint = true,
   workspaceProfile = null,
   onOpenSeatingHours,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
 }) {
   const [showWalkInDetails, setShowWalkInDetails] = useState(false)
   const walkInShort = mode === 'walk-in' && !showWalkInDetails
@@ -71,6 +74,11 @@ function HostReservationQuickCreateFields({
     () => getActiveSeatingsForDate(seatings, form.date || todayKey),
     [form.date, seatings, todayKey],
   )
+  const seatingHoursKind = seatingHoursPanelKind({
+    activeCount: activeSeatings.length,
+    isLoading: seatingsLoading,
+    loadFailed: seatingsLoadFailed,
+  })
   const zones = layout?.zones ?? []
   const areaChoices = zones.map((zone) => ({
     zone,
@@ -256,12 +264,7 @@ function HostReservationQuickCreateFields({
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field" hidden={walkInShort && activeSeatings.length > 0}>
           <span>Seating</span>
-          {activeSeatings.length === 0 ? (
-            <NoServiceHoursNotice
-              onOpenSeatingHours={onOpenSeatingHours}
-              afterHours={mode === 'walk-in'}
-            />
-          ) : (
+          {seatingHoursKind === 'list' ? (
             <select
               value={form.seatingId ?? ''}
               onChange={(event) => updateForm({
@@ -276,6 +279,12 @@ function HostReservationQuickCreateFields({
                 </option>
               ))}
             </select>
+          ) : (
+            <SeatingHoursFallback
+              kind={seatingHoursKind}
+              onOpenSeatingHours={onOpenSeatingHours}
+              afterHours={mode === 'walk-in'}
+            />
           )}
         </label>
 
@@ -427,6 +436,8 @@ export function MobileReservationQuickCreateSheet({
   onSubmit,
   workspaceProfile = null,
   onOpenSeatingHours,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
@@ -600,6 +611,8 @@ export function MobileReservationQuickCreateSheet({
       showPendingHint={!isEditMode && !isWalkInMode}
       workspaceProfile={workspaceProfile}
       onOpenSeatingHours={onOpenSeatingHours}
+      seatingsLoading={seatingsLoading}
+      seatingsLoadFailed={seatingsLoadFailed}
     />
   )
 

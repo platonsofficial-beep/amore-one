@@ -113,6 +113,7 @@ import {
 } from './lib/hostFloorPlanViewport'
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
+import { resolveFloorPlanEmptyPresentation, resolveListAfterRefresh } from './lib/hostLoadRecovery'
 import {
   advanceHostFloorPointerInteraction,
   beginHostFloorPointerInteraction,
@@ -9966,6 +9967,8 @@ function FloorPlanView({
   onSelectedSeatingChange,
   hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS,
   onTableInspectorChange = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
 }) {
   const {
     clearSelection,
@@ -9998,7 +10001,7 @@ function FloorPlanView({
     startHostMultiTableSelect,
     cancelHostMultiTableSelect,
   } = useReservationWorkspace()
-  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout, reload } = usePublishedFloorPlan()
+  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout, isLoading: isPublishedLayoutLoading, reload } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -11405,9 +11408,13 @@ function FloorPlanView({
       floorLayout: layout,
       reservationSeatings: effectiveSeatings,
       onOpenSeatingHours,
+      seatingsLoading,
+      seatingsLoadFailed,
     }
   }, [
     onOpenSeatingHours,
+    seatingsLoadFailed,
+    seatingsLoading,
     canManageAssignment,
     closeScheduleCardTable,
     effectiveSeatings,
@@ -11508,15 +11515,30 @@ function FloorPlanView({
     todayKey,
   ])
 
-  if (!hasDisplayableLayout) {
-    if (isRefreshingPublishedLayout) {
-      return (
-        <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
-          <p>Updating published layout…</p>
-        </div>
-      )
-    }
+  const floorLayoutStatus = resolveFloorPlanEmptyPresentation({
+    hasDisplayableLayout,
+    isLoading: isPublishedLayoutLoading,
+    isRefreshing: isRefreshingPublishedLayout,
+    loadError,
+  })
 
+  if (floorLayoutStatus === 'loading') {
+    return (
+      <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
+        <p>{isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…'}</p>
+      </div>
+    )
+  }
+
+  if (floorLayoutStatus === 'error') {
+    return (
+      <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
+        <HostLoadNotice message={loadError} onRetry={() => reload()} className="floor-plan-persistence-notice" />
+      </div>
+    )
+  }
+
+  if (floorLayoutStatus === 'empty') {
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
         {loadError ? (
@@ -11959,6 +11981,9 @@ function MobileReservationsHostShell({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
   onOpenReservationServices = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  reservationsLoadFailed = false,
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -12028,6 +12053,9 @@ function MobileReservationsHostShell({
         canUndoAutoClose={canUndoAutoClose}
         onUndoAutoClose={onUndoAutoClose}
         onOpenReservationServices={onOpenReservationServices}
+        seatingsLoading={seatingsLoading}
+        seatingsLoadFailed={seatingsLoadFailed}
+        reservationsLoadFailed={reservationsLoadFailed}
       />
     </ReservationWorkspaceProvider>
   )
@@ -12062,6 +12090,9 @@ function MobileReservationsHostShellBody({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
   onOpenReservationServices = null,
+  seatingsLoading = false,
+  seatingsLoadFailed = false,
+  reservationsLoadFailed = false,
 }) {
   const {
     selectedReservation,
@@ -12291,16 +12322,17 @@ function MobileReservationsHostShellBody({
     )
   }
 
-  if (isRefreshingPublishedLayout && !hasDisplayableLayout) {
-    return (
-      <div className="mobile-host-floor-refreshing" role="status">
-        <p>Updating published layout…</p>
-        <button type="button" className="mobile-host-floor-refresh-retry" onClick={() => reload()}>
-          Retry
-        </button>
-      </div>
-    )
-  }
+  const floorLayoutStatus = resolveFloorPlanEmptyPresentation({
+    hasDisplayableLayout,
+    isLoading: isPublishedLayoutLoading,
+    isRefreshing: isRefreshingPublishedLayout,
+    loadError: publishedLayoutLoadError,
+  })
+  const floorLayoutMessage = floorLayoutStatus === 'loading'
+    ? (isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…')
+    : floorLayoutStatus === 'error'
+      ? "Couldn't load"
+      : ''
 
   const buildFloorPlanContent = (hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS) => (
     hasDisplayableLayout ? (
@@ -12332,8 +12364,24 @@ function MobileReservationsHostShellBody({
           onSelectedSeatingChange={handleSelectedSeatingChange}
           hostQueueAreaFilterId={hostQueueAreaFilterId}
           onTableInspectorChange={setTableInspectorProps}
+          seatingsLoading={seatingsLoading}
+          seatingsLoadFailed={seatingsLoadFailed}
         />
       </HostStationErrorBoundary>
+    ) : floorLayoutStatus === 'loading' ? (
+      <div className="mobile-host-floor-refreshing" role="status">
+        <p>{floorLayoutMessage}</p>
+      </div>
+    ) : floorLayoutStatus === 'error' ? (
+      <div className="host-station-error-boundary" role="alert">
+        <h3>Couldn't load</h3>
+        <p>The floor plan did not load. This is not an empty layout.</p>
+        <div className="host-station-error-actions">
+          <button type="button" className="host-station-error-retry" onClick={() => reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
     ) : (
       <div className="mobile-host-floor-empty" role="status">
         <p>No published floor layout yet.</p>
@@ -12366,6 +12414,9 @@ function MobileReservationsHostShellBody({
         isCompact: true,
       })}
       tableInspectorProps={tableInspectorProps}
+      layoutStatus={floorLayoutStatus}
+      layoutMessage={floorLayoutMessage}
+      onRetryLayout={() => reload()}
     />
   )
 
@@ -12408,6 +12459,9 @@ function MobileReservationsHostShellBody({
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={handleHostSelectReservation}
       onClearAssignmentSelection={handleClearAssignmentSelection}
+      seatingsLoading={seatingsLoading}
+      seatingsLoadFailed={seatingsLoadFailed}
+      reservationsLoadFailed={reservationsLoadFailed}
     />
   )
 }
@@ -15111,6 +15165,11 @@ function App() {
   const [reservations, setReservations] = useState([])
   const [reservationNotice, setReservationNotice] = useState('')
   const [isReservationsLoading, setIsReservationsLoading] = useState(true)
+  const [reservationsLoadFailed, setReservationsLoadFailed] = useState(false)
+  const reservationsRef = useRef(reservations)
+  const reservationLoadSeqRef = useRef(0)
+  const reservationSeatingsRef = useRef(reservationSeatings)
+  const seatingLoadSeqRef = useRef(0)
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
   const [isDashboardReservationQuickCreateOpen, setIsDashboardReservationQuickCreateOpen] = useState(false)
   const [isDashboardAnnouncementFormOpen, setIsDashboardAnnouncementFormOpen] = useState(false)
@@ -16879,34 +16938,65 @@ function App() {
     [membership, scheduleEmployees],
   )
 
+  useEffect(() => {
+    reservationsRef.current = reservations
+  }, [reservations])
+
+  useEffect(() => {
+    reservationSeatingsRef.current = reservationSeatings
+  }, [reservationSeatings])
+
   const refreshReservations = useCallback(async () => {
     if (!activeWorkspaceId) {
-      setReservations([])
       setIsReservationsModuleConnected(false)
-      return []
+      return reservationsRef.current
     }
 
+    const requestId = ++reservationLoadSeqRef.current
     markLoad('reservations', 'start')
     try {
       const remoteReservations = await getReservations(activeWorkspaceId)
-      setReservations(remoteReservations)
-      setIsReservationsModuleConnected(true)
-      markLoad('reservations', 'success')
-      return remoteReservations
+      const decision = resolveListAfterRefresh({
+        previous: reservationsRef.current,
+        next: remoteReservations,
+        failed: false,
+        stale: requestId !== reservationLoadSeqRef.current,
+      })
+      if (decision.apply) {
+        reservationsRef.current = decision.list
+        setReservations(decision.list)
+        setIsReservationsModuleConnected(true)
+      }
+      markLoad('reservations', requestId === reservationLoadSeqRef.current ? 'success' : 'failure')
+      return decision.list
     } catch (error) {
-      setReservations([])
-      setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
-      markLoad('reservations', 'failure')
+      const decision = resolveListAfterRefresh({
+        previous: reservationsRef.current,
+        next: [],
+        failed: true,
+        stale: requestId !== reservationLoadSeqRef.current,
+      })
+      if (requestId === reservationLoadSeqRef.current) {
+        setIsReservationsModuleConnected(
+          decision.list.length > 0 && !isModuleUnavailableMessage(error.message),
+        )
+        markLoad('reservations', 'failure')
+      }
       throw error
     }
   }, [activeWorkspaceId, markLoad])
 
   const retryReservationLoad = useCallback(async () => {
+    setIsReservationsLoading(true)
+    setReservationsLoadFailed(false)
     try {
       await refreshReservations()
       setReservationNotice('')
     } catch (error) {
+      setReservationsLoadFailed(true)
       setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
+    } finally {
+      setIsReservationsLoading(false)
     }
   }, [refreshReservations])
 
@@ -17754,24 +17844,32 @@ function App() {
 
     const loadSeatings = async () => {
       if (!activeWorkspaceId) {
-        setReservationSeatings([])
-        setIsReservationSeatingsLoading(false)
+        setIsReservationSeatingsLoading(reservationSeatingsRef.current.length === 0)
         return
       }
 
+      const requestId = ++seatingLoadSeqRef.current
       setIsReservationSeatingsLoading(true)
       setReservationSeatingsNotice('')
 
       try {
         const remoteSeatings = await getReservationSeatings(activeWorkspaceId, { includeInactive: true })
         if (!isMounted) return
-        setReservationSeatings(remoteSeatings)
+        const decision = resolveListAfterRefresh({
+          previous: reservationSeatingsRef.current,
+          next: remoteSeatings,
+          failed: false,
+          stale: requestId !== seatingLoadSeqRef.current,
+        })
+        if (decision.apply) {
+          reservationSeatingsRef.current = decision.list
+          setReservationSeatings(decision.list)
+        }
       } catch (error) {
-        if (!isMounted) return
-        setReservationSeatings([])
+        if (!isMounted || requestId !== seatingLoadSeqRef.current) return
         setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
       } finally {
-        if (isMounted) {
+        if (isMounted && requestId === seatingLoadSeqRef.current) {
           setIsReservationSeatingsLoading(false)
         }
       }
@@ -18222,14 +18320,23 @@ function App() {
   useEffect(() => {
     let isMounted = true
 
+    if (!activeWorkspaceId) {
+      setIsReservationsLoading(true)
+      return () => {
+        isMounted = false
+      }
+    }
+
     const loadReservations = async () => {
       setIsReservationsLoading(true)
       setReservationNotice('')
+      setReservationsLoadFailed(false)
 
       try {
         await refreshReservations()
       } catch (error) {
         if (!isMounted) return
+        setReservationsLoadFailed(true)
         setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
       } finally {
         if (isMounted) {
@@ -18243,17 +18350,17 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [refreshReservations])
+  }, [activeWorkspaceId, refreshReservations])
 
   useEffect(() => {
-    if (!reservationNotice || isHostLoadFailureMessage(reservationNotice)) return undefined
+    if (!reservationNotice || reservationsLoadFailed || isHostLoadFailureMessage(reservationNotice)) return undefined
 
     const timer = window.setTimeout(() => {
       setReservationNotice('')
     }, 3000)
 
     return () => window.clearTimeout(timer)
-  }, [reservationNotice])
+  }, [reservationNotice, reservationsLoadFailed])
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -25230,6 +25337,9 @@ function App() {
               onRetryReservations={retryReservationLoad}
               canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
+              seatingsLoading={isReservationSeatingsLoading}
+              seatingsLoadFailed={Boolean(reservationSeatingsNotice) && reservationSeatings.length === 0}
+              reservationsLoadFailed={reservationsLoadFailed}
               workspaceId={activeWorkspaceId}
               useControlledReloadReturn={isHostMobileRole(role)}
               reservationAttentionFocus={reservationAttentionFocus}
@@ -25843,6 +25953,9 @@ function App() {
                       canPublishFloorPlan={isManagerRole(role)}
                       onRetryReservations={retryReservationLoad}
                       reservationSeatings={reservationSeatings}
+                      seatingsLoading={isReservationSeatingsLoading}
+                      seatingsLoadFailed={Boolean(reservationSeatingsNotice) && reservationSeatings.length === 0}
+                      reservationsLoadFailed={reservationsLoadFailed}
                       workspaceId={activeWorkspaceId}
                       useControlledReloadReturn
                       hostSettingsProps={{

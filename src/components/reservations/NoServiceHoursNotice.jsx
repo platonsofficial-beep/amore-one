@@ -1,3 +1,29 @@
+export function SeatingHoursFallback({
+  kind = 'empty',
+  onOpenSeatingHours,
+  afterHours = false,
+}) {
+  if (kind === 'loading') {
+    return (
+      <p className="host-no-service-hours" role="status" data-testid="host-seating-hours-status">
+        Loading seating hours…
+      </p>
+    )
+  }
+
+  if (kind === 'error') {
+    return (
+      <p className="host-no-service-hours" role="alert" data-testid="host-seating-hours-status">
+        Couldn't load seating hours.
+      </p>
+    )
+  }
+
+  return (
+    <NoServiceHoursNotice onOpenSeatingHours={onOpenSeatingHours} afterHours={afterHours} />
+  )
+}
+
 export function NoServiceHoursNotice({
   onOpenSeatingHours,
   afterHours = false,

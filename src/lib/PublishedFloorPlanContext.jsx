@@ -24,6 +24,7 @@ import {
   logPublishBreadcrumbsOnError,
   recordPublishBreadcrumb,
 } from './publishFloorPlanDiagnostics'
+import { resolvePublishedLayoutApply } from './hostLoadRecovery'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
@@ -47,13 +48,14 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   const [publishedBuilderLayout, setPublishedBuilderLayout] = useState(null)
   const [draftBuilderLayout, setDraftBuilderLayout] = useState(null)
   const [publishedAt, setPublishedAt] = useState(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [saveError, setSaveError] = useState(null)
   const [publishNotice, setPublishNotice] = useState(null)
   const [isRefreshingPublishedLayout, setIsRefreshingPublishedLayout] = useState(false)
   const skipNextPublishedEventRef = useRef(false)
   const stableHostLayoutRef = useRef(null)
+  const layoutRequestRef = useRef(0)
 
   const applyWorkspaceLayouts = useCallback(({ publishedLayout, draftLayout, publishedAt: nextPublishedAt }) => {
     const normalizedPublished = publishedLayout ? cloneBuilderLayout(publishedLayout) : null
@@ -65,6 +67,28 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     setActivePublishedLayoutCache(normalizedPublished)
     setActiveBuilderLayoutCache(normalizedDraft)
   }, [])
+
+  const applyLoadedLayouts = useCallback((result, requestId) => {
+    const action = resolvePublishedLayoutApply({
+      hasPrevious: Boolean(stableHostLayoutRef.current),
+      hasIncoming: Boolean(result?.publishedLayout),
+      error: result?.error ?? null,
+      stale: requestId !== layoutRequestRef.current,
+    })
+
+    if (action === 'ignore') return false
+    if (action === 'keep-error') {
+      setLoadError(result?.error ?? "Couldn't load")
+      return false
+    }
+    if (action === 'clear') {
+      stableHostLayoutRef.current = null
+    }
+
+    applyWorkspaceLayouts(result)
+    setLoadError(result?.error ?? null)
+    return true
+  }, [applyWorkspaceLayouts])
 
   const applyPublishedLayoutResult = useCallback((savedLayout, { notice } = {}) => {
     const transition = buildPublishTransitionResult(savedLayout)
@@ -111,33 +135,36 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
 
   const reload = useCallback(async (nextBuilderLayout) => {
     if (isValidPublishedBuilderLayout(nextBuilderLayout)) {
+      layoutRequestRef.current += 1
       applyPublishedLayoutResult(nextBuilderLayout)
       return buildPublishTransitionResult(nextBuilderLayout)
     }
 
+    const requestId = ++layoutRequestRef.current
     setIsRefreshingPublishedLayout(true)
     try {
       const result = await readStoredLayouts()
-      applyWorkspaceLayouts(result)
-      setLoadError(result.error)
+      const applied = applyLoadedLayouts(result, requestId)
+      if (!applied) return buildPublishTransitionResult(result.publishedLayout)
       return buildPublishTransitionResult(result.publishedLayout)
     } finally {
-      setIsRefreshingPublishedLayout(false)
+      if (requestId === layoutRequestRef.current) {
+        setIsRefreshingPublishedLayout(false)
+      }
     }
-  }, [applyPublishedLayoutResult, applyWorkspaceLayouts, readStoredLayouts])
+  }, [applyLoadedLayouts, applyPublishedLayoutResult, readStoredLayouts])
 
   useEffect(() => {
+    const requestId = ++layoutRequestRef.current
     let cancelled = false
 
     const load = async () => {
       setIsLoading(true)
-      setLoadError(null)
 
       try {
         const result = await readStoredLayouts()
         if (cancelled) return
-        applyWorkspaceLayouts(result)
-        setLoadError(result.error)
+        applyLoadedLayouts(result, requestId)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -148,7 +175,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     return () => {
       cancelled = true
     }
-  }, [applyWorkspaceLayouts, readStoredLayouts])
+  }, [applyLoadedLayouts, readStoredLayouts])
 
   const saveDraftLayout = useCallback(async ({ floors, activeFloorId, objects }) => {
     const payload = {
