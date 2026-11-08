@@ -53532,6 +53532,37 @@ summary:focus-visible {
   background: var(--one-gold-a24);
 }
 
+.manager-portrait-seatings {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 8px 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-inline: 8px;
+}
+
+.manager-portrait-seatings button {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--one-overlay-06);
+  color: var(--one-text);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.manager-portrait-seatings button.is-active {
+  background: var(--one-gold-a24);
+}
+
 .manager-portrait-find {
   display: flex;
   gap: 8px;
