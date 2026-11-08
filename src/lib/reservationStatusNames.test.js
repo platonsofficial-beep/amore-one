@@ -30,7 +30,7 @@ describe('status names (Platon t447u)', () => {
       'Checked In (Partial)': 'Seated · partly',
       'Checked In': 'Seated',
       'Walk In': 'Walk-in',
-      'Checked Out': 'Completed',
+      'Checked Out': 'Finished',
       Cancelled: 'Cancelled',
       'Not Shown': 'No-show',
       Rejected: 'Rejected',

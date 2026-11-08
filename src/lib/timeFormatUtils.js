@@ -200,6 +200,11 @@ export function normalizeReservationDateKey(value) {
   return raw.slice(0, 10)
 }
 
+const RESERVATION_MONTH_LABELS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
 export function formatEuropeanDayMonth(dateKey, fallback = '') {
   const normalized = normalizeReservationDateKey(dateKey)
   if (!normalized) return fallback
@@ -208,6 +213,17 @@ export function formatEuropeanDayMonth(dateKey, fallback = '') {
   if (!Number.isFinite(month) || !Number.isFinite(day)) return fallback
 
   return `${day}/${month}`
+}
+
+/** Day-month label. Cyprus venues read 6 Nov 2026, never a US month/day field. */
+export function formatReservationDayMonth(dateKey, { year = false, fallback = '' } = {}) {
+  const normalized = normalizeReservationDateKey(dateKey)
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized)
+  if (!match) return fallback
+  const monthLabel = RESERVATION_MONTH_LABELS[Number(match[2]) - 1]
+  if (!monthLabel) return fallback
+  const day = Number(match[3])
+  return year ? `${day} ${monthLabel} ${match[1]}` : `${day} ${monthLabel}`
 }
 
 export function formatHostReservationListTime(reservation, todayKey) {

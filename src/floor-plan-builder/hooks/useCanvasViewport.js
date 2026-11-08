@@ -2,11 +2,18 @@ import { useCallback, useEffect, useRef } from 'react'
 import {
   clampCameraZoom,
   createCamera,
+  MAX_CAMERA_ZOOM,
+  MIN_CAMERA_ZOOM,
   getCameraAtZoom,
   getCameraFitToBounds,
   getResetCameraForWorkspace,
   screenToWorld,
 } from '../lib/camera'
+import {
+  cameraForPinch,
+  panExceededThreshold,
+  shouldArmTouchBackgroundPan,
+} from '../lib/editorTouchGestures'
 
 const ZOOM_STEP = 0.08
 const SCROLL_INTENSITY = 0.85
@@ -22,6 +29,7 @@ export function useCanvasViewport({
   getFitCamera,
 }) {
   const panSessionRef = useRef(null)
+  const armedPanRef = useRef(null)
   const cameraRef = useRef(camera)
   const zoomIdleTimeoutRef = useRef(null)
 
@@ -154,11 +162,31 @@ export function useCanvasViewport({
 
   const pinchSessionRef = useRef(null)
 
+  const releasePanPointer = useCallback((event) => {
+    const pointerId = event?.pointerId
+    const target = event?.currentTarget
+    if (pointerId == null || !target?.hasPointerCapture?.(pointerId)) return
+    try {
+      target.releasePointerCapture(pointerId)
+    } catch {
+      // Touch browsers can drop capture during a second-finger transition.
+    }
+  }, [])
+
+  const clearPan = useCallback((event) => {
+    armedPanRef.current = null
+    panSessionRef.current = null
+    releasePanPointer(event)
+  }, [releasePanPointer])
+
   const tryStartPinch = useCallback((event) => {
     if (event.touches?.length !== 2) return false
 
     const rect = getContainerRect()
-    if (!rect) return false
+    const viewport = getViewportSize()
+    if (!rect || !viewport) return false
+
+    clearPan(event)
 
     const [touchA, touchB] = event.touches
     const distance = Math.hypot(
@@ -167,21 +195,23 @@ export function useCanvasViewport({
     )
     if (distance < 1) return false
 
-    const centerX = ((touchA.clientX + touchB.clientX) / 2) - rect.left
-    const centerY = ((touchA.clientY + touchB.clientY) / 2) - rect.top
+    const midX = ((touchA.clientX + touchB.clientX) / 2) - rect.left
+    const midY = ((touchA.clientY + touchB.clientY) / 2) - rect.top
+    const current = cameraRef.current
 
     pinchSessionRef.current = {
       startDistance: distance,
-      startZoom: cameraRef.current.zoom,
-      anchorX: centerX,
-      anchorY: centerY,
+      startZoom: current.zoom,
+      startWorld: screenToWorld({ x: midX, y: midY }, current, viewport),
     }
     return true
-  }, [getContainerRect])
+  }, [clearPan, getContainerRect, getViewportSize])
 
   const handlePinchMove = useCallback((event) => {
     const session = pinchSessionRef.current
-    if (!session || event.touches?.length !== 2) return false
+    const viewport = getViewportSize()
+    const rect = getContainerRect()
+    if (!session || !viewport || !rect || event.touches?.length !== 2) return false
 
     const [touchA, touchB] = event.touches
     const distance = Math.hypot(
@@ -190,13 +220,20 @@ export function useCanvasViewport({
     )
     if (distance < 1 || session.startDistance < 1) return false
 
-    const scale = distance / session.startDistance
-    setZoomAtAnchor(session.startZoom * scale, {
-      x: session.anchorX,
-      y: session.anchorY,
-    })
+    setCamera(cameraForPinch({
+      startZoom: session.startZoom,
+      startDistance: session.startDistance,
+      distance,
+      startWorld: session.startWorld,
+      midX: ((touchA.clientX + touchB.clientX) / 2) - rect.left,
+      midY: ((touchA.clientY + touchB.clientY) / 2) - rect.top,
+      viewportWidth: viewport.width,
+      viewportHeight: viewport.height,
+      minZoom: MIN_CAMERA_ZOOM,
+      maxZoom: MAX_CAMERA_ZOOM,
+    }))
     return true
-  }, [setZoomAtAnchor])
+  }, [getContainerRect, getViewportSize, setCamera])
 
   const endPinch = useCallback(() => {
     pinchSessionRef.current = null
@@ -273,33 +310,78 @@ export function useCanvasViewport({
     const isMiddleButton = event.button === 1
     const isPanTool = activeTool === 'pan' && event.button === 0
 
-    if (!isMiddleButton && !isPanTool) return false
+    if (pinchSessionRef.current) return false
+
+    if (!isMiddleButton && !isPanTool) {
+      if (!shouldArmTouchBackgroundPan(event)) return false
+      armedPanRef.current = {
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        active: false,
+      }
+      return false
+    }
 
     event.preventDefault()
+    armedPanRef.current = null
     startPan(event.clientX, event.clientY)
     panSessionRef.current = {
       ...panSessionRef.current,
       pointerId: event.pointerId,
     }
-    event.currentTarget.setPointerCapture(event.pointerId)
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    return true
+  }, [startPan])
+
+  const promoteArmedPan = useCallback((event) => {
+    const armed = armedPanRef.current
+    if (!armed || armed.active || armed.pointerId !== event.pointerId) return false
+    if (!panExceededThreshold(armed.startX, armed.startY, event.clientX, event.clientY)) return false
+
+    startPan(event.clientX, event.clientY)
+    panSessionRef.current = {
+      ...panSessionRef.current,
+      pointerId: event.pointerId,
+    }
+    armed.active = true
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    } catch {
+      // Capture can fail once a second finger arrives.
+    }
     return true
   }, [startPan])
 
   const handlePointerMove = useCallback((event) => {
+    if (pinchSessionRef.current) return
+    promoteArmedPan(event)
     if (!panSessionRef.current) return
     if (panSessionRef.current.pointerId !== event.pointerId) return
+    if (event.cancelable) event.preventDefault()
     updatePan(event.clientX, event.clientY)
-  }, [updatePan])
+  }, [promoteArmedPan, updatePan])
 
-  const handlePointerUp = useCallback((event) => {
+  const finishPointer = useCallback((event) => {
+    const armed = armedPanRef.current
+    if (armed?.pointerId === event.pointerId) {
+      armedPanRef.current = null
+    }
     if (!panSessionRef.current) return
     if (panSessionRef.current.pointerId !== event.pointerId) return
 
     endPan()
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-  }, [endPan])
+    releasePanPointer(event)
+  }, [endPan, releasePanPointer])
+
+  const handlePointerUp = useCallback((event) => {
+    finishPointer(event)
+  }, [finishPointer])
+
+  const handlePointerCancel = useCallback((event) => {
+    finishPointer(event)
+    endPinch()
+  }, [endPinch, finishPointer])
 
   useEffect(() => {
     const container = containerRef.current
@@ -323,6 +405,7 @@ export function useCanvasViewport({
     tryStartPan,
     handlePointerMove,
     handlePointerUp,
+    handlePointerCancel,
     isPanning: () => Boolean(panSessionRef.current),
     tryStartPinch,
     handlePinchMove,

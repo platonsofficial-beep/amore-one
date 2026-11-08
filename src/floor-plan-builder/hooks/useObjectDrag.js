@@ -98,6 +98,10 @@ export function useObjectDrag({
         applyPendingSelection({ moved })
         setDraggingObjectId(null)
       },
+      onDragCancelled: () => {
+        pendingSelectionRef.current = null
+        setDraggingObjectId(null)
+      },
     })
   }
 
@@ -108,13 +112,17 @@ export function useObjectDrag({
     applyPendingSelection({ moved })
     setDraggingObjectId(null)
   }
+  dragManager.onDragCancelled = () => {
+    pendingSelectionRef.current = null
+    setDraggingObjectId(null)
+  }
 
   const handleObjectPointerDown = useCallback((event, object) => {
     event.stopPropagation()
 
     if (!isEditing) return false
     if (object.properties?.locked === true) return false
-    if (event.pointerType !== 'touch' && event.isPrimary === false) return false
+    if (event.isPrimary === false) return false
 
     const wasSelected = selectedTableIdsRef.current.includes(object.id)
     const isMultiSelect = multiSelectEnabledRef.current
@@ -148,6 +156,12 @@ export function useObjectDrag({
     dragManager.end(event)
   }, [dragManager])
 
+  const cancelDrag = useCallback(() => {
+    pendingSelectionRef.current = null
+    if (!dragManager.abort()) return
+    setDraggingObjectId(null)
+  }, [dragManager])
+
   useEffect(() => () => {
     try {
       dragManager.dispose()
@@ -161,6 +175,7 @@ export function useObjectDrag({
     handleObjectPointerDown,
     handleDragMove,
     endDrag,
+    cancelDrag,
     isDragging: Boolean(draggingObjectId),
   }
 }

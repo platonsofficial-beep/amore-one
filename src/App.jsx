@@ -106,13 +106,13 @@ import {
   buildReservationLinkGroups,
   buildReservationLinkTableMeta,
   clampHostFloorPan,
-  computeHostFloorFit,
-  computeHostFloorTablesFit,
-  computeHostFloorReadableBox,
+  computeHostFloorServiceFit,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
   readHostFloorAspect,
 } from './lib/hostFloorPlanViewport'
+import { HostLoadNotice } from './components/reservations/HostLoadNotice'
+import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
 import {
   advanceHostFloorPointerInteraction,
   beginHostFloorPointerInteraction,
@@ -9951,6 +9951,8 @@ function FloorPlanView({
   isSaving,
   isCompact = false,
   canEditFloorPlan = true,
+  canPublishFloorPlan = true,
+  onOpenSeatingHours = null,
   onAssignReservationTables,
   onQuickStatusUpdate,
   onOpenAddReservation,
@@ -9996,7 +9998,7 @@ function FloorPlanView({
     startHostMultiTableSelect,
     cancelHostMultiTableSelect,
   } = useReservationWorkspace()
-  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout } = usePublishedFloorPlan()
+  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout, reload } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -10176,7 +10178,7 @@ function FloorPlanView({
     }
     const blockLockedGesture = (event) => {
       if (!readHostFloorLockPreference() && !viewport.classList.contains('is-floor-interaction-locked')) return
-      if (event.touches && event.touches.length > 1) setFloorLockToast('Map locked')
+      setFloorLockToast('Floor locked')
       event.preventDefault()
     }
     viewport.addEventListener('wheel', onWheel, { passive: false })
@@ -10544,69 +10546,17 @@ function FloorPlanView({
     visibleTableStates,
   ])
 
-  const applyHostFloorAutoFit = useCallback(() => {
-    const viewport = viewportRef.current
-    if (!viewport) return
-
-    const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
-    const tables = visibleTableStatesRef.current.map((tableState) => tableState.table)
-    const aspect = readHostFloorAspect(layoutSpace)
-    const box = computeHostFloorReadableBox({
-      tables,
-      viewportWidth: viewport.clientWidth,
-      viewportHeight: viewport.clientHeight,
-      aspectWidth: aspect.aspectWidth,
-      aspectHeight: aspect.aspectHeight,
-    })
-
-      if (layoutSpace && box.width > 0 && box.height > 0) {
-      layoutSpace.style.width = `${box.width}px`
-      layoutSpace.style.height = `${box.height}px`
-      layoutSpace.style.maxWidth = 'none'
-      layoutSpace.style.maxHeight = 'none'
-      // A plan wider than the view starts at the left edge (T10 was out of
-      // scroll reach because the centred canvas pushed it left).
-      if (layoutSpace.parentElement) {
-        layoutSpace.parentElement.style.justifyContent = box.width > viewport.clientWidth ? 'flex-start' : ''
-      }
-      const tableNodes = [...layoutSpace.querySelectorAll('.floor-table-node')]
-      const firstTable = tableNodes.reduce((nearest, node) => {
-        if (!nearest) return node
-        return node.getBoundingClientRect().top < nearest.getBoundingClientRect().top ? node : nearest
-      }, null)
-      if (firstTable) {
-        const delta = firstTable.getBoundingClientRect().top - viewport.getBoundingClientRect().top
-        if (delta > 12) viewport.scrollTop += delta - 8
-      }
-    }
-
-    const fit = computeHostFloorFit({
-      tables,
-      viewportWidth: viewport.clientWidth,
-      viewportHeight: viewport.clientHeight,
-    })
-    setFloorZoom(fit.zoom)
-    setFloorPan(fit.pan)
-    isManualFloorZoomRef.current = false
-  }, [])
-
-  const handleFloorZoomFit = useCallback(() => {
-    if (floorInteractionLocked) {
-      setFloorLockToast('Map locked')
-      return
-    }
-    closeScheduleCardTable('zoom-fit')
+  const frameWholeFloor = useCallback(() => {
     const viewport = viewportRef.current
     const layoutSpace = viewport?.querySelector('.floor-plan-layout-space')
-    if (!viewport || !layoutSpace) return
+    if (!viewport || !layoutSpace) return null
     const aspect = readHostFloorAspect(layoutSpace)
-    const box = computeHostFloorTablesFit({
+    const box = computeHostFloorServiceFit({
       tables: visibleTableStatesRef.current.map((tableState) => tableState.table),
       viewportWidth: viewport.clientWidth,
       viewportHeight: viewport.clientHeight,
       aspectWidth: aspect.aspectWidth,
       aspectHeight: aspect.aspectHeight,
-      paddingPx: 12,
     })
     layoutSpace.style.width = `${box.width}px`
     layoutSpace.style.height = `${box.height}px`
@@ -10614,18 +10564,50 @@ function FloorPlanView({
     layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
     layoutSpace.style.maxHeight = 'none'
-    // A plan wider than the view starts at the left edge: the centred canvas
-    // otherwise pushed its left tables out of scroll reach.
-    if (layoutSpace.parentElement) {
-      layoutSpace.parentElement.style.justifyContent = box.width > viewport.clientWidth ? 'flex-start' : ''
+    const stage = layoutSpace.parentElement
+    if (stage) {
+      const contained = box.contained && box.width <= viewport.clientWidth && box.height <= viewport.clientHeight
+      stage.style.justifyContent = contained ? 'center' : 'flex-start'
+      stage.style.alignItems = contained ? 'center' : 'flex-start'
+      stage.style.width = '100%'
+      stage.style.minHeight = '100%'
     }
-    isManualFloorZoomRef.current = true
-    suppressFloorAutoFitRef.current = true
+    viewport.scrollTop = box.scrollTop || 0
+    viewport.scrollLeft = box.scrollLeft || 0
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
-    viewport.scrollTop = box.scrollTop
-    viewport.scrollLeft = box.scrollLeft
-  }, [closeScheduleCardTable, floorInteractionLocked])
+    return box
+  }, [])
+
+  const applyHostFloorAutoFit = useCallback(() => {
+    frameWholeFloor()
+    isManualFloorZoomRef.current = false
+  }, [frameWholeFloor])
+
+  const handleFloorZoomFit = useCallback(() => {
+    if (floorInteractionLocked) {
+      setFloorLockToast('Floor locked')
+      return
+    }
+    closeScheduleCardTable('zoom-fit')
+    frameWholeFloor()
+    isManualFloorZoomRef.current = true
+    suppressFloorAutoFitRef.current = true
+  }, [closeScheduleCardTable, floorInteractionLocked, frameWholeFloor])
+
+  const toggleDiningTimers = useCallback(() => {
+    setShowDiningTimers((current) => {
+      const next = !current
+      const seatedCount = visibleTableStatesRef.current.filter((tableState) => (
+        tableState.operational?.floorStatus === 'seated'
+        || tableState.operational?.hostIndicator === 'seated'
+      )).length
+      setFloorLockToast(next
+        ? (seatedCount > 0 ? 'Timers on' : 'Timers on — they show when guests are seated')
+        : 'Timers off')
+      return next
+    })
+  }, [])
 
   const hostFloorContextRef = useRef(null)
 
@@ -11422,8 +11404,10 @@ function FloorPlanView({
       todayKey,
       floorLayout: layout,
       reservationSeatings: effectiveSeatings,
+      onOpenSeatingHours,
     }
   }, [
+    onOpenSeatingHours,
     canManageAssignment,
     closeScheduleCardTable,
     effectiveSeatings,
@@ -11536,10 +11520,10 @@ function FloorPlanView({
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
         {loadError ? (
-          <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
+          <HostLoadNotice message={loadError} onRetry={() => reload()} className="floor-plan-persistence-notice" />
         ) : null}
         {saveError ? (
-          <div className="floor-plan-persistence-notice" role="status">{saveError}</div>
+          <HostLoadNotice message={saveError} className="floor-plan-persistence-notice" />
         ) : null}
         <div className="floor-plan-empty">
           <p className="eyebrow">Floor plan</p>
@@ -11562,10 +11546,10 @@ function FloorPlanView({
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${isHostMultiTableSelectMode ? ' has-multi-table-mode' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       {loadError ? (
-        <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
+        <HostLoadNotice message={loadError} onRetry={() => reload()} className="floor-plan-persistence-notice" />
       ) : null}
       {saveError ? (
-        <div className="floor-plan-persistence-notice" role="status">{saveError}</div>
+        <HostLoadNotice message={saveError} className="floor-plan-persistence-notice" />
       ) : null}
       <div className="floor-plan-host-shell">
         <div className="floor-plan-host-main">
@@ -11601,7 +11585,7 @@ function FloorPlanView({
                 <button
                   type="button"
                   className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
-                  onClick={() => setShowDiningTimers((current) => !current)}
+                  onClick={toggleDiningTimers}
                   aria-pressed={showDiningTimers}
                   aria-label="Dining timers"
                   data-testid="host-floor-dining-timers-toggle"
@@ -11650,7 +11634,7 @@ function FloorPlanView({
                       data-help="reservations.timers"
                       onClick={() => {
                         setFloorMoreOpen(false)
-                        setShowDiningTimers((current) => !current)
+                        toggleDiningTimers()
                       }}
                       aria-pressed={showDiningTimers}
                       aria-label="Dining timers"
@@ -11676,7 +11660,7 @@ function FloorPlanView({
                   setFloorInteractionLocked((current) => {
                     const next = !current
                     writeHostFloorLockPreference(next)
-                    setFloorLockToast(next ? 'Map locked' : 'Map unlocked')
+                    setFloorLockToast(next ? 'Floor locked' : 'Floor unlocked')
                     return next
                   })
                 }}
@@ -11765,7 +11749,9 @@ function FloorPlanView({
         ) : null}
         {isCompact && visibleTableStates.length === 0 ? (
           <p className="floor-plan-area-empty" role="status">
-            {`No tables on ${activeZone?.label || 'this area'} yet - Edit layout to add`}
+            {canPublishFloorPlan
+              ? `No tables in ${activeZone?.label || 'this area'} yet. Add them in Edit layout.`
+              : `No tables in ${activeZone?.label || 'this area'} yet. Ask a manager to add them.`}
           </p>
         ) : null}
         {isCompact && isHostFloorDebugEnabled() ? <HostFloorDebugOverlay /> : null}
@@ -11939,6 +11925,7 @@ function FloorPlanView({
           todayKey={todayKey}
           floorLayout={layout}
           reservationSeatings={effectiveSeatings}
+          onOpenSeatingHours={onOpenSeatingHours}
         />
       ) : null}
     </div>
@@ -11961,6 +11948,8 @@ function MobileReservationsHostShell({
   onExitHostMode,
   onAssignReservationTables,
   canEditFloorPlan = false,
+  canPublishFloorPlan = true,
+  onRetryReservations = null,
   canManageAssignment = true,
   reservationSeatings = [],
   hostSettingsProps = null,
@@ -12029,6 +12018,8 @@ function MobileReservationsHostShell({
         onExitHostMode={onExitHostMode}
         onAssignReservationTables={onAssignReservationTables}
         canEditFloorPlan={canEditFloorPlan}
+        canPublishFloorPlan={canPublishFloorPlan}
+        onRetryReservations={onRetryReservations}
         canManageAssignment={canManageAssignment}
         reservationSeatings={reservationSeatings}
         hostSettingsProps={hostSettingsProps}
@@ -12061,6 +12052,8 @@ function MobileReservationsHostShellBody({
   onExitHostMode,
   onAssignReservationTables,
   canEditFloorPlan = false,
+  canPublishFloorPlan = true,
+  onRetryReservations = null,
   canManageAssignment = true,
   reservationSeatings = [],
   hostSettingsProps = null,
@@ -12261,6 +12254,7 @@ function MobileReservationsHostShellBody({
           initialAreaId={activeFloorAreaId}
           onActiveAreaChange={setActiveFloorAreaId}
           onReturnToHost={handleReturnToHost}
+          canPublishLayout={canPublishFloorPlan}
         />
       </div>
     )
@@ -12278,7 +12272,7 @@ function MobileReservationsHostShellBody({
     return (
       <div className="host-station-error-boundary" role="alert">
         <h3>Host Station could not load.</h3>
-        <p>{publishedLayoutLoadError || 'Unable to load the published floor layout.'}</p>
+        <p>{formatHostLoadError(publishedLayoutLoadError) || "Couldn't load"}</p>
         <div className="host-station-error-actions">
           <button type="button" className="host-station-error-retry" onClick={() => reload()}>
             Retry
@@ -12323,6 +12317,8 @@ function MobileReservationsHostShellBody({
           isSaving={isSaving}
           isCompact
           canEditFloorPlan={canEditFloorPlan}
+          canPublishFloorPlan={canPublishFloorPlan}
+          onOpenSeatingHours={onOpenReservationServices}
           onAssignReservationTables={onAssignReservationTables}
           onQuickStatusUpdate={onQuickStatusUpdate}
           onOpenAddReservation={handleFloorOpenAddReservation}
@@ -12384,6 +12380,7 @@ function MobileReservationsHostShellBody({
       isLoading={isLoading}
       isSaving={isSaving}
       noticeMessage={noticeMessage}
+      onRetryReservations={onRetryReservations}
       onQuickStatusUpdate={onQuickStatusUpdate}
       onHostEditSave={onHostEditSave}
       onHostEditDelete={onHostEditDelete}
@@ -12391,6 +12388,7 @@ function MobileReservationsHostShellBody({
       onCreateReservation={onCreateReservation}
       onExitHostMode={onExitHostMode}
       canEditFloorPlan={canEditFloorPlan}
+      canPublishFloorPlan={canPublishFloorPlan}
       reservationSeatings={reservationSeatings}
       selectedServiceSeatingId={selectedServiceSeatingId}
       selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
@@ -16903,6 +16901,15 @@ function App() {
     }
   }, [activeWorkspaceId, markLoad])
 
+  const retryReservationLoad = useCallback(async () => {
+    try {
+      await refreshReservations()
+      setReservationNotice('')
+    } catch (error) {
+      setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
+    }
+  }, [refreshReservations])
+
   const upsertReservationInState = useCallback((reservation) => {
     if (!reservation?.id) return
     setReservations((current) => replaceReservationInCollection(current, reservation))
@@ -18223,7 +18230,7 @@ function App() {
         await refreshReservations()
       } catch (error) {
         if (!isMounted) return
-        setReservationNotice(error.message || 'Unable to load reservations right now.')
+        setReservationNotice(formatHostLoadError(error?.message) || "Couldn't load")
       } finally {
         if (isMounted) {
           setIsReservationsLoading(false)
@@ -18239,7 +18246,7 @@ function App() {
   }, [refreshReservations])
 
   useEffect(() => {
-    if (!reservationNotice) return undefined
+    if (!reservationNotice || isHostLoadFailureMessage(reservationNotice)) return undefined
 
     const timer = window.setTimeout(() => {
       setReservationNotice('')
@@ -25219,6 +25226,8 @@ function App() {
               onExitHostMode={isHostMobileRole(role) ? handleHostLeaveStation : handleMobileExitReservationsHostMode}
               onAssignReservationTables={handleAssignReservationTables}
               canEditFloorPlan={canEditFloorPlanRole}
+              canPublishFloorPlan={isManagerRole(role)}
+              onRetryReservations={retryReservationLoad}
               canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
               workspaceId={activeWorkspaceId}
@@ -25227,7 +25236,7 @@ function App() {
               canUndoAutoClose={isManagerRole(role)}
               onUndoAutoClose={handleUndoAutoClosedReservation}
               onOpenReservationServices={
-                canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+                canConfigureReservationSeatingsRole
                   ? handleOpenReservationServices
                   : undefined
               }
@@ -25831,6 +25840,8 @@ function App() {
                       reservationAttentionFocus={reservationAttentionFocus}
                       onAssignReservationTables={handleAssignReservationTables}
                       canEditFloorPlan={canEditFloorPlanRole}
+                      canPublishFloorPlan={isManagerRole(role)}
+                      onRetryReservations={retryReservationLoad}
                       reservationSeatings={reservationSeatings}
                       workspaceId={activeWorkspaceId}
                       useControlledReloadReturn
@@ -25846,7 +25857,7 @@ function App() {
                         onSignOut: handleMobileSignOut,
                       }}
                       onOpenReservationServices={
-                        canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
+                        canConfigureReservationSeatingsRole
                           ? handleOpenReservationServices
                           : undefined
                       }
@@ -26001,6 +26012,10 @@ function App() {
                           isLoading: isReservationsLoading,
                           isSaving: isSavingReservation,
                           noticeMessage: reservationNotice,
+                          onRetryLoad: retryReservationLoad,
+                          onOpenReservationServices: canConfigureReservationSeatingsRole
+                            ? handleOpenReservationServices
+                            : null,
                           canManage: canManageReservationsRole,
                           seatings: reservationSeatings,
                           onDateChange: setPortraitReservationDate,
@@ -26008,6 +26023,7 @@ function App() {
                           onEditReservation: handleHostEditSave,
                           onQuickStatusUpdate: handleQuickReservationStatus,
                           canEditFloorPlan: canEditFloorPlanRole,
+                          canPublishFloorPlan: isManagerRole(role),
                         }}
                         scheduleProps={{
                           shifts,

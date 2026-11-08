@@ -5,7 +5,58 @@ import {
   normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
 import { normalizeReservationAutoCloseTime } from '../../lib/reservationAutoClose'
+import { useState } from 'react'
+import {
+  readHostDiningTimerDurationPolicy,
+  writeHostDiningTimerDurationPolicy,
+} from '../../lib/hostDiningTimer'
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
+
+function HostDiningTimerSettings() {
+  const [policy, setPolicy] = useState(() => readHostDiningTimerDurationPolicy())
+
+  const update = (key, value) => {
+    setPolicy(writeHostDiningTimerDurationPolicy({ ...policy, [key]: value }))
+  }
+
+  return (
+    <div className="panel staff-panel workspace-panel" data-testid="host-dining-timer-settings">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Service pace</p>
+          <h3>Table timers</h3>
+        </div>
+      </div>
+      <p className="workspace-section-subtitle">
+        Minutes before a seated dinner or drinks party is expected to free the table. Saved on this device. A venue-wide save needs a database change and owner approval.
+      </p>
+      <div className="employee-form">
+        <label className="form-field">
+          <span>Dinner minutes</span>
+          <input
+            type="number"
+            min="15"
+            max="1440"
+            value={policy.dinner}
+            data-testid="host-timer-dinner-minutes"
+            onChange={(event) => update('dinner', event.target.value)}
+          />
+        </label>
+        <label className="form-field">
+          <span>Drinks minutes</span>
+          <input
+            type="number"
+            min="15"
+            max="1440"
+            value={policy.drinks}
+            data-testid="host-timer-drinks-minutes"
+            onChange={(event) => update('drinks', event.target.value)}
+          />
+        </label>
+      </div>
+    </div>
+  )
+}
 
 function SeatingDaysToggle({ daysOfWeek, onChange }) {
   return (
@@ -124,6 +175,8 @@ export function WorkspaceReservationSeatingsSection({
           </form>
         </div>
       ) : null}
+
+      <HostDiningTimerSettings />
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading seatings…</div> : null}

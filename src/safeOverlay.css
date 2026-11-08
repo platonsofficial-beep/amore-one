@@ -272,8 +272,10 @@ body.has-one-overlay .app-shell .mobile-shell-bell,
 body:has(.mobile-stock-detail-sheet, .employee-modal-backdrop, .mobile-sheet-backdrop, .stock-product-history-backdrop, .supply-draft-preview, .venue-sheet-backdrop, .on-shift-backdrop, .mobile-host-panel-backdrop, .employee-premium-form-backdrop, .stock-item-permanent-delete-backdrop) .app-shell .help-mode-fallback,
 body:has(.mobile-stock-detail-sheet, .employee-modal-backdrop, .mobile-sheet-backdrop, .stock-product-history-backdrop, .supply-draft-preview, .venue-sheet-backdrop, .on-shift-backdrop, .mobile-host-panel-backdrop, .employee-premium-form-backdrop, .stock-item-permanent-delete-backdrop) .app-shell .mobile-shell-bell,
 .app-shell:has(.unified-floor-editor) .mobile-shell-bell,
-.app-shell.is-reservations-dedicated-shell:has(.unified-floor-editor) .mobile-shell-bell.is-reservations-dedicated-bell {
-  display: none;
+.app-shell.is-reservations-dedicated-shell:has(.unified-floor-editor) .mobile-shell-bell.is-reservations-dedicated-bell,
+.app-shell.is-reservations-host-mode .mobile-shell-bell,
+.app-shell.is-reservations-dedicated-shell .mobile-shell-bell {
+  display: none !important;
 }
 
 /* iOS gives date/time inputs a wide intrinsic size that ignores the card

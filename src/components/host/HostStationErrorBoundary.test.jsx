@@ -37,7 +37,7 @@ describe('HostStationErrorBoundary', () => {
   it('shows fallback UI instead of a blank screen', () => {
     const { container, unmount } = renderBoundary()
 
-    expect(container.textContent).toContain('Host Station could not load')
+    expect(container.textContent).toContain("Couldn't load")
     expect(container.querySelector('.host-station-error-retry')).toBeTruthy()
 
     unmount()

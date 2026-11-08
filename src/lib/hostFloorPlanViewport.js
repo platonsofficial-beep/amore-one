@@ -269,6 +269,76 @@ export function clampHostFloorPan(
   }
 }
 
+export const HOST_FLOOR_WHOLE_AREA_PADDING_PX = 16
+
+/** Fit the whole active area inside the viewport, with padding, centered. */
+export function computeHostFloorWholeAreaFit({
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+  paddingPx = HOST_FLOOR_WHOLE_AREA_PADDING_PX,
+} = {}) {
+  const pad = Math.max(0, Number(paddingPx) || 0)
+  const box = computeHostFloorContainBox({
+    viewportWidth: Math.max(1, viewportWidth - pad * 2),
+    viewportHeight: Math.max(1, viewportHeight - pad * 2),
+    aspectWidth,
+    aspectHeight,
+  })
+  return {
+    ...box,
+    scrollLeft: 0,
+    scrollTop: 0,
+    zoom: 1,
+    paddingPx: pad,
+  }
+}
+
+/**
+ * Prefer the whole area with padding. If that would shrink a table under
+ * `minTablePx`, keep the readable size and scroll. The phone matrix requires
+ * Fit to leave tables at least 44px.
+ */
+export function computeHostFloorServiceFit({
+  tables = [],
+  viewportWidth = 0,
+  viewportHeight = 0,
+  aspectWidth = 2200,
+  aspectHeight = 1400,
+  paddingPx = HOST_FLOOR_WHOLE_AREA_PADDING_PX,
+  minTablePx = HOST_FLOOR_MIN_TABLE_PX,
+} = {}) {
+  const whole = computeHostFloorWholeAreaFit({
+    viewportWidth,
+    viewportHeight,
+    aspectWidth,
+    aspectHeight,
+    paddingPx,
+  })
+  const percents = tables
+    .map((table) => Number(table?.widthPercent))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const minPercent = percents.length ? Math.min(...percents) : 12
+  const smallest = whole.width * (minPercent / 100)
+  if (!percents.length || smallest + 0.5 >= minTablePx) {
+    return { ...whole, contained: true }
+  }
+
+  return {
+    ...computeHostFloorTablesFit({
+      tables,
+      viewportWidth,
+      viewportHeight,
+      aspectWidth,
+      aspectHeight,
+      paddingPx,
+      minTablePx,
+    }),
+    contained: false,
+  }
+}
+
 export function computeHostFloorFit({
   viewportWidth,
   viewportHeight,

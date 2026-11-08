@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getReservationDateKey } from '../../lib/floorAssignmentMapping'
-import { EmbeddedFloorPlanEditor } from '../floor/EmbeddedFloorPlanEditor'
-import { buildPortraitFloorTables, portraitTableStatusLabel } from '../../lib/managerPortrait'
+import { listPortraitSeatingLeftovers } from '../../lib/managerPortrait'
+import { filterReservationsBySelectedSeating, reservationMatchesHostQueueOperationalFilter } from '../../lib/hostQueuePipeline'
+import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
+import { HostLoadNotice } from '../reservations/HostLoadNotice'
 import { sortMobileHostReservations } from '../../lib/mobileHostReservationUtils'
 import { formatPartialSeatLabel, getHostListCompactStatusLabel, getHostStatusMeta, normalizeReservationStatus } from '../../lib/reservationHostStatus'
 import { getHostQueueNameIndicators } from '../../lib/hostQueuePipeline'
@@ -17,7 +19,6 @@ import { HOST_LIST_HELPERS } from '../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../reservations/hostReservationListUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
-import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 import { buildHostQueueServiceMetrics } from '../../lib/hostQueueServiceMetrics'
 import { HostQueueServiceSummary } from './reservations/HostQueueServiceSummary'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
@@ -65,8 +66,6 @@ export function formatPortraitStickyDay(dateKey) {
   return `${weekday} ${date.getDate()} ${month}`
 }
 
-const tableLabelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' })
-
 export function MobileManagerReservationsView({
   className = '',
   reservations = [],
@@ -76,18 +75,23 @@ export function MobileManagerReservationsView({
   isLoading = false,
   isSaving = false,
   noticeMessage = '',
+  onRetryLoad = null,
   canManage = false,
   seatings = [],
   onDateChange,
+  onOpenReservationServices = null,
   onCreateReservation,
   onEditReservation,
   onQuickStatusUpdate = null,
-  canEditFloorPlan = false,
 }) {
   const { layout } = usePublishedFloorPlan()
   const selectedDate = dateKey || todayKey
   const [createOpen, setCreateOpen] = useState(false)
-  const [editingLayout, setEditingLayout] = useState(false)
+  const [createMode, setCreateMode] = useState('create')
+  const [createPrefill, setCreatePrefill] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [problemsOnly, setProblemsOnly] = useState(false)
+  const [selectedSeatingId, setSelectedSeatingId] = useState(null)
   const [editingReservation, setEditingReservation] = useState(null)
   const [statusPicker, setStatusPicker] = useState(null)
   const canChangeStatus = canManage && typeof onQuickStatusUpdate === 'function'
@@ -114,20 +118,35 @@ export function MobileManagerReservationsView({
     [reservations, selectedDate],
   )
 
-  const tables = useMemo(
-    () => buildPortraitFloorTables({
-      layout,
-      reservations,
-      dateKey: selectedDate,
-      nowMinutes: isToday ? nowMinutes : null,
-    }),
-    [layout, reservations, selectedDate, isToday, nowMinutes],
+  const seatingLeftovers = useMemo(
+    () => listPortraitSeatingLeftovers(reservations, selectedDate),
+    [reservations, selectedDate],
   )
-  // T9, T10, T11… instead of the order tables were drawn in.
-  const sortedTables = useMemo(
-    () => [...tables].sort((left, right) => tableLabelCollator.compare(left.label, right.label)),
-    [tables],
+  const activeSeatings = useMemo(
+    () => getActiveSeatingsForDate(seatings, selectedDate),
+    [seatings, selectedDate],
   )
+  const selectedSeating = activeSeatings.find((seating) => seating.id === selectedSeatingId) ?? null
+  useEffect(() => {
+    if (selectedSeatingId && !selectedSeating) setSelectedSeatingId(null)
+  }, [selectedSeating, selectedSeatingId])
+  const visibleReservations = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase()
+    const bySeating = filterReservationsBySelectedSeating(
+      dayReservations,
+      selectedSeating,
+      activeSeatings,
+      selectedDate,
+    )
+    return bySeating.filter((reservation) => {
+      if (query && !`${reservation.guestName ?? ''}`.toLowerCase().includes(query)) return false
+      if (!problemsOnly) return true
+      return reservationMatchesHostQueueOperationalFilter(reservation, 'problems', {
+        nowMinutes: nowMinutes ?? 0,
+        todayKey: selectedDate,
+      })
+    })
+  }, [activeSeatings, dayReservations, nowMinutes, problemsOnly, searchTerm, selectedDate, selectedSeating])
   const daySummary = useMemo(() => summarizePortraitDay(dayReservations), [dayReservations])
   // Same emoji + word metrics as the landscape header, for the whole day.
   const dayMetrics = useMemo(() => buildHostQueueServiceMetrics(dayReservations, {
@@ -160,10 +179,25 @@ export function MobileManagerReservationsView({
     onDateChange?.(addCalendarDays(selectedDate, days))
   }
 
+  const openCreate = (mode) => {
+    setCreateMode(mode)
+    setCreatePrefill(selectedSeating
+      ? { seatingId: selectedSeating.id, date: selectedDate }
+      : null)
+    setCreateOpen(true)
+  }
+
   const handleCreate = async (form) => {
     const created = await onCreateReservation?.(form)
     if (created !== false) setCreateOpen(false)
     return created
+  }
+
+  const closeLeftovers = async () => {
+    if (typeof onQuickStatusUpdate !== 'function') return
+    for (const reservation of seatingLeftovers) {
+      await onQuickStatusUpdate(reservation, 'Checked Out')
+    }
   }
 
   const handleEdit = async (reservation, form) => {
@@ -173,17 +207,8 @@ export function MobileManagerReservationsView({
     return saved
   }
 
-  if (editingLayout) {
-    return (
-      <div className="mobile-host-floor-plan-editor manager-portrait-floor-editor">
-        <EmbeddedFloorPlanEditor onExit={() => setEditingLayout(false)} />
-      </div>
-    )
-  }
-
   return (
     <div className={`mobile-screen manager-portrait-reservations${className ? ` ${className}` : ''}`}>
-      <ManagerPortraitBanner area="floor" />
       <div
         className={`manager-portrait-sticky-day${showStickyDay ? ' is-visible' : ''}`}
         aria-hidden={showStickyDay ? undefined : 'true'}
@@ -204,11 +229,78 @@ export function MobileManagerReservationsView({
           ) : null}
         </div>
         {canManage ? (
-          <button type="button" className="manager-portrait-add" onClick={() => setCreateOpen(true)}>
-            Add
-          </button>
+          <div className="manager-portrait-create-actions">
+            <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
+              Walk-in
+            </button>
+            <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
+              Add
+            </button>
+          </div>
         ) : null}
       </header>
+
+      {onOpenReservationServices ? (
+        <button
+          type="button"
+          className="manager-portrait-hours"
+          onClick={onOpenReservationServices}
+          aria-label="Seating hours"
+        >
+          Seating hours
+        </button>
+      ) : null}
+
+      <div className="manager-portrait-find">
+        <label className="manager-portrait-search">
+          <span className="sr-only">Search guest</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search guest"
+            data-testid="portrait-reservation-search"
+          />
+        </label>
+        <button
+          type="button"
+          className={`manager-portrait-problems${problemsOnly ? ' is-active' : ''}`}
+          aria-pressed={problemsOnly}
+          onClick={() => setProblemsOnly((current) => !current)}
+        >
+          Problems
+        </button>
+      </div>
+
+      {activeSeatings.length > 0 ? (
+        <div
+          className="manager-portrait-seatings"
+          role="group"
+          aria-label="Seatings"
+          data-testid="portrait-seatings"
+        >
+          <button
+            type="button"
+            className={!selectedSeating ? 'is-active' : ''}
+            aria-pressed={!selectedSeating}
+            onClick={() => setSelectedSeatingId(null)}
+          >
+            All
+          </button>
+          {activeSeatings.map((seating) => (
+            <button
+              key={seating.id}
+              type="button"
+              className={selectedSeating?.id === seating.id ? 'is-active' : ''}
+              aria-pressed={selectedSeating?.id === seating.id}
+              onClick={() => setSelectedSeatingId(seating.id)}
+            >
+              <span>{seating.name}</span>
+              {seating.startTime ? <span>{seating.startTime}</span> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       <div className="manager-portrait-date-nav" aria-label="Reservation day">
         <button type="button" onClick={() => shiftDate(-1)} aria-label="Previous day">‹</button>
@@ -218,16 +310,39 @@ export function MobileManagerReservationsView({
         <button type="button" onClick={() => shiftDate(1)} aria-label="Next day">›</button>
       </div>
 
-      {noticeMessage ? <p className="manager-portrait-notice" role="status">{noticeMessage}</p> : null}
+      <HostLoadNotice message={noticeMessage} onRetry={onRetryLoad} className="manager-portrait-notice" />
+
+      {seatingLeftovers.length > 0 ? (
+        <div className="manager-portrait-stale" role="alert" data-testid="portrait-stale-seated">
+          <p>Still seated from yesterday — close?</p>
+          {typeof onQuickStatusUpdate === 'function' ? (
+            <button type="button" onClick={closeLeftovers} disabled={isSaving}>
+              Close
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       <section aria-label="Bookings">
         <h2>Bookings</h2>
         {isLoading ? <p className="manager-portrait-empty">Loading reservations…</p> : null}
-        {!isLoading && dayReservations.length === 0 ? (
-          <p className="manager-portrait-empty">No bookings for this day.</p>
+        {!isLoading && visibleReservations.length === 0 ? (
+          <div className="manager-portrait-empty">
+            <p>{searchTerm.trim() || problemsOnly || selectedSeating ? 'No bookings match.' : 'No bookings for this day.'}</p>
+            {canManage && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
+              <div className="manager-portrait-create-actions">
+                <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
+                  Walk-in
+                </button>
+                <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
+                  + Reservation
+                </button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
         <ul className="manager-portrait-reservation-list">
-          {dayReservations.map((reservation) => (
+          {visibleReservations.map((reservation) => (
             <li key={reservation.id} className="manager-portrait-reservation-item">
               <button
                 type="button"
@@ -292,42 +407,6 @@ export function MobileManagerReservationsView({
         </ul>
       </section>
 
-      <section aria-label="Tables">
-        <div className="manager-portrait-tables-header">
-          <h2>Tables</h2>
-          {canEditFloorPlan ? (
-            <button
-              type="button"
-              className="manager-portrait-edit-layout"
-              data-help="reservations.edit-layout"
-              onClick={() => setEditingLayout(true)}
-            >
-              Edit layout
-            </button>
-          ) : null}
-        </div>
-        {tables.length === 0 ? (
-          <p className="manager-portrait-empty">No published tables yet.</p>
-        ) : (
-          <ul className="manager-portrait-table-list">
-            {sortedTables.map((table) => (
-              <li key={table.id} className={`manager-portrait-table is-${table.status || 'available'}`}>
-                <span className="manager-portrait-table-name">
-                  {table.label}
-                  {table.seats ? <span>{table.seats} seats</span> : null}
-                </span>
-                <span className="manager-portrait-table-meta">
-                  {table.guest ? <span>{table.guest}</span> : null}
-                  <span className={`manager-portrait-status is-${table.status || 'available'}`}>
-                    {portraitTableStatusLabel(table.status)}
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
       <HostReservationStatusPicker
         variant="sheet"
         reservation={statusPicker?.reservation}
@@ -341,13 +420,15 @@ export function MobileManagerReservationsView({
 
       <MobileReservationQuickCreateSheet
         isOpen={createOpen}
-        mode="create"
+        mode={createMode}
+        prefill={createPrefill}
         todayKey={selectedDate}
         isSaving={isSaving}
         seatings={seatings}
         reservations={reservations}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
+        onOpenSeatingHours={onOpenReservationServices}
       />
       <MobileReservationQuickCreateSheet
         isOpen={Boolean(editingReservation)}

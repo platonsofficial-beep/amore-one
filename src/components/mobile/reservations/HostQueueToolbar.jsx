@@ -7,26 +7,30 @@ const MENU_MARGIN = 8
 const MENU_Z_INDEX = 11990
 
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
-  const viewportWidth = window.innerWidth
-  const viewportHeight = window.innerHeight
+  const viewport = window.visualViewport
+  const viewportWidth = viewport?.width || window.innerWidth
+  const viewportHeight = viewport?.height || window.innerHeight
+  const offsetTop = viewport?.offsetTop || 0
+  const offsetLeft = viewport?.offsetLeft || 0
 
   let left = anchorRect.left
   let top = anchorRect.bottom + MENU_MARGIN
 
-  left = clampOverlayLeft(left, menuWidth, viewportWidth, MENU_MARGIN)
+  left = clampOverlayLeft(left - offsetLeft, menuWidth, viewportWidth, MENU_MARGIN) + offsetLeft
 
   const maxHeight = Math.max(120, viewportHeight - MENU_MARGIN * 2)
   const usedHeight = Math.min(menuHeight, maxHeight)
+  const visibleBottom = offsetTop + viewportHeight
 
-  if (top + usedHeight > viewportHeight - MENU_MARGIN) {
-    top = Math.max(MENU_MARGIN, viewportHeight - MENU_MARGIN - usedHeight)
+  if (top + usedHeight > visibleBottom - MENU_MARGIN) {
+    top = Math.max(offsetTop + MENU_MARGIN, visibleBottom - MENU_MARGIN - usedHeight)
   }
-  top = Math.max(MENU_MARGIN, top)
+  top = Math.max(offsetTop + MENU_MARGIN, top)
 
   return {
     top,
     left,
-    maxHeight: Math.max(80, viewportHeight - top - MENU_MARGIN),
+    maxHeight: Math.max(80, visibleBottom - top - MENU_MARGIN),
   }
 }
 
@@ -126,7 +130,14 @@ function HostQueueToolbarMenu({
     <div
       ref={panelRef}
       className={`host-queue-toolbar-menu${isPositioned ? ' is-visible' : ''}`}
-      style={{ top: position.top, left: position.left, maxHeight: position.maxHeight, zIndex: MENU_Z_INDEX }}
+      style={{
+        top: position.top,
+        left: position.left,
+        maxHeight: position.maxHeight,
+        zIndex: MENU_Z_INDEX,
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+      }}
       role="dialog"
       aria-label={ariaLabel}
     >

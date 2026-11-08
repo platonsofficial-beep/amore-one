@@ -112,6 +112,97 @@ describe('ObjectDragManager', () => {
     expect(manager.isActive()).toBe(false)
   })
 
+  it('reverts a committed drag when a second finger takes over', () => {
+    const { manager, onMoveObject, onDragComplete } = createDragManager()
+    const object = {
+      id: 'table-pinch',
+      position: { x: 10, y: 20 },
+      size: { width: 80, height: 80 },
+      rotation: 0,
+    }
+    manager.start(createPointerEvent('pointerdown', { clientX: 10, clientY: 20 }), object, {
+      snapEnabled: false,
+      floorBounds: {},
+    })
+    manager.move(createPointerEvent('pointermove', { clientX: 40, clientY: 50 }))
+    vi.runAllTimers()
+    expect(onMoveObject).toHaveBeenCalled()
+
+    expect(manager.abort()).toBe(true)
+    expect(onMoveObject).toHaveBeenLastCalledWith(
+      'table-pinch',
+      { x: 10, y: 20 },
+      expect.objectContaining({ historyKey: expect.any(String) }),
+    )
+    expect(onDragComplete).not.toHaveBeenCalled()
+    expect(manager.isActive()).toBe(false)
+  })
+
+  it('keeps the first drag when a second finger lands, so abort can revert it', () => {
+    const { manager, onMoveObject, onDragComplete } = createDragManager()
+    const object = {
+      id: 'table-pinch',
+      position: { x: 10, y: 20 },
+      size: { width: 80, height: 80 },
+      rotation: 0,
+    }
+    manager.start(createPointerEvent('pointerdown', { clientX: 10, clientY: 20 }), object, {
+      snapEnabled: false,
+      floorBounds: {},
+    })
+    manager.move(createPointerEvent('pointermove', { clientX: 40, clientY: 50 }))
+    vi.runAllTimers()
+
+    const secondFinger = createPointerEvent('pointerdown', { pointerId: 2, clientX: 80, clientY: 90 })
+    secondFinger.isPrimary = false
+    expect(manager.start(secondFinger, {
+      ...object,
+      position: { x: 40, y: 50 },
+    }, { snapEnabled: false, floorBounds: {} })).toBe(false)
+
+    expect(manager.abort()).toBe(true)
+    expect(onMoveObject).toHaveBeenLastCalledWith(
+      'table-pinch',
+      { x: 10, y: 20 },
+      expect.objectContaining({ historyKey: expect.any(String) }),
+    )
+    expect(onDragComplete).not.toHaveBeenCalled()
+    expect(manager.isActive()).toBe(false)
+  })
+
+  it('reverts a drag when the browser cancels the pointer', () => {
+    const onDragCancelled = vi.fn()
+    const { manager, onMoveObject, onDragComplete } = createDragManager()
+    manager.onDragCancelled = onDragCancelled
+    const object = {
+      id: 'table-cancel',
+      position: { x: 10, y: 20 },
+      size: { width: 80, height: 80 },
+      rotation: 0,
+    }
+    manager.start(createPointerEvent('pointerdown', { clientX: 10, clientY: 20 }), object, {
+      snapEnabled: false,
+      floorBounds: {},
+    })
+    manager.move(createPointerEvent('pointermove', { clientX: 48, clientY: 36 }))
+    vi.runAllTimers()
+
+    window.dispatchEvent(new PointerEvent('pointercancel', {
+      pointerId: 1,
+      bubbles: true,
+      cancelable: true,
+    }))
+
+    expect(onDragCancelled).toHaveBeenCalledTimes(1)
+    expect(onMoveObject).toHaveBeenLastCalledWith(
+      'table-cancel',
+      { x: 10, y: 20 },
+      expect.objectContaining({ historyKey: expect.any(String) }),
+    )
+    expect(onDragComplete).not.toHaveBeenCalled()
+    expect(manager.isActive()).toBe(false)
+  })
+
   it('does not preventDefault on pointerdown start', () => {
     const { manager } = createDragManager()
     const down = createPointerEvent('pointerdown', { clientX: 50, clientY: 50 })

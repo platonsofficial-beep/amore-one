@@ -139,6 +139,11 @@
    they do not cover Publish / Exit on desktop, tablet, or phone. */
 .app-shell:not(.is-mobile-shell):not(:has(.topbar)):has(.unified-floor-editor) .help-mode-fallback,
 .app-shell.is-mobile-shell:has(.unified-floor-editor) .help-mode-fallback,
-.app-shell:has(.unified-floor-editor) .help-mode-banner {
-  display: none;
+.app-shell:has(.unified-floor-editor) .help-mode-banner,
+.app-shell.is-reservations-host-mode .help-mode-fallback,
+.app-shell.is-reservations-host-mode .help-mode-banner,
+.app-shell.is-reservations-dedicated-shell .help-mode-fallback,
+.app-shell.is-reservations-dedicated-shell .help-mode-banner,
+.app-shell.is-mobile-shell.is-reservations-host-mode .help-mode-fallback {
+  display: none !important;
 }
