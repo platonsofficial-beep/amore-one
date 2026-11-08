@@ -358,6 +358,29 @@ describe('hostFloorTableVisualState', () => {
     expect(resolveHostFloorSemanticClass(operational)).toBe('is-reserved')
   })
 
+  it('does not paint a table available when bookings were not read', () => {
+    const unknown = resolveFloorTableOperationalState([], 18 * 60, '2026-11-08', {
+      bookingCertainty: 'unknown',
+    })
+    expect(unknown.floorStatus).toBe('unverified')
+    expect(resolveHostFloorSemanticClass(unknown)).toBe('is-unverified')
+
+    const stale = resolveFloorTableOperationalState([
+      {
+        id: 'test-one',
+        guestName: 'Test One Check0811 Edited',
+        guests: 1,
+        time: '19:00',
+        date: '2026-11-08',
+        status: 'Confirmed',
+      },
+    ], 18 * 60, '2026-11-08', { bookingCertainty: 'stale' })
+    expect(stale.displayReservation?.guestName).toBe('Test One Check0811 Edited')
+    expect(stale.bookingStale).toBe(true)
+    expect(stale.floorStatus).not.toBe('available')
+    expect(stale.floorStatus).not.toBe('unverified')
+  })
+
   it('maps explicit problem host indicator to conflict styling', () => {
     const operational = {
       hostIndicator: 'problem',

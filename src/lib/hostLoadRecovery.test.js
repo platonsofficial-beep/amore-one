@@ -5,6 +5,7 @@ import {
   resolveFloorPlanEmptyPresentation,
   resolveListAfterRefresh,
   resolvePublishedLayoutApply,
+  resolveScopedReservationRead,
   seatingHoursPanelKind,
 } from './hostLoadRecovery'
 
@@ -159,6 +160,59 @@ describe('floor and seating load presentation', () => {
     expect(failed.copy).not.toMatch(/empty queue|No reservations/i)
     expect(failed.loadFailed).toBe(true)
     expect(empty.title).toBe('No reservations in this queue')
+  })
+
+  it('keeps a same-scope booking after a failed reload and does not call it current', () => {
+    const scope = { workspaceId: 'ws', dateKey: '2026-11-08' }
+    const booked = [{ ...CREATED, tableNumber: 'T101' }]
+    const decision = resolveScopedReservationRead({
+      previous: booked,
+      previousScope: scope,
+      next: [],
+      failed: true,
+      requestScope: scope,
+      currentScope: scope,
+      requestId: 2,
+      currentRequestId: 2,
+    })
+
+    expect(decision.list).toEqual(booked)
+    expect(decision.certainty).toBe('stale')
+    expect(decision.apply).toBe(false)
+  })
+
+  it('does not keep another workspace or date when that read fails', () => {
+    const decision = resolveScopedReservationRead({
+      previous: [{ ...CREATED, tableNumber: 'T101' }],
+      previousScope: { workspaceId: 'ws-a', dateKey: '2026-11-08' },
+      next: [],
+      failed: true,
+      requestScope: { workspaceId: 'ws-b', dateKey: '2026-11-09' },
+      currentScope: { workspaceId: 'ws-b', dateKey: '2026-11-09' },
+      requestId: 3,
+      currentRequestId: 3,
+    })
+
+    expect(decision.apply).toBe(true)
+    expect(decision.list).toEqual([])
+    expect(decision.certainty).toBe('unknown')
+  })
+
+  it('does not apply a stale date response onto the date now on screen', () => {
+    const decision = resolveScopedReservationRead({
+      previous: [],
+      previousScope: null,
+      next: [CREATED],
+      failed: false,
+      requestScope: { workspaceId: 'ws', dateKey: '2026-11-08' },
+      currentScope: { workspaceId: 'ws', dateKey: '2026-11-09' },
+      requestId: 4,
+      currentRequestId: 4,
+    })
+
+    expect(decision.list).toEqual([])
+    expect(decision.certainty).toBe('unknown')
+    expect(decision.list).not.toContainEqual(expect.objectContaining({ date: '2026-11-08' }))
   })
 
   it('shows seating hours as loading, failed, empty, or ready', () => {

@@ -12,7 +12,7 @@ import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUt
 import {
   getHostFloorSelectionStatusPresentation,
 } from '../../lib/reservationHostStatus'
-import { buildFloorTableDayViewRows, getTableDayViewStatusPresentation } from '../../lib/tableDayView'
+import { applyBookingReadCertainty, buildFloorTableDayViewRows, getTableDayViewStatusPresentation } from '../../lib/tableDayView'
 import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
 import { seatingHoursPanelKind } from '../../lib/hostLoadRecovery'
 import { formatTime24 } from '../../lib/timeFormatUtils'
@@ -603,6 +603,26 @@ function TableDayViewRow({
     )
   }
 
+  if (row.availabilityCertainty === 'unverified') {
+    return (
+      <li
+        className="floor-table-day-row is-unverified"
+        data-testid="floor-table-day-row-unverified"
+      >
+        <div className="floor-table-day-row-head">
+          <strong className="floor-table-day-seating-name">{seating.name}</strong>
+          <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
+        </div>
+        <TableDayViewRowDivider />
+        <div className="floor-table-day-row-body">
+          <span className="availability-state is-unverified" aria-label="Availability unverified">
+            Availability unverified
+          </span>
+        </div>
+      </li>
+    )
+  }
+
   if (isAvailable) {
     return (
       <li
@@ -659,6 +679,9 @@ function TableDayViewRow({
       </div>
       <TableDayViewRowDivider />
       <div className="floor-table-day-row-body">
+        {row.availabilityCertainty === 'stale' ? (
+          <p className="floor-table-day-row-notes" role="status">Last loaded. Not rechecked.</p>
+        ) : null}
         <div className="floor-table-day-guest-headline">
           <h4 className="floor-table-day-guest-name">{guestName}</h4>
           {row.statusLabel ? (
@@ -735,6 +758,7 @@ export function HostTableInspectorContent({
   onOpenSeatingHours,
   seatingsLoading = false,
   seatingsLoadFailed = false,
+  bookingCertainty = 'current',
 }) {
   const safeRows = Array.isArray(rows) ? rows : []
   const useDrawerHierarchy = variant === 'drawer'
@@ -745,9 +769,10 @@ export function HostTableInspectorContent({
   const rebuiltRows = sortedRows.length === 0 && table && activeSeatings.length > 0
     ? buildFloorTableDayViewRows(table, [], todayKey, reservationSeatings)
     : []
-  const displayRows = sortedRows.length > 0
+  const preparedRows = sortedRows.length > 0
     ? sortedRows
     : (useDrawerHierarchy ? sortInspectorRowsForPresentation(rebuiltRows) : rebuiltRows)
+  const displayRows = applyBookingReadCertainty(preparedRows, bookingCertainty)
   const seatingHoursKind = seatingHoursPanelKind({
     activeCount: displayRows.length,
     isLoading: seatingsLoading,

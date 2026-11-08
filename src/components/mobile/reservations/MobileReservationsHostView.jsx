@@ -90,6 +90,7 @@ export function MobileReservationsHostView({
   seatingsLoading = false,
   seatingsLoadFailed = false,
   reservationsLoadFailed = false,
+  bookingCertainty = 'unknown',
 }) {
   const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -441,6 +442,9 @@ export function MobileReservationsHostView({
 
   const listControls = (
     <div className="mobile-host-list-controls">
+      {isSplitLayout && bookingCertainty === 'stale' ? (
+        <p className="host-queue-list-metrics" role="status">Last loaded. Not rechecked.</p>
+      ) : null}
       {isSplitLayout ? (
         reservationLoadFailed && reservations.length === 0 ? (
           <p className="host-queue-list-metrics" role="status">

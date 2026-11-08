@@ -627,6 +627,53 @@ describe('HostTableInspector', () => {
     failed.cleanup()
   })
 
+  it('does not claim a table is available when the booking read did not succeed', () => {
+    const unknown = renderInspector({
+      bookingCertainty: 'unknown',
+      rows: [{
+        seating: SEATING,
+        reservation: null,
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: true,
+        timeWindowLabel: '19:00–21:00',
+        state: 'available',
+      }],
+    })
+
+    expect(unknown.container.textContent).toContain('Dinner 1')
+    expect(unknown.container.textContent).toContain('Availability unverified')
+    expect(unknown.container.textContent).not.toMatch(/\bAvailable\b/)
+    expect(unknown.container.querySelector('[data-testid="floor-table-day-new-reservation"]')).toBeNull()
+    unknown.cleanup()
+
+    const stale = renderInspector({
+      bookingCertainty: 'stale',
+      rows: [{
+        seating: SEATING,
+        reservation: {
+          id: 'test-one',
+          guestName: 'Test One Check0811 Edited',
+          guests: 1,
+          time: '19:00',
+          status: 'Pending',
+        },
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: false,
+        timeWindowLabel: '19:00–21:00',
+        state: 'reserved',
+        statusLabel: 'Pending',
+      }],
+    })
+
+    expect(stale.container.textContent).toContain('Test One Check0811 Edited')
+    expect(stale.container.textContent).toContain('Last loaded. Not rechecked.')
+    expect(stale.container.querySelector('[aria-label="Available"]')).toBeNull()
+    expect(stale.container.querySelector('[data-testid="floor-table-day-new-reservation"]')).toBeNull()
+    stale.cleanup()
+  })
+
   it('shows no service hours only after seatings load successfully empty', () => {
     const { cleanup } = renderInspector({
       rows: [],

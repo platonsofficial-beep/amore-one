@@ -185,6 +185,7 @@ export function buildTableSeatingDayIndicators(
   {
     layout = null,
     seatingsById = null,
+    bookingCertainty = 'current',
   } = {},
 ) {
   const byId = seatingsById ?? new Map(seatings.map((entry) => [entry.id, entry]))
@@ -199,16 +200,17 @@ export function buildTableSeatingDayIndicators(
       { layout, seatingsById: byId },
     )
     const { hostIndicator } = resolveSeatingFloorStatus(null, reservation)
+    const unverified = bookingCertainty !== 'current' && !reservation
 
     return {
       seatingId: seating.id,
       seatingName: seating.name,
       startTime: seating.startTime,
-      state: reservation ? hostIndicator : 'empty',
+      state: unverified ? 'unverified' : (reservation ? hostIndicator : 'empty'),
       reservation,
       ariaLabel: reservation
-        ? `${seating.name} · Reserved by ${reservation.guestName || 'Guest'} at ${formatTime24(reservation.time)}`
-        : `${seating.name} · Available`,
+        ? `${seating.name} · ${bookingCertainty === 'current' ? 'Reserved' : 'Last loaded'} by ${reservation.guestName || 'Guest'} at ${formatTime24(reservation.time)}`
+        : `${seating.name} · ${unverified ? 'Availability unverified' : 'Available'}`,
     }
   })
 }

@@ -26,6 +26,14 @@ export function buildHostTableInspectorContextStrip(rows = []) {
   if (occupiedRow?.reservation) {
     const guestName = `${occupiedRow.reservation.guestName ?? 'Guest'}`.trim() || 'Guest'
     const timeLabel = getReservationInServiceSinceTimeLabel(occupiedRow.reservation)
+    if (occupiedRow.availabilityCertainty === 'stale') {
+      return {
+        kind: 'stale',
+        contextLine: 'Last loaded · not rechecked',
+        contextAccessibleLabel: 'Last loaded booking, not rechecked',
+        guestLine: guestName,
+      }
+    }
 
     return {
       kind: 'occupied',
@@ -34,6 +42,15 @@ export function buildHostTableInspectorContextStrip(rows = []) {
         ? `Table in service since ${timeLabel}`
         : 'Table in service',
       guestLine: guestName,
+    }
+  }
+
+  if (safeRows.some((row) => row?.availabilityCertainty === 'unverified')) {
+    return {
+      kind: 'unverified',
+      contextLine: 'Availability unverified',
+      contextAccessibleLabel: 'Availability unverified',
+      guestLine: '',
     }
   }
 
