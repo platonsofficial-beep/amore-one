@@ -48,6 +48,62 @@ export function resolveHostAssignmentSeatingId({
   return resolveReservationSeatingId(reservation, seatings, dateKey)
 }
 
+/**
+ * All stays the list filter. Assignment uses the booking's own service.
+ * A chosen seating chip still wins. No service means the floor stays neutral.
+ */
+export function resolveAllAssignmentFloorSeating({
+  chipSeating = null,
+  reservation = null,
+  seatings = [],
+  dateKey = '',
+  assignmentActive = false,
+} = {}) {
+  if (chipSeating?.id) {
+    return { seating: chipSeating, source: 'chip', missingService: false }
+  }
+  if (!assignmentActive || !reservation) {
+    return { seating: null, source: 'all', missingService: false }
+  }
+  const seatingId = resolveHostAssignmentSeatingId({
+    reservation,
+    seatings,
+    dateKey,
+  })
+  const seating = (seatings ?? []).find((entry) => `${entry?.id ?? ''}` === `${seatingId ?? ''}`) ?? null
+  if (!seating) {
+    return { seating: null, source: 'missing', missingService: true }
+  }
+  return { seating, source: 'reservation', missingService: false }
+}
+
+export function canAssignReservationToFloorTable(tableState) {
+  if (!tableState) return false
+  if (tableState.operational?.hostIndicator === 'all-services' || tableState.status === 'all-services') {
+    return false
+  }
+  if (isFloorTableOccupiedByAnotherGuest(tableState)) return false
+  if (
+    tableState.operational?.phase === 'upcoming'
+    && tableState.reservation
+  ) {
+    return false
+  }
+  if (tableState.reservation) return false
+  return (
+    tableState.operational?.phase === 'available'
+    || tableState.operational?.hostIndicator === 'empty'
+    || tableState.status === 'available'
+    || tableState.status === 'cleaning'
+    || tableState.operational?.phase === 'cleaning'
+  )
+}
+
+function isFloorTableOccupiedByAnotherGuest(tableState) {
+  const phase = tableState.operational?.phase
+  return phase === 'seated' || phase === 'waiting' || phase === 'arrived'
+}
+
 export function isTableDayViewRowAssignableForAssignment(row) {
   if (!row) return false
   return Boolean(row.isAvailable) && !row.hasConflict
