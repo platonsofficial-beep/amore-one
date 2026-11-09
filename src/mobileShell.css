@@ -8446,12 +8446,21 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   color: rgba(184, 173, 156, 0.92);
 }
 
+/* While a table panel is open, keep the floor — including the multi-table
+   bar (z-index 4) and the gold edge handle (z-index 6) — in a stacking
+   context below the panel. The bar stays usable when the panel is closed. */
+.mobile-host-reservations-right-pane.has-table-inspector > .mobile-host-floor-stage {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
 .host-table-inspector {
   position: absolute;
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 4;
+  z-index: 8;
   display: flex;
   flex-direction: column;
   width: clamp(310px, 29vw, 390px);

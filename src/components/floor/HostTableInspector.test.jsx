@@ -685,6 +685,75 @@ describe('HostTableInspector', () => {
       .toContain('No service hours for this day.')
     cleanup()
   })
+
+  it('keeps available, booked, and selected-tables panels on the inspector layer', () => {
+    const states = [
+      {
+        label: 'available',
+        props: {
+          rows: [{
+            seating: SEATING,
+            reservation: null,
+            conflicts: [],
+            hasConflict: false,
+            isAvailable: true,
+            timeWindowLabel: '19:00–21:00',
+            state: 'available',
+          }],
+        },
+        text: 'Available now',
+      },
+      {
+        label: 'booking',
+        props: {
+          rows: [{
+            seating: SEATING,
+            reservation: { id: 'res-lolas', guestName: 'Lolas Ntinos', guests: 2, time: '20:15', status: 'Pending' },
+            conflicts: [],
+            hasConflict: false,
+            isAvailable: false,
+            timeWindowLabel: '19:00–21:00',
+            state: 'reserved',
+            statusLabel: 'Pending',
+          }],
+        },
+        text: 'Lolas Ntinos',
+      },
+      {
+        label: 'selected-tables',
+        props: {
+          rows: [{
+            seating: SEATING,
+            reservation: null,
+            conflicts: [],
+            hasConflict: false,
+            isAvailable: true,
+            timeWindowLabel: '19:00–21:00',
+            state: 'available',
+          }],
+          assignmentContext: {
+            reservation: { id: 'res-lolas', guestName: 'Lolas Ntinos', guests: 2, time: '20:15' },
+            seatingId: 'dinner-1',
+            tableLabel: 'T12',
+            draftTableLabels: 'T12 + T13',
+            canAssign: true,
+            onConfirmAssignment: vi.fn(),
+            onCancelAssignment: vi.fn(),
+            onSelectSeating: vi.fn(),
+          },
+        },
+        text: 'Selected tables',
+      },
+    ]
+
+    for (const state of states) {
+      const view = renderInspector(state.props)
+      const panel = document.querySelector('[data-testid="host-table-inspector"]')
+      expect(panel?.classList.contains('host-table-inspector'), state.label).toBe(true)
+      expect(panel?.textContent, state.label).toContain(state.text)
+      view.cleanup()
+    }
+  })
 })
 
 describe('useHostTableInspectorEscape', () => {
