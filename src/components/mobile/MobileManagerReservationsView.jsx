@@ -79,6 +79,8 @@ export function MobileManagerReservationsView({
   onRetryLoad = null,
   canManage = false,
   seatings = [],
+  selectedSeatingId: controlledSeatingId = undefined,
+  onSelectedSeatingChange = null,
   onDateChange,
   onOpenReservationServices = null,
   onCreateReservation,
@@ -92,7 +94,15 @@ export function MobileManagerReservationsView({
   const [createPrefill, setCreatePrefill] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [problemsOnly, setProblemsOnly] = useState(false)
-  const [selectedSeatingId, setSelectedSeatingId] = useState(null)
+  const [uncontrolledSeatingId, setUncontrolledSeatingId] = useState(null)
+  const seatingFilterControlled = typeof onSelectedSeatingChange === 'function'
+  const selectedSeatingId = seatingFilterControlled
+    ? (controlledSeatingId || null)
+    : uncontrolledSeatingId
+  const setSelectedSeatingId = (nextId) => {
+    if (seatingFilterControlled) onSelectedSeatingChange(nextId || '')
+    else setUncontrolledSeatingId(nextId || null)
+  }
   const [editingReservation, setEditingReservation] = useState(null)
   const [statusPicker, setStatusPicker] = useState(null)
   const canChangeStatus = canManage && typeof onQuickStatusUpdate === 'function'
@@ -129,8 +139,8 @@ export function MobileManagerReservationsView({
   )
   const selectedSeating = activeSeatings.find((seating) => seating.id === selectedSeatingId) ?? null
   useEffect(() => {
-    if (selectedSeatingId && !selectedSeating) setSelectedSeatingId(null)
-  }, [selectedSeating, selectedSeatingId])
+    if (selectedSeatingId && activeSeatings.length > 0 && !selectedSeating) setSelectedSeatingId(null)
+  }, [activeSeatings.length, selectedSeating, selectedSeatingId])
   const visibleReservations = useMemo(() => {
     const query = searchTerm.trim().toLowerCase()
     const bySeating = filterReservationsBySelectedSeating(
@@ -286,6 +296,7 @@ export function MobileManagerReservationsView({
           role="group"
           aria-label="Seatings"
           data-testid="portrait-seatings"
+          data-seating-filter={selectedSeatingId || 'all'}
         >
           <button
             type="button"

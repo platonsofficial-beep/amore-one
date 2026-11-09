@@ -71,6 +71,7 @@ export function MobileReservationsHostView({
   reservationSeatings = [],
   selectedServiceSeatingId = '',
   selectedSeating = null,
+  onSelectedSeatingChange = null,
   hasLayout = false,
   onOpenFloorPlanLayout,
   renderRightPane,
@@ -707,6 +708,8 @@ export function MobileReservationsHostView({
         canEditFloorPlan={canEditFloorPlan}
         canPublishFloorPlan={canPublishFloorPlan}
         seatings={reservationSeatings}
+        selectedSeatingId={selectedServiceSeatingId || null}
+        onSelectedSeatingChange={onSelectedSeatingChange}
         onDateChange={onSelectDate}
         onOpenReservationServices={onOpenReservationServices}
         onCreateReservation={onCreateReservation}

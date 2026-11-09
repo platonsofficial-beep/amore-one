@@ -88,6 +88,20 @@ export function buildHostFloorCompactTableContent({
   const reservation = displayReservation ?? operational?.displayReservation ?? null
   const isOccupied = OCCUPIED_SEMANTIC_CLASSES.has(resolvedSemanticClass) && reservation
 
+  if (resolvedSemanticClass === 'is-all-services' || operational?.hostIndicator === 'all-services') {
+    return {
+      mode: 'all-services',
+      tier,
+      semanticClass: 'is-all-services',
+      tableLabel,
+      tableLabelClass: resolveHostFloorTableLabelLengthClass(tableLabel, tier),
+      timeLabel: null,
+      partyLabel: null,
+      showChairDots: false,
+      statusBadgeText: null,
+    }
+  }
+
   if (resolvedSemanticClass === 'is-unverified' || operational?.hostIndicator === 'unverified') {
     return {
       mode: 'unverified',

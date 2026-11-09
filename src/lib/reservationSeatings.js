@@ -201,6 +201,14 @@ function resolveInHouseSeatingId(sortedSeatings, nowMinutes, reservations = [], 
   return (started[started.length - 1] ?? matches[0]).id
 }
 
+/** Empty means All seatings for the day. A missing id falls back to All, not the first service. */
+export function resolveHostDaySeatingFilter(currentId = '', activeSeatings = []) {
+  const id = `${currentId ?? ''}`.trim()
+  if (!id) return ''
+  if (!activeSeatings.length) return id
+  return activeSeatings.some((seating) => `${seating?.id ?? ''}` === id) ? id : ''
+}
+
 export function resolveHostStationInitialSeatingId(activeSeatings = [], nowMinutes = 0, options = {}) {
   const sorted = sortReservationSeatings(activeSeatings)
   if (sorted.length === 0) return null

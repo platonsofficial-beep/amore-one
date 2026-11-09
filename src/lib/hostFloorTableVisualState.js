@@ -35,6 +35,7 @@ export function resolveHostFloorSemanticClass(operational, { hasSeatingConflict 
   if (hostIndicator === 'waiting' || phase === 'waiting') return 'is-arrived'
   if (hostIndicator === 'confirmed' || phase === 'upcoming') return 'is-reserved'
   if (hostIndicator === 'unverified' || phase === 'unverified') return 'is-unverified'
+  if (hostIndicator === 'all-services' || phase === 'all-services') return 'is-all-services'
 
   return 'is-available'
 }
@@ -74,6 +75,27 @@ export function resolveHostFloorTableStatusClass(
 function localDateKey(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** All services: do not paint one free/reserved status across the day. */
+export function applyHostFloorAllServicesScope(tableStates = []) {
+  return tableStates.map((tableState) => ({
+    ...tableState,
+    reservation: null,
+    status: 'all-services',
+    operational: {
+      phase: 'all-services',
+      hostIndicator: 'all-services',
+      floorStatus: 'all-services',
+      displayReservation: null,
+      activeReservation: null,
+      nextReservation: null,
+      nextReservationTime: null,
+      reservationCount: 0,
+      upcomingCount: 0,
+      hasSeatingConflict: false,
+    },
+  }))
 }
 
 export function applyHostFloorSelectedSeatingContext(

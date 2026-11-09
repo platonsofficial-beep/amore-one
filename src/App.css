@@ -10387,6 +10387,8 @@
   height: 8px;
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-all-services .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor .floor-table-node.is-all-services .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-unverified .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-unverified .floor-table-node-surface {
   border: 1px dashed var(--one-text-muted);
@@ -10395,6 +10397,8 @@
   opacity: 1;
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-all-services .floor-table-number,
+.floor-plan-workspace.is-host-floor .floor-table-node.is-all-services .floor-table-number,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-unverified .floor-table-number,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-unverified .floor-table-number,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-unverified .floor-table-capacity-label,
