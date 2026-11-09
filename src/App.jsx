@@ -76,10 +76,13 @@ import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
 import {
+  canAssignReservationToFloorTable,
   isHostAssignmentModeActive,
   isHostCompactAssignmentSelection,
   isReservationEligibleForHostTableAssignment,
   isTableDayViewRowAssignableForAssignment,
+  resolveAllAssignmentFloorSeating,
+  resolveHostAssignmentSeatingId,
   shouldShowHostMultiTableEntryAction,
   canToggleTableInHostMultiTableSelection,
   shouldShowHostSeatingDrawer,
@@ -9176,6 +9179,7 @@ function buildFloorPlanSnapshot({
   seatings = [],
   selectedReservation = null,
   bookingCertainty = 'current',
+  assignmentSeating = null,
 }) {
   if (!layout?.tables?.length) {
     return {
@@ -9251,9 +9255,10 @@ function buildFloorPlanSnapshot({
     }
   })
 
-  if (selectedSeating) {
+  const floorSeating = selectedSeating?.id ? selectedSeating : assignmentSeating
+  if (floorSeating?.id) {
     tableStates = applyHostFloorSelectedSeatingContext(tableStates, {
-      selectedSeating,
+      selectedSeating: floorSeating,
       enrichedReservations,
       todayKey,
       seatingsById,
@@ -10441,6 +10446,22 @@ function FloorPlanView({
     [layout, activeFloorAreaId],
   )
 
+  const assignmentFloor = useMemo(() => resolveAllAssignmentFloorSeating({
+    chipSeating: selectedSeating,
+    reservation: selectedReservation,
+    seatings: effectiveSeatings,
+    dateKey: todayKey,
+    assignmentActive: Boolean(isHostMultiTableSelectMode && hostCompactAssignmentSelection && !isHeatmap),
+  }), [
+    effectiveSeatings,
+    hostCompactAssignmentSelection,
+    isHeatmap,
+    isHostMultiTableSelectMode,
+    selectedReservation,
+    selectedSeating,
+    todayKey,
+  ])
+
   const floorPlanSnapshot = useMemo(() => (
     buildFloorPlanSnapshot({
       layout,
@@ -10451,6 +10472,7 @@ function FloorPlanView({
       syncWithList: false,
       debugAssignments: isCompact && import.meta.env.DEV,
       selectedSeating,
+      assignmentSeating: assignmentFloor.seating,
       seatingsById,
       seatings: effectiveSeatings,
       selectedReservation,
@@ -10466,6 +10488,7 @@ function FloorPlanView({
     selectedReservation,
     bookingCertainty,
     selectedSeating,
+    assignmentFloor.seating,
     seatingsById,
     todayKey,
   ])
@@ -10870,33 +10893,14 @@ function FloorPlanView({
 
   const canAssignSelectedReservationToTable = (tableState) => {
     if (!selectedReservation) return false
-
     if (
       tableState.reservation
       && String(tableState.reservation.id) === String(selectedReservation.id)
     ) {
       return true
     }
-
     if (isFloorTablePhysicallyOccupied(tableState.operational)) return false
-
-    if (
-      tableState.operational?.phase === 'upcoming'
-      && tableState.reservation
-      && String(tableState.reservation.id) !== String(selectedReservation.id)
-    ) {
-      return false
-    }
-
-    if (tableState.reservation) return false
-
-    return (
-      tableState.operational?.phase === 'available'
-      || tableState.operational?.hostIndicator === 'empty'
-      || tableState.status === 'available'
-      || tableState.status === 'cleaning'
-      || tableState.operational?.phase === 'cleaning'
-    )
+    return canAssignReservationToFloorTable(tableState)
   }
 
   const handleTableClick = (tableState, event) => {
@@ -11898,6 +11902,8 @@ function FloorPlanView({
             selectedUnitIds={seatingDraftUnitIds}
             reservation={selectedReservation}
             layout={layout}
+            serviceName={assignmentFloor.seating?.name ?? ''}
+            missingService={assignmentFloor.missingService}
             onCancel={cancelHostMultiTableSelect}
             onContinue={handleMultiTableContinue}
           />

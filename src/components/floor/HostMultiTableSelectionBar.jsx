@@ -10,6 +10,8 @@ export function HostMultiTableSelectionBar({
   selectedUnitIds = [],
   reservation = null,
   layout = null,
+  serviceName = '',
+  missingService = false,
   onCancel,
   onContinue,
 }) {
@@ -42,6 +44,15 @@ export function HostMultiTableSelectionBar({
             {' · '}
             {summary.guestsLabel}
           </span>
+          {missingService ? (
+            <span className="host-multi-table-selection-note" data-testid="host-multi-table-missing-service">
+              This booking has no seating. Choose a service before assigning tables.
+            </span>
+          ) : serviceName ? (
+            <span className="host-multi-table-selection-note">
+              {`Availability uses ${serviceName}.`}
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="host-multi-table-selection-actions">
