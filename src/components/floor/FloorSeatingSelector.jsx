@@ -57,6 +57,15 @@ export function FloorSeatingSelector({
       <p className="floor-seating-selector-label">Today&apos;s seatings</p>
       <div className="floor-seating-selector-toolbar">
         <div className="floor-seating-selector-scroll" role="group" aria-label="Service seating" ref={scrollRef}>
+          <button
+            type="button"
+            className={`floor-seating-selector-chip${!selectedSeatingId ? ' is-active' : ''}`}
+            aria-pressed={!selectedSeatingId}
+            data-testid="floor-seating-all"
+            onClick={() => onSelect?.(null)}
+          >
+            <span className="floor-seating-selector-chip-name">All</span>
+          </button>
           {seatings.map((seating) => {
             const summary = summaries[seating.id]
             const tableAvailability = summary?.tableAvailability

@@ -60,6 +60,7 @@ describe('portrait reservations list', () => {
     expect(container.querySelector('.manager-portrait-add')?.textContent).toBe('Walk-in')
     expect([...container.querySelectorAll('.manager-portrait-add')].map((node) => node.textContent)).toContain('Add')
     const chips = [...container.querySelectorAll('[data-testid="portrait-seatings"] button')].map((node) => node.textContent)
+    expect(chips[0]).toContain('All')
     expect(chips.join(' ')).toContain('Brunch')
     expect(chips.join(' ')).toContain('Lunch')
     expect(chips.join(' ')).toContain('Dinner')
@@ -77,6 +78,52 @@ describe('portrait reservations list', () => {
     act(() => dinner.click())
     expect(container.textContent).toContain('Maria')
     expect(container.textContent).not.toContain('Nikos')
+  })
+
+  it('keeps a controlled seating and date, and stays truthful when the load failed', () => {
+    const onSelectedSeatingChange = vi.fn()
+    const onDateChange = vi.fn()
+    render({
+      reservations: [
+        { id: 'brunch-guest', date: '2026-11-09', time: '10:30', guestName: 'Brunch Guest', guests: 2, status: 'Confirmed', seatingId: 'brunch' },
+        { id: 'dinner-guest', date: '2026-11-09', time: '20:30', guestName: 'Kalamarou Kalamaras', guests: 2, status: 'Pending', seatingId: 'dinner' },
+        { id: 'no-service', date: '2026-11-09', time: '', guestName: 'No Service', guests: 1, status: 'Pending' },
+      ],
+      dateKey: '2026-11-09',
+      todayKey: '2026-11-09',
+      selectedSeatingId: 'dinner',
+      onSelectedSeatingChange,
+      onDateChange,
+    })
+    expect(container.textContent).toContain('Kalamarou Kalamaras')
+    expect(container.textContent).not.toContain('Brunch Guest')
+    expect(container.textContent).not.toContain('No Service')
+    const all = [...container.querySelectorAll('[data-testid="portrait-seatings"] button')]
+      .find((node) => node.textContent.trim() === 'All')
+    act(() => all.click())
+    expect(onSelectedSeatingChange).toHaveBeenCalledWith('')
+    act(() => {
+      root.render(createElement(MobileManagerReservationsView, {
+        reservations: [
+          { id: 'brunch-guest', date: '2026-11-09', time: '10:30', guestName: 'Brunch Guest', guests: 2, status: 'Confirmed', seatingId: 'brunch' },
+          { id: 'dinner-guest', date: '2026-11-09', time: '20:30', guestName: 'Kalamarou Kalamaras', guests: 2, status: 'Pending', seatingId: 'dinner' },
+          { id: 'no-service', date: '2026-11-09', time: '', guestName: 'No Service', guests: 1, status: 'Pending' },
+        ],
+        seatings: SEATINGS,
+        dateKey: '2026-11-09',
+        todayKey: '2026-11-09',
+        canManage: true,
+        selectedSeatingId: null,
+        onSelectedSeatingChange,
+        onDateChange,
+        noticeMessage: "Couldn't load",
+      }))
+    })
+    expect(container.textContent).toContain("Couldn't load")
+    expect(container.textContent).not.toContain('No bookings for this day.')
+    const next = container.querySelector('[aria-label="Next day"]')
+    act(() => next.click())
+    expect(onDateChange).toHaveBeenCalled()
   })
 
   it('lets seating chips scroll sideways instead of clipping the row', () => {

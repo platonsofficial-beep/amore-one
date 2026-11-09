@@ -161,6 +161,7 @@ import {
   resolveFloorTableOperationalState,
 } from './lib/floorTableOperationalState'
 import {
+  applyHostFloorAllServicesScope,
   applyHostFloorSelectedSeatingContext,
   resolveHostFloorTableStatusClass,
 } from './lib/hostFloorTableVisualState'
@@ -255,9 +256,9 @@ import {
   formatSeatingChipLabel,
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
-  resolveHostStationInitialSeatingId,
-  resolveReservationSeatingId,
+  resolveHostDaySeatingFilter,
   resolveHostQueueSeatingId,
+  resolveReservationSeatingId,
   validateReservationSeatingForm,
 } from './lib/reservationSeatings'
 import { getConflictingUnitIds } from './lib/reservationTableOptions'
@@ -9261,6 +9262,8 @@ function buildFloorPlanSnapshot({
       nowMinutes,
       bookingCertainty,
     })
+  } else if (seatings.length > 0) {
+    tableStates = applyHostFloorAllServicesScope(tableStates)
   }
 
   return {
@@ -11985,6 +11988,10 @@ function MobileReservationsHostShell({
   onRetryReservations = null,
   canManageAssignment = true,
   reservationSeatings = [],
+  sharedSeatingId = '',
+  onSharedSeatingChange = null,
+  sharedDateKey = '',
+  onSharedDateChange = null,
   hostSettingsProps = null,
   workspaceId = '',
   useControlledReloadReturn = false,
@@ -12000,7 +12007,18 @@ function MobileReservationsHostShell({
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
-  const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
+  const [selectedDateKeyState, setSelectedDateKeyState] = useState(workspaceTodayKey)
+  const dateIsShared = typeof onSharedDateChange === 'function'
+  const selectedDateKey = dateIsShared ? (sharedDateKey || workspaceTodayKey) : selectedDateKeyState
+  const setSelectedDateKey = useCallback((value) => {
+    if (!dateIsShared) {
+      setSelectedDateKeyState(value)
+      return
+    }
+    const current = sharedDateKey || workspaceTodayKey
+    const next = typeof value === 'function' ? value(current) : value
+    onSharedDateChange(next || '')
+  }, [dateIsShared, onSharedDateChange, sharedDateKey, workspaceTodayKey])
 
   useEffect(() => {
     const previousToday = workspaceTodayRef.current
@@ -12010,11 +12028,11 @@ function MobileReservationsHostShell({
       ))
       workspaceTodayRef.current = workspaceTodayKey
     }
-  }, [workspaceTodayKey])
+  }, [setSelectedDateKey, workspaceTodayKey])
 
   const handleSelectDate = useCallback((dateKey) => {
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
-  }, [])
+  }, [setSelectedDateKey])
 
   useEffect(() => {
     onVisibleReservationDateChange?.(selectedDateKey)
@@ -12023,7 +12041,7 @@ function MobileReservationsHostShell({
   useEffect(() => {
     if (!reservationAttentionFocus?.dateKey) return
     setSelectedDateKey(normalizeReservationDateKey(reservationAttentionFocus.dateKey))
-  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey])
+  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey, setSelectedDateKey])
 
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, selectedDateKey, workspaceTimeZone),
@@ -12064,6 +12082,8 @@ function MobileReservationsHostShell({
         onRetryReservations={onRetryReservations}
         canManageAssignment={canManageAssignment}
         reservationSeatings={reservationSeatings}
+        sharedSeatingId={sharedSeatingId}
+        onSharedSeatingChange={onSharedSeatingChange}
         hostSettingsProps={hostSettingsProps}
         workspaceId={workspaceId}
         useControlledReloadReturn={useControlledReloadReturn}
@@ -12102,6 +12122,8 @@ function MobileReservationsHostShellBody({
   onRetryReservations = null,
   canManageAssignment = true,
   reservationSeatings = [],
+  sharedSeatingId = '',
+  onSharedSeatingChange = null,
   hostSettingsProps = null,
   workspaceId = '',
   useControlledReloadReturn = false,
@@ -12156,15 +12178,25 @@ function MobileReservationsHostShellBody({
 
   const [floorCreatePrefill, setFloorCreatePrefill] = useState(null)
   const [floorEditReservation, setFloorEditReservation] = useState(null)
-  const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
+  const [selectedServiceSeatingIdState, setSelectedServiceSeatingIdState] = useState('')
+  const seatingFilterIsShared = typeof onSharedSeatingChange === 'function'
+  const selectedServiceSeatingId = seatingFilterIsShared
+    ? `${sharedSeatingId ?? ''}`
+    : selectedServiceSeatingIdState
+  const setSelectedServiceSeatingId = useCallback((value) => {
+    if (!seatingFilterIsShared) {
+      setSelectedServiceSeatingIdState(value)
+      return
+    }
+    const current = `${sharedSeatingId ?? ''}`
+    const next = typeof value === 'function' ? value(current) : value
+    onSharedSeatingChange(`${next ?? ''}`.trim())
+  }, [onSharedSeatingChange, seatingFilterIsShared, sharedSeatingId])
   const [tableInspectorProps, setTableInspectorProps] = useState(null)
   const previousDateKeyRef = useRef(todayKey)
-  const hostSeatingInitializedRef = useRef(false)
-  const hostSeatingManuallySelectedRef = useRef(false)
 
   const handleSelectedSeatingChange = useCallback((seatingId) => {
-    hostSeatingManuallySelectedRef.current = true
-    setSelectedServiceSeatingId(seatingId)
+    setSelectedServiceSeatingId(`${seatingId ?? ''}`.trim())
   }, [])
 
   useEffect(() => {
@@ -12182,41 +12214,8 @@ function MobileReservationsHostShellBody({
 
   useEffect(() => {
     const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
-    if (!activeSeatings.length) {
-      setSelectedServiceSeatingId('')
-      return
-    }
-
-    const isViewingToday = normalizeReservationDateKey(todayKey) === normalizeReservationDateKey(workspaceTodayKey)
-
-    if (!hostSeatingInitializedRef.current) {
-      hostSeatingInitializedRef.current = true
-      if (isViewingToday && !hostSeatingManuallySelectedRef.current) {
-        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes, {
-          reservations,
-          dateKey: todayKey,
-        })
-        setSelectedServiceSeatingId(initialId ?? activeSeatings[0].id)
-        return
-      }
-      setSelectedServiceSeatingId(activeSeatings[0].id)
-      return
-    }
-
-    setSelectedServiceSeatingId((current) => (
-      activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
-    ))
-  }, [nowMinutes, reservationSeatings, reservations, todayKey, workspaceTodayKey])
-
-  useEffect(() => {
-    if (!selectedReservation?.id) return
-    if (!isReservationEligibleForHostTableAssignment(selectedReservation)) return
-
-    const seatingId = resolveReservationSeatingId(selectedReservation, reservationSeatings, todayKey)
-    if (seatingId) {
-      setSelectedServiceSeatingId(seatingId)
-    }
-  }, [reservationSeatings, selectedReservation, todayKey])
+    setSelectedServiceSeatingId((current) => resolveHostDaySeatingFilter(current, activeSeatings))
+  }, [reservationSeatings, todayKey])
 
   useEffect(() => {
     if (!selectedReservation) return
@@ -12463,6 +12462,7 @@ function MobileReservationsHostShellBody({
       reservationSeatings={reservationSeatings}
       selectedServiceSeatingId={selectedServiceSeatingId}
       selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
+      onSelectedSeatingChange={handleSelectedSeatingChange}
       hasLayout={hasDisplayableLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       hostSettingsProps={hostSettingsProps}
@@ -14442,6 +14442,10 @@ function ReservationsWorkspaceBody({
   onOpenHostMode,
   canEditFloorPlan = true,
   reservationSeatings = [],
+  sharedDateKey = '',
+  onSharedDateChange = null,
+  sharedSeatingId = '',
+  onSharedSeatingChange = null,
   reservationAttentionFocus = null,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
@@ -14449,7 +14453,20 @@ function ReservationsWorkspaceBody({
   const [searchTerm, setSearchTerm] = useState('')
   const [listSort, setListSort] = useState('service')
   const [serviceHourFilter, setServiceHourFilter] = useState(null)
-  const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
+  const [selectedServiceSeatingIdState, setSelectedServiceSeatingIdState] = useState('')
+  const seatingFilterIsShared = typeof onSharedSeatingChange === 'function'
+  const selectedServiceSeatingId = seatingFilterIsShared
+    ? `${sharedSeatingId ?? ''}`
+    : selectedServiceSeatingIdState
+  const setSelectedServiceSeatingId = useCallback((value) => {
+    if (!seatingFilterIsShared) {
+      setSelectedServiceSeatingIdState(value)
+      return
+    }
+    const current = `${sharedSeatingId ?? ''}`
+    const next = typeof value === 'function' ? value(current) : value
+    onSharedSeatingChange(`${next ?? ''}`.trim())
+  }, [onSharedSeatingChange, seatingFilterIsShared, sharedSeatingId])
   const [liveNow, setLiveNow] = useState(() => getLocalNow())
   const [noteDraftReservation, setNoteDraftReservation] = useState(null)
   const [noteDraftValue, setNoteDraftValue] = useState('')
@@ -14480,7 +14497,20 @@ function ReservationsWorkspaceBody({
     [liveNow, workspaceTimeZone],
   )
   const workspaceTodayRef = useRef(workspaceTodayKey)
-  const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
+  const [selectedDateKeyState, setSelectedDateKeyState] = useState(workspaceTodayKey)
+  const dateIsShared = typeof onSharedDateChange === 'function'
+  const selectedDateKey = dateIsShared
+    ? (sharedDateKey || workspaceTodayKey)
+    : selectedDateKeyState
+  const setSelectedDateKey = useCallback((value) => {
+    if (!dateIsShared) {
+      setSelectedDateKeyState(value)
+      return
+    }
+    const current = sharedDateKey || workspaceTodayKey
+    const next = typeof value === 'function' ? value(current) : value
+    onSharedDateChange(next || '')
+  }, [dateIsShared, onSharedDateChange, sharedDateKey, workspaceTodayKey])
   const nowMinutes = getWorkspaceNowMinutes(liveNow, workspaceTimeZone).minutes ?? 0
   const phoneLandscapeDate = useMediaQuery('(orientation: landscape) and (max-height: 520px) and (max-width: 1100px)')
   const selectedDateLabel = useMemo(
@@ -14499,27 +14529,27 @@ function ReservationsWorkspaceBody({
       ))
       workspaceTodayRef.current = workspaceTodayKey
     }
-  }, [workspaceTodayKey])
+  }, [setSelectedDateKey, workspaceTodayKey])
 
   const handlePreviousDay = useCallback(() => {
     setServiceHourFilter(null)
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, -1))
-  }, [])
+  }, [setSelectedDateKey])
 
   const handleNextDay = useCallback(() => {
     setServiceHourFilter(null)
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, 1))
-  }, [])
+  }, [setSelectedDateKey])
 
   const handleGoToToday = useCallback(() => {
     setServiceHourFilter(null)
     setSelectedDateKey(workspaceTodayKey)
-  }, [workspaceTodayKey])
+  }, [setSelectedDateKey, workspaceTodayKey])
 
   const handleSelectDate = useCallback((dateKey) => {
     setServiceHourFilter(null)
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
-  }, [])
+  }, [setSelectedDateKey])
 
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, selectedDateKey, workspaceTimeZone),
@@ -14752,7 +14782,7 @@ function ReservationsWorkspaceBody({
     setServiceHourFilter(null)
     setSearchTerm('')
     setSelectedDateKey(normalizeReservationDateKey(reservationAttentionFocus.dateKey))
-  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey])
+  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey, setSelectedDateKey])
 
   useEffect(() => {
     const activeSeatings = getActiveSeatingsForDate(reservationSeatings, selectedDateKey)
@@ -14761,9 +14791,7 @@ function ReservationsWorkspaceBody({
       return
     }
 
-    setSelectedServiceSeatingId((current) => (
-      activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
-    ))
+    setSelectedServiceSeatingId((current) => resolveHostDaySeatingFilter(current, activeSeatings))
   }, [reservationSeatings, selectedDateKey])
 
   return (
@@ -15407,7 +15435,8 @@ function App() {
   const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
   const [managerMoreOpen, setManagerMoreOpen] = useState(false)
-  const [portraitReservationDate, setPortraitReservationDate] = useState('')
+  const [reservationViewDateKey, setReservationViewDateKey] = useState('')
+  const [reservationSeatingFilterId, setReservationSeatingFilterId] = useState('')
   const [portraitScheduleDate, setPortraitScheduleDate] = useState('')
   const [mobileProfilePhone, setMobileProfilePhone] = useState('')
   const [mobileProfileError, setMobileProfileError] = useState('')
@@ -25383,6 +25412,10 @@ function App() {
               onRetryReservations={retryReservationLoad}
               canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
+              sharedDateKey={reservationViewDateKey}
+              onSharedDateChange={setReservationViewDateKey}
+              sharedSeatingId={reservationSeatingFilterId}
+              onSharedSeatingChange={setReservationSeatingFilterId}
               seatingsLoading={isReservationSeatingsLoading}
               seatingsLoadFailed={Boolean(reservationSeatingsNotice) && reservationSeatings.length === 0}
               reservationsLoadFailed={reservationsLoadFailed}
@@ -25423,6 +25456,10 @@ function App() {
               noticeMessage={reservationNotice}
               isSaving={isSavingReservation}
               reservationSeatings={reservationSeatings}
+              sharedDateKey={reservationViewDateKey}
+              onSharedDateChange={setReservationViewDateKey}
+              sharedSeatingId={reservationSeatingFilterId}
+              onSharedSeatingChange={setReservationSeatingFilterId}
               onOpenHostMode={
                 !isHostMobileRole(role) && useMobileExperience && canOpenReservationsHostMode(permissionAccess)
                   ? handleMobileOpenReservationsHostMode
@@ -26170,7 +26207,9 @@ function App() {
                         reservationsProps={{
                           reservations,
                           todayKey: currentDateKey,
-                          dateKey: portraitReservationDate || currentDateKey,
+                          dateKey: reservationViewDateKey || currentDateKey,
+                          selectedSeatingId: reservationSeatingFilterId || null,
+                          onSelectedSeatingChange: setReservationSeatingFilterId,
                           nowMinutes: hostNowMinutes,
                           isLoading: isReservationsLoading,
                           isSaving: isSavingReservation,
@@ -26181,7 +26220,7 @@ function App() {
                             : null,
                           canManage: canManageReservationsRole,
                           seatings: reservationSeatings,
-                          onDateChange: setPortraitReservationDate,
+                          onDateChange: setReservationViewDateKey,
                           onCreateReservation: handleMobileHostReservationCreate,
                           onEditReservation: handleHostEditSave,
                           onQuickStatusUpdate: handleQuickReservationStatus,

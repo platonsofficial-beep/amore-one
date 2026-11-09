@@ -49,12 +49,37 @@ describe('FloorSeatingSelector', () => {
       }))
     })
 
-    const dinnerChip = container.querySelectorAll('.floor-seating-selector-chip')[1]
+    const dinnerChip = [...container.querySelectorAll('.floor-seating-selector-chip')]
+      .find((chip) => chip.textContent.includes('Dinner'))
     act(() => {
       dinnerChip.click()
     })
 
     expect(onSelect).toHaveBeenCalledWith('dinner')
+  })
+
+  it('offers All and selects it without a service id', () => {
+    const onSelect = vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(FloorSeatingSelector, {
+        seatings: SEATINGS,
+        selectedSeatingId: null,
+        onSelect,
+      }))
+    })
+
+    const chips = [...container.querySelectorAll('.floor-seating-selector-chip')]
+    const allChip = chips.find((chip) => chip.getAttribute('data-testid') === 'floor-seating-all')
+    expect(allChip?.getAttribute('aria-pressed')).toBe('true')
+    expect(allChip?.textContent).toBe('All')
+    expect(chips.map((chip) => chip.querySelector('.floor-seating-selector-chip-name')?.textContent))
+      .toEqual(['All', 'Brunch', 'Dinner 1'])
+    act(() => allChip.click())
+    expect(onSelect).toHaveBeenCalledWith(null)
   })
 
   it('marks the active seating pill with the active class', () => {
@@ -71,8 +96,12 @@ describe('FloorSeatingSelector', () => {
     })
 
     const chips = [...container.querySelectorAll('.floor-seating-selector-chip')]
-    expect(chips[0].classList.contains('is-active')).toBe(false)
-    expect(chips[1].classList.contains('is-active')).toBe(true)
+    const allChip = chips.find((chip) => chip.textContent.trim() === 'All')
+    const brunchChip = chips.find((chip) => chip.textContent.includes('Brunch'))
+    const dinnerChip = chips.find((chip) => chip.textContent.includes('Dinner'))
+    expect(allChip?.classList.contains('is-active')).toBe(false)
+    expect(brunchChip?.classList.contains('is-active')).toBe(false)
+    expect(dinnerChip?.classList.contains('is-active')).toBe(true)
   })
 
   it('renders the floor plan legend beside seating chips when legendItems are provided', () => {
