@@ -1652,3 +1652,18 @@ body {
 :root .manager-availability-status:not(.is-selected) {
   background: var(--one-secondary-fill) !important;
 }
+
+/* Phone landscape sets gap from a scale value this engine drops, which
+   collapses the toolbar rows onto each other. Keep a real gap. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar,
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
+    row-gap: 8px;
+    column-gap: 8px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
+    padding-top: 8px;
+  }
+}
