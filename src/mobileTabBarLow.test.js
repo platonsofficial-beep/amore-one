@@ -48,8 +48,8 @@ describe('low tab bar, Active Count baseline untouched (P8.19.8)', () => {
   it('is wired into the app entry', () => {
     expect(entry).toMatch(/import '\.\/mobileTabBarLow\.css'/)
   })
-  it('nav bottom is max(8px, inset - 20px)', () => {
-    expect(css).toMatch(/--one-mobile-nav-bottom:\s*max\(8px,\s*calc\(env\(safe-area-inset-bottom,\s*0px\)\s*-\s*20px\)\)/)
+  it('keeps the tab bar above the bottom inset, with 8px when there is none', () => {
+    expect(css).toMatch(/--one-mobile-nav-bottom:\s*max\(8px,\s*env\(safe-area-inset-bottom,\s*0px\)\)/)
     expect(rules).toMatch(/\.mobile-staff-app \.mobile-bottom-nav\s*\{\s*bottom:\s*var\(--one-mobile-nav-bottom\);/)
   })
   it('never sizes html/body/#root/shell and never uses visualViewport', () => {

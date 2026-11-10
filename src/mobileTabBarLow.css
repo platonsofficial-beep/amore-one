@@ -1,15 +1,15 @@
 /*
-  Tab bar sits low like a native one (Facebook-style floating pill): its bottom
-  edge is max(8px, safe-area-inset-bottom - 20px) above the glass (34 -> 14pt),
-  and content scrolls behind it to the edge. Needs the full-height page that
-  iOS 26 gives once the legacy web-app markup is gone (see index.html).
+  Portrait tab bar. The pill sits on the real bottom inset so the icons and
+  labels stay above the home indicator. A zero inset keeps the same 8px
+  clearance used on a screen edge with no island. The page background still
+  paints through to the glass.
 
   Skipped while an inventory count session is open: the Active Count layout is
   a locked baseline (P8.19.8, .cursor/rules/active-count-locked-baseline.mdc).
   No html/body/#root/shell height or visualViewport changes here.
 */
 :root {
-  --one-mobile-nav-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) - 20px));
+  --one-mobile-nav-bottom: max(8px, env(safe-area-inset-bottom, 0px));
 }
 
 @media (orientation: portrait) {
