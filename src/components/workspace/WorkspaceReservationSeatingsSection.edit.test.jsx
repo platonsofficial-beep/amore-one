@@ -119,6 +119,33 @@ describe('reservation seating edit form', () => {
     view.unmount()
   })
 
+  it('opens the hours editor in front of the sheet', () => {
+    const onCancelEdit = vi.fn()
+    const view = renderSection({
+      hoursOnly: true,
+      seatings: [DINNER],
+      form: createDefaultSeatingForm(DINNER),
+      editingSeatingId: DINNER.id,
+      onCancelEdit,
+    })
+
+    const editor = document.body.querySelector('.seating-hours-followup')
+    expect(editor).not.toBeNull()
+    expect(view.container.contains(editor)).toBe(false)
+    expect(view.container.querySelector('[data-testid="seating-hours-list"]')).not.toBeNull()
+    expect(editor.textContent).toContain('Edit seating')
+    expect(editor.querySelector('input[placeholder="e.g. Dinner 1"]')?.value).toBe('Dinner 1')
+
+    const cancel = [...editor.querySelectorAll('button')].find((button) => button.textContent === 'Cancel edit')
+    act(() => {
+      cancel.click()
+    })
+    expect(onCancelEdit).toHaveBeenCalledTimes(1)
+
+    view.unmount()
+    expect(document.body.querySelector('.seating-hours-followup')).toBeNull()
+  })
+
   it('lets a host read hours without edit actions', () => {
     const view = renderSection({
       hoursOnly: true,
