@@ -29,7 +29,7 @@ describe('seating hours stay inside Reservations', () => {
   it('keeps seating actions on their own row and clears the settings chevron', () => {
     expect(appCss).toMatch(/\.workspace-seating-row \.action-group\s*\{[^}]*flex:\s*1 1 100%/)
     expect(appCss).toMatch(/\.workspace-seating-row \.action-group \.workspace-action-btn\s*\{[^}]*min-width:\s*44px/)
-    expect(appCss).toContain('padding-right: 52px')
-    expect(appCss).toContain('padding-left: 52px')
+    expect(appCss).toContain('margin-right: 52px')
+    expect(appCss).toContain('margin-left: 52px')
   })
 })

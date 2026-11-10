@@ -28655,7 +28655,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .app-shell.is-settings-view .workspace-nav,
   .app-shell.is-mobile-shell.is-settings-view .workspace-nav {
-    position: static;
+    position: relative;
+    align-self: stretch;
+    width: 100%;
     padding: 0 0 8px;
     border: 0;
     background: transparent;
@@ -28712,14 +28714,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .app-shell.is-settings-view .topbar-title-block {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: min-content;
+    width: auto;
     gap: 0;
   }
 
   .app-shell.is-settings-view .topbar-title-block h2 {
     font-size: 1rem;
     line-height: 1.1;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+    min-width: min-content;
+    width: auto;
   }
 
   .app-shell.is-settings-view .topbar .welcome-subtitle,
@@ -28818,21 +28826,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     right: 0;
   }
 
+  .app-shell.is-settings-view .workspace-nav-chevron,
+  .app-shell.is-mobile-shell.is-settings-view .workspace-nav-chevron {
+    top: 0;
+    margin-top: 0;
+  }
+
   .workspace-nav.can-scroll-end .workspace-nav-links {
-    padding-right: 52px;
-    -webkit-mask-image: linear-gradient(to right, var(--one-text) 0, var(--one-text) calc(100% - 48px), transparent);
-    mask-image: linear-gradient(to right, var(--one-text) 0, var(--one-text) calc(100% - 48px), transparent);
+    margin-right: 52px;
+    padding-right: 8px;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .workspace-nav.can-scroll-start .workspace-nav-links {
-    padding-left: 52px;
-    -webkit-mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) 100%);
-    mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) 100%);
+    margin-left: 52px;
+    padding-left: 8px;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .workspace-nav.can-scroll-start.can-scroll-end .workspace-nav-links {
-    -webkit-mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) calc(100% - 48px), transparent);
-    mask-image: linear-gradient(to right, transparent, var(--one-text) 48px, var(--one-text) calc(100% - 48px), transparent);
+    margin-left: 52px;
+    margin-right: 52px;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
