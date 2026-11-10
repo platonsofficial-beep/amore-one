@@ -247,17 +247,14 @@ function hostFloorTableSpans(tables, contentWidth, contentHeight) {
   return { spansX, spansY }
 }
 
-function hostFloorSliceAmount(cursor, view, spans) {
-  const viewEnd = cursor + view
-  let pixels = 0
-  spans.forEach((span) => {
-    const overlaps = span.end > cursor + 0.5 && span.start < viewEnd - 0.5
-    if (!overlaps) return
-    const inside = span.start >= cursor - 0.5 && span.end <= viewEnd + 0.5
-    if (inside) return
-    pixels += Math.max(0, cursor - span.start) + Math.max(0, span.end - viewEnd)
-  })
-  return pixels
+function hostFloorOpeningScale(view, spans) {
+  if (view <= 0 || !spans.length) return 1
+  const straddling = spans.find((span) => span.start < view - 0.5 && span.end > view + 0.5)
+  if (!straddling || straddling.start <= 1) return 1
+  const scale = view / straddling.start
+  // One step only. Repeating it walks every table off the opening view.
+  if (!Number.isFinite(scale) || scale < 1 || scale > 1.35) return 1
+  return scale
 }
 
 function hostFloorTrailingExtra(view, content, spans, pad) {
@@ -275,38 +272,15 @@ function hostFloorTrailingExtra(view, content, spans, pad) {
   return Math.max(0, Math.ceil(cursor + view - content))
 }
 
-function snapHostFloorAxis(offset, view, content, spans, pad) {
-  const max = Math.max(0, content - view)
-  const base = Math.min(max, Math.max(0, Number(offset) || 0))
-  if (view <= 0 || !spans.length || max <= 0) return base
-
-  const candidates = [base, 0, max]
-  spans.forEach((span) => {
-    candidates.push(Math.min(max, Math.max(0, span.end + pad - view)))
-    candidates.push(Math.min(max, Math.max(0, span.start - pad)))
-    candidates.push(Math.min(max, Math.max(0, span.end + pad)))
-    candidates.push(Math.min(max, Math.max(0, span.start - pad - view)))
-  })
-
-  let best = base
-  let bestScore = hostFloorSliceAmount(base, view, spans)
-  let bestDistance = 0
-  candidates.forEach((candidate) => {
-    const score = hostFloorSliceAmount(candidate, view, spans)
-    const distance = Math.abs(candidate - base)
-    if (score < bestScore - 0.5 || (Math.abs(score - bestScore) <= 0.5 && distance < bestDistance - 0.5)) {
-      best = candidate
-      bestScore = score
-      bestDistance = distance
-    }
-  })
-  return best
+function scaleSpans(spans, scale) {
+  return spans.map((span) => ({ start: span.start * scale, end: span.end * scale }))
 }
 
 /**
- * The readable plan can be wider than the stage. Scroll so a table is fully
- * inside the visible frame or fully in the overflow, never sliced by the edge.
- * A little trailing room lets the last table clear the one before it.
+ * The plan opens at the start. If a table would be sliced there, the floor
+ * grows just enough for that table to sit fully past the frame. Trailing room
+ * lets the last table sit fully inside the frame, with a little space, once
+ * the user scrolls to it.
  */
 export function snapHostFloorScroll({
   tables = [],
@@ -314,21 +288,23 @@ export function snapHostFloorScroll({
   viewportHeight = 0,
   contentWidth = 0,
   contentHeight = 0,
-  scrollLeft = 0,
-  scrollTop = 0,
   paddingPx = 4,
 } = {}) {
   const { spansX, spansY } = hostFloorTableSpans(tables, contentWidth, contentHeight)
   const pad = Math.max(0, Number(paddingPx) || 0)
-  const extraWidth = hostFloorTrailingExtra(viewportWidth, contentWidth, spansX, pad)
-  const extraHeight = hostFloorTrailingExtra(viewportHeight, contentHeight, spansY, pad)
-  const width = contentWidth + extraWidth
-  const height = contentHeight + extraHeight
+  const scaleX = hostFloorOpeningScale(viewportWidth, spansX)
+  const scaleY = hostFloorOpeningScale(viewportHeight, spansY)
+  const layoutWidth = contentWidth * scaleX
+  const layoutHeight = contentHeight * scaleY
+  const extraWidth = hostFloorTrailingExtra(viewportWidth, layoutWidth, scaleSpans(spansX, scaleX), pad)
+  const extraHeight = hostFloorTrailingExtra(viewportHeight, layoutHeight, scaleSpans(spansY, scaleY), pad)
   return {
+    layoutWidth,
+    layoutHeight,
     extraWidth,
     extraHeight,
-    scrollLeft: Math.round(snapHostFloorAxis(scrollLeft, viewportWidth, width, spansX, pad)),
-    scrollTop: Math.round(snapHostFloorAxis(scrollTop, viewportHeight, height, spansY, pad)),
+    scrollLeft: 0,
+    scrollTop: 0,
   }
 }
 

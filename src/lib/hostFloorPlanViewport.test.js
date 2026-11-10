@@ -109,82 +109,76 @@ describe('computeHostFloorTablesFit readable minimum', () => {
   })
 })
 
+function tableBox(table, width, height) {
+  return {
+    left: width * ((table.x - table.widthPercent / 2) / 100),
+    right: width * ((table.x + table.widthPercent / 2) / 100),
+    top: height * ((table.y - table.heightPercent / 2) / 100),
+    bottom: height * ((table.y + table.heightPercent / 2) / 100),
+  }
+}
+
+function sliced(box, viewLeft, viewTop, viewWidth, viewHeight) {
+  const viewRight = viewLeft + viewWidth
+  const viewBottom = viewTop + viewHeight
+  const overlapsX = box.right > viewLeft + 0.5 && box.left < viewRight - 0.5
+  const overlapsY = box.bottom > viewTop + 0.5 && box.top < viewBottom - 0.5
+  return {
+    x: overlapsX && (box.left < viewLeft - 0.5 || box.right > viewRight + 0.5),
+    y: overlapsY && (box.top < viewTop - 0.5 || box.bottom > viewBottom + 0.5),
+  }
+}
+
 describe('snapHostFloorScroll', () => {
-  it('does not leave a right-edge table sliced by the stage', () => {
+  it('opens at the start and keeps a right-edge table fully past the frame', () => {
     const tables = [
-      { id: 't1', x: 8, y: 18, widthPercent: 8, heightPercent: 12 },
-      { id: 't17', x: 94, y: 18, widthPercent: 8, heightPercent: 12 },
+      { id: 'left', x: 12, y: 20, widthPercent: 10, heightPercent: 12 },
+      { id: 'edge', x: 48, y: 20, widthPercent: 10, heightPercent: 12 },
+      { id: 'last', x: 92, y: 20, widthPercent: 10, heightPercent: 12 },
     ]
-    const contentWidth = 560
-    const contentHeight = 360
-    const viewportWidth = 498
-    const viewportHeight = 266
     const snapped = snapHostFloorScroll({
       tables,
-      viewportWidth,
-      viewportHeight,
-      contentWidth,
-      contentHeight,
-      scrollLeft: 0,
-      scrollTop: 0,
+      viewportWidth: 250,
+      viewportHeight: 400,
+      contentWidth: 500,
+      contentHeight: 400,
+      paddingPx: 12,
     })
-
-    tables.forEach((table) => {
-      const left = contentWidth * ((table.x - table.widthPercent / 2) / 100)
-      const right = contentWidth * ((table.x + table.widthPercent / 2) / 100)
-      const top = contentHeight * ((table.y - table.heightPercent / 2) / 100)
-      const bottom = contentHeight * ((table.y + table.heightPercent / 2) / 100)
-      const viewLeft = snapped.scrollLeft
-      const viewRight = snapped.scrollLeft + viewportWidth
-      const viewTop = snapped.scrollTop
-      const viewBottom = snapped.scrollTop + viewportHeight
-      const slicedX = left < viewRight - 0.5 && right > viewLeft + 0.5 && (left < viewLeft - 0.5 || right > viewRight + 0.5)
-      const slicedY = top < viewBottom - 0.5 && bottom > viewTop + 0.5 && (top < viewTop - 0.5 || bottom > viewBottom + 0.5)
-      expect(slicedX).toBe(false)
-      expect(slicedY).toBe(false)
-    })
-    expect(snapped.scrollLeft).toBeGreaterThanOrEqual(0)
-    expect(snapped.scrollLeft).toBeLessThanOrEqual(contentWidth + snapped.extraWidth - viewportWidth)
+    expect(snapped.scrollLeft).toBe(0)
+    expect(snapped.scrollTop).toBe(0)
+    const edge = tableBox(tables[1], snapped.layoutWidth, snapped.layoutHeight)
+    const left = tableBox(tables[0], snapped.layoutWidth, snapped.layoutHeight)
+    expect(edge.left).toBeGreaterThanOrEqual(250 - 0.5)
+    expect(sliced(left, 0, 0, 250, 400).x).toBe(false)
+    expect(left.right).toBeLessThanOrEqual(250 + 0.5)
   })
 
-  it('adds trailing room so the last table can clear the one before it', () => {
+  it('gives the last table room inside the frame once the plan is scrolled to the end', () => {
     const tables = [
       { id: 'before', x: 58, y: 30, widthPercent: 8, heightPercent: 10 },
       { id: 'last', x: 96, y: 30, widthPercent: 8, heightPercent: 10 },
     ]
-    const contentWidth = 500
-    const contentHeight = 300
     const viewportWidth = 200
     const viewportHeight = 220
+    const pad = 12
     const snapped = snapHostFloorScroll({
       tables,
       viewportWidth,
       viewportHeight,
-      contentWidth,
-      contentHeight,
-      scrollLeft: 0,
-      scrollTop: 0,
+      contentWidth: 500,
+      contentHeight: 300,
+      paddingPx: pad,
     })
-    const width = contentWidth + snapped.extraWidth
-    const height = contentHeight + snapped.extraHeight
-    tables.forEach((table) => {
-      const left = contentWidth * ((table.x - table.widthPercent / 2) / 100)
-      const right = contentWidth * ((table.x + table.widthPercent / 2) / 100)
-      const top = contentHeight * ((table.y - table.heightPercent / 2) / 100)
-      const bottom = contentHeight * ((table.y + table.heightPercent / 2) / 100)
-      const viewLeft = snapped.scrollLeft
-      const viewRight = viewLeft + viewportWidth
-      const viewTop = snapped.scrollTop
-      const viewBottom = viewTop + viewportHeight
-      const overlapsX = right > viewLeft + 0.5 && left < viewRight - 0.5
-      const overlapsY = bottom > viewTop + 0.5 && top < viewBottom - 0.5
-      const slicedX = overlapsX && (left < viewLeft - 0.5 || right > viewRight + 0.5)
-      const slicedY = overlapsY && (top < viewTop - 0.5 || bottom > viewBottom + 0.5)
-      expect(slicedX).toBe(false)
-      expect(slicedY).toBe(false)
-    })
-    expect(width - viewportWidth).toBeGreaterThanOrEqual(snapped.scrollLeft)
-    expect(height - viewportHeight).toBeGreaterThanOrEqual(snapped.scrollTop)
+    const width = snapped.layoutWidth + snapped.extraWidth
+    const height = snapped.layoutHeight + snapped.extraHeight
+    const scrollLeft = Math.max(0, width - viewportWidth)
+    const scrollTop = Math.max(0, height - viewportHeight)
+    const last = tableBox(tables[1], snapped.layoutWidth, snapped.layoutHeight)
+    const before = tableBox(tables[0], snapped.layoutWidth, snapped.layoutHeight)
+    expect(sliced(last, scrollLeft, scrollTop, viewportWidth, viewportHeight).x).toBe(false)
+    expect(sliced(before, scrollLeft, scrollTop, viewportWidth, viewportHeight).x).toBe(false)
+    expect(last.right).toBeLessThanOrEqual(scrollLeft + viewportWidth - pad + 0.5)
+    expect(last.left).toBeGreaterThanOrEqual(scrollLeft - 0.5)
   })
 })
 

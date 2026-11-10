@@ -775,15 +775,22 @@ export function MobileReservationsHostView({
         </div>
       </header>
 
-      <HostLoadNotice
-        message={noticeMessage}
-        onRetry={onRetryReservations}
-        className="mobile-host-reservations-notice"
-      />
+      {isSplitLayout ? null : (
+        <HostLoadNotice
+          message={noticeMessage}
+          onRetry={onRetryReservations}
+          className="mobile-host-reservations-notice"
+        />
+      )}
 
       {isSplitLayout ? (
         <div className="mobile-host-reservations-landscape">
           <section className="mobile-host-reservations-list-pane" aria-label="Host queue">
+            <HostLoadNotice
+              message={noticeMessage}
+              onRetry={onRetryReservations}
+              className="mobile-host-reservations-notice"
+            />
             {listControls}
             <div className="mobile-host-list-scroll">
               <div key={listTransitionKey} className="host-queue-list-transition">
