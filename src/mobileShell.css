@@ -10369,13 +10369,24 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-host-mode > .host-load-notice {
-    position: absolute;
-    z-index: 6;
-    top: 48px;
-    left: 8px;
-    right: 8px;
-    width: auto;
+    position: fixed;
+    z-index: 40;
+    top: auto;
+    right: auto;
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    left: max(8px, env(safe-area-inset-left, 0px));
+    width: max-content;
+    max-width: min(16rem, calc(40vw - 16px));
     margin: 0;
+    background: var(--one-surface-card);
+    color: var(--one-text);
+    border: 1px solid var(--one-gold-line);
+    box-shadow: 0 8px 24px var(--one-overlay-16);
+    pointer-events: none;
+  }
+
+  .mobile-host-reservations.is-host-mode > .host-load-notice.is-failure {
+    pointer-events: auto;
   }
 }
 

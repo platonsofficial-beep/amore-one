@@ -111,6 +111,7 @@ import {
   clampHostFloorPan,
   computeHostFloorServiceFit,
   frameHostFloorStage,
+  snapHostFloorScroll,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
   readHostFloorAspect,
@@ -10611,6 +10612,16 @@ function FloorPlanView({
       contentWidth,
       contentHeight,
     })
+    const snapped = snapHostFloorScroll({
+      tables,
+      viewportWidth: contentWidth,
+      viewportHeight: contentHeight,
+      contentWidth: box.width,
+      contentHeight: box.height,
+      scrollLeft: box.scrollLeft || 0,
+      scrollTop: box.scrollTop || 0,
+      paddingPx: 12,
+    })
     layoutSpace.style.width = `${box.width}px`
     layoutSpace.style.height = `${box.height}px`
     layoutSpace.style.minWidth = '0'
@@ -10621,14 +10632,17 @@ function FloorPlanView({
     const stage = layoutSpace.parentElement
     if (stage) {
       const contained = Boolean(box.contained) && box.width <= contentWidth + 1 && box.height <= contentHeight + 1
+      const frameWidth = box.width + (contained ? 0 : snapped.extraWidth)
+      const frameHeight = box.height + (contained ? 0 : snapped.extraHeight)
       stage.style.justifyContent = contained ? 'center' : 'flex-start'
       stage.style.alignItems = contained ? 'center' : 'flex-start'
-      stage.style.width = '100%'
-      stage.style.height = 'auto'
+      stage.style.width = contained ? '100%' : `${frameWidth}px`
+      stage.style.height = contained ? 'auto' : `${frameHeight}px`
+      stage.style.minWidth = contained ? '0' : `${frameWidth}px`
       stage.style.minHeight = '0'
     }
-    viewport.scrollTop = box.scrollTop || 0
-    viewport.scrollLeft = box.scrollLeft || 0
+    viewport.scrollTop = snapped.scrollTop
+    viewport.scrollLeft = snapped.scrollLeft
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
     return box

@@ -227,6 +227,111 @@ export function computeHostFloorTablesFit({
   }
 }
 
+function hostFloorTableSpans(tables, contentWidth, contentHeight) {
+  const spansX = []
+  const spansY = []
+  tables.forEach((table) => {
+    const x = Number(table?.x)
+    const y = Number(table?.y)
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return
+    const { halfW, halfH } = getTableHalfExtents(table)
+    spansX.push({
+      start: ((x - halfW) / 100) * contentWidth,
+      end: ((x + halfW) / 100) * contentWidth,
+    })
+    spansY.push({
+      start: ((y - halfH) / 100) * contentHeight,
+      end: ((y + halfH) / 100) * contentHeight,
+    })
+  })
+  return { spansX, spansY }
+}
+
+function hostFloorSliceAmount(cursor, view, spans) {
+  const viewEnd = cursor + view
+  let pixels = 0
+  spans.forEach((span) => {
+    const overlaps = span.end > cursor + 0.5 && span.start < viewEnd - 0.5
+    if (!overlaps) return
+    const inside = span.start >= cursor - 0.5 && span.end <= viewEnd + 0.5
+    if (inside) return
+    pixels += Math.max(0, cursor - span.start) + Math.max(0, span.end - viewEnd)
+  })
+  return pixels
+}
+
+function hostFloorTrailingExtra(view, content, spans, pad) {
+  if (view <= 0 || content <= view + 0.5 || !spans.length) return 0
+  const right = spans.reduce((best, span) => (span.end > best.end ? span : best))
+  if (right.end - right.start > view - pad * 2) return 0
+  let cursor = Math.max(0, right.end + pad - view)
+  for (let pass = 0; pass < spans.length + 2; pass += 1) {
+    const sliced = spans.find((span) => span.start < cursor - 0.5 && span.end > cursor + 0.5)
+    if (!sliced) break
+    const next = sliced.end + pad
+    if (next > right.start + 0.5) return 0
+    cursor = next
+  }
+  return Math.max(0, Math.ceil(cursor + view - content))
+}
+
+function snapHostFloorAxis(offset, view, content, spans, pad) {
+  const max = Math.max(0, content - view)
+  const base = Math.min(max, Math.max(0, Number(offset) || 0))
+  if (view <= 0 || !spans.length || max <= 0) return base
+
+  const candidates = [base, 0, max]
+  spans.forEach((span) => {
+    candidates.push(Math.min(max, Math.max(0, span.end + pad - view)))
+    candidates.push(Math.min(max, Math.max(0, span.start - pad)))
+    candidates.push(Math.min(max, Math.max(0, span.end + pad)))
+    candidates.push(Math.min(max, Math.max(0, span.start - pad - view)))
+  })
+
+  let best = base
+  let bestScore = hostFloorSliceAmount(base, view, spans)
+  let bestDistance = 0
+  candidates.forEach((candidate) => {
+    const score = hostFloorSliceAmount(candidate, view, spans)
+    const distance = Math.abs(candidate - base)
+    if (score < bestScore - 0.5 || (Math.abs(score - bestScore) <= 0.5 && distance < bestDistance - 0.5)) {
+      best = candidate
+      bestScore = score
+      bestDistance = distance
+    }
+  })
+  return best
+}
+
+/**
+ * The readable plan can be wider than the stage. Scroll so a table is fully
+ * inside the visible frame or fully in the overflow, never sliced by the edge.
+ * A little trailing room lets the last table clear the one before it.
+ */
+export function snapHostFloorScroll({
+  tables = [],
+  viewportWidth = 0,
+  viewportHeight = 0,
+  contentWidth = 0,
+  contentHeight = 0,
+  scrollLeft = 0,
+  scrollTop = 0,
+  paddingPx = 4,
+} = {}) {
+  const { spansX, spansY } = hostFloorTableSpans(tables, contentWidth, contentHeight)
+  const pad = Math.max(0, Number(paddingPx) || 0)
+  const extraWidth = hostFloorTrailingExtra(viewportWidth, contentWidth, spansX, pad)
+  const extraHeight = hostFloorTrailingExtra(viewportHeight, contentHeight, spansY, pad)
+  const width = contentWidth + extraWidth
+  const height = contentHeight + extraHeight
+  return {
+    extraWidth,
+    extraHeight,
+    scrollLeft: Math.round(snapHostFloorAxis(scrollLeft, viewportWidth, width, spansX, pad)),
+    scrollTop: Math.round(snapHostFloorAxis(scrollTop, viewportHeight, height, spansY, pad)),
+  }
+}
+
 /** Scale the published plan so the whole floor fits inside the visible viewport. */
 export function computeHostFloorContainBox({
   viewportWidth = 0,

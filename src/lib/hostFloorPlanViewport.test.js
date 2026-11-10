@@ -5,6 +5,7 @@ import {
   computeHostFloorFit,
   computeHostFloorReadableBox,
   computeHostFloorTablesFit,
+  snapHostFloorScroll,
 } from './hostFloorPlanViewport'
 
 describe('computeHostFloorFit', () => {
@@ -105,6 +106,85 @@ describe('computeHostFloorTablesFit readable minimum', () => {
     expect(fit.scrollLeft).toBeGreaterThan(0)
     expect(fit.scrollLeft).toBeLessThanOrEqual(fit.width * 0.18)
     expect(fit.scrollTop).toBeLessThanOrEqual(fit.height * 0.12)
+  })
+})
+
+describe('snapHostFloorScroll', () => {
+  it('does not leave a right-edge table sliced by the stage', () => {
+    const tables = [
+      { id: 't1', x: 8, y: 18, widthPercent: 8, heightPercent: 12 },
+      { id: 't17', x: 94, y: 18, widthPercent: 8, heightPercent: 12 },
+    ]
+    const contentWidth = 560
+    const contentHeight = 360
+    const viewportWidth = 498
+    const viewportHeight = 266
+    const snapped = snapHostFloorScroll({
+      tables,
+      viewportWidth,
+      viewportHeight,
+      contentWidth,
+      contentHeight,
+      scrollLeft: 0,
+      scrollTop: 0,
+    })
+
+    tables.forEach((table) => {
+      const left = contentWidth * ((table.x - table.widthPercent / 2) / 100)
+      const right = contentWidth * ((table.x + table.widthPercent / 2) / 100)
+      const top = contentHeight * ((table.y - table.heightPercent / 2) / 100)
+      const bottom = contentHeight * ((table.y + table.heightPercent / 2) / 100)
+      const viewLeft = snapped.scrollLeft
+      const viewRight = snapped.scrollLeft + viewportWidth
+      const viewTop = snapped.scrollTop
+      const viewBottom = snapped.scrollTop + viewportHeight
+      const slicedX = left < viewRight - 0.5 && right > viewLeft + 0.5 && (left < viewLeft - 0.5 || right > viewRight + 0.5)
+      const slicedY = top < viewBottom - 0.5 && bottom > viewTop + 0.5 && (top < viewTop - 0.5 || bottom > viewBottom + 0.5)
+      expect(slicedX).toBe(false)
+      expect(slicedY).toBe(false)
+    })
+    expect(snapped.scrollLeft).toBeGreaterThanOrEqual(0)
+    expect(snapped.scrollLeft).toBeLessThanOrEqual(contentWidth + snapped.extraWidth - viewportWidth)
+  })
+
+  it('adds trailing room so the last table can clear the one before it', () => {
+    const tables = [
+      { id: 'before', x: 58, y: 30, widthPercent: 8, heightPercent: 10 },
+      { id: 'last', x: 96, y: 30, widthPercent: 8, heightPercent: 10 },
+    ]
+    const contentWidth = 500
+    const contentHeight = 300
+    const viewportWidth = 200
+    const viewportHeight = 220
+    const snapped = snapHostFloorScroll({
+      tables,
+      viewportWidth,
+      viewportHeight,
+      contentWidth,
+      contentHeight,
+      scrollLeft: 0,
+      scrollTop: 0,
+    })
+    const width = contentWidth + snapped.extraWidth
+    const height = contentHeight + snapped.extraHeight
+    tables.forEach((table) => {
+      const left = contentWidth * ((table.x - table.widthPercent / 2) / 100)
+      const right = contentWidth * ((table.x + table.widthPercent / 2) / 100)
+      const top = contentHeight * ((table.y - table.heightPercent / 2) / 100)
+      const bottom = contentHeight * ((table.y + table.heightPercent / 2) / 100)
+      const viewLeft = snapped.scrollLeft
+      const viewRight = viewLeft + viewportWidth
+      const viewTop = snapped.scrollTop
+      const viewBottom = viewTop + viewportHeight
+      const overlapsX = right > viewLeft + 0.5 && left < viewRight - 0.5
+      const overlapsY = bottom > viewTop + 0.5 && top < viewBottom - 0.5
+      const slicedX = overlapsX && (left < viewLeft - 0.5 || right > viewRight + 0.5)
+      const slicedY = overlapsY && (top < viewTop - 0.5 || bottom > viewBottom + 0.5)
+      expect(slicedX).toBe(false)
+      expect(slicedY).toBe(false)
+    })
+    expect(width - viewportWidth).toBeGreaterThanOrEqual(snapped.scrollLeft)
+    expect(height - viewportHeight).toBeGreaterThanOrEqual(snapped.scrollTop)
   })
 })
 
