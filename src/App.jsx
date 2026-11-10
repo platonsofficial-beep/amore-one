@@ -110,6 +110,7 @@ import {
   buildReservationLinkTableMeta,
   clampHostFloorPan,
   computeHostFloorServiceFit,
+  frameHostFloorStage,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
   readHostFloorAspect,
@@ -10588,12 +10589,24 @@ function FloorPlanView({
     const layoutSpace = viewport?.querySelector('.floor-plan-layout-space')
     if (!viewport || !layoutSpace) return null
     const aspect = readHostFloorAspect(layoutSpace)
-    const box = computeHostFloorServiceFit({
-      tables: visibleTableStatesRef.current.map((tableState) => tableState.table),
-      viewportWidth: viewport.clientWidth,
-      viewportHeight: viewport.clientHeight,
+    const viewStyle = getComputedStyle(viewport)
+    const padX = (Number.parseFloat(viewStyle.paddingLeft) || 0) + (Number.parseFloat(viewStyle.paddingRight) || 0)
+    const padY = (Number.parseFloat(viewStyle.paddingTop) || 0) + (Number.parseFloat(viewStyle.paddingBottom) || 0)
+    const contentWidth = Math.max(1, viewport.clientWidth - padX)
+    const contentHeight = Math.max(1, viewport.clientHeight - padY)
+    const tables = visibleTableStatesRef.current.map((tableState) => tableState.table)
+    const fitted = computeHostFloorServiceFit({
+      tables,
+      viewportWidth: contentWidth,
+      viewportHeight: contentHeight,
       aspectWidth: aspect.aspectWidth,
       aspectHeight: aspect.aspectHeight,
+    })
+    const box = frameHostFloorStage({
+      fit: fitted,
+      tables,
+      contentWidth,
+      contentHeight,
     })
     layoutSpace.style.width = `${box.width}px`
     layoutSpace.style.height = `${box.height}px`
@@ -10601,13 +10614,15 @@ function FloorPlanView({
     layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
     layoutSpace.style.maxHeight = 'none'
+    layoutSpace.style.flex = '0 0 auto'
     const stage = layoutSpace.parentElement
     if (stage) {
-      const contained = box.contained && box.width <= viewport.clientWidth && box.height <= viewport.clientHeight
+      const contained = Boolean(box.contained) && box.width <= contentWidth + 1 && box.height <= contentHeight + 1
       stage.style.justifyContent = contained ? 'center' : 'flex-start'
       stage.style.alignItems = contained ? 'center' : 'flex-start'
       stage.style.width = '100%'
-      stage.style.minHeight = '100%'
+      stage.style.height = 'auto'
+      stage.style.minHeight = '0'
     }
     viewport.scrollTop = box.scrollTop || 0
     viewport.scrollLeft = box.scrollLeft || 0

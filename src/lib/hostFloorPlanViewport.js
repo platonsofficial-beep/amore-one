@@ -339,6 +339,47 @@ export function computeHostFloorServiceFit({
   }
 }
 
+/**
+ * On a wide landscape stage the aspect-fit plan leaves an empty column.
+ * Stretch that plan to the stage when every table still stays readable
+ * (44px wide, 36px tall). A stage that is too short keeps the scrolling
+ * readable box instead of squashing the tables.
+ */
+export function frameHostFloorStage({
+  fit,
+  tables = [],
+  contentWidth = 0,
+  contentHeight = 0,
+  minTablePx = HOST_FLOOR_MIN_TABLE_PX,
+  minPaintPx = 36,
+} = {}) {
+  if (!fit) return fit
+  const stageW = Math.max(1, Math.round(Number(contentWidth) || 0))
+  const stageH = Math.max(1, Math.round(Number(contentHeight) || 0))
+  const widthPercents = tables
+    .map((table) => Number(table?.widthPercent))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const heightPercents = tables
+    .map((table) => Number(table?.heightPercent ?? table?.widthPercent))
+    .filter((value) => Number.isFinite(value) && value > 0)
+  const minWidthPercent = widthPercents.length ? Math.min(...widthPercents) : 12
+  const minHeightPercent = heightPercents.length ? Math.min(...heightPercents) : minWidthPercent
+  const minLayoutW = minTablePx / (minWidthPercent / 100)
+  const minLayoutH = minPaintPx / (minHeightPercent / 100)
+  const stageIsWider = stageW / stageH > (fit.width > 0 && fit.height > 0 ? fit.width / fit.height : 1)
+  if (stageW + 0.5 >= minLayoutW && stageH + 0.5 >= minLayoutH && stageIsWider) {
+    return {
+      ...fit,
+      width: stageW,
+      height: stageH,
+      scrollLeft: 0,
+      scrollTop: 0,
+      contained: true,
+    }
+  }
+  return fit
+}
+
 export function computeHostFloorFit({
   viewportWidth,
   viewportHeight,

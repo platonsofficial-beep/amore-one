@@ -10464,3 +10464,206 @@ body:not(:has(.inventory-count-session)) :is(
 .mobile-stock-detail-actions .ghost-btn {
   min-height: 44px;
 }
+
+/* Portrait Reservations: the floating tab bar overlays the scrollport, so
+   end padding alone still leaves the last card under the bar. Stop the
+   scrollport above the pill, including the safe-area inset. */
+.app-shell.is-mobile-shell .mobile-manager-app .mobile-app-content:has(.manager-portrait-reservations) {
+  padding-bottom: 12px;
+  margin-bottom: calc(56px + var(--one-mobile-nav-bottom, 8px) + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 8px);
+}
+
+.manager-portrait-seatings {
+  padding-inline: 2px 20px;
+  scroll-padding-inline: 16px;
+}
+
+/* Booking sheet and landscape inline form: fields scroll above Cancel/Save
+   instead of running under a sticky bar. */
+.mobile-host-reservation-sheet.mobile-sheet,
+.mobile-host-reservation-inline-panel {
+  min-height: 0;
+}
+
+.mobile-host-reservation-sheet.mobile-sheet {
+  max-height: min(
+    92dvh,
+    calc(100dvh - var(--one-safe-top-chrome, 0px) - var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 8px)
+  );
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-body,
+.mobile-host-reservation-inline-panel .mobile-host-reservation-inline-body,
+.mobile-host-reservation-panel .mobile-host-reservation-panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-host-reservation-sheet .mobile-host-reservation-form,
+.mobile-host-reservation-inline-panel .mobile-host-reservation-form,
+.mobile-host-reservation-panel .mobile-host-reservation-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  gap: 0;
+}
+
+.mobile-host-reservation-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+}
+
+.mobile-host-reservation-sheet .mobile-host-reservation-form-actions,
+.mobile-host-reservation-inline-panel .mobile-host-reservation-form-actions,
+.mobile-host-reservation-panel .mobile-host-reservation-form-actions,
+.app-shell.is-host-station-shell .mobile-host-reservation-form > .mobile-host-reservation-form-actions {
+  position: static;
+  flex: 0 0 auto;
+  margin-top: 0;
+  pointer-events: auto;
+  box-shadow: none;
+  background: var(--one-form-surface);
+  padding-bottom: max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+/* Date picker: keep Cancel/Today on screen; the month scrolls above them. */
+.mobile-host-date-picker-backdrop {
+  padding-bottom: max(12px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+.mobile-host-date-picker-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(
+    420px,
+    calc(100dvh - var(--one-safe-top-chrome, 0px) - var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 24px)
+  );
+  overflow: hidden;
+}
+
+.mobile-host-date-picker-panel .host-workspace-date-picker {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.mobile-host-date-picker-panel .host-workspace-date-picker-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.mobile-host-date-picker-panel .host-workspace-date-picker-footer {
+  flex: 0 0 auto;
+  background: var(--one-surface-3);
+}
+
+.host-queue-toolbar-menu {
+  max-height: calc(100dvh - var(--one-safe-top-chrome, 0px) - var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) - 16px);
+}
+
+@media (orientation: landscape) and (max-height: 480px) {
+  .mobile-host-date-picker-panel .host-workspace-date-picker-day {
+    min-height: 32px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .host-multi-table-selection-bar {
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 4px;
+  }
+
+  .host-multi-table-selection-count {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .host-multi-table-selection-actions {
+    margin-left: auto;
+  }
+
+  .mobile-host-reservations.is-landscape .host-reservation-list .host-reservation-card-status-pill.is-compact,
+  .mobile-host-reservations.is-landscape .host-reservation-list .host-reservation-card-row-menu {
+    min-width: 44px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .mobile-host-reservations.is-landscape .host-reservation-list .host-reservation-card-status-pill.is-compact::before {
+    inset: 0;
+  }
+
+  .mobile-host-reservations-detail-pane:has(.mobile-host-reservation-inline-panel) {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-host-reservation-inline-panel,
+  .mobile-host-reservation-inline-panel .mobile-host-reservation-inline-body,
+  .mobile-host-reservation-inline-panel .mobile-host-reservation-form,
+  .mobile-host-reservation-inline-panel .mobile-host-reservation-form-fields {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    flex: none;
+  }
+
+  .mobile-host-reservation-inline-panel .mobile-host-reservation-form-fields {
+    padding-bottom: 16px;
+  }
+
+  .mobile-host-reservation-inline-panel .mobile-host-reservation-form-actions {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+/* Tablet host floor: seating names stay whole. The count stays on its own line. */
+@media (min-width: 700px) and (min-height: 700px) {
+  .mobile-host-reservations .floor-seating-selector-scroll {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-inline: 2px 16px;
+    scroll-padding-inline: 12px;
+  }
+
+  .mobile-host-reservations .floor-seating-selector-chip {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    overflow: visible;
+  }
+
+  .mobile-host-reservations .floor-seating-selector-chip-name,
+  .mobile-host-reservations .floor-seating-selector-chip-time,
+  .mobile-host-reservations .floor-seating-selector-chip-count {
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
+    white-space: nowrap;
+  }
+}
