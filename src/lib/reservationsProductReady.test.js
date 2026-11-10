@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { formatHostLoadError, isHostLoadFailureMessage } from './hostLoadNotice'
 import { formatReservationDayMonth } from './timeFormatUtils'
-import { computeHostFloorServiceFit, computeHostFloorWholeAreaFit } from './hostFloorPlanViewport'
+import { computeHostFloorServiceFit, computeHostFloorWholeAreaFit, frameHostFloorStage } from './hostFloorPlanViewport'
 import {
   normalizeHostDiningTimerDurationPolicy,
   readHostDiningTimerDurationPolicy,
@@ -52,6 +52,44 @@ describe('reservations product-ready helpers', () => {
     })
     expect(fit.contained).toBe(false)
     expect(fit.width * 0.04).toBeGreaterThanOrEqual(44)
+  })
+
+  it('fills a wide landscape stage when tables stay readable, and keeps a short stage scrolling', () => {
+    const wide = computeHostFloorServiceFit({
+      tables: [{ id: 'a', x: 50, y: 40, widthPercent: 14, heightPercent: 20 }],
+      viewportWidth: 457,
+      viewportHeight: 193,
+      aspectWidth: 1000,
+      aspectHeight: 700,
+    })
+    const filled = frameHostFloorStage({
+      fit: wide,
+      tables: [{ widthPercent: 14, heightPercent: 20 }],
+      contentWidth: 457,
+      contentHeight: 193,
+    })
+    expect(filled.width).toBe(457)
+    expect(filled.height).toBe(193)
+    expect(filled.width * 0.14).toBeGreaterThanOrEqual(44)
+    expect(filled.height * 0.2).toBeGreaterThanOrEqual(36)
+    expect(filled.scrollLeft).toBe(0)
+
+    const short = computeHostFloorServiceFit({
+      tables: [{ id: 'a', x: 10, y: 10, widthPercent: 14, heightPercent: 20 }],
+      viewportWidth: 400,
+      viewportHeight: 120,
+      aspectWidth: 1000,
+      aspectHeight: 700,
+    })
+    const unchanged = frameHostFloorStage({
+      fit: short,
+      tables: [{ widthPercent: 14, heightPercent: 20 }],
+      contentWidth: 400,
+      contentHeight: 120,
+    })
+    expect(unchanged.width).toBe(short.width)
+    expect(unchanged.height).toBe(short.height)
+    expect(unchanged.width * 0.14).toBeGreaterThanOrEqual(43.5)
   })
 
   it('keeps timer minutes in the existing policy without a schema change', () => {
