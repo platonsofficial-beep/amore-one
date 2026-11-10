@@ -6449,6 +6449,21 @@
   height: 100%;
   max-height: 100%;
   min-height: 0;
+  padding-bottom: 0;
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-reservations-detail-pane {
+  height: 100%;
+  max-height: 100%;
+  align-self: stretch;
+}
+
+/* The dedicated shell already stops the plan at the full bottom inset.
+   Keep a slim clearance so the home indicator does not cover the frame. */
+@media (orientation: landscape) {
+  .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    bottom: 8px;
+  }
 }
 
 .mobile-host-reservations.is-landscape .floor-plan-workspace.is-host-floor,
@@ -6725,8 +6740,11 @@
 }
 
 .mobile-host-reservations.is-landscape .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
-  flex: 1 1 0;
+  flex: 1 1 auto;
+  align-self: stretch;
+  height: 100%;
   min-height: 0;
+  max-height: none;
 }
 
 .mobile-host-floor-stage .floor-plan-canvas-stage,
@@ -7731,6 +7749,10 @@
 @media (min-width: 761px) and (max-width: 1024px) {
   .app-shell:not(.is-mobile-shell) .main-panel {
     padding: 20px;
+  }
+
+  .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    padding: 0;
   }
 }
 
@@ -10111,9 +10133,20 @@ body:not(:has(.inventory-count-session)) :is(
 /* Short phone landscape: one seating row, a scrollable readable floor,
    and queue labels that fit the left pane. */
 @media (orientation: landscape) and (max-height: 520px) {
+  .mobile-host-reservations.is-landscape {
+    --host-chrome-size: 36px;
+    --host-chrome-gap: 4px;
+  }
+
   .mobile-host-reservations.is-landscape .mobile-host-sticky-bar {
-    padding: 2px 8px;
-    gap: 6px;
+    padding: 2px 6px;
+    gap: 4px;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-sticky-date-step-btn {
+    min-width: 36px;
+    min-height: 36px;
+    height: 36px;
   }
 
   .mobile-host-reservations.is-landscape .mobile-host-sticky-left {
@@ -10147,27 +10180,34 @@ body:not(:has(.inventory-count-session)) :is(
   .mobile-host-reservations.is-landscape .floor-plan-toolbar {
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--ui-gap, 6px);
-    padding-top: 2px;
-    padding-bottom: 2px;
+    align-content: flex-start;
+    row-gap: 4px;
+    column-gap: 4px;
+    padding: 0 4px;
   }
 
   .mobile-host-reservations.is-landscape .floor-plan-toolbar > :first-child {
-    flex: 1 1 100%;
-    min-width: 0;
+    flex: 1 1 auto;
+    min-width: min(100%, 12.5rem);
+    max-width: 100%;
   }
 
   .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions {
-    flex: 1 1 100%;
+    flex: 0 0 auto;
     min-width: 0;
     justify-content: flex-end;
-    padding-right: 10px;
+    margin-left: 0;
+    padding-right: 0;
     box-sizing: border-box;
   }
 
   .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
-    padding-right: 10px;
+    padding-right: 0;
     box-sizing: border-box;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-area-select {
+    min-width: 7.25rem;
   }
 
   .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,
@@ -10189,8 +10229,8 @@ body:not(:has(.inventory-count-session)) :is(
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
     flex: 0 0 auto;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    padding-top: 4px;
+    padding-bottom: 0;
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-toolbar {

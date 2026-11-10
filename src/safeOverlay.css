@@ -568,10 +568,24 @@ body {
     --safe-r: var(--one-inset-right);
   }
 
-  /* The panel's own 20px side padding doubled the gap. */
+  /* Reach the island on the side that has it. The other side uses the
+     screen, with the same slim clearance as the home indicator. Do not
+     mirror the island inset, and do not add padding past it. */
   .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 0;
+    padding-right: 0;
+    left: max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+    right: max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+
+  :root[data-island='left'] .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    left: var(--one-island-inset);
+    right: 8px;
+  }
+
+  :root[data-island='right'] .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    left: 8px;
+    right: var(--one-island-inset);
   }
 
   /* The bell and ? sit inside the header bar (it reserves 100px for them),
@@ -634,6 +648,22 @@ body {
    banner (40px margin) was there. One solid band, the app colour, now runs
    from the top to just below the ? and bell on every phone-portrait screen,
    and content starts 8px under it. Landscape is unchanged. */
+@media (orientation: portrait) and (max-width: 760px) {
+  .app-shell.is-mobile-shell .mobile-app-content {
+    padding-left: max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+    padding-right: max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+
+  /* The stock search bar paints to the content edge. Its bleed has to match
+     the gutter above, or the bar sticks out past the screen. */
+  .mobile-manager-stock-sticky-tools {
+    margin-left: calc(-1 * max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px))));
+    margin-right: calc(-1 * max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
+    padding-left: max(8px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+    padding-right: max(8px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+}
+
 @media (orientation: portrait) and (max-width: 600px) {
   :root {
     --one-portrait-band: calc(var(--one-top-buttons-top, max(8px, var(--one-safe-top-chrome))) + 52px);
@@ -1658,12 +1688,53 @@ body {
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
   .mobile-host-reservations.is-landscape .floor-plan-toolbar,
   .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
-  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
-    row-gap: 8px;
-    column-gap: 8px;
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions-group,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls-group {
+    row-gap: 4px;
+    column-gap: 4px;
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
-    padding-top: 8px;
+    padding-top: 4px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 8px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar > :first-child,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+    padding-right: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-area-select-input,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn:not(.floor-plan-zoom-fit),
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    width: 36px;
+    min-width: 36px;
   }
 }

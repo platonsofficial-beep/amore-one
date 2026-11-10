@@ -13,8 +13,8 @@ function rule(css, selector) {
 const indexCss = readFileSync(new URL('../index.css', import.meta.url), 'utf8')
 
 describe('top safe area', () => {
-  it('adds a gap below the inset only when an inset exists', () => {
-    expect(indexCss).toContain('--one-safe-top-gap: min(20px, calc(var(--one-safe-area-top) * 100))')
+  it('starts chrome at the real top inset, with no extra gap past it', () => {
+    expect(indexCss).toContain('--one-safe-top-gap: 0px')
     expect(indexCss).toContain('--one-safe-top-chrome: calc(var(--one-safe-area-top) + var(--one-safe-top-gap))')
   })
 
