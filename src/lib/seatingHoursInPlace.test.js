@@ -18,6 +18,10 @@ describe('seating hours stay inside Reservations', () => {
     expect(app).toContain('hoursOnly')
     expect(app).toContain('canEdit={canConfigureReservationSeatingsRole}')
     expect(app).toContain('canOpenReservationsHostMode(permissionAccess)')
+    expect(app).toContain('seating-hours-followup')
+    expect(appCss).toMatch(/\.employee-modal-backdrop\.seating-hours-overlay\s*\{[^}]*z-index:\s*80/)
+    expect(appCss).toMatch(/\.employee-modal-backdrop\.seating-hours-followup\s*\{[^}]*z-index:\s*100/)
+    expect(appCss).toMatch(/\.app-shell\.is-mobile-shell \.main-panel > \.employee-modal-backdrop\.seating-hours-followup\s*\{[^}]*z-index:\s*100/)
     expect(app).not.toContain('<WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />')
   })
 

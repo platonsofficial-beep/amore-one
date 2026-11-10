@@ -15228,6 +15228,9 @@ function App() {
   const [reservationSeatingPendingDelete, setReservationSeatingPendingDelete] = useState(null)
   const [isSeatingHoursOpen, setIsSeatingHoursOpen] = useState(false)
   useEscapeToClose(() => setIsSeatingHoursOpen(false), { enabled: isSeatingHoursOpen })
+  useEscapeToClose(() => setReservationSeatingPendingDelete(null), {
+    enabled: Boolean(reservationSeatingPendingDelete),
+  })
   const [isSavingPosition, setIsSavingPosition] = useState(false)
   const [positionPendingDelete, setPositionPendingDelete] = useState(null)
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
@@ -27437,7 +27440,7 @@ function App() {
         ) : null}
 
         {reservationSeatingPendingDelete ? (
-          <div className="employee-modal-backdrop" onClick={() => setReservationSeatingPendingDelete(null)}>
+          <div className={`employee-modal-backdrop${isSeatingHoursOpen ? ' seating-hours-followup' : ''}`} onClick={() => setReservationSeatingPendingDelete(null)}>
             <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>

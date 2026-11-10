@@ -6,11 +6,13 @@ import {
 } from '../../lib/reservationSeatings'
 import { normalizeReservationAutoCloseTime } from '../../lib/reservationAutoClose'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   readHostDiningTimerDurationPolicy,
   writeHostDiningTimerDurationPolicy,
 } from '../../lib/hostDiningTimer'
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 
 function HostDiningTimerSettings() {
   const [policy, setPolicy] = useState(() => readHostDiningTimerDurationPolicy())
@@ -121,17 +123,21 @@ export function WorkspaceReservationSeatingsSection({
     autoCloseNotice && !/saved|updated|success|applied/i.test(autoCloseNotice),
   )
   const visibleNotice = hoursOnly ? readableSeatingNotice(noticeMessage) : `${noticeMessage ?? ''}`.trim()
+  useEscapeToClose(() => onCancelEdit?.(), {
+    enabled: Boolean(hoursOnly && editingSeatingId),
+  })
 
   const editForm = showEditActions && (!hoursOnly || editingSeatingId) ? (
     <div className="panel staff-panel workspace-panel">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Manage seatings</p>
-          <h3>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+          <h3 id={hoursOnly ? 'seating-hours-editor-title' : undefined}>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
         </div>
       </div>
 
       <form className="employee-form" onSubmit={onSubmit}>
+        <div className="seating-hours-editor-fields">
         <div className="form-grid">
           <label className="form-field">
             <span>Name</span>
@@ -186,6 +192,7 @@ export function WorkspaceReservationSeatingsSection({
             daysOfWeek={form.daysOfWeek}
             onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
           />
+        </div>
         </div>
 
         <div className="modal-actions">
@@ -364,7 +371,25 @@ export function WorkspaceReservationSeatingsSection({
       {visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading seatings…</div> : null}
 
-      {hoursOnly ? editForm : null}
+      {hoursOnly && editingSeatingId && typeof document !== 'undefined'
+        ? createPortal(
+          <div
+            className="employee-modal-backdrop seating-hours-followup"
+            onClick={onCancelEdit}
+          >
+            <div
+              className="employee-modal seating-hours-editor"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="seating-hours-editor-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              {editForm}
+            </div>
+          </div>,
+          document.body,
+        )
+        : null}
       {hoursOnly ? null : (
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">

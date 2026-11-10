@@ -46306,6 +46306,49 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .employee-modal-backdrop.seating-hours-overlay {
   align-items: flex-end;
   padding: 0;
+  z-index: 80;
+}
+.employee-modal-backdrop.seating-hours-followup {
+  z-index: 100;
+}
+.app-shell.is-mobile-shell .main-panel > .employee-modal-backdrop.seating-hours-overlay {
+  z-index: 80;
+}
+.app-shell.is-mobile-shell .main-panel > .employee-modal-backdrop.seating-hours-followup {
+  z-index: 100;
+}
+.employee-modal.seating-hours-editor {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 24px);
+  overflow: hidden;
+  padding: 16px;
+}
+.seating-hours-editor .workspace-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+.seating-hours-editor .employee-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.seating-hours-editor-fields {
+  min-height: 0;
+  overflow-y: auto;
+}
+.seating-hours-editor .modal-actions {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  padding-top: 8px;
+  background: var(--one-form-surface);
 }
 .employee-modal.seating-hours-sheet {
   width: min(720px, 100%);
