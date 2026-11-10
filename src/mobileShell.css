@@ -5770,10 +5770,16 @@
 }
 
 .mobile-host-reservations-notice {
+  flex: 0 0 auto;
+  position: static;
+  width: auto;
+  max-width: none;
+  margin: 4px 8px 0;
   padding: 8px 10px;
   border-radius: 10px;
-  background: var(--one-gold-a12);
-  color: #f0dca2;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-surface-card);
+  color: var(--one-text);
   font-size: 0.84rem;
   line-height: 1.35;
 }
@@ -10368,15 +10374,6 @@ body:not(:has(.inventory-count-session)) :is(
     touch-action: none;
   }
 
-  .mobile-host-reservations.is-host-mode > .host-load-notice {
-    position: absolute;
-    z-index: 6;
-    top: 48px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    margin: 0;
-  }
 }
 
 .operations-unified-tabs {

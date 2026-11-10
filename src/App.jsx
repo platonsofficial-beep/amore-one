@@ -111,6 +111,7 @@ import {
   clampHostFloorPan,
   computeHostFloorServiceFit,
   frameHostFloorStage,
+  snapHostFloorScroll,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
   readHostFloorAspect,
@@ -10611,8 +10612,18 @@ function FloorPlanView({
       contentWidth,
       contentHeight,
     })
-    layoutSpace.style.width = `${box.width}px`
-    layoutSpace.style.height = `${box.height}px`
+    const snapped = snapHostFloorScroll({
+      tables,
+      viewportWidth: contentWidth,
+      viewportHeight: contentHeight,
+      contentWidth: box.width,
+      contentHeight: box.height,
+      paddingPx: 12,
+    })
+    const layoutWidth = snapped.layoutWidth
+    const layoutHeight = snapped.layoutHeight
+    layoutSpace.style.width = `${layoutWidth}px`
+    layoutSpace.style.height = `${layoutHeight}px`
     layoutSpace.style.minWidth = '0'
     layoutSpace.style.minHeight = '0'
     layoutSpace.style.maxWidth = 'none'
@@ -10620,15 +10631,18 @@ function FloorPlanView({
     layoutSpace.style.flex = '0 0 auto'
     const stage = layoutSpace.parentElement
     if (stage) {
-      const contained = Boolean(box.contained) && box.width <= contentWidth + 1 && box.height <= contentHeight + 1
+      const frameWidth = layoutWidth + snapped.extraWidth
+      const frameHeight = layoutHeight + snapped.extraHeight
+      const contained = frameWidth <= contentWidth + 1 && frameHeight <= contentHeight + 1
       stage.style.justifyContent = contained ? 'center' : 'flex-start'
       stage.style.alignItems = contained ? 'center' : 'flex-start'
-      stage.style.width = '100%'
-      stage.style.height = 'auto'
+      stage.style.width = contained ? '100%' : `${frameWidth}px`
+      stage.style.height = contained ? 'auto' : `${frameHeight}px`
+      stage.style.minWidth = contained ? '0' : `${frameWidth}px`
       stage.style.minHeight = '0'
     }
-    viewport.scrollTop = box.scrollTop || 0
-    viewport.scrollLeft = box.scrollLeft || 0
+    viewport.scrollTop = 0
+    viewport.scrollLeft = 0
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
     return box

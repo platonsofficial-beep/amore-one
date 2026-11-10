@@ -14619,11 +14619,16 @@
 .floor-plan-workspace.is-compact > .host-load-notice {
   position: absolute;
   z-index: 8;
-  top: 8px;
+  top: auto;
+  bottom: 8px;
   left: 8px;
-  right: 8px;
-  width: auto;
+  right: auto;
+  width: max-content;
+  max-width: calc(100% - 16px);
   margin: 0;
+  background: var(--one-surface-card);
+  color: var(--one-text);
+  border: 1px solid var(--one-gold-line);
 }
 
 .host-no-service-hours {
