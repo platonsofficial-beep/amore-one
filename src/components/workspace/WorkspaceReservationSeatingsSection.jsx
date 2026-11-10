@@ -185,14 +185,14 @@ export function WorkspaceReservationSeatingsSection({
             </select>
           </label>
         </div>
+        </div>
 
-        <div className="form-field full-width">
+        <div className="form-field full-width seating-hours-editor-days">
           <span>Days of week</span>
           <SeatingDaysToggle
             daysOfWeek={form.daysOfWeek}
             onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
           />
-        </div>
         </div>
 
         <div className="modal-actions">
