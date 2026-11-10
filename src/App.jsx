@@ -16089,9 +16089,8 @@ function App() {
   ])
 
   const handleOpenReservationServices = useCallback(() => {
-    if (!canConfigureReservationSeatingsRole) return
     setIsSeatingHoursOpen(true)
-  }, [canConfigureReservationSeatingsRole])
+  }, [])
 
   const workspaceTimeZone = workspaceProfile.timezone
 
@@ -25481,7 +25480,7 @@ function App() {
               canUndoAutoClose={isManagerRole(role)}
               onUndoAutoClose={handleUndoAutoClosedReservation}
               onOpenReservationServices={
-                canConfigureReservationSeatingsRole
+                canOpenReservationsHostMode(permissionAccess)
                   ? handleOpenReservationServices
                   : undefined
               }
@@ -26073,7 +26072,7 @@ function App() {
                         onSignOut: handleMobileSignOut,
                       }}
                       onOpenReservationServices={
-                        canConfigureReservationSeatingsRole
+                        canOpenReservationsHostMode(permissionAccess)
                           ? handleOpenReservationServices
                           : undefined
                       }
@@ -26231,7 +26230,7 @@ function App() {
                           isSaving: isSavingReservation,
                           noticeMessage: reservationNotice,
                           onRetryLoad: retryReservationLoad,
-                          onOpenReservationServices: canConfigureReservationSeatingsRole
+                          onOpenReservationServices: canOpenReservationsHostMode(permissionAccess)
                             ? handleOpenReservationServices
                             : null,
                           canManage: canManageReservationsRole,
@@ -27489,7 +27488,23 @@ function App() {
                 </button>
               </div>
               <div className="seating-hours-sheet-body">
-                <WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />
+                <WorkspaceReservationSeatingsSection
+                  hoursOnly
+                  canEdit={canConfigureReservationSeatingsRole}
+                  seatings={reservationSeatings}
+                  isLoading={isReservationSeatingsLoading}
+                  noticeMessage={reservationSeatingsNotice}
+                  form={reservationSeatingForm}
+                  isSaving={isSavingReservationSeating}
+                  editingSeatingId={editingReservationSeatingId}
+                  onFormChange={setReservationSeatingForm}
+                  onSubmit={handleReservationSeatingSubmit}
+                  onStartEdit={handleStartEditReservationSeating}
+                  onCancelEdit={handleCancelEditReservationSeating}
+                  onRequestDelete={handleRequestDeleteReservationSeating}
+                  onMoveSeating={handleMoveReservationSeating}
+                  onToggleActive={handleToggleReservationSeatingActive}
+                />
               </div>
             </div>
           </div>

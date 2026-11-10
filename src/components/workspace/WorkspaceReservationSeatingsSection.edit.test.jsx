@@ -93,4 +93,43 @@ describe('reservation seating edit form', () => {
 
     view.unmount()
   })
+
+  it('leads the hours sheet with the sittings and leaves Settings cards out', () => {
+    const view = renderSection({
+      hoursOnly: true,
+      seatings: [DINNER],
+      autoCloseTime: '05:00',
+      onAutoCloseTimeChange: vi.fn(),
+      autoCloseNotice: "Cannot read properties of null (reading 'from')",
+      noticeMessage: "Cannot read properties of null (reading 'from')",
+    })
+
+    const list = view.container.querySelector('[data-testid="seating-hours-list"]')
+    expect(list?.textContent).toContain('Dinner 1')
+    expect(list?.textContent).toContain('19:00')
+    expect(list?.textContent).toContain('120 min')
+    expect(view.container.textContent).not.toContain('Auto-close seated tables')
+    expect(view.container.textContent).not.toContain('Configure service slots')
+    expect(view.container.textContent).not.toContain('Cannot read properties')
+    expect(view.container.textContent).toContain("Couldn't load seating hours.")
+    expect(view.container.textContent.indexOf('Dinner 1')).toBeLessThan(
+      view.container.textContent.indexOf("Couldn't load seating hours."),
+    )
+
+    view.unmount()
+  })
+
+  it('lets a host read hours without edit actions', () => {
+    const view = renderSection({
+      hoursOnly: true,
+      canEdit: false,
+      seatings: [DINNER],
+    })
+
+    expect(view.container.textContent).toContain('Dinner 1')
+    expect(view.container.querySelector('.action-group')).toBeNull()
+    expect(view.container.textContent).not.toContain('Add seating')
+
+    view.unmount()
+  })
 })

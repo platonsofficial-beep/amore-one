@@ -15,7 +15,10 @@ describe('seating hours stay inside Reservations', () => {
     expect(handler).not.toContain("handleActiveViewChange('settings')")
     expect(handler).not.toContain('setMobileReservationsHostMode(false)')
     expect(app).toContain('className="employee-modal seating-hours-sheet"')
-    expect(app).toContain('<WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />')
+    expect(app).toContain('hoursOnly')
+    expect(app).toContain('canEdit={canConfigureReservationSeatingsRole}')
+    expect(app).toContain('canOpenReservationsHostMode(permissionAccess)')
+    expect(app).not.toContain('<WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />')
   })
 
   it('does not fade the first seating chip', () => {
