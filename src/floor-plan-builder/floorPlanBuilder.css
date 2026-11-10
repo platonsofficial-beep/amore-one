@@ -2405,6 +2405,42 @@
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
+  /* The toolbar wraps to more than --fpb-toolbar-height (48px), which left
+     the top tables under it. Let the toolbar take its own height and start
+     the canvas underneath. Main actions stay at least 44px. */
+  .fpb-editor-embedded {
+    display: flex;
+    flex-direction: column;
+    --fpb-toolbar-height: 120px;
+  }
+
+  .fpb-editor-embedded .fpb-editor-toolbar {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .fpb-editor-embedded .fpb-editor-canvas {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
+    width: auto;
+    min-height: 0;
+    height: auto;
+  }
+
+  .fpb-editor-embedded .fpb-editor-status {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+  }
+
+  .fpb-editor-embedded .fpb-toolbar-btn {
+    min-height: 44px;
+  }
+
   .fpb-editor-embedded.is-tablet-layout.is-tools-open .fpb-editor-sidebar {
     left: 0;
     right: auto;

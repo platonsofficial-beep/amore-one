@@ -79,9 +79,12 @@ export function getEditorFitZoom(
 ) {
   const fitZoom = getCameraFitToBounds(bounds, viewportWidth, viewportHeight, margin).zoom
   let zoom = clampCameraZoom(fitZoom * EDITOR_FIT_ZOOM_PADDING)
+  // Short phone landscape cannot keep the 0.7 floor or the top tables are
+  // clipped by the canvas. Taller viewports stay at restaurant scale.
+  const minZoom = viewportHeight > 0 && viewportHeight < 360 ? 0.28 : EDITOR_TARGET_MIN_ZOOM
 
-  if (zoom < EDITOR_TARGET_MIN_ZOOM) {
-    zoom = EDITOR_TARGET_MIN_ZOOM
+  if (zoom < minZoom) {
+    zoom = minZoom
   }
 
   if (zoom > EDITOR_TARGET_MAX_ZOOM) {

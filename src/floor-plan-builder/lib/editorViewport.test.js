@@ -79,6 +79,13 @@ describe('getEditorFitZoom', () => {
     expect(zoom).toBeLessThanOrEqual(1)
   })
 
+  it('shrinks below restaurant scale so a short phone landscape shows every table', () => {
+    const zoom = getEditorFitZoom(RESTAURANT_WORKSPACE, 640, 220)
+
+    expect(zoom).toBeLessThan(EDITOR_TARGET_MIN_ZOOM)
+    expect(zoom).toBeGreaterThanOrEqual(0.28)
+  })
+
   it('avoids tiny zoom on legacy oversized canvases', () => {
     const zoom = getEditorFitZoom(LEGACY_LARGE_WORKSPACE, 1024, 768)
 

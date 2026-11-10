@@ -177,6 +177,7 @@ function HostReservationQuickCreateFields({
       onSubmit={preventReservationFormSubmit}
       onKeyDownCapture={handleReservationFormEnterKey}
     >
+      <div className="mobile-host-reservation-form-fields">
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field">
           <span>First name</span>
@@ -391,6 +392,7 @@ function HostReservationQuickCreateFields({
         </button>
       ) : null}
 
+      </div>
       {/* Keep focus in the field on press: blurring it removed is-composer-focused,
           the host bottom bar came back and moved Save up mid-tap, so the first
           tap on Save landed on the bar (p12 matrix, host 956x440). */}

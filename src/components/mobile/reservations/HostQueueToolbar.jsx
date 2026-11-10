@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { clampOverlayLeft } from '../../../lib/safeInline'
+import { clampOverlayLeft, readCssPx } from '../../../lib/safeInline'
 import { HOST_QUEUE_FILTER_MENU_SECTIONS } from '../../../lib/hostQueuePipeline'
 
 const MENU_MARGIN = 8
@@ -12,25 +12,29 @@ function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
   const viewportHeight = viewport?.height || window.innerHeight
   const offsetTop = viewport?.offsetTop || 0
   const offsetLeft = viewport?.offsetLeft || 0
+  const safeTop = Math.max(readCssPx('--one-safe-area-top'), 0)
+  const safeBottom = Math.max(readCssPx('--one-safe-area-bottom'), 0)
+  const topLimit = offsetTop + safeTop + MENU_MARGIN
+  const bottomLimit = offsetTop + viewportHeight - safeBottom - MENU_MARGIN
 
   let left = anchorRect.left
   let top = anchorRect.bottom + MENU_MARGIN
 
   left = clampOverlayLeft(left - offsetLeft, menuWidth, viewportWidth, MENU_MARGIN) + offsetLeft
 
-  const maxHeight = Math.max(120, viewportHeight - MENU_MARGIN * 2)
-  const usedHeight = Math.min(menuHeight, maxHeight)
-  const visibleBottom = offsetTop + viewportHeight
+  const available = Math.max(120, bottomLimit - topLimit)
+  const usedHeight = Math.min(menuHeight, available)
 
-  if (top + usedHeight > visibleBottom - MENU_MARGIN) {
-    top = Math.max(offsetTop + MENU_MARGIN, visibleBottom - MENU_MARGIN - usedHeight)
+  if (top + usedHeight > bottomLimit) {
+    const above = anchorRect.top - MENU_MARGIN - usedHeight
+    top = above >= topLimit ? above : topLimit
   }
-  top = Math.max(offsetTop + MENU_MARGIN, top)
+  top = Math.max(topLimit, Math.min(top, Math.max(topLimit, bottomLimit - usedHeight)))
 
   return {
     top,
     left,
-    maxHeight: Math.max(80, visibleBottom - top - MENU_MARGIN),
+    maxHeight: Math.max(80, bottomLimit - top),
   }
 }
 
