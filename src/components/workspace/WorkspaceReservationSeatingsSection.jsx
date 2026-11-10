@@ -84,6 +84,15 @@ function SeatingDaysToggle({ daysOfWeek, onChange }) {
   )
 }
 
+function readableSeatingNotice(message) {
+  const text = `${message ?? ''}`.trim()
+  if (!text) return ''
+  if (/cannot read propert|of null|of undefined|reading ['"]/i.test(text)) {
+    return "Couldn't load seating hours."
+  }
+  return text
+}
+
 export function WorkspaceReservationSeatingsSection({
   seatings = [],
   isLoading = false,
@@ -103,14 +112,187 @@ export function WorkspaceReservationSeatingsSection({
   onSaveAutoClose,
   isSavingAutoClose = false,
   autoCloseNotice = '',
+  hoursOnly = false,
+  canEdit = true,
 }) {
-  const showAutoClose = typeof onAutoCloseTimeChange === 'function'
+  const showAutoClose = !hoursOnly && typeof onAutoCloseTimeChange === 'function'
+  const showEditActions = canEdit && typeof onStartEdit === 'function'
   const autoCloseNoticeIsError = Boolean(
     autoCloseNotice && !/saved|updated|success|applied/i.test(autoCloseNotice),
+  )
+  const visibleNotice = hoursOnly ? readableSeatingNotice(noticeMessage) : `${noticeMessage ?? ''}`.trim()
+
+  const editForm = showEditActions && (!hoursOnly || editingSeatingId) ? (
+    <div className="panel staff-panel workspace-panel">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Manage seatings</p>
+          <h3>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+        </div>
+      </div>
+
+      <form className="employee-form" onSubmit={onSubmit}>
+        <div className="form-grid">
+          <label className="form-field">
+            <span>Name</span>
+            <input
+              value={form.name}
+              onChange={(event) => onFormChange({ ...form, name: event.target.value })}
+              placeholder="e.g. Dinner 1"
+              required
+            />
+          </label>
+          <label className="form-field">
+            <span>Start time</span>
+            <ReservationTimeSelect
+              value={form.startTime}
+              onChange={(startTime) => onFormChange({ ...form, startTime })}
+              required
+            />
+          </label>
+          <label className="form-field">
+            <span>Duration (minutes)</span>
+            <input
+              type="number"
+              min="15"
+              max="480"
+              step="15"
+              value={form.durationMinutes}
+              onChange={(event) => onFormChange({
+                ...form,
+                durationMinutes: Math.max(15, Number(event.target.value) || 120),
+              })}
+              required
+            />
+          </label>
+          <label className="form-field">
+            <span>Status</span>
+            <select
+              value={form.isActive ? 'active' : 'inactive'}
+              onChange={(event) => onFormChange({
+                ...form,
+                isActive: event.target.value === 'active',
+              })}
+            >
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="form-field full-width">
+          <span>Days of week</span>
+          <SeatingDaysToggle
+            daysOfWeek={form.daysOfWeek}
+            onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
+          />
+        </div>
+
+        <div className="modal-actions">
+          {editingSeatingId ? (
+            <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>
+              Cancel edit
+            </button>
+          ) : null}
+          <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
+            {isSaving ? 'Saving…' : editingSeatingId ? 'Update seating' : 'Add seating'}
+          </button>
+        </div>
+      </form>
+    </div>
+  ) : null
+
+  const hoursList = (
+    <div className="panel staff-panel workspace-panel" data-testid="seating-hours-list">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">{hoursOnly ? 'Seating hours' : 'Seating list'}</p>
+          <h3>{seatings.length} seating{seatings.length === 1 ? '' : 's'}</h3>
+        </div>
+      </div>
+
+      {seatings.length === 0 && !isLoading ? (
+        <div className="schedule-empty-state">
+          <h4>No seatings configured.</h4>
+          <p>Add your first service seating to power table availability.</p>
+        </div>
+      ) : (
+        <div className="positions-list workspace-seatings-list">
+          {seatings.map((seating, index) => {
+            const normalized = normalizeReservationSeating(seating)
+            if (!normalized) return null
+
+            return (
+              <article
+                key={normalized.id}
+                className={`position-row workspace-seating-row${normalized.isActive ? '' : ' is-inactive'}`}
+              >
+                <div>
+                  <strong>{normalized.name}</strong>
+                  <p>
+                    {normalized.startTime}
+                    {' · '}
+                    {normalized.durationMinutes} min
+                    {' · '}
+                    {formatSeatingDaysLabel(normalized.daysOfWeek)}
+                  </p>
+                  {!normalized.isActive ? <small>Inactive</small> : null}
+                </div>
+                {showEditActions ? (
+                  <div className="action-group">
+                    <button
+                      type="button"
+                      className="ghost-btn small workspace-action-btn"
+                      onClick={() => onMoveSeating(normalized, 'up')}
+                      disabled={index === 0}
+                      aria-label={`Move ${normalized.name} up`}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small workspace-action-btn"
+                      onClick={() => onMoveSeating(normalized, 'down')}
+                      disabled={index === seatings.length - 1}
+                      aria-label={`Move ${normalized.name} down`}
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small workspace-action-btn"
+                      onClick={() => onStartEdit(normalized)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small workspace-action-btn"
+                      onClick={() => onToggleActive(normalized)}
+                    >
+                      {normalized.isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn small workspace-action-btn"
+                      onClick={() => onRequestDelete(normalized)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
+              </article>
+            )
+          })}
+        </div>
+      )}
+    </div>
   )
 
   return (
     <>
+      {hoursOnly ? hoursList : null}
+      {hoursOnly ? null : (
       <div className="workspace-section-header">
         <div>
           <p className="eyebrow">Venue</p>
@@ -123,6 +305,7 @@ export function WorkspaceReservationSeatingsSection({
           </p>
         </div>
       </div>
+      )}
 
       {showAutoClose ? (
         <div className="panel staff-panel workspace-panel">
@@ -176,11 +359,13 @@ export function WorkspaceReservationSeatingsSection({
         </div>
       ) : null}
 
-      <HostDiningTimerSettings />
+      {hoursOnly ? null : <HostDiningTimerSettings />}
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading seatings…</div> : null}
 
+      {hoursOnly ? editForm : null}
+      {hoursOnly ? null : (
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
@@ -258,89 +443,9 @@ export function WorkspaceReservationSeatingsSection({
           </div>
         </form>
       </div>
+      )}
 
-      <div className="panel staff-panel workspace-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Seating list</p>
-            <h3>{seatings.length} seating{seatings.length === 1 ? '' : 's'}</h3>
-          </div>
-        </div>
-
-        {seatings.length === 0 && !isLoading ? (
-          <div className="schedule-empty-state">
-            <h4>No seatings configured.</h4>
-            <p>Add your first service seating to power table availability.</p>
-          </div>
-        ) : (
-          <div className="positions-list workspace-seatings-list">
-            {seatings.map((seating, index) => {
-              const normalized = normalizeReservationSeating(seating)
-              if (!normalized) return null
-
-              return (
-                <article
-                  key={normalized.id}
-                  className={`position-row workspace-seating-row${normalized.isActive ? '' : ' is-inactive'}`}
-                >
-                  <div>
-                    <strong>{normalized.name}</strong>
-                    <p>
-                      {normalized.startTime}
-                      {' · '}
-                      {normalized.durationMinutes} min
-                      {' · '}
-                      {formatSeatingDaysLabel(normalized.daysOfWeek)}
-                    </p>
-                    {!normalized.isActive ? <small>Inactive</small> : null}
-                  </div>
-                  <div className="action-group">
-                    <button
-                      type="button"
-                      className="ghost-btn small workspace-action-btn"
-                      onClick={() => onMoveSeating(normalized, 'up')}
-                      disabled={index === 0}
-                      aria-label={`Move ${normalized.name} up`}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn small workspace-action-btn"
-                      onClick={() => onMoveSeating(normalized, 'down')}
-                      disabled={index === seatings.length - 1}
-                      aria-label={`Move ${normalized.name} down`}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn small workspace-action-btn"
-                      onClick={() => onStartEdit(normalized)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn small workspace-action-btn"
-                      onClick={() => onToggleActive(normalized)}
-                    >
-                      {normalized.isActive ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn small workspace-action-btn"
-                      onClick={() => onRequestDelete(normalized)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )}
-      </div>
+      {hoursOnly ? null : hoursList}
     </>
   )
 }

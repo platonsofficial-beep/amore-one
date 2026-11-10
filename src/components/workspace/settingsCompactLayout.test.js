@@ -44,6 +44,8 @@ describe('settings compact layout', () => {
     expect(compact).toContain('.app-shell.is-settings-view .topbar .date-pill')
     expect(compact).toContain('.app-shell.is-settings-view .topbar .welcome-subtitle')
     expect(compact).toContain('.app-shell.is-settings-view .topbar .profile-chip')
+    expect(compact).toContain('position: relative')
+    expect(compact).toMatch(/\.app-shell\.is-settings-view \.topbar-title-block h2 \{[^}]*text-overflow:\s*clip/)
 
     for (const query of [
       '@media (max-width: 1180px)',

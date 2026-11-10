@@ -70,10 +70,16 @@ export function WorkspaceView({
     const el = scrollerRef.current
     if (!el) return undefined
     const update = () => {
-      const max = el.scrollWidth - el.clientWidth
+      const style = getComputedStyle(el)
+      const gap = Number.parseFloat(style.columnGap) || Number.parseFloat(style.gap) || 0
+      const kids = [...el.children]
+      const content = kids.reduce((sum, kid, index) => (
+        sum + kid.getBoundingClientRect().width + (index > 0 ? gap : 0)
+      ), 0)
+      const hidden = content - el.clientWidth
       setEdges({
-        start: max > 8 && el.scrollLeft > 8,
-        end: max > 8 && el.scrollLeft < max - 8,
+        start: hidden > 8 && el.scrollLeft > 8,
+        end: hidden > 8 && el.scrollLeft + el.clientWidth < content - 8,
       })
     }
     update()
