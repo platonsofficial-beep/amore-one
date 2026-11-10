@@ -583,7 +583,10 @@ import { AttendanceBoard } from './components/attendance/AttendanceBoard'
 import { AttendanceClockScreen } from './components/attendance/AttendanceClockScreen'
 import { useClockedInNow } from './hooks/useClockedInNow'
 import { VenueClockSettings } from './components/attendance/VenueClockSettings'
-import { createDefaultSeatingForm } from './components/workspace/WorkspaceReservationSeatingsSection'
+import {
+  createDefaultSeatingForm,
+  WorkspaceReservationSeatingsSection,
+} from './components/workspace/WorkspaceReservationSeatingsSection'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { StockSectionNav } from './components/shell/StockSectionNav'
@@ -15223,6 +15226,8 @@ function App() {
   const [editingReservationSeatingId, setEditingReservationSeatingId] = useState(null)
   const [reservationSeatingForm, setReservationSeatingForm] = useState(createDefaultSeatingForm)
   const [reservationSeatingPendingDelete, setReservationSeatingPendingDelete] = useState(null)
+  const [isSeatingHoursOpen, setIsSeatingHoursOpen] = useState(false)
+  useEscapeToClose(() => setIsSeatingHoursOpen(false), { enabled: isSeatingHoursOpen })
   const [isSavingPosition, setIsSavingPosition] = useState(false)
   const [positionPendingDelete, setPositionPendingDelete] = useState(null)
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
@@ -16085,19 +16090,8 @@ function App() {
 
   const handleOpenReservationServices = useCallback(() => {
     if (!canConfigureReservationSeatingsRole) return
-    if (useMobileExperience) {
-      setMobileExpandedView('workspace')
-    } else {
-      setMobileReservationsHostMode(false)
-    }
-    handleActiveViewChange('settings')
-    handleSettingsSectionChange('reservations')
-  }, [
-    canConfigureReservationSeatingsRole,
-    useMobileExperience,
-    handleActiveViewChange,
-    handleSettingsSectionChange,
-  ])
+    setIsSeatingHoursOpen(true)
+  }, [canConfigureReservationSeatingsRole])
 
   const workspaceTimeZone = workspaceProfile.timezone
 
@@ -24995,6 +24989,46 @@ function App() {
     ? openNotificationSettings
     : undefined
 
+  const reservationSeatingsEditorProps = canConfigureReservationSeatingsRole ? {
+    seatings: reservationSeatings,
+    isLoading: isReservationSeatingsLoading,
+    noticeMessage: reservationSeatingsNotice,
+    form: reservationSeatingForm,
+    isSaving: isSavingReservationSeating,
+    editingSeatingId: editingReservationSeatingId,
+    onFormChange: setReservationSeatingForm,
+    onSubmit: handleReservationSeatingSubmit,
+    onStartEdit: handleStartEditReservationSeating,
+    onCancelEdit: handleCancelEditReservationSeating,
+    onRequestDelete: handleRequestDeleteReservationSeating,
+    onMoveSeating: handleMoveReservationSeating,
+    onToggleActive: handleToggleReservationSeatingActive,
+    autoCloseTime: workspaceProfileDraft.reservationAutoCloseTime,
+    onAutoCloseTimeChange: (reservationAutoCloseTime) => {
+      setWorkspaceProfileDraft((current) => ({
+        ...current,
+        reservationAutoCloseTime,
+      }))
+    },
+    onSaveAutoClose: handleWorkspaceProfileSubmit,
+    isSavingAutoClose: isSavingWorkspaceProfile,
+    autoCloseNotice: workspaceProfileNotice,
+  } : {
+    seatings: [],
+    isLoading: false,
+    noticeMessage: 'Reservation management permission is required to configure seatings.',
+    form: createDefaultSeatingForm(),
+    isSaving: false,
+    editingSeatingId: null,
+    onFormChange: () => {},
+    onSubmit: (event) => event.preventDefault(),
+    onStartEdit: () => {},
+    onCancelEdit: () => {},
+    onRequestDelete: () => {},
+    onMoveSeating: () => {},
+    onToggleActive: () => {},
+  }
+
   const {
     bell: notificationBell,
     reminderCard: shiftReminderCard,
@@ -25846,45 +25880,7 @@ function App() {
                 />
               ) : null,
             }}
-            reservationSeatingsProps={canConfigureReservationSeatingsRole ? {
-              seatings: reservationSeatings,
-              isLoading: isReservationSeatingsLoading,
-              noticeMessage: reservationSeatingsNotice,
-              form: reservationSeatingForm,
-              isSaving: isSavingReservationSeating,
-              editingSeatingId: editingReservationSeatingId,
-              onFormChange: setReservationSeatingForm,
-              onSubmit: handleReservationSeatingSubmit,
-              onStartEdit: handleStartEditReservationSeating,
-              onCancelEdit: handleCancelEditReservationSeating,
-              onRequestDelete: handleRequestDeleteReservationSeating,
-              onMoveSeating: handleMoveReservationSeating,
-              onToggleActive: handleToggleReservationSeatingActive,
-              autoCloseTime: workspaceProfileDraft.reservationAutoCloseTime,
-              onAutoCloseTimeChange: (reservationAutoCloseTime) => {
-                setWorkspaceProfileDraft((current) => ({
-                  ...current,
-                  reservationAutoCloseTime,
-                }))
-              },
-              onSaveAutoClose: handleWorkspaceProfileSubmit,
-              isSavingAutoClose: isSavingWorkspaceProfile,
-              autoCloseNotice: workspaceProfileNotice,
-            } : {
-              seatings: [],
-              isLoading: false,
-              noticeMessage: 'Reservation management permission is required to configure seatings.',
-              form: createDefaultSeatingForm(),
-              isSaving: false,
-              editingSeatingId: null,
-              onFormChange: () => {},
-              onSubmit: (event) => event.preventDefault(),
-              onStartEdit: () => {},
-              onCancelEdit: () => {},
-              onRequestDelete: () => {},
-              onMoveSeating: () => {},
-              onToggleActive: () => {},
-            }}
+            reservationSeatingsProps={reservationSeatingsEditorProps}
             teamProps={{
               employees,
               managerName: workspaceProfile.managerName,
@@ -27461,6 +27457,39 @@ function App() {
                 <button type="button" className="primary-btn" onClick={handleConfirmDeleteReservationSeating} disabled={isSavingReservationSeating}>
                   {isSavingReservationSeating ? 'Deleting…' : 'Delete seating'}
                 </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isSeatingHoursOpen ? (
+          <div
+            className="employee-modal-backdrop seating-hours-overlay"
+            onClick={() => setIsSeatingHoursOpen(false)}
+          >
+            <div
+              className="employee-modal seating-hours-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="seating-hours-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Reservations</p>
+                  <h3 id="seating-hours-title">Seating hours</h3>
+                </div>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setIsSeatingHoursOpen(false)}
+                  aria-label="Close seating hours"
+                >
+                  ✕
+                </button>
+              </div>
+              <div className="seating-hours-sheet-body">
+                <WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />
               </div>
             </div>
           </div>
