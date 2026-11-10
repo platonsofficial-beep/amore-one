@@ -51,21 +51,28 @@
   .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
   .mobile-host-reservations.is-landscape .floor-plan-toolbar-more-summary,
   .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .mobile-host-services-btn,
+  .mobile-host-reservations.is-landscape .mobile-host-mode-exit-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    min-height: 44px;
+    height: 44px;
+    font-size: calc(13px * var(--ui-scale));
+  }
+
   .mobile-host-reservations.is-landscape .host-queue-toolbar-btn,
   .mobile-host-reservations.is-landscape .mobile-host-reservations-walk-in-btn,
   .mobile-host-reservations.is-landscape .mobile-host-reservations-add-btn,
-  .mobile-host-reservations.is-landscape .floor-seating-selector-chip,
-  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
     min-height: var(--ui-control);
     height: var(--ui-control);
     font-size: calc(13px * var(--ui-scale));
   }
 
-  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn:not(.floor-plan-zoom-fit),
   .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
   .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
-    min-width: var(--ui-control);
-    width: var(--ui-control);
+    min-width: 44px;
+    width: 44px;
   }
 
   .employee-modal-backdrop:has(.reservation-smart-modal.is-responsive-sheet) {

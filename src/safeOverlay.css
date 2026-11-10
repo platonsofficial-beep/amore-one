@@ -1576,10 +1576,13 @@ body {
   .mobile-host-sticky-date-step-btn,
   .mobile-host-sticky-date-calendar-btn,
   .mobile-host-mode-exit-btn,
+  .mobile-host-services-btn,
   .mobile-host-reservations-walk-in-btn,
   .host-queue-toolbar-btn,
   .floor-plan-area-nav-btn,
   .floor-plan-zoom-btn,
+  .floor-plan-toolbar-more-summary,
+  .floor-plan-mode-btn,
   .mobile-manager-stock-quick-btn:not(.mobile-manager-stock-quick-btn-primary),
   .mobile-manager-stock-pending-btn,
   .schedule-availability-edit-btn
@@ -1600,10 +1603,13 @@ body {
     .mobile-host-sticky-date-step-btn,
     .mobile-host-sticky-date-calendar-btn,
     .mobile-host-mode-exit-btn,
+    .mobile-host-services-btn,
     .mobile-host-reservations-walk-in-btn,
     .host-queue-toolbar-btn,
     .floor-plan-area-nav-btn,
     .floor-plan-zoom-btn,
+    .floor-plan-toolbar-more-summary:not([aria-expanded='true']),
+    .floor-plan-mode-btn,
     .mobile-manager-stock-quick-btn:not(.mobile-manager-stock-quick-btn-primary),
     .mobile-manager-stock-pending-btn,
     .schedule-availability-edit-btn
@@ -1621,14 +1627,24 @@ body {
   .manager-portrait-date-nav > button,
   .mobile-host-sticky-date-step-btn,
   .mobile-host-mode-exit-btn,
+  .mobile-host-services-btn,
   .mobile-host-reservations-walk-in-btn,
-  .host-queue-toolbar-btn
+  .host-queue-toolbar-btn,
+  .floor-plan-toolbar-more-summary,
+  .floor-plan-mode-btn
 ):not(.primary-btn):not([class*='danger']):not([class*='delete']):not([class*='remove']):not(.schedule-unpublish-btn):not(:disabled):active {
   background: var(--one-secondary-fill-hover) !important;
 }
 
 :root :is(.ghost-btn, .secondary-btn, .mobile-secondary-btn, .shift-reminder-btn-quiet, .manager-portrait-date-nav > button):disabled {
   opacity: 0.55;
+}
+
+/* More is a menu, not a selected mode. Gold only while the menu is open. */
+:root :is(.floor-plan-toolbar-more-summary[aria-expanded='true']):not(.primary-btn):not([class*='danger']):not([class*='delete']):not([class*='remove']):not(.schedule-unpublish-btn) {
+  background: var(--one-gold-a12) !important;
+  border-color: var(--one-gold-a55) !important;
+  color: var(--one-gold-text) !important;
 }
 
 /* Outline-only toggles/tabs on phone get the same quiet fill when not selected. */

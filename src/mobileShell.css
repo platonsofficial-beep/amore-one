@@ -10637,6 +10637,95 @@ body:not(:has(.inventory-count-session)) :is(
   }
 }
 
+/* Landscape host chrome: Services, Exit, the area switcher, More, zoom, and
+   the lock share one height and the same gap. More is quiet until it opens. */
+.mobile-host-reservations.is-landscape {
+  --host-chrome-size: 44px;
+  --host-chrome-gap: 8px;
+  --host-chrome-radius: 12px;
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-sticky-actions,
+.mobile-host-reservations.is-landscape .floor-plan-toolbar-actions-group,
+.mobile-host-reservations.is-landscape .floor-plan-zoom-controls,
+.mobile-host-reservations.is-landscape .floor-plan-zoom-controls-group,
+.mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+  gap: var(--host-chrome-gap);
+}
+
+.mobile-host-reservations.is-landscape .floor-plan-toolbar {
+  row-gap: var(--host-chrome-gap);
+}
+
+.mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,
+.mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-services-btn,
+.mobile-host-reservations.is-landscape .mobile-host-mode-exit-btn,
+.mobile-host-reservations.is-landscape .floor-plan-toolbar-more-summary,
+.mobile-host-reservations.is-landscape .floor-plan-mode-btn,
+.mobile-host-reservations.is-landscape .floor-plan-dining-timers-btn,
+.mobile-host-reservations.is-landscape .floor-plan-zoom-fit {
+  box-sizing: border-box;
+  height: var(--host-chrome-size);
+  min-height: var(--host-chrome-size);
+  min-width: 44px;
+  width: auto;
+  padding: 0 14px;
+  border-radius: var(--host-chrome-radius);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+.mobile-host-reservations.is-landscape .floor-plan-zoom-btn:not(.floor-plan-zoom-fit),
+.mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
+.mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+  box-sizing: border-box;
+  width: var(--host-chrome-size);
+  min-width: var(--host-chrome-size);
+  height: var(--host-chrome-size);
+  min-height: var(--host-chrome-size);
+  padding: 0;
+  border-radius: var(--host-chrome-radius);
+}
+
+.mobile-host-reservations.is-landscape .floor-plan-area-select-input {
+  box-sizing: border-box;
+  height: var(--host-chrome-size);
+  min-height: var(--host-chrome-size);
+  padding: 0 32px 0 14px;
+  border-radius: var(--host-chrome-radius);
+  border: 1px solid var(--one-secondary-border);
+  background: var(--one-secondary-fill);
+  color: var(--one-secondary-ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.mobile-host-reservations.is-landscape .floor-plan-zoom-controls-group {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.mobile-host-reservations.is-portrait .mobile-host-sticky-actions {
+  gap: 10px;
+}
+
+.mobile-host-reservations.is-portrait .mobile-host-services-btn,
+.mobile-host-reservations.is-portrait .mobile-host-mode-exit-btn {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+}
+
 /* Tablet host floor: seating names stay whole. The count stays on its own line. */
 @media (min-width: 700px) and (min-height: 700px) {
   .mobile-host-reservations .floor-seating-selector-scroll {
