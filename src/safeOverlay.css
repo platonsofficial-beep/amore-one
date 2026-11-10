@@ -572,6 +572,18 @@ body {
   .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
     padding-left: 8px;
     padding-right: 8px;
+    /* The symmetric island inset was also applied on the far side, so iPhone
+       landscape kept a wide empty band when the right inset was 0. Honor the
+       real right inset and keep a slim edge like Android. */
+    right: max(12px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+
+  :root[data-island='left'] .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    right: max(12px, var(--one-far-inset, 8px));
+  }
+
+  :root[data-island='right'] .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    right: var(--one-island-inset);
   }
 
   /* The bell and ? sit inside the header bar (it reserves 100px for them),

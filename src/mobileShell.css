@@ -6458,6 +6458,14 @@
   align-self: stretch;
 }
 
+/* The dedicated shell already stops the plan at the full bottom inset.
+   Keep a slim clearance so the home indicator does not cover the frame. */
+@media (orientation: landscape) {
+  .app-shell.is-reservations-dedicated-shell .main-panel.main-panel-reservations {
+    bottom: 8px;
+  }
+}
+
 .mobile-host-reservations.is-landscape .floor-plan-workspace.is-host-floor,
 .mobile-host-reservations.is-landscape .floor-plan-host-shell,
 .mobile-host-reservations.is-landscape .floor-plan-host-main,
