@@ -10721,9 +10721,8 @@ function FloorPlanView({
 
     const measure = () => {
       if (cancelled) return false
-      const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
-      const width = Math.round(layoutSpace?.clientWidth || viewport.clientWidth || 0)
-      const height = Math.round(layoutSpace?.clientHeight || viewport.clientHeight || 0)
+      const width = Math.round(viewport.clientWidth || 0)
+      const height = Math.round(viewport.clientHeight || 0)
       if (width < 2 || height < 2) return false
 
       if (suppressFloorAutoFitRef.current) {

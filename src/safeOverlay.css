@@ -1658,12 +1658,53 @@ body {
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
   .mobile-host-reservations.is-landscape .floor-plan-toolbar,
   .mobile-host-reservations.is-landscape .mobile-host-sticky-bar,
-  .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
-    row-gap: 8px;
-    column-gap: 8px;
+  .mobile-host-reservations.is-landscape .floor-seating-selector-shell,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher,
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions-group,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-controls-group {
+    row-gap: 4px;
+    column-gap: 4px;
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-shell {
-    padding-top: 8px;
+    padding-top: 4px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
+    height: 32px;
+    min-height: 32px;
+    padding: 0 8px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar > :first-child,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-toolbar-actions,
+  .mobile-host-reservations.is-landscape .floor-plan-area-switcher {
+    padding-right: 0;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-area-select-input,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    height: 36px !important;
+    min-height: 36px !important;
+    max-height: 36px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-btn:not(.floor-plan-zoom-fit),
+  .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    width: 36px;
+    min-width: 36px;
   }
 }
