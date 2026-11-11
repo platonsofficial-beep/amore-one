@@ -625,7 +625,8 @@ import {
   shouldUseFluidScheduleDayColumns,
   SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH,
 } from './lib/mobileScheduleUtils'
-import { buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
+import { resolveEmployeeDayAdjust } from './lib/scheduleEmployeeDayAdjust'
+import { buildSchedulePreviewEmployees, buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
 import {
@@ -5247,6 +5248,70 @@ function ScheduleView({
     setFocusedEmployeeId((current) => (current === employeeKey ? null : employeeKey))
   }
 
+  const handleAdjustFocusedEmployeeToDay = async (dayKey) => {
+    if (!canEditSchedule || !focusedEmployeeId || isSaving) return
+    const employee = employees.find((item) => String(item.id) === String(focusedEmployeeId))
+    if (!employee) {
+      setAssignmentError('Employee could not be found.')
+      return
+    }
+    if (isEmployeeUnavailable(employee)) {
+      setAssignmentError('This employee is not available for assignment.')
+      return
+    }
+
+    const decision = resolveEmployeeDayAdjust({
+      employeeId: focusedEmployeeId,
+      dayKey,
+      shifts,
+      rows: blendGridRows,
+    })
+    if (decision.action === 'noop' || decision.action === 'error') {
+      setAssignmentError(decision.message || '')
+      return
+    }
+
+    const areaInfo = inferAreaFromTemplate(decision.template)
+    const positionName = resolvePositionForDrop(
+      employee,
+      { area: areaInfo.area, defaultRole: decision.template?.defaultRole ?? '' },
+      areaPositionCatalog,
+    )
+    if (decision.action === 'assign' && !positionName) {
+      setAssignmentError('Could not determine a position for this employee. Use + to assign manually.')
+      return
+    }
+
+    try {
+      setAssignmentError('')
+      if (decision.action === 'move') {
+        await onMoveGridShift(decision.shiftId, {
+          template: decision.template,
+          shiftDate: decision.dayKey,
+          requiredCount: decision.cell?.requiredCount ?? 1,
+          currentAssignedCount: decision.cell?.assignedCount ?? 0,
+        })
+      } else {
+        await onCreateGridShift({
+          employeeId: employee.id,
+          shiftDate: decision.dayKey,
+          template: {
+            ...decision.template,
+            defaultArea: areaInfo.area || decision.template?.defaultArea || '',
+            defaultRole: decision.template?.defaultRole || positionName,
+          },
+          positionName,
+          notes: '',
+          requiredCount: decision.cell?.requiredCount ?? 1,
+          currentAssignedCount: decision.cell?.assignedCount ?? 0,
+        })
+      }
+      setFocusedEmployeeId(null)
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to assign this employee right now.')
+    }
+  }
+
   const closeAvailabilityEditor = () => {
     if (!availabilityEditor || availabilityEditor.isSaving) return
     const saved = JSON.stringify(availabilityEditor.savedWeek ?? null)
@@ -5977,6 +6042,9 @@ function ScheduleView({
                     onClick={() => {
                     selectedScheduleDayExplicitRef.current = true
                     setSelectedDay(day.key)
+                    if (focusedEmployeeId) {
+                      handleAdjustFocusedEmployeeToDay(day.key)
+                    }
                   }}
                   >
                     <strong className="blend-grid-header-day-name" title={dayHeader.weekdayLabel}>
@@ -17936,11 +18004,19 @@ function App() {
       try {
         const remoteEmployees = await getEmployees(activeWorkspaceId)
         if (!isMounted) return
-        setEmployees(remoteEmployees)
-        setScheduleEmployees(remoteEmployees.filter((employee) => !isEmployeeDisabled(employee)))
+        const nextEmployees = remoteEmployees.length === 0 && shouldUseSchedulePreviewFixture(window.location.search)
+          ? buildSchedulePreviewEmployees()
+          : remoteEmployees
+        setEmployees(nextEmployees)
+        setScheduleEmployees(nextEmployees.filter((employee) => !isEmployeeDisabled(employee)))
       } catch (error) {
         if (!isMounted) return
-
+        if (shouldUseSchedulePreviewFixture(window.location.search)) {
+          const previewEmployees = buildSchedulePreviewEmployees()
+          setEmployees(previewEmployees)
+          setScheduleEmployees(previewEmployees)
+          return
+        }
         setEmployees([])
         setScheduleEmployees([])
         setStaffNotice(error.message || 'Unable to load employees right now.')
@@ -20671,6 +20747,24 @@ function App() {
   }
 
   const handleCreateGridShift = async ({ employeeId, shiftDate, template, positionName, notes, requiredCount = 1, currentAssignedCount = 0 }) => {
+    if (shouldUseSchedulePreviewFixture(window.location.search)) {
+      const createdShift = {
+        id: `preview-shift-${employeeId}-${shiftDate}-${resolveShiftTemplateId(template) ?? 'shift'}`,
+        employeeId,
+        employee_id: employeeId,
+        date: shiftDate,
+        startTime: normalizeTimeValue(template?.startTime),
+        endTime: normalizeTimeValue(template?.endTime),
+        role: positionName?.trim() || template?.defaultRole || '',
+        area: template?.defaultArea ?? '',
+        shiftTemplateId: resolveShiftTemplateId(template),
+        status: 'Scheduled',
+        notes: (notes ?? '').trim(),
+      }
+      setShifts((current) => [...current, createdShift])
+      setScheduleNotice(formatStaffingNotice(requiredCount, Number(currentAssignedCount) + 1))
+      return createdShift
+    }
     if (!canEditScheduleRole || !activeWorkspaceId) {
       throw new Error('You do not have permission to edit the schedule.')
     }
@@ -20906,6 +21000,18 @@ function App() {
     const targetShift = shifts.find((shift) => shift.id === shiftId)
     if (!targetShift) {
       throw new Error('Shift assignment could not be found.')
+    }
+    if (shouldUseSchedulePreviewFixture(window.location.search)) {
+      const normalizedTargetDate = normalizeCellDateKey(shiftDate)
+      const moved = {
+        ...targetShift,
+        date: normalizedTargetDate,
+        shiftTemplateId: resolveShiftTemplateId(template) ?? resolveShiftTemplateId(targetShift),
+        area: `${template?.defaultArea ?? ''}`.trim() || `${targetShift.area ?? ''}`.trim(),
+      }
+      setShifts((current) => current.map((shift) => (shift.id === shiftId ? moved : shift)))
+      setScheduleNotice('Shift updated.')
+      return moved
     }
 
     const normalizedTargetDate = normalizeCellDateKey(shiftDate)
