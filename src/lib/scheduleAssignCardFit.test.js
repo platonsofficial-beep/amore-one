@@ -20,6 +20,13 @@ describe('assign card with the missing-area prompt', () => {
     expect(area).not.toContain('shift template')
     expect(middle).toContain('assignment-employee-list')
     expect(middle).not.toContain('assignment-area-warning')
+    const filtersAt = app.indexOf('className="assignment-card-filters"')
+    expect(filtersAt).toBeGreaterThan(areaAt)
+    expect(filtersAt).toBeLessThan(bodyAt)
+    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label="Department"')
+    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label="Position"')
+    expect(app).toContain("setAssignmentDepartment(filters.department || 'All')")
+    expect(app).toContain("setAssignmentPosition(filters.position || 'All')")
     expect(app.slice(app.indexOf('<h3>Assign employees</h3>'), actionsAt)).not.toContain('Remaining')
   })
 

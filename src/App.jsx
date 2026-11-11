@@ -369,6 +369,7 @@ import {
   buildSchedulePositionFilterOptions,
   employeeMatchesScheduleDepartment,
   employeeMatchesSchedulePosition,
+  filterScheduleStaffEmployees,
   getEmployeePositionNames,
   getEmployeePrimaryPosition,
   inferAreaFromTemplate,
@@ -2956,6 +2957,8 @@ function ScheduleView({
     notes: '',
   })
   const [assignmentEmployeeSearch, setAssignmentEmployeeSearch] = useState('')
+  const [assignmentDepartment, setAssignmentDepartment] = useState('All')
+  const [assignmentPosition, setAssignmentPosition] = useState('All')
   const [assignmentEmployeeRoleMap, setAssignmentEmployeeRoleMap] = useState({})
   const [assignmentAreaApplyMode, setAssignmentAreaApplyMode] = useState('once')
   const [capacityPickerKey, setCapacityPickerKey] = useState('')
@@ -4631,11 +4634,13 @@ function ScheduleView({
     return employees.filter((employee) => selectedSet.has(String(employee.id)))
   }, [assignmentDraft.employeeIds, employees])
 
-  const assignmentEmployeeOptions = useMemo(() => {
-    const needle = assignmentEmployeeSearch.trim().toLowerCase()
-    if (!needle) return employees
-    return employees.filter((employee) => `${employee.full_name || employee.name || ''}`.toLowerCase().includes(needle))
-  }, [assignmentEmployeeSearch, employees])
+  const assignmentEmployeeOptions = useMemo(() => (
+    filterScheduleStaffEmployees(employees, {
+      department: assignmentDepartment,
+      position: assignmentPosition,
+      search: assignmentEmployeeSearch,
+    })
+  ), [assignmentDepartment, assignmentEmployeeSearch, assignmentPosition, employees])
 
   const getEmployeeAdditionalPositions = (employee) => {
     const names = getEmployeePositionNames(employee)
@@ -4768,6 +4773,8 @@ function ScheduleView({
     setAssignmentMissingFields([])
     setAssignmentAreaApplyMode('once')
     setAssignmentEmployeeSearch('')
+    setAssignmentDepartment(filters.department || 'All')
+    setAssignmentPosition(filters.position || 'All')
     setAssignmentEmployeeRoleMap({})
     const areaInfo = inferAreaFromTemplate(template)
     setAssignmentDraft({
@@ -4793,6 +4800,8 @@ function ScheduleView({
     setAssignmentMissingFields([])
     setAssignmentAreaApplyMode('once')
     setAssignmentEmployeeSearch('')
+    setAssignmentDepartment('All')
+    setAssignmentPosition('All')
     setAssignmentEmployeeRoleMap({})
     setAssignmentDraft({
       templateId: '',
@@ -7454,17 +7463,53 @@ function ScheduleView({
                 </div>
               ) : null}
 
+              <div className="assignment-card-filters">
+                <label className="schedule-filter-field schedule-filter-search">
+                  <span className="schedule-filter-label">Search employee</span>
+                  <input
+                    type="search"
+                    value={assignmentEmployeeSearch}
+                    onChange={(event) => setAssignmentEmployeeSearch(event.target.value)}
+                    placeholder="Search by name"
+                    aria-label="Search employee"
+                  />
+                </label>
+                <label className="schedule-filter-field">
+                  <span className="schedule-filter-label">Department</span>
+                  <select
+                    aria-label="Department"
+                    value={assignmentDepartment}
+                    onChange={(event) => setAssignmentDepartment(event.target.value)}
+                  >
+                    <option value="All">All departments</option>
+                    <option value="Bar">Bar</option>
+                    <option value="Service">Service</option>
+                    <option value="Host">Host</option>
+                    <option value="Kitchen">Kitchen</option>
+                    <option value="Management">Management</option>
+                  </select>
+                </label>
+                <label className="schedule-filter-field">
+                  <span className="schedule-filter-label">Position</span>
+                  <select
+                    aria-label="Position"
+                    value={assignmentPosition}
+                    onChange={(event) => setAssignmentPosition(event.target.value)}
+                  >
+                    {positionFilterOptions.map((option) => (
+                      <option key={`assignment-position-filter-${option}`} value={option}>
+                        {option === 'All' ? 'All positions' : option}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
               <div className="assignment-card-body">
-              <label className="form-field">
-                <span>Employees</span>
-                <input
-                  type="search"
-                  value={assignmentEmployeeSearch}
-                  onChange={(event) => setAssignmentEmployeeSearch(event.target.value)}
-                  placeholder="Search by name"
-                />
-                <div className={`assignment-employee-list ${assignmentFieldErrors.employee_ids ? 'field-invalid' : ''}`}>
-                  {assignmentEmployeeOptions.map((employee) => {
+              <div className={`assignment-employee-list ${assignmentFieldErrors.employee_ids ? 'field-invalid' : ''}`}>
+                  {assignmentEmployeeOptions.length === 0 ? (
+                    <p className="schedule-staff-strip-empty">No employees match these filters.</p>
+                  ) : assignmentEmployeeOptions.map((employee) => {
                     const employeeId = String(employee.id)
                     const checked = (assignmentDraft.employeeIds ?? []).some((id) => String(id) === employeeId)
                     const alreadyAssigned = assignmentContext?.cell
@@ -7519,7 +7564,6 @@ function ScheduleView({
                 </div>
                 {assignmentFieldErrors.employee_ids ? <small className="field-helper-error">Select at least one employee.</small> : null}
                 {assignmentFieldErrors.employee_positions ? <small className="field-helper-error">Every selected employee needs a position.</small> : null}
-              </label>
               </div>
 
               {assignmentError ? (
