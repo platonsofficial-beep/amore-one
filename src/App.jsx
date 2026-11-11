@@ -7406,12 +7406,13 @@ function ScheduleView({
               {assignmentDraft.templateAreaMissing ? (
                 <div className="assignment-area-warning">
                   <p>
-                    This shift template has no saved Area.
-                    {assignmentDraft.area ? ` Using ${assignmentDraft.area} for this assignment.` : ' Select an Area to continue.'}
+                    {assignmentDraft.area
+                      ? `No area saved. Using ${assignmentDraft.area} for this assignment.`
+                      : 'No area saved. Choose one to continue.'}
                   </p>
 
                   <label className="form-field">
-                    <span>Area (required)</span>
+                    <span>Area</span>
                     <select
                       className={assignmentFieldErrors.area ? 'field-invalid' : ''}
                       value={assignmentDraft.area}
@@ -7432,7 +7433,7 @@ function ScheduleView({
                   </label>
 
                   <div className="assignment-area-apply">
-                    <span>Apply this Area to the template permanently?</span>
+                    <span>Save this area on the template?</span>
                     <div className="action-group">
                       <button
                         type="button"
@@ -7453,6 +7454,7 @@ function ScheduleView({
                 </div>
               ) : null}
 
+              <div className="assignment-card-body">
               <label className="form-field">
                 <span>Employees</span>
                 <input
@@ -7518,6 +7520,7 @@ function ScheduleView({
                 {assignmentFieldErrors.employee_ids ? <small className="field-helper-error">Select at least one employee.</small> : null}
                 {assignmentFieldErrors.employee_positions ? <small className="field-helper-error">Every selected employee needs a position.</small> : null}
               </label>
+              </div>
 
               {assignmentError ? (
                 <div className="staff-status-banner">{assignmentError}</div>

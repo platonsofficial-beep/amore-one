@@ -23568,8 +23568,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .schedule-assignment-modal .assignment-context-card.assignment-context-card-simple {
-    padding: 6px 10px;
-    gap: 4px;
+    padding: 4px 8px;
+    gap: 2px;
+  }
+
+  .schedule-assignment-modal .assignment-context-row {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
   }
 
   .schedule-assignment-modal .assignment-context-grid {
@@ -23578,6 +23584,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .schedule-assignment-modal .modal-actions {
     padding-top: 6px;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning {
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning .form-field {
+    gap: 2px;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning .form-field > span:first-child,
+  .schedule-assignment-modal .assignment-area-apply > span {
+    display: none;
+  }
+
+  .schedule-assignment-modal .assignment-area-apply {
+    gap: 4px;
   }
 }
 
@@ -23600,6 +23624,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 0 0 auto;
 }
 
+.schedule-assignment-modal .assignment-card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .schedule-assignment-modal .employee-form {
   display: flex;
   flex-direction: column;
@@ -23608,21 +23642,32 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
 }
 
-.schedule-assignment-modal .employee-form > .form-field:has(.assignment-employee-list) {
-  flex: 1 1 auto;
+.schedule-assignment-modal .assignment-card-body > .form-field:has(.assignment-employee-list) {
+  flex: 0 0 auto;
   min-height: 0;
   min-width: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .schedule-assignment-modal .assignment-employee-list {
-  flex: 1 1 auto;
-  min-height: 96px;
+  flex: 0 0 auto;
+  min-height: 0;
   min-width: 0;
   max-height: none;
-  overflow-y: auto;
+  overflow: visible;
+}
+
+.schedule-assignment-modal .assignment-area-warning select,
+.schedule-assignment-modal .assignment-area-apply .ghost-btn {
+  min-height: 44px;
+}
+
+.schedule-assignment-modal .assignment-area-warning {
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.schedule-assignment-modal .assignment-area-apply .action-group {
+  flex-wrap: wrap;
 }
 
 .schedule-assignment-modal .modal-actions {
