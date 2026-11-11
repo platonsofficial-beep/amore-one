@@ -6,6 +6,19 @@ export function shouldUseSchedulePreviewFixture(search = '') {
   return new URLSearchParams(query).get('scheduleFixture') === '1'
 }
 
+export function buildSchedulePreviewEmployees() {
+  return [
+    {
+      id: 'preview-ana',
+      full_name: 'Ana Ribeiro',
+      name: 'Ana Ribeiro',
+      position: 'Service',
+      positions: ['Service'],
+      status: 'Active',
+    },
+  ]
+}
+
 export function buildSchedulePreviewTemplates() {
   return [
     {
