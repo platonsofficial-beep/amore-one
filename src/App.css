@@ -23564,22 +23564,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .schedule-assignment-modal .assignment-context-shift-line {
-    padding-bottom: 4px;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .schedule-assignment-modal .assignment-context-card.assignment-context-card-simple {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
     padding: 4px 8px;
-    gap: 2px;
+    gap: 2px 10px;
+  }
+
+  .schedule-assignment-modal .assignment-context-grid {
+    display: contents;
   }
 
   .schedule-assignment-modal .assignment-context-row {
     flex-direction: row;
     align-items: baseline;
-    gap: 6px;
+    gap: 4px;
   }
 
-  .schedule-assignment-modal .assignment-context-grid {
-    gap: 2px 12px;
+  .schedule-assignment-modal .assignment-context-row strong {
+    font-size: 0.84rem;
   }
 
   .schedule-assignment-modal .modal-actions {
@@ -23644,7 +23653,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (orientation: landscape) and (max-height: 520px) {
   .schedule-assignment-modal .assignment-card-filters {
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 1.35fr);
     gap: 6px;
   }
 
@@ -23655,20 +23664,67 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-label {
     display: none;
   }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input,
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
+    padding: 0 8px;
+    font-size: 0.78rem;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
+    padding-right: 26px;
+  }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
+  .schedule-assignment-modal .assignment-area-warning {
+    display: grid;
+    grid-template-columns: minmax(72px, 0.7fr) minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 4px 6px;
+    align-items: center;
+    flex: 0 0 auto;
+    overflow: visible;
+    padding: 4px 8px;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning > p {
+    grid-column: 1 / -1;
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning .form-field,
+  .schedule-assignment-modal .assignment-area-apply,
+  .schedule-assignment-modal .assignment-area-apply .action-group {
+    display: contents;
+  }
+
+  .schedule-assignment-modal .assignment-area-warning .ghost-btn {
+    padding: 0 8px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
   .schedule-assignment-modal .employee-form {
     gap: 4px;
   }
 
-  .schedule-assignment-modal:has(.assignment-area-warning) .assignment-context-shift-line {
-    display: none;
+  .schedule-assignment-modal .assignment-employee-item {
+    padding: 3px 10px;
+    gap: 8px;
   }
 
-  .schedule-assignment-modal .assignment-area-warning {
-    flex: 0 0 auto;
-    overflow: visible;
+  .schedule-assignment-modal .assignment-employee-meta {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 6px;
+    row-gap: 0;
+    line-height: 1.2;
+  }
+
+  .schedule-assignment-modal .assignment-employee-meta strong {
+    flex: 1 0 100%;
   }
 }
 
@@ -23724,13 +23780,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: var(--one-form-surface);
 }
 
-.schedule-assignment-modal .assignment-context-grid {
-  gap: 6px 12px;
+.schedule-assignment-modal .assignment-context-row {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
 }
 
 .schedule-assignment-modal .assignment-context-card.assignment-context-card-simple {
-  padding: 8px 10px;
-  gap: 6px;
+  padding: 6px 10px;
+  gap: 4px;
 }
 
 .assignment-selected-list {

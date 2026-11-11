@@ -40,5 +40,8 @@ describe('assign card with the missing-area prompt', () => {
     expect(short).toContain('padding-top: 8px')
     expect(short).toContain('padding-bottom: 8px')
     expect(short).toContain('max-height: calc(100dvh - 16px)')
+    expect(short).toContain('flex-wrap: wrap')
+    expect(css).not.toContain('.schedule-assignment-modal:has(.assignment-area-warning) .assignment-context-shift-line')
+    expect(css).toContain('.schedule-assignment-modal .assignment-employee-item')
   })
 })
