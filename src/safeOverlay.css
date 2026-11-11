@@ -588,6 +588,16 @@ body {
     right: var(--one-island-inset);
   }
 
+  :root[data-island='left'] .app-shell {
+    padding-left: var(--one-island-inset);
+    padding-right: 8px;
+  }
+
+  :root[data-island='right'] .app-shell {
+    padding-left: 8px;
+    padding-right: var(--one-island-inset);
+  }
+
   /* The bell and ? sit inside the header bar (it reserves 100px for them),
      vertically centred on it, instead of floating above and outside it. */
   html body .app-shell.is-reservations-dedicated-shell .help-mode-fallback {
@@ -1460,7 +1470,8 @@ body {
   }
 
   .topbar:not(.topbar-operations-compact) .profile-chip {
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 2px;
     gap: 0;
   }

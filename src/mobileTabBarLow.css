@@ -26,6 +26,17 @@
     bottom: var(--one-mobile-nav-bottom);
   }
 
+  /* The pill is position:fixed, so end padding alone still paints the opening
+     view under it. Stop the scrollport 8px above the pill. Host mode and an
+     open inventory count keep their own layout. */
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) .mobile-manager-app:not(.is-reservations-host-mode) .mobile-app-content,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) .mobile-manager-app:not(.is-reservations-host-mode) .mobile-expanded-scroll,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-staff-app .mobile-app-content,
+  .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-staff-app .mobile-expanded-scroll {
+    margin-bottom: calc(var(--one-mobile-bottom-nav-height) + 2px + var(--one-mobile-nav-bottom));
+    padding-bottom: 8px;
+  }
+
   /* Stock list's Count / Suggest / Create order bar keeps riding on the tab bar. */
   .app-shell.is-mobile-shell:not(.stock-focus-mode):not(:has(.inventory-count-session)) .mobile-manager-app .mobile-manager-stock-action-bar {
     bottom: calc(var(--one-mobile-nav-bottom) + 56px);
