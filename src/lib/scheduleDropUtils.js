@@ -119,6 +119,22 @@ export function employeeMatchesSchedulePosition(employee, positionFilter = 'All'
   })
 }
 
+/** Staff-row and assign-card filters. Department, position, and name search all apply. */
+export function filterScheduleStaffEmployees(employees = [], {
+  department = 'All',
+  position = 'All',
+  search = '',
+} = {}) {
+  const needle = `${search ?? ''}`.trim().toLowerCase()
+  return (employees ?? []).filter((employee) => {
+    if (!employeeMatchesScheduleDepartment(employee, department)) return false
+    if (!employeeMatchesSchedulePosition(employee, position)) return false
+    if (!needle) return true
+    const name = `${employee?.full_name || employee?.name || ''}`.toLowerCase()
+    return name.includes(needle)
+  })
+}
+
 export function getEmployeePrimaryPosition(employee) {
   const names = getEmployeePositionNames(employee)
   if (names.length > 0) return names[0]

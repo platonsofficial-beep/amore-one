@@ -4,6 +4,7 @@ import {
   buildSchedulePositionFilterOptions,
   employeeMatchesScheduleDepartment,
   employeeMatchesSchedulePosition,
+  filterScheduleStaffEmployees,
 } from './scheduleDropUtils'
 
 describe('buildSchedulePositionFilterOptions', () => {
@@ -67,6 +68,20 @@ describe('staff availability department and position filters', () => {
     expect(employeeMatchesSchedulePosition(manager, 'General Manager')).toBe(true)
     expect(employeeMatchesScheduleDepartment(manager, 'Management')).toBe(true)
     expect(employeeMatchesScheduleDepartment(manager, 'Kitchen')).toBe(false)
+  })
+
+  it('filters the assign-card list by department, position, and search together', () => {
+    const visible = (filters) => filterScheduleStaffEmployees(roster, filters).map((employee) => employee.name)
+    expect(visible({})).toEqual([
+      'Ana Ribeiro',
+      'Andreas Georgiou',
+      'Elena Christodoulou',
+      'Evie S.',
+    ])
+    expect(visible({ department: 'Kitchen', position: 'General Manager' })).toEqual([])
+    expect(visible({ department: 'Bar', position: 'Bartender' })).toEqual(['Elena Christodoulou'])
+    expect(visible({ department: 'Bar', position: 'Bartender', search: 'andreas' })).toEqual([])
+    expect(visible({ department: 'Bar', search: 'elena' })).toEqual(['Elena Christodoulou'])
   })
 
   it('renders the staff strip from the filtered list', () => {
