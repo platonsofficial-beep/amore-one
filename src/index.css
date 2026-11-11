@@ -74,6 +74,10 @@ html {
   color-scheme: dark;
   /* The canvas iOS shows under the home indicator and status bar. */
   background-color: var(--one-bg);
+  /* Landscape iPhone otherwise inflates some text (names jumped to ~22px)
+     and the wider line can push the card past the screen. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 html,

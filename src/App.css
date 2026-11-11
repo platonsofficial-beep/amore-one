@@ -23564,8 +23564,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (orientation: landscape) and (max-height: 520px) {
   .employee-modal-backdrop:has(.schedule-assignment-modal) {
+    --assign-far-gap: 18px;
     padding-top: calc(8px + var(--assign-vv-top, 0px));
     padding-bottom: calc(8px + var(--assign-kb, 0px));
+    padding-left: max(var(--assign-far-gap), var(--one-inset-left, var(--one-safe-area-left, env(safe-area-inset-left, 0px))));
+    padding-right: max(var(--assign-far-gap), var(--one-inset-right, var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
   }
 
   .schedule-assignment-modal.employee-modal {
@@ -23653,6 +23656,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .schedule-assignment-modal .modal-actions,
 .schedule-assignment-modal .staff-status-banner {
   flex: 0 0 auto;
+}
+
+.schedule-assignment-modal .assignment-card-filters,
+.schedule-assignment-modal .assignment-context-card,
+.schedule-assignment-modal .assignment-context-shift-line,
+.schedule-assignment-modal .assignment-employee-meta,
+.schedule-assignment-modal .assignment-employee-meta strong {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.schedule-assignment-modal .assignment-context-shift-line,
+.schedule-assignment-modal .assignment-employee-meta strong {
+  overflow-wrap: anywhere;
 }
 
 .schedule-assignment-modal .assignment-card-filters {
