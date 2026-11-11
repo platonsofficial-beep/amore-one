@@ -1,3 +1,6 @@
+import { findDepartment, findPosition } from './venueCatalogTemplates'
+import { positionLabelsMatch } from './departmentCatalogUtils'
+
 export function getEmployeePositionNames(employee) {
   if (Array.isArray(employee?.positions) && employee.positions.length > 0) {
     return employee.positions.map((position) => position.name).filter(Boolean)
@@ -57,6 +60,63 @@ export function buildSchedulePositionFilterOptions({
   })
 
   return ['All', ...Array.from(names).sort((left, right) => left.localeCompare(right))]
+}
+
+function scheduleEmployeePositionNames(employee) {
+  const names = [
+    ...collectEmployeePositionNames(employee),
+    ...(`${employee?.position ?? ''}`.split(',').map((item) => item.trim())),
+  ]
+  if (Array.isArray(employee?.positions)) {
+    employee.positions.forEach((position) => {
+      if (typeof position === 'string') names.push(position.trim())
+    })
+  }
+  const unique = []
+  const seen = new Set()
+  names.forEach((name) => {
+    const trimmed = `${name ?? ''}`.trim()
+    const key = trimmed.toLowerCase()
+    if (!trimmed || seen.has(key)) return
+    seen.add(key)
+    unique.push(trimmed)
+  })
+  return unique
+}
+
+/** Department dropdown on Staff availability. "All" keeps everyone. */
+export function employeeMatchesScheduleDepartment(employee, departmentFilter = 'All') {
+  const filter = `${departmentFilter ?? 'All'}`.trim() || 'All'
+  if (filter === 'All') return true
+
+  const department = `${employee?.department ?? ''}`.trim()
+  const filterDepartment = findDepartment(filter)
+  if (!filterDepartment) return department === filter
+
+  const employeeDepartment = findDepartment(department)
+  if (!employeeDepartment) return false
+  return employeeDepartment.key === filterDepartment.key
+}
+
+/**
+ * Position dropdown on Staff availability. Matches the person's own
+ * position labels, including catalog aliases. "Head Bartender" is not
+ * "Bartender".
+ */
+export function employeeMatchesSchedulePosition(employee, positionFilter = 'All') {
+  const filter = `${positionFilter ?? 'All'}`.trim() || 'All'
+  if (filter === 'All') return true
+
+  const names = scheduleEmployeePositionNames(employee)
+  if (names.length === 0) return false
+
+  const filterPosition = findPosition(filter)
+  return names.some((name) => {
+    if (positionLabelsMatch(name, filter)) return true
+    if (!filterPosition) return false
+    const employeePosition = findPosition(name)
+    return Boolean(employeePosition && employeePosition.key === filterPosition.key)
+  })
 }
 
 export function getEmployeePrimaryPosition(employee) {

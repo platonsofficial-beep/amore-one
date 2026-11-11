@@ -6,32 +6,35 @@ export function shouldUseSchedulePreviewFixture(search = '') {
   return new URLSearchParams(query).get('scheduleFixture') === '1'
 }
 
+function previewEmployee({ id, name, position, department }) {
+  return {
+    id,
+    full_name: name,
+    name,
+    position,
+    positions: [{ name: position }],
+    primaryPosition: position,
+    department,
+    status: 'Active',
+  }
+}
+
 export function buildSchedulePreviewEmployees() {
   return [
-    {
-      id: 'preview-ana',
-      full_name: 'Ana Ribeiro',
-      name: 'Ana Ribeiro',
-      position: 'Service',
-      positions: ['Service'],
-      status: 'Active',
-    },
-    {
-      id: 'preview-andreas',
-      full_name: 'Andreas Georgiou',
-      name: 'Andreas Georgiou',
-      position: 'Head Bartender',
-      positions: ['Head Bartender'],
-      status: 'Active',
-    },
-    {
-      id: 'preview-elena',
-      full_name: 'Elena Christodoulou',
-      name: 'Elena Christodoulou',
-      position: 'Line Cook',
-      positions: ['Line Cook'],
-      status: 'Active',
-    },
+    previewEmployee({ id: 'preview-ana', name: 'Ana Ribeiro', position: 'Line Cook', department: 'Kitchen' }),
+    previewEmployee({ id: 'preview-andreas', name: 'Andreas Georgiou', position: 'Head Bartender', department: 'Bar' }),
+    previewEmployee({ id: 'preview-elena', name: 'Elena Christodoulou', position: 'Bartender', department: 'Bar' }),
+    previewEmployee({ id: 'preview-evie', name: 'Evie S.', position: 'Waiter / Server', department: 'Service' }),
+  ]
+}
+
+export function buildSchedulePreviewPositions() {
+  return [
+    { id: 'preview-pos-line-cook', name: 'Line Cook' },
+    { id: 'preview-pos-head-bartender', name: 'Head Bartender' },
+    { id: 'preview-pos-bartender', name: 'Bartender' },
+    { id: 'preview-pos-waiter', name: 'Waiter / Server' },
+    { id: 'preview-pos-gm', name: 'General Manager' },
   ]
 }
 

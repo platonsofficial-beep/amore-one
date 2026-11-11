@@ -367,6 +367,8 @@ import {
 } from './lib/shiftIntegrity'
 import {
   buildSchedulePositionFilterOptions,
+  employeeMatchesScheduleDepartment,
+  employeeMatchesSchedulePosition,
   getEmployeePositionNames,
   getEmployeePrimaryPosition,
   inferAreaFromTemplate,
@@ -626,7 +628,7 @@ import {
   SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH,
 } from './lib/mobileScheduleUtils'
 import { resolveEmployeeShiftAdjust } from './lib/scheduleEmployeeDayAdjust'
-import { buildSchedulePreviewEmployees, buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
+import { buildSchedulePreviewEmployees, buildSchedulePreviewPositions, buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
 import {
@@ -4563,9 +4565,21 @@ function ScheduleView({
       ))
   ), [employees])
 
+  const publishedEmployeeIds = useMemo(() => new Set(
+    (publishedShifts ?? []).map((shift) => String(shift?.employeeId ?? shift?.employee_id ?? '')).filter(Boolean),
+  ), [publishedShifts])
+
+  const visibleStaffMembers = useMemo(() => (
+    activeStaffMembers.filter((employee) => (
+      employeeMatchesScheduleDepartment(employee, filters.department)
+      && employeeMatchesSchedulePosition(employee, filters.position)
+      && (!filters.publishedOnly || publishedEmployeeIds.has(String(employee.id)))
+    ))
+  ), [activeStaffMembers, filters.department, filters.position, filters.publishedOnly, publishedEmployeeIds])
+
   const staffAvailabilityDisplayLabels = useMemo(
-    () => buildUniqueEmployeeDisplayLabels(activeStaffMembers),
-    [activeStaffMembers],
+    () => buildUniqueEmployeeDisplayLabels(visibleStaffMembers),
+    [visibleStaffMembers],
   )
 
   const shiftDisplayNames = useMemo(
@@ -5927,10 +5941,14 @@ function ScheduleView({
               <div className="schedule-roster-bar">
                 <div className="schedule-staff-strip">
                   <div className="schedule-staff-strip-scroll">
-                    {activeStaffMembers.length === 0 ? (
-                      <p className="schedule-staff-strip-empty">No active employees available.</p>
+                    {visibleStaffMembers.length === 0 ? (
+                      <p className="schedule-staff-strip-empty">
+                        {activeStaffMembers.length === 0
+                          ? 'No active employees available.'
+                          : 'No employees match these filters.'}
+                      </p>
                     ) : (
-                      activeStaffMembers.map((employee) => {
+                      visibleStaffMembers.map((employee) => {
                         const employeeName = employee.full_name || employee.name || 'Staff'
                         const employeeKey = String(employee.id)
                         const displayNameLabel = staffAvailabilityDisplayLabels.get(employeeKey) || employeeName
@@ -17970,7 +17988,7 @@ function App() {
 
     const loadPositions = async () => {
       if (!activeWorkspaceId) {
-        setPositions([])
+        setPositions(shouldUseSchedulePreviewFixture(window.location.search) ? buildSchedulePreviewPositions() : [])
         setEmployees([])
         setScheduleEmployees([])
         setIsPositionsLoading(false)
@@ -17984,9 +18002,17 @@ function App() {
       try {
         const remotePositions = await getPositions(activeWorkspaceId)
         if (!isMounted) return
-        setPositions(remotePositions)
+        if (remotePositions.length === 0 && shouldUseSchedulePreviewFixture(window.location.search)) {
+          setPositions(buildSchedulePreviewPositions())
+        } else {
+          setPositions(remotePositions)
+        }
       } catch (error) {
         if (!isMounted) return
+        if (shouldUseSchedulePreviewFixture(window.location.search)) {
+          setPositions(buildSchedulePreviewPositions())
+          return
+        }
         setPositions([])
         setPositionsNotice(error.message || 'Unable to load positions right now.')
       } finally {
