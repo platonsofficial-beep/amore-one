@@ -41,6 +41,11 @@ describe('assign card viewport', () => {
     }))).toMatchObject({ left: 0, width: 897, keyboard: false })
   })
 
+  it('reserves the strip under a shorter visual viewport without calling it a keyboard', () => {
+    expect(readAssignCardViewport(win({
+      iw: 956, ih: 461, vw: 956, vh: 431,
+    }))).toMatchObject({ top: 0, kb: 30, keyboard: false })
+  })
   it('does not treat a rotation as a keyboard', () => {
     expect(readAssignCardViewport(win({
       iw: 820, ih: 1180, vw: 1180, vh: 820, focused: {},
@@ -52,6 +57,7 @@ describe('assign card viewport', () => {
     const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
     expect(index).toContain('-webkit-text-size-adjust: 100%')
     expect(index).toContain('text-size-adjust: 100%')
-    expect(css).toContain('--assign-far-gap: 18px')
+    expect(css).toContain('--assign-far-gap: 22px')
+    expect(css).toContain('max(12px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))')
   })
 })
