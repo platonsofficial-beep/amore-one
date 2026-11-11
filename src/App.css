@@ -23658,11 +23658,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .schedule-assignment-modal .assignment-card-filters {
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 1.35fr);
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
     gap: 8px;
   }
 
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field,
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-search {
+    flex: 0 0 auto;
+    width: auto;
     grid-column: auto;
   }
 
@@ -23672,12 +23678,29 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input,
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
+    width: auto;
+    height: 44px;
+    min-height: 44px;
     padding: 0 10px;
-    font-size: 0.84rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    line-height: 42px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input {
+    width: 176px;
   }
 
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
-    padding-right: 26px;
+    padding-right: 28px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Department'] {
+    width: 196px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Position'] {
+    width: 210px;
   }
 }
 
