@@ -3205,6 +3205,8 @@ function ScheduleView({
         if (!backdrop) return
         const box = readAssignCardViewport(window)
         backdrop.style.setProperty('--assign-vv-top', `${box.top}px`)
+        backdrop.style.setProperty('--assign-vv-left', `${box.left}px`)
+        backdrop.style.setProperty('--assign-vv-width', `${box.width}px`)
         backdrop.style.setProperty('--assign-kb', `${box.kb}px`)
         backdrop.classList.toggle('is-assign-keyboard', box.keyboard)
       })

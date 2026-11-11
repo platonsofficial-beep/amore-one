@@ -10,7 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:viewports": "node scripts/phone-viewport-matrix.mjs",
+    "test:viewports": "node scripts/phone-viewport-matrix.mjs && node scripts/assign-card-right-edge.mjs",
     "test:service-worker": "node scripts/supabase-service-worker-check.mjs"
   },
   "dependencies": {
