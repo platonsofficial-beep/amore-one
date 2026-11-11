@@ -12,6 +12,7 @@ import { flushSync } from 'react-dom'
 import { createPortal } from 'react-dom'
 import './App.css'
 import { isTransientSuccessNotice, TRANSIENT_NOTICE_MS } from './lib/transientNotice'
+import { assignCardScrollDelta, shouldBlockAssignCardBackgroundScroll } from './lib/assignCardScrollLock'
 import { buildEmployeeStatusOptions, disableConfirmMessage, planEmployeeStatusSave } from './lib/employeeStatusSave'
 import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { getDisabledEmployeeKey, setDisabledEmployeeIds } from './lib/removedEmployeeShifts'
@@ -3193,6 +3194,28 @@ function ScheduleView({
   useEscapeToClose(() => setIsClearWeekModalOpen(false), { enabled: isClearWeekModalOpen })
   useEscapeToClose(() => setIsAutoFillModalOpen(false), { enabled: isAutoFillModalOpen })
   useEscapeToClose(() => handleCloseAssignmentModal(), { enabled: isAssignmentModalOpen })
+  useEffect(() => {
+    if (!isAssignmentModalOpen) return undefined
+    let lastY = 0
+    const remember = (event) => {
+      const y = event.touches?.[0]?.clientY
+      if (typeof y === 'number') lastY = y
+    }
+    const blockBackgroundScroll = (event) => {
+      const delta = assignCardScrollDelta(event, lastY)
+      if (event.type === 'touchmove') remember(event)
+      if (!shouldBlockAssignCardBackgroundScroll(event, delta)) return
+      event.preventDefault()
+    }
+    document.addEventListener('touchstart', remember, { capture: true, passive: true })
+    document.addEventListener('touchmove', blockBackgroundScroll, { capture: true, passive: false })
+    document.addEventListener('wheel', blockBackgroundScroll, { capture: true, passive: false })
+    return () => {
+      document.removeEventListener('touchstart', remember, { capture: true })
+      document.removeEventListener('touchmove', blockBackgroundScroll, { capture: true })
+      document.removeEventListener('wheel', blockBackgroundScroll, { capture: true })
+    }
+  }, [isAssignmentModalOpen])
   useEscapeToClose(() => handleCloseShiftDetails(), {
     enabled: Boolean(selectedShift) && !shiftPendingDelete,
   })

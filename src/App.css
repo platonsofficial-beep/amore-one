@@ -23537,6 +23537,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
   padding:
     max(8px, var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)))
     max(8px, var(--one-inset-right, var(--one-safe-area-right, env(safe-area-inset-right, 0px))))
@@ -23622,6 +23625,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 0 0 auto;
   max-height: calc(100dvh - 16px - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px));
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
   margin: 0;
 }
 
@@ -23806,6 +23811,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -23823,6 +23830,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
   max-height: none;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .schedule-assignment-modal .assignment-area-warning select,
