@@ -6,80 +6,60 @@ function dayKeyOf(shift) {
 }
 
 function templateKey(source) {
-  return `${resolveShiftTemplateId(source) ?? ''}`.trim()
-}
-
-function byStartTime(left, right) {
-  return `${left.template?.startTime ?? ''}`.localeCompare(`${right.template?.startTime ?? ''}`)
-}
-
-function isUncovered(cell, employeeId) {
-  if (isEmployeeAssignedInCell(cell, employeeId)) return false
-  const required = Number(cell?.requiredCount ?? 1) || 1
-  const assigned = Number(cell?.assignedCount ?? cell?.shifts?.length ?? 0) || 0
-  return assigned < required
+  if (!source || typeof source !== 'object') return ''
+  const fields = ['templateId', 'shiftTemplateId', 'shift_template_id']
+  for (const field of fields) {
+    const normalized = resolveShiftTemplateId(source[field])
+    if (normalized) return String(normalized)
+    const text = `${source[field] ?? ''}`.trim().replace(/^supabase-/, '')
+    if (text) return text
+  }
+  if (source.employeeId || source.employee_id) return ''
+  const normalizedId = resolveShiftTemplateId(source.id)
+  if (normalizedId) return String(normalizedId)
+  return `${source.id ?? ''}`.trim().replace(/^supabase-/, '')
 }
 
 /**
- * One assignment for a selected employee and a tapped day.
- * Moves a single existing shift when they already have one, otherwise
- * assigns them to one uncovered shift on that day. Never every shift.
+ * Place one selected employee onto the shift that was tapped.
+ * Creates a shift when they have none. Moves a single existing shift
+ * when they already have one. Never changes two shifts at once.
  */
-export function resolveEmployeeDayAdjust({
+export function resolveEmployeeShiftAdjust({
   employeeId = '',
   dayKey = '',
+  template = null,
+  cell = null,
   shifts = [],
-  rows = [],
 } = {}) {
   const id = `${employeeId ?? ''}`.trim()
   const day = `${dayKey ?? ''}`.slice(0, 10)
-  if (!id || !day) {
-    return { action: 'error', message: 'Choose an employee and a day.' }
+  if (!id || !day || !template || !cell) {
+    return { action: 'error', message: 'Choose an employee and a shift.' }
   }
 
-  const dayRows = rows
-    .map((row) => ({
-      template: row.template,
-      cell: (row.dayCells ?? []).find((item) => `${item?.day?.key ?? ''}`.slice(0, 10) === day) ?? null,
-    }))
-    .filter((item) => item.cell)
-
-  if (dayRows.length === 0) {
-    return { action: 'error', message: 'That day has no shifts to assign.' }
+  if (isEmployeeAssignedInCell(cell, id)) {
+    return { action: 'noop', message: 'This employee is already on this shift.' }
   }
 
   const mine = shifts.filter((shift) => `${shift?.employeeId ?? ''}` === id)
-  const elsewhere = mine.filter((shift) => dayKeyOf(shift) !== day)
-  const onThisDay = dayRows.filter((item) => isEmployeeAssignedInCell(item.cell, id))
-  const uncovered = dayRows.filter((item) => isUncovered(item.cell, id)).sort(byStartTime)
-  const ordered = [...dayRows].sort(byStartTime)
-
-  if (elsewhere.length === 0 && onThisDay.length > 0) {
-    return { action: 'noop', message: 'This employee is already on this day.' }
+  if (mine.length === 0) {
+    return { action: 'assign', template, cell, dayKey: day }
   }
 
-  if (elsewhere.length > 0) {
-    const source = elsewhere.find((shift) => uncovered.some((item) => templateKey(item.template) && templateKey(item.template) === templateKey(shift)))
-      ?? [...elsewhere].sort((left, right) => `${left.startTime ?? ''}`.localeCompare(`${right.startTime ?? ''}`))[0]
-    const sameTemplate = dayRows.find((item) => templateKey(item.template) && templateKey(item.template) === templateKey(source))
-    const target = sameTemplate ?? uncovered[0] ?? ordered[0]
-    if (dayKeyOf(source) === day && isEmployeeAssignedInCell(target.cell, id)) {
-      return { action: 'noop', message: 'This employee is already on this day.' }
-    }
-    return {
-      action: 'move',
-      shiftId: source.id,
-      template: target.template,
-      cell: target.cell,
-      dayKey: day,
-    }
+  const sameService = mine.find((shift) => templateKey(shift) && templateKey(shift) === templateKey(template))
+  const source = sameService
+    ?? [...mine].sort((left, right) => `${left.startTime ?? ''}`.localeCompare(`${right.startTime ?? ''}`))[0]
+
+  if (dayKeyOf(source) === day && templateKey(source) === templateKey(template)) {
+    return { action: 'noop', message: 'This employee is already on this shift.' }
   }
 
-  const target = uncovered[0] ?? ordered[0]
   return {
-    action: 'assign',
-    template: target.template,
-    cell: target.cell,
+    action: 'move',
+    shiftId: source.id,
+    template,
+    cell,
     dayKey: day,
   }
 }
