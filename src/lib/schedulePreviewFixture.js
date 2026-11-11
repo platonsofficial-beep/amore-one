@@ -16,6 +16,22 @@ export function buildSchedulePreviewEmployees() {
       positions: ['Service'],
       status: 'Active',
     },
+    {
+      id: 'preview-andreas',
+      full_name: 'Andreas Georgiou',
+      name: 'Andreas Georgiou',
+      position: 'Head Bartender',
+      positions: ['Head Bartender'],
+      status: 'Active',
+    },
+    {
+      id: 'preview-elena',
+      full_name: 'Elena Christodoulou',
+      name: 'Elena Christodoulou',
+      position: 'Line Cook',
+      positions: ['Line Cook'],
+      status: 'Active',
+    },
   ]
 }
 

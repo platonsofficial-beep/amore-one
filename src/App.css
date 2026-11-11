@@ -17677,7 +17677,7 @@
   gap: 2px;
 }
 
-.assignment-context-row:last-child {
+.assignment-context-row.is-status {
   grid-column: 1 / -1;
   flex-direction: row;
   align-items: baseline;
@@ -17705,7 +17705,7 @@
   overflow-wrap: anywhere;
 }
 
-.assignment-context-row:last-child strong {
+.assignment-context-row.is-status strong {
   text-align: right;
 }
 
@@ -23528,6 +23528,116 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .schedule-assignment-modal .modal-actions .primary-btn,
 .schedule-assignment-modal .modal-actions .ghost-btn {
   min-height: 44px;
+}
+
+/* The assign card stays inside the screen. The list scrolls; the title,
+   shift facts, and Cancel / Save stay put. */
+.employee-modal-backdrop:has(.schedule-assignment-modal) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding:
+    max(8px, var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)))
+    max(8px, var(--one-inset-right, var(--one-safe-area-right, env(safe-area-inset-right, 0px))))
+    max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
+    max(8px, var(--one-inset-left, var(--one-safe-area-left, env(safe-area-inset-left, 0px))));
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .employee-modal-backdrop:has(.schedule-assignment-modal) {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .schedule-assignment-modal.employee-modal {
+    max-height: calc(100dvh - 16px);
+    padding: 8px 12px;
+  }
+
+  .schedule-assignment-modal .drawer-header {
+    margin-bottom: 2px;
+  }
+
+  .schedule-assignment-modal .employee-form {
+    gap: 6px;
+  }
+
+  .schedule-assignment-modal .assignment-context-shift-line {
+    padding-bottom: 4px;
+  }
+
+  .schedule-assignment-modal .assignment-context-card.assignment-context-card-simple {
+    padding: 6px 10px;
+    gap: 4px;
+  }
+
+  .schedule-assignment-modal .assignment-context-grid {
+    gap: 2px 12px;
+  }
+
+  .schedule-assignment-modal .modal-actions {
+    padding-top: 6px;
+  }
+}
+
+.schedule-assignment-modal.employee-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(460px, 100%);
+  max-width: 460px;
+  flex: 0 0 auto;
+  max-height: calc(100dvh - 16px - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  margin: 0;
+}
+
+.schedule-assignment-modal .drawer-header,
+.schedule-assignment-modal .assignment-context-card,
+.schedule-assignment-modal .assignment-area-warning,
+.schedule-assignment-modal .modal-actions,
+.schedule-assignment-modal .staff-status-banner {
+  flex: 0 0 auto;
+}
+
+.schedule-assignment-modal .employee-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.schedule-assignment-modal .employee-form > .form-field:has(.assignment-employee-list) {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-assignment-modal .assignment-employee-list {
+  flex: 1 1 auto;
+  min-height: 96px;
+  min-width: 0;
+  max-height: none;
+  overflow-y: auto;
+}
+
+.schedule-assignment-modal .modal-actions {
+  position: relative;
+  z-index: 1;
+  background: var(--one-form-surface);
+}
+
+.schedule-assignment-modal .assignment-context-grid {
+  gap: 6px 12px;
+}
+
+.schedule-assignment-modal .assignment-context-card.assignment-context-card-simple {
+  padding: 8px 10px;
+  gap: 6px;
 }
 
 .assignment-selected-list {

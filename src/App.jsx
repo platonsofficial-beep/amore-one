@@ -625,7 +625,7 @@ import {
   shouldUseFluidScheduleDayColumns,
   SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH,
 } from './lib/mobileScheduleUtils'
-import { resolveEmployeeDayAdjust } from './lib/scheduleEmployeeDayAdjust'
+import { resolveEmployeeShiftAdjust } from './lib/scheduleEmployeeDayAdjust'
 import { buildSchedulePreviewEmployees, buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
@@ -5248,8 +5248,8 @@ function ScheduleView({
     setFocusedEmployeeId((current) => (current === employeeKey ? null : employeeKey))
   }
 
-  const handleAdjustFocusedEmployeeToDay = async (dayKey) => {
-    if (!canEditSchedule || !focusedEmployeeId || isSaving) return
+  const handleAssignFocusedEmployeeToShift = async (template, day, cell) => {
+    if (!canEditSchedule || !focusedEmployeeId || isSaving || !template || !day) return
     const employee = employees.find((item) => String(item.id) === String(focusedEmployeeId))
     if (!employee) {
       setAssignmentError('Employee could not be found.')
@@ -5260,11 +5260,12 @@ function ScheduleView({
       return
     }
 
-    const decision = resolveEmployeeDayAdjust({
+    const decision = resolveEmployeeShiftAdjust({
       employeeId: focusedEmployeeId,
-      dayKey,
+      dayKey: day.key,
+      template,
+      cell,
       shifts,
-      rows: blendGridRows,
     })
     if (decision.action === 'noop' || decision.action === 'error') {
       setAssignmentError(decision.message || '')
@@ -6042,9 +6043,6 @@ function ScheduleView({
                     onClick={() => {
                     selectedScheduleDayExplicitRef.current = true
                     setSelectedDay(day.key)
-                    if (focusedEmployeeId) {
-                      handleAdjustFocusedEmployeeToDay(day.key)
-                    }
                   }}
                   >
                     <strong className="blend-grid-header-day-name" title={dayHeader.weekdayLabel}>
@@ -6167,6 +6165,9 @@ function ScheduleView({
                       onClick={() => {
                       selectedScheduleDayExplicitRef.current = true
                       setSelectedDay(cell.day.key)
+                      if (focusedEmployeeId && !isCustomRow) {
+                        handleAssignFocusedEmployeeToShift(row.template, cell.day, cell)
+                      }
                     }}
                       onDragOver={(event) => handleCellDragOver(event, cellDropKey, { canAcceptDrop })}
                       onDrop={(event) => handleCellDrop(event, row.template, cell.day, cell)}
@@ -6357,6 +6358,10 @@ function ScheduleView({
                           className="schedule-assign-btn"
                           onClick={(event) => {
                             event.stopPropagation()
+                            if (focusedEmployeeId) {
+                              handleAssignFocusedEmployeeToShift(row.template, cell.day, cell)
+                              return
+                            }
                             handleOpenAssignmentModal(row.template, cell.day)
                           }}
                           disabled={isSaving}
@@ -7371,12 +7376,6 @@ function ScheduleView({
                   <div className="assignment-context-row">
                     <span>Selected</span>
                     <strong>{assignmentStaffingSummary.selected}</strong>
-                  </div>
-                  <div className="assignment-context-row">
-                    <span>{assignmentStaffingSummary.tone === 'extra' ? 'Extra' : assignmentStaffingSummary.tone === 'remaining' ? 'Remaining' : 'Status'}</span>
-                    <strong className={`assignment-staffing-${assignmentStaffingSummary.tone}`}>
-                      {assignmentStaffingSummary.label}
-                    </strong>
                   </div>
                 </div>
                 {assignmentFieldErrors.shift_template_id ? <small className="field-helper-error">{assignmentFieldErrors.shift_template_id}</small> : null}
@@ -20749,7 +20748,7 @@ function App() {
   const handleCreateGridShift = async ({ employeeId, shiftDate, template, positionName, notes, requiredCount = 1, currentAssignedCount = 0 }) => {
     if (shouldUseSchedulePreviewFixture(window.location.search)) {
       const createdShift = {
-        id: `preview-shift-${employeeId}-${shiftDate}-${resolveShiftTemplateId(template) ?? 'shift'}`,
+        id: `preview-shift-${employeeId}-${shiftDate}-${resolveShiftTemplateId(template) ?? template?.templateId ?? template?.id ?? 'shift'}`,
         employeeId,
         employee_id: employeeId,
         date: shiftDate,
@@ -20757,7 +20756,7 @@ function App() {
         endTime: normalizeTimeValue(template?.endTime),
         role: positionName?.trim() || template?.defaultRole || '',
         area: template?.defaultArea ?? '',
-        shiftTemplateId: resolveShiftTemplateId(template),
+        shiftTemplateId: resolveShiftTemplateId(template) ?? template?.templateId ?? template?.id ?? null,
         status: 'Scheduled',
         notes: (notes ?? '').trim(),
       }
@@ -21006,7 +21005,9 @@ function App() {
       const moved = {
         ...targetShift,
         date: normalizedTargetDate,
-        shiftTemplateId: resolveShiftTemplateId(template) ?? resolveShiftTemplateId(targetShift),
+        startTime: normalizeTimeValue(template?.startTime) || targetShift.startTime,
+        endTime: normalizeTimeValue(template?.endTime) || targetShift.endTime,
+        shiftTemplateId: resolveShiftTemplateId(template) ?? template?.templateId ?? template?.id ?? resolveShiftTemplateId(targetShift),
         area: `${template?.defaultArea ?? ''}`.trim() || `${targetShift.area ?? ''}`.trim(),
       }
       setShifts((current) => current.map((shift) => (shift.id === shiftId ? moved : shift)))
