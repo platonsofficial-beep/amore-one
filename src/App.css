@@ -52608,6 +52608,52 @@ summary:focus-visible {
   min-height: 44px;
 }
 
+/* iPad and the desktop command center are not the short phone landscape.
+   Share the draft and issues row, and drop the dark day boxes. Phone
+   landscape keeps the rules in the short-height block below. */
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) > .schedule-header,
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) > .schedule-workspace-layout {
+  flex: 1 0 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) > .schedule-workspace-banner {
+  flex: 1 1 280px;
+  width: auto;
+  align-self: center;
+  margin: 0;
+  padding: 6px 12px;
+  white-space: normal;
+}
+
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) .blend-grid-header-day {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 var(--one-gold-a24);
+}
+
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) .blend-grid-header-day:hover,
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) .blend-grid-header-day.is-today,
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) .blend-grid-header-day.active,
+.app-shell.schedule-focus-mode .schedule-workspace:not(.is-compact-landscape) .blend-grid-header-day.active.is-today {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset 0 -2px 0 var(--one-gold);
+  color: var(--one-text);
+}
+
 @media (max-height: 460px) {
   /* portrait-week-header: short landscape keeps the week grid on screen. */
   .app-shell.schedule-focus-mode .main-panel.main-panel-schedule {
