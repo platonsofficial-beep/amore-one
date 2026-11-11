@@ -10,7 +10,8 @@ describe('schedule preview fixture', () => {
   it('builds a Service morning and evening for a 7-day grid', () => {
     const templates = buildSchedulePreviewTemplates()
     expect(templates.map((template) => template.name)).toEqual(['Morning', 'Evening'])
-    expect(templates.every((template) => template.defaultArea === 'Service')).toBe(true)
+    expect(templates[0].defaultArea).toBe('Service')
+    expect(templates[1].defaultArea).toBe('')
     expect(templates[0].defaultRequiredCount).toBe(1)
   })
 })

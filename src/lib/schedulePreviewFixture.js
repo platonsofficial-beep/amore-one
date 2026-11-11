@@ -61,7 +61,7 @@ export function buildSchedulePreviewTemplates() {
       startTime: '16:30',
       endTime: '00:30',
       defaultRole: 'Service',
-      defaultArea: 'Service',
+      defaultArea: '',
       defaultRequiredCount: 1,
       notes: '',
       isBuiltIn: false,
