@@ -58,7 +58,7 @@ describe('low tab bar, Active Count baseline untouched (P8.19.8)', () => {
   })
   it('every rule is skipped during an inventory count session', () => {
     const selectors = [...rules.matchAll(/([^{}@]+)\{/g)].map((m) => m[1].trim()).filter((s) => s.includes('.app-shell'))
-    expect(selectors.length).toBe(3)
+    expect(selectors.length).toBe(4)
     for (const s of selectors) for (const part of s.split(',')) {
       expect(part).toMatch(/:not\(\.stock-focus-mode\):not\(:has\(\.inventory-count-session\)\)/)
     }

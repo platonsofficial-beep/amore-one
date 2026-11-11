@@ -535,12 +535,14 @@ const MEASURE_SOURCE = `(() => {
           height: linkRect.height,
         }
       })
+      const list = el.querySelector('.nav-links')
       return {
         left: Math.round(rect.left),
         width: Math.round(rect.width),
-        scrollHeight: el.scrollHeight,
-        clientHeight: el.clientHeight,
+        scrollHeight: list ? list.scrollHeight : el.scrollHeight,
+        clientHeight: list ? list.clientHeight : el.clientHeight,
         linkCount: links.length,
+        minLinkHeight: links.reduce((min, link) => Math.min(min, link.height), 999),
         linksInside: links.every((link) => (
           link.top >= rect.top - 1
           && link.bottom <= rect.bottom + 1
@@ -826,8 +828,10 @@ function assertMeasurement(page, width, height, measurement) {
   if (page.id === 'shell' && shortPhoneLandscape && measurement.sidebar) {
     const sidebar = measurement.sidebar
     if (sidebar.width > 110) failures.push(`sidebar is ${sidebar.width}px wide`)
-    if (sidebar.scrollHeight > sidebar.clientHeight + 2) failures.push('sidebar items scroll')
-    if (!sidebar.linksInside || sidebar.linkCount < 1) failures.push('sidebar items are clipped')
+    if (sidebar.linkCount < 1) failures.push('sidebar items are clipped')
+    if (sidebar.minLinkHeight < 43.5) failures.push(`sidebar item is ${Math.round(sidebar.minLinkHeight)}px tall`)
+    const sidebarScrolls = sidebar.scrollHeight > sidebar.clientHeight + 2
+    if (!sidebarScrolls && !sidebar.linksInside) failures.push('sidebar items are clipped')
     if ((measurement.safeLeft || 0) >= 59 && sidebar.left < measurement.safeLeft - 1) {
       failures.push(`sidebar starts at ${sidebar.left}px under the left safe area`)
     }

@@ -1810,12 +1810,12 @@
   color: var(--one-text);
   font-size: 1.28rem;
   font-weight: 600;
-  line-height: 1.08;
+  line-height: 1.15;
   letter-spacing: -0.02em;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .mobile-manager-command-meta {
@@ -10502,13 +10502,8 @@ body:not(:has(.inventory-count-session)) :is(
   min-height: 44px;
 }
 
-/* Portrait Reservations: the floating tab bar overlays the scrollport, so
-   end padding alone still leaves the last card under the bar. Stop the
-   scrollport above the pill, including the safe-area inset. */
-.app-shell.is-mobile-shell .mobile-manager-app .mobile-app-content:has(.manager-portrait-reservations) {
-  padding-bottom: 12px;
-  margin-bottom: calc(56px + var(--one-mobile-nav-bottom, 8px) + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 8px);
-}
+/* Portrait Reservations uses the shared scrollport lift in mobileTabBarLow.css
+   (one margin above the pill). Do not add a second safe-area pad here. */
 
 .manager-portrait-seatings {
   padding-inline: 2px 20px;
