@@ -977,9 +977,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 10px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
   border: 1px solid var(--one-gold-a32);
   border-radius: 999px;
   background: var(--one-gold-a12);
@@ -998,7 +999,8 @@
 
 /* Phones: icons only, the label is the button's aria-label. */
 .app-shell.is-mobile-shell .chat-header-action {
-  width: 40px;
+  width: 44px;
+  min-width: 44px;
   padding: 0;
 }
 
@@ -1028,6 +1030,7 @@
 }
 
 .chat-search input {
+  min-height: 44px;
   padding-left: 38px;
   background: var(--one-surface-1);
 }
