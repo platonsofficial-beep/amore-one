@@ -23679,28 +23679,65 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input,
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
     width: auto;
-    height: 44px;
-    min-height: 44px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    line-height: 42px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 8px;
+    border-radius: 6px;
+    font-size: 0.7rem !important;
+    line-height: 34px;
   }
 
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input {
+    width: 136px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
+    padding-right: 22px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Department'] {
+    width: 148px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Position'] {
+    width: 160px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input:focus,
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select:focus {
+    font-size: 16px !important;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input:focus {
     width: 176px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Department']:focus {
+    width: 196px;
+  }
+
+  .schedule-assignment-modal .assignment-card-filters select[aria-label='Position']:focus {
+    width: 210px;
+  }
+}
+
+@media (min-width: 768px) and (min-height: 700px) {
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input,
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 0.78rem !important;
+    line-height: 38px;
   }
 
   .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select {
     padding-right: 28px;
   }
 
-  .schedule-assignment-modal .assignment-card-filters select[aria-label='Department'] {
-    width: 196px;
-  }
-
-  .schedule-assignment-modal .assignment-card-filters select[aria-label='Position'] {
-    width: 210px;
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field input:focus,
+  .schedule-assignment-modal .assignment-card-filters .schedule-filter-field select:focus {
+    font-size: 16px !important;
   }
 }
 
