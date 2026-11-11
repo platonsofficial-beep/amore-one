@@ -47,12 +47,28 @@ const MEASURE = `(() => {
   const backdrop = modal.closest('.employee-modal-backdrop');
   const box = (el) => { const r = el.getBoundingClientRect(); return { r: Math.round(r.right) } };
   const close = modal.querySelector('.icon-btn');
+  const cancel = [...modal.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Cancel');
   const save = [...modal.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Save');
   const name = modal.querySelector('.assignment-employee-meta strong');
   const pad = parseFloat(getComputedStyle(backdrop).paddingRight) || 0;
   const vv = window.visualViewport;
   const visibleRight = Math.min(innerWidth, Math.round((vv?.offsetLeft || 0) + (vv?.width || innerWidth)));
-  return { open: true, card: box(modal).r, close: box(close).r, save: save ? box(save).r : null, limit: visibleRight - pad, nameFont: name ? getComputedStyle(name).fontSize : '' };
+  const visibleBottom = Math.round((vv?.offsetTop || 0) + (vv?.height || innerHeight));
+  const edge = (el) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { r: Math.round(r.right), b: Math.round(r.bottom) };
+  };
+  return {
+    open: true,
+    card: edge(modal),
+    close: edge(modal.querySelector('.icon-btn')),
+    cancel: edge(cancel),
+    save: edge(save),
+    limit: visibleRight - pad,
+    visibleBottom,
+    nameFont: name ? getComputedStyle(name).fontSize : '',
+  };
 })()`
 
 const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1'
@@ -62,6 +78,7 @@ const cases = [
   { name: 'pro-right', w: 874, h: 402, dpr: 3, ua: iphone, angle: 270, insets: { top: 0, right: 59, bottom: 21, left: 0 } },
   { name: 'max-left', w: 956, h: 440, dpr: 3, ua: iphone, angle: 90, insets: { top: 0, right: 0, bottom: 21, left: 59 }, narrow: true },
   { name: 'max-right', w: 956, h: 440, dpr: 3, ua: iphone, angle: 270, insets: { top: 0, right: 59, bottom: 21, left: 0 } },
+  { name: 'max-short', w: 956, h: 461, dpr: 3, ua: iphone, angle: 90, insets: { top: 0, right: 0, bottom: 21, left: 59 }, short: true },
   { name: 'android', w: 915, h: 412, dpr: 2.625, ua: android, angle: 90, insets: { top: 0, right: 0, bottom: 0, left: 0 } },
 ]
 
@@ -122,14 +139,22 @@ async function main() {
           failures.push(`${label} card did not open`)
           return
         }
-        for (const key of ['card', 'close', 'save']) {
-          if (value[key] == null) continue
-          if (value[key] > value.limit + 1) failures.push(`${label} ${key} ${value[key]} > ${value.limit}`)
+        const floor = Math.max(12, device.insets.bottom || 0)
+        for (const key of ['card', 'cancel', 'save']) {
+          const edge = value[key]
+          if (!edge) continue
+          if (edge.r > value.limit + 1) failures.push(`${label} ${key} right ${edge.r} > ${value.limit}`)
+          if (edge.b > value.visibleBottom - floor + 1) failures.push(`${label} ${key} bottom ${edge.b} is above ${value.visibleBottom} by less than ${floor}px`)
         }
+        if (value.close && value.close.r > value.limit + 1) failures.push(`${label} close right ${value.close.r} > ${value.limit}`)
         console.log(label, JSON.stringify(value))
       }
       if (device.narrow) {
         await send('Runtime.evaluate', { expression: `(() => { const real = window.visualViewport; const fake = new Proxy(real, { get(target, key) { if (key === 'width') return Math.max(320, window.innerWidth - 59); if (key === 'offsetLeft') return 0; const value = target[key]; return typeof value === 'function' ? value.bind(target) : value } }); Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => fake }); const input = document.querySelector('.schedule-assignment-modal input[type="search"]'); input?.focus(); input?.blur(); })()`, returnByValue: true })
+        await sleep(200)
+      }
+      if (device.short) {
+        await send('Runtime.evaluate', { expression: `(() => { const real = window.visualViewport; const fake = new Proxy(real, { get(target, key) { if (key === 'height') return Math.max(200, window.innerHeight - 30); if (key === 'offsetTop') return 0; const value = target[key]; return typeof value === 'function' ? value.bind(target) : value } }); Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => fake }); const input = document.querySelector('.schedule-assignment-modal input[type="search"]'); input?.focus(); input?.blur(); })()`, returnByValue: true })
         await sleep(200)
       }
       await read(device.name)
