@@ -23540,6 +23540,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: none;
+  left: var(--assign-vv-left, 0px);
+  width: var(--assign-vv-width, 100%);
+  right: auto;
+  max-width: 100%;
   padding:
     calc(max(8px, var(--one-safe-top-chrome, env(safe-area-inset-top, 0px))) + var(--assign-vv-top, 0px))
     max(8px, var(--one-inset-right, var(--one-safe-area-right, env(safe-area-inset-right, 0px))))
@@ -23670,8 +23674,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (orientation: landscape) and (max-height: 520px) {
   .schedule-assignment-modal.employee-modal {
+    box-sizing: border-box;
     width: 100%;
-    max-width: none;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .schedule-assignment-modal .assignment-card-filters {

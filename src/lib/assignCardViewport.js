@@ -19,11 +19,14 @@ export function readAssignCardViewport(win = globalThis.window) {
   const width = Number(visual?.width) || innerWidth
   const height = Number(visual?.height) || innerHeight
   const offsetTop = Math.max(0, Number(visual?.offsetTop) || 0)
+  const offsetLeft = Math.max(0, Number(visual?.offsetLeft) || 0)
   const sameWidth = Math.abs(width - innerWidth) <= 2
   const below = sameWidth ? Math.max(0, Math.round(innerHeight - height - offsetTop)) : 0
   const keyboard = below >= 80 && sameWidth && isAssignFilterFocused(win)
   return {
     top: sameWidth ? Math.round(offsetTop) : 0,
+    left: Math.round(offsetLeft),
+    width: Math.max(0, Math.round(width || innerWidth)),
     kb: below + (keyboard ? ASSIGN_CARD_KEYBOARD_ACCESSORY_PX : 0),
     keyboard,
   }
