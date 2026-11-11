@@ -36,7 +36,7 @@ describe('assign card with the missing-area prompt', () => {
     expect(bodyRule).toContain('overflow-y: auto')
     expect(css).toContain('.schedule-assignment-modal .assignment-area-warning select')
     expect(css).toContain('.schedule-assignment-modal .assignment-area-apply .ghost-btn')
-    const short = css.slice(css.indexOf('@media (orientation: landscape) and (max-height: 520px)'), css.indexOf('@media (orientation: landscape) and (max-height: 520px)') + 900)
+    const short = css.slice(css.indexOf('@media (orientation: landscape) and (max-height: 520px)'), css.indexOf('@media (orientation: landscape) and (max-height: 520px)') + 1400)
     expect(short).toContain('padding-top: calc(8px + var(--assign-vv-top, 0px))')
     expect(short).toContain('padding-bottom: calc(8px + var(--assign-kb, 0px))')
     expect(short).toContain('max-height: 100%')

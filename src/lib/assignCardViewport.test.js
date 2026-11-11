@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { readAssignCardViewport } from './assignCardViewport'
 
@@ -43,5 +45,13 @@ describe('assign card viewport', () => {
     expect(readAssignCardViewport(win({
       iw: 820, ih: 1180, vw: 1180, vh: 820, focused: {},
     })).keyboard).toBe(false)
+  })
+
+  it('stops iOS landscape text inflation and keeps an 18px far-side gap', () => {
+    const index = readFileSync(join(process.cwd(), 'src/index.css'), 'utf8')
+    const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
+    expect(index).toContain('-webkit-text-size-adjust: 100%')
+    expect(index).toContain('text-size-adjust: 100%')
+    expect(css).toContain('--assign-far-gap: 18px')
   })
 })

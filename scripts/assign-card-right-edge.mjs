@@ -48,10 +48,11 @@ const MEASURE = `(() => {
   const box = (el) => { const r = el.getBoundingClientRect(); return { r: Math.round(r.right) } };
   const close = modal.querySelector('.icon-btn');
   const save = [...modal.querySelectorAll('button')].find((b) => (b.innerText || '').trim() === 'Save');
+  const name = modal.querySelector('.assignment-employee-meta strong');
   const pad = parseFloat(getComputedStyle(backdrop).paddingRight) || 0;
   const vv = window.visualViewport;
   const visibleRight = Math.min(innerWidth, Math.round((vv?.offsetLeft || 0) + (vv?.width || innerWidth)));
-  return { open: true, card: box(modal).r, close: box(close).r, save: save ? box(save).r : null, limit: visibleRight - pad };
+  return { open: true, card: box(modal).r, close: box(close).r, save: save ? box(save).r : null, limit: visibleRight - pad, nameFont: name ? getComputedStyle(name).fontSize : '' };
 })()`
 
 const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1'
@@ -114,21 +115,27 @@ async function main() {
       await sleep(400)
       await send('Runtime.evaluate', { expression: `document.querySelector('.schedule-assign-btn')?.click()`, returnByValue: true })
       await sleep(300)
+      const read = async (label) => {
+        const measured = await send('Runtime.evaluate', { expression: MEASURE, returnByValue: true })
+        const value = measured.result?.value
+        if (!value?.open) {
+          failures.push(`${label} card did not open`)
+          return
+        }
+        for (const key of ['card', 'close', 'save']) {
+          if (value[key] == null) continue
+          if (value[key] > value.limit + 1) failures.push(`${label} ${key} ${value[key]} > ${value.limit}`)
+        }
+        console.log(label, JSON.stringify(value))
+      }
       if (device.narrow) {
         await send('Runtime.evaluate', { expression: `(() => { const real = window.visualViewport; const fake = new Proxy(real, { get(target, key) { if (key === 'width') return Math.max(320, window.innerWidth - 59); if (key === 'offsetLeft') return 0; const value = target[key]; return typeof value === 'function' ? value.bind(target) : value } }); Object.defineProperty(window, 'visualViewport', { configurable: true, get: () => fake }); const input = document.querySelector('.schedule-assignment-modal input[type="search"]'); input?.focus(); input?.blur(); })()`, returnByValue: true })
         await sleep(200)
       }
-      const measured = await send('Runtime.evaluate', { expression: MEASURE, returnByValue: true })
-      const value = measured.result?.value
-      if (!value?.open) {
-        failures.push(`${device.name} card did not open`)
-        continue
-      }
-      for (const key of ['card', 'close', 'save']) {
-        if (value[key] == null) continue
-        if (value[key] > value.limit + 1) failures.push(`${device.name} ${key} ${value[key]} > ${value.limit}`)
-      }
-      console.log(device.name, JSON.stringify(value))
+      await read(device.name)
+      await send('Runtime.evaluate', { expression: `(() => { const style = document.createElement('style'); style.textContent = '.schedule-assignment-modal .assignment-employee-meta strong { font-size: 22px !important; }'; document.head.appendChild(style); })()`, returnByValue: true })
+      await sleep(150)
+      await read(`${device.name}-22px`)
     }
     page.ws.close()
     browser.ws.close()
