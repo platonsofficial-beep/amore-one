@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom'
 import './App.css'
 import { isTransientSuccessNotice, TRANSIENT_NOTICE_MS } from './lib/transientNotice'
 import { assignCardScrollDelta, shouldBlockAssignCardBackgroundScroll } from './lib/assignCardScrollLock'
+import { readAssignCardViewport } from './lib/assignCardViewport'
 import { buildEmployeeStatusOptions, disableConfirmMessage, planEmployeeStatusSave } from './lib/employeeStatusSave'
 import { createEmployee, deleteEmployee, getEmployees, isEmployeeDisabled, setEmployeeEnabled, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { getDisabledEmployeeKey, setDisabledEmployeeIds } from './lib/removedEmployeeShifts'
@@ -3194,6 +3195,33 @@ function ScheduleView({
   useEscapeToClose(() => setIsClearWeekModalOpen(false), { enabled: isClearWeekModalOpen })
   useEscapeToClose(() => setIsAutoFillModalOpen(false), { enabled: isAutoFillModalOpen })
   useEscapeToClose(() => handleCloseAssignmentModal(), { enabled: isAssignmentModalOpen })
+  useEffect(() => {
+    if (!isAssignmentModalOpen) return undefined
+    let frame = 0
+    const apply = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const backdrop = document.querySelector('.employee-modal-backdrop:has(.schedule-assignment-modal)')
+        if (!backdrop) return
+        const box = readAssignCardViewport(window)
+        backdrop.style.setProperty('--assign-vv-top', `${box.top}px`)
+        backdrop.style.setProperty('--assign-kb', `${box.kb}px`)
+        backdrop.classList.toggle('is-assign-keyboard', box.keyboard)
+      })
+    }
+    apply()
+    window.visualViewport?.addEventListener('resize', apply)
+    window.visualViewport?.addEventListener('scroll', apply)
+    document.addEventListener('focusin', apply)
+    document.addEventListener('focusout', apply)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.visualViewport?.removeEventListener('resize', apply)
+      window.visualViewport?.removeEventListener('scroll', apply)
+      document.removeEventListener('focusin', apply)
+      document.removeEventListener('focusout', apply)
+    }
+  }, [isAssignmentModalOpen])
   useEffect(() => {
     if (!isAssignmentModalOpen) return undefined
     let lastY = 0
