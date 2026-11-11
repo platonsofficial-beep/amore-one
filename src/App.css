@@ -52589,52 +52589,19 @@ summary:focus-visible {
   }
 }
 
-/* Schedule focus fills the stage under the toolbar on every shell. Short
-   landscape tightens the same column in the media query below. */
-.app-shell.schedule-focus-mode .main-panel.main-panel-schedule {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  height: 100%;
-}
-
-.app-shell.schedule-focus-mode .main-panel-schedule > div:not([hidden]) {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-  min-width: 0;
-  width: 100%;
-}
-
-.app-shell.schedule-focus-mode .schedule-focus-workspace {
-  flex: 1 1 auto;
-  align-self: stretch;
-  min-height: 0;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
+/* Stretch the week editor across the content width. Leave the grid at its
+   natural height so day columns and shift cards are not crushed. */
+.app-shell.schedule-focus-mode .schedule-focus-workspace,
 .app-shell.schedule-focus-mode .schedule-workspace-layout,
 .app-shell.schedule-focus-mode .schedule-workspace-main,
-.app-shell.schedule-focus-mode .schedule-grid-section {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  min-width: 0;
+.app-shell.schedule-focus-mode .schedule-grid-section,
+.app-shell.schedule-focus-mode .schedule-grid-hero,
+.app-shell.schedule-focus-mode .blend-grid-scroll,
+.app-shell.schedule-focus-mode .schedule-day-grid,
+.app-shell.schedule-focus-mode .schedule-header,
+.app-shell.schedule-focus-mode .schedule-workspace-banner {
   width: 100%;
-}
-
-.app-shell.schedule-focus-mode .schedule-empty-state {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 0;
-  width: 100%;
+  max-width: none;
   box-sizing: border-box;
 }
 
@@ -52648,11 +52615,6 @@ summary:focus-visible {
 @media (max-height: 460px) {
   /* portrait-week-header: short landscape keeps the week grid on screen. */
   .app-shell.schedule-focus-mode .main-panel.main-panel-schedule {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    min-height: 0;
-    overflow: visible;
     padding: 4px 8px 6px;
     gap: 4px;
   }
@@ -52739,27 +52701,13 @@ summary:focus-visible {
   }
 
   .schedule-focus-workspace {
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    align-content: stretch;
-    flex: 1 1 auto;
-    min-height: 0;
     width: 100%;
   }
 
-  .schedule-focus-workspace > .schedule-header {
-    flex: 0 0 auto;
-    width: 100%;
-    min-width: 0;
-  }
-
+  .schedule-focus-workspace > .schedule-header,
   .schedule-focus-workspace > .schedule-workspace-layout {
-    flex: 1 1 auto;
     width: 100%;
     min-width: 0;
-    min-height: 0;
   }
 
   .schedule-focus-workspace .schedule-workspace-banner {
@@ -52798,34 +52746,23 @@ summary:focus-visible {
 
   .schedule-focus-workspace .schedule-grid-section {
     margin: 0;
-    flex: 1 1 auto;
-    min-height: 0;
     width: 100%;
     max-width: none;
-    align-self: stretch;
   }
 
-  .schedule-focus-workspace .schedule-empty-state {
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+  .schedule-workspace.is-compact-landscape.schedule-focus-workspace .schedule-grid-hero,
+  .schedule-workspace.is-compact-landscape.schedule-focus-workspace .blend-grid-scroll {
+    flex: 0 1 auto;
+    min-height: auto;
+    height: auto;
+    max-height: none;
+    overflow: visible;
     width: 100%;
-    min-height: 0;
-    box-sizing: border-box;
-  }
-
-  .schedule-focus-workspace .schedule-grid-hero,
-  .schedule-focus-workspace .blend-grid-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    width: 100%;
-    max-width: none;
   }
 
   .schedule-focus-workspace .schedule-day-grid {
     width: 100%;
-    height: 100%;
+    height: auto;
   }
 }
 

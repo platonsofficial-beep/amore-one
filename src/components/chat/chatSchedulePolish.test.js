@@ -20,5 +20,6 @@ describe('chat and schedule screen use', () => {
     expect(block).toContain('text-overflow: clip')
     expect(block).not.toContain('max-width: min(100%, 240px)')
     expect(block).not.toContain('height: 32px')
+    expect(block).not.toMatch(/\.schedule-day-grid\s*\{[^}]*height:\s*100%/)
   })
 })

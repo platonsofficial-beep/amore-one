@@ -623,7 +623,9 @@ import {
   shouldFillScheduleGridWidth,
   shouldShowScheduleDraftChangesBanner,
   shouldUseFluidScheduleDayColumns,
+  SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH,
 } from './lib/mobileScheduleUtils'
+import { buildSchedulePreviewTemplates, shouldUseSchedulePreviewFixture } from './lib/schedulePreviewFixture'
 import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from './lib/shiftDisplayName'
 import {
@@ -5952,7 +5954,7 @@ function ScheduleView({
               className={`blend-grid-table schedule-day-grid${scheduleUsesFluidDayColumns ? ' is-fluid-day-columns' : ''}`}
               style={scheduleUsesFluidDayColumns
                 ? {
-                    gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))`,
+                    gridTemplateColumns: `repeat(${weekDays.length}, minmax(${SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH}px, 1fr))`,
                     width: '100%',
                     minWidth: 0,
                   }
@@ -18324,9 +18326,13 @@ function App() {
         ])
         if (!isMounted) return
 
+        const usePreviewTemplates = shouldUseSchedulePreviewFixture(window.location.search)
         if (templatesResult.status === 'fulfilled') {
-          setShiftTemplates(composeShiftTemplates(templatesResult.value))
+          const composed = composeShiftTemplates(templatesResult.value)
+          setShiftTemplates(composed.length === 0 && usePreviewTemplates ? buildSchedulePreviewTemplates() : composed)
           syncScheduleTemplateSetupState()
+        } else if (usePreviewTemplates) {
+          setShiftTemplates(buildSchedulePreviewTemplates())
         } else {
           setShiftTemplates([])
           setScheduleNotice(templatesResult.reason?.message || 'Unable to load shift templates right now.')
