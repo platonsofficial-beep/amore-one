@@ -1,3 +1,8 @@
+-- DEV ONLY / DO NOT RUN
+-- This file is a local prototype. It is not the live policy.
+-- Live workspace_profiles access is per workspace and does not use these open policies.
+-- Do not execute this file against a shared or production database.
+--
 -- TEMP DEVELOPMENT ONLY — replace with workspace/auth policies before production.
 -- Local prototype: no Supabase Auth. Permissive access for anon + authenticated.
 -- Table: public.workspace_profiles only.

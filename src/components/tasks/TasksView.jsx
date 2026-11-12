@@ -17,6 +17,8 @@ import TaskTemplateModal from './TaskTemplateModal'
 import TaskTemplatesView from './TaskTemplatesView'
 import TasksAssignmentFilter from './TasksAssignmentFilter'
 import TasksHomeView from './TasksHomeView'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
 export default function TasksView({
   tasks = [],
@@ -51,6 +53,7 @@ export default function TasksView({
   onOpenCreateHandled,
   isMobileLayout = false,
   canManage = false,
+  onRetryLoad,
 }) {
   const CUSTOM_DEPARTMENTS_STORAGE_KEY = 'amore-task-custom-departments'
 
@@ -352,6 +355,7 @@ export default function TasksView({
   }
 
   const tableUnavailable = `${errorMessage}`.toLowerCase().includes('not ready yet')
+  const boardsLoadFailed = isLoadFailureMessage(errorMessage)
 
   return (
     <section className={`staff-page tasks-page${isMobileLayout ? ' is-mobile-layout' : ''}`}>
@@ -374,7 +378,7 @@ export default function TasksView({
         ) : null}
       </div>
 
-      {isMobileLayout && tasksScreen === 'boards' && !selectedDepartmentKey ? (
+      {isMobileLayout && tasksScreen === 'boards' && !selectedDepartmentKey && !boardsLoadFailed ? (
         <section className="tasks-mobile-command-metrics" aria-label="Today task metrics">
           <p className="tasks-mobile-metrics-label">Today</p>
           <div className="tasks-mobile-metrics-grid">
@@ -394,7 +398,9 @@ export default function TasksView({
         </section>
       ) : null}
 
-      {tasksScreen === 'boards' && errorMessage ? (
+      {tasksScreen === 'boards' && boardsLoadFailed ? (
+        <LoadFailureBanner message={errorMessage} subject="operations" onRetry={onRetryLoad} />
+      ) : tasksScreen === 'boards' && errorMessage ? (
         <div className={`staff-status-banner${tableUnavailable ? ' tasks-status-unavailable' : ''}`}>
           {errorMessage}
         </div>
@@ -471,6 +477,7 @@ export default function TasksView({
           onOpenTemplates={handleOpenTemplates}
           templateCount={taskTemplates.length}
           canManage={canManage}
+          loadFailed={boardsLoadFailed}
         />
       )}
 

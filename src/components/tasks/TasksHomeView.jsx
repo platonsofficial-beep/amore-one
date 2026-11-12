@@ -96,6 +96,7 @@ export default function TasksHomeView({
   onOpenTemplates,
   templateCount = 0,
   canManage = false,
+  loadFailed = false,
 }) {
   return (
     <section className={`tasks-home${isMobileLayout ? ' is-mobile-layout' : ''}`}>
@@ -104,13 +105,15 @@ export default function TasksHomeView({
         employees={employees}
         compact={isMobileLayout}
         title="Needs attention"
-        emptyMessage="No tasks need attention right now."
+        emptyMessage={loadFailed ? "Couldn't load what needs attention." : 'No tasks need attention right now.'}
       />
 
-      <DepartmentPerformanceSummary
-        summaries={departmentPerformance}
-        compact={isMobileLayout}
-      />
+      {loadFailed ? null : (
+        <DepartmentPerformanceSummary
+          summaries={departmentPerformance}
+          compact={isMobileLayout}
+        />
+      )}
 
       {isMobileLayout && canManage ? (
         <section className="tasks-mobile-templates-section" aria-label="Daily templates">

@@ -3871,6 +3871,30 @@
   width: 140px;
 }
 
+.team-people-search.search-bar input,
+.team-people-search-input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.load-failure-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.load-failure-banner p {
+  margin: 0;
+}
+
+.load-failure-retry {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .icon-btn {
   width: 44px;
   height: 44px;

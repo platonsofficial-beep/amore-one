@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 import { HourMinuteField } from '../HourMinuteField'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { portraitShiftSubtitle } from '../../lib/managerPortrait'
@@ -25,6 +27,7 @@ export function MobileManagerScheduleDayView({
   isSaving = false,
   canEdit = false,
   noticeMessage = '',
+  onRetryLoad,
   onDateChange,
   onUpdateShiftTimes,
 }) {
@@ -109,10 +112,14 @@ export function MobileManagerScheduleDayView({
         </button>
         <button type="button" onClick={() => shiftDate(1)} aria-label="Next day">›</button>
       </div>
-      {noticeMessage ? <p className="manager-portrait-notice" role="status">{noticeMessage}</p> : null}
-      {errorMessage ? <p className="manager-portrait-notice is-error" role="alert">{errorMessage}</p> : null}
+      {isLoadFailureMessage(noticeMessage) ? (
+        <LoadFailureBanner message={noticeMessage} subject="the schedule" onRetry={onRetryLoad} />
+      ) : noticeMessage ? <p className="manager-portrait-notice" role="status">{noticeMessage}</p> : null}
+      {isLoadFailureMessage(errorMessage) ? (
+        <LoadFailureBanner message={errorMessage} subject="the schedule" onRetry={onRetryLoad} />
+      ) : errorMessage ? <p className="manager-portrait-notice is-error" role="alert">{errorMessage}</p> : null}
       {isLoading ? <p className="manager-portrait-empty">Loading shifts…</p> : null}
-      {!isLoading && dayShifts.length === 0 ? (
+      {!isLoading && !isLoadFailureMessage(noticeMessage) && dayShifts.length === 0 ? (
         <p className="manager-portrait-empty">No shifts on this day.</p>
       ) : null}
       <ul className="manager-portrait-shift-list">

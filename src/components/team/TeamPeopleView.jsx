@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
 import { MemberAccessPanel } from './MemberAccessPanel'
@@ -284,10 +286,12 @@ export function TeamPeopleView({
   onSearchTermChange,
   searchPlaceholder = 'Search employee',
   showLeaveInbox = false,
+  onRetryLoad,
 }) {
   const [confirmDisableId, setConfirmDisableId] = useState(null)
   const hasActiveFilter = activeFilter !== 'All'
-  const isRosterEmpty = !isLoading && totalEmployeeCount === 0
+  const directoryLoadFailed = isLoadFailureMessage(noticeMessage)
+  const isRosterEmpty = !isLoading && !directoryLoadFailed && totalEmployeeCount === 0
   const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
   const metricsSource = rosterEmployees.length > 0 ? rosterEmployees : employees
   // 0036: the headline count is active people only (disabled stay listed under "Disabled").
@@ -316,7 +320,7 @@ export function TeamPeopleView({
         <div className="team-people-header-copy">
           <p className="eyebrow">People</p>
           <h3>Your team</h3>
-          <p className="team-people-metrics">{metricsLine}</p>
+          <p className="team-people-metrics">{directoryLoadFailed ? 'Team size unavailable' : metricsLine}</p>
         </div>
         <div className="team-people-header-actions">
           <button type="button" className="primary-btn team-people-add-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
@@ -359,7 +363,9 @@ export function TeamPeopleView({
         </div>
       </div>
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {directoryLoadFailed ? (
+        <LoadFailureBanner message={noticeMessage} subject="the team" onRetry={onRetryLoad} />
+      ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
 
       {isRosterEmpty ? (

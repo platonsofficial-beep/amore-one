@@ -10,6 +10,7 @@ import {
   presentInsightsAttentionItem,
   buildReportsBundle,
   buildReportsOverview,
+  formatReportMetricValue,
   buildReservationsReport,
   buildScheduleReport,
   buildSuppliersReport,
@@ -633,5 +634,53 @@ describe('buildSuppliersReport (FK-first)', () => {
 
     expect(report.metrics.linkedToStock).toBe(1)
     expect(report.metrics.withoutStockItems).toBe(1)
+  })
+})
+
+describe('insights failed loads', () => {
+  const RAW = "Cannot read properties of null (reading 'from')"
+
+  it('does not call the day stable or show zero counts when sources failed', () => {
+    const summary = buildInsightsHealthSummary({
+      period: REPORT_PERIOD_TODAY,
+      attentionItems: [],
+      reservationsReport: { connected: false, loadFailed: true, metrics: { bookings: 0 } },
+      tasksReport: { connected: false, loadFailed: true, metrics: { overdue: 0 } },
+      stockReport: { connected: false, loadFailed: true, metrics: { totalStockValue: 0, itemsToOrder: 0 } },
+      scheduleReport: { connected: false, loadFailed: true, metrics: { issues: 0 } },
+    })
+
+    expect(summary).toBe("Couldn't load today's picture. Check your connection and try again.")
+    expect(summary).not.toMatch(/stable/i)
+    expect(summary).not.toContain(RAW)
+
+    const bundle = buildReportsBundle({
+      period: REPORT_PERIOD_TODAY,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      reservations: [],
+      tasks: [],
+      stockItems: [],
+      stockOrders: [],
+      connections: {
+        reservationsConnected: false,
+        reservationsLoadFailed: true,
+        tasksConnected: false,
+        tasksLoadFailed: true,
+        stockModuleConnected: true,
+        stockLoadFailed: true,
+        scheduleConnected: false,
+        scheduleLoadFailed: true,
+      },
+      schedule: { shifts: [], employees: [] },
+    })
+
+    expect(bundle.healthSummary).not.toMatch(/stable/i)
+    expect(bundle.sourcesFailed).toBe(true)
+    for (const metric of bundle.overview) {
+      expect(formatReportMetricValue(metric.value, metric)).toBe('Unavailable')
+      expect(formatReportMetricValue(metric.value, metric)).not.toBe('€0')
+      expect(formatReportMetricValue(metric.value, metric)).not.toBe('0')
+    }
   })
 })

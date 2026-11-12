@@ -111,9 +111,9 @@ describe('reservation seating edit form', () => {
     expect(view.container.textContent).not.toContain('Auto-close seated tables')
     expect(view.container.textContent).not.toContain('Configure service slots')
     expect(view.container.textContent).not.toContain('Cannot read properties')
-    expect(view.container.textContent).toContain("Couldn't load seating hours.")
+    expect(view.container.textContent).toContain("Couldn't load seating hours. Check your connection and try again.")
     expect(view.container.textContent.indexOf('Dinner 1')).toBeLessThan(
-      view.container.textContent.indexOf("Couldn't load seating hours."),
+      view.container.textContent.indexOf("Couldn't load seating hours. Check your connection and try again."),
     )
 
     view.unmount()

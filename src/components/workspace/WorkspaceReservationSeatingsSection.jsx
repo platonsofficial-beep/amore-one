@@ -13,6 +13,7 @@ import {
 } from '../../lib/hostDiningTimer'
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { formatUserFacingLoadError, isTechnicalErrorText } from '../../lib/userFacingLoadError'
 
 function HostDiningTimerSettings() {
   const [policy, setPolicy] = useState(() => readHostDiningTimerDurationPolicy())
@@ -89,8 +90,8 @@ function SeatingDaysToggle({ daysOfWeek, onChange }) {
 function readableSeatingNotice(message) {
   const text = `${message ?? ''}`.trim()
   if (!text) return ''
-  if (/cannot read propert|of null|of undefined|reading ['"]/i.test(text)) {
-    return "Couldn't load seating hours."
+  if (isTechnicalErrorText(text)) {
+    return formatUserFacingLoadError('seating hours')
   }
   return text
 }
