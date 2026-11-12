@@ -33,6 +33,12 @@ export function isFloorPlanStorageKey(key = '') {
     || normalizedKey.startsWith(`${DRAFT_STORAGE_KEY}--`)
 }
 
+export function isDraftFloorPlanStorageKey(key = '') {
+  const normalizedKey = `${key ?? ''}`.trim()
+  return normalizedKey === DRAFT_STORAGE_KEY
+    || normalizedKey.startsWith(`${DRAFT_STORAGE_KEY}--`)
+}
+
 function parseStoredLayout(raw) {
   if (!raw) return null
 
@@ -139,13 +145,37 @@ export function loadFloorPlanLayout(workspaceId = '') {
   return loadLocalFloorPlanLayout(workspaceId)
 }
 
-export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects }, workspaceId = '', { notify = true } = {}) {
+export function floorPlanLayoutContentKey({ floors, activeFloorId, objects } = {}) {
+  return JSON.stringify({
+    floors: floors ?? null,
+    activeFloorId: activeFloorId ?? null,
+    objects: objects ?? [],
+  })
+}
+
+function readScopedStoredLayout(workspaceId = '') {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.localStorage.getItem(getFloorPlanStorageKey(workspaceId))
+    return raw ? parseStoredLayout(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects, publishedAt }, workspaceId = '', { notify = true } = {}) {
+  const existing = readScopedStoredLayout(workspaceId)
+  const nextContent = { floors, activeFloorId, objects }
+  if (existing && floorPlanLayoutContentKey(existing) === floorPlanLayoutContentKey(nextContent)) {
+    return existing
+  }
+
   const payload = {
     version: 1,
     floors: JSON.parse(JSON.stringify(floors)),
     activeFloorId,
     objects: JSON.parse(JSON.stringify(objects)),
-    publishedAt: new Date().toISOString(),
+    publishedAt: publishedAt ?? existing?.publishedAt ?? new Date().toISOString(),
   }
 
   return writeStorageLayout(payload, workspaceId, { notify })
@@ -171,7 +201,12 @@ export function saveLocalDraftFloorPlanLayout({ floors, activeFloorId, objects }
   }
 
   try {
-    window.localStorage.setItem(getDraftStorageKey(workspaceId), JSON.stringify(payload))
+    const key = getDraftStorageKey(workspaceId)
+    const existing = readStorageKey(key)
+    if (existing && floorPlanLayoutContentKey(existing) === floorPlanLayoutContentKey(payload)) {
+      return existing
+    }
+    window.localStorage.setItem(key, JSON.stringify(payload))
     return payload
   } catch {
     return null

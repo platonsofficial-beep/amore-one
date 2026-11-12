@@ -25350,7 +25350,10 @@ function App() {
   })
 
   return (
-    <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
+    <PublishedFloorPlanProvider
+      workspaceId={workspace?.id ?? ''}
+      includeDraft={activeView === 'floor-plan-builder'}
+    >
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       <HelpModeChrome />

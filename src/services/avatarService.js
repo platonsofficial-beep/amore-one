@@ -1,13 +1,63 @@
 import { supabase } from '../lib/supabaseClient'
 
 export const AVATARS_BUCKET = 'avatars'
-export const AVATAR_SIGNED_URL_SECONDS = 3600
+export const AVATAR_SIGNED_URL_SECONDS = 24 * 60 * 60
 const REFRESH_BEFORE_MS = 60 * 1000
+const SIGNED_URL_STORAGE_KEY = 'one.avatarSignedUrls.v1'
 
 const signedUrlCache = new Map()
 
+function readPersistedSignedUrls() {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SIGNED_URL_STORAGE_KEY) || '{}')
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function writePersistedSignedUrls(entries) {
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.setItem(SIGNED_URL_STORAGE_KEY, JSON.stringify(entries))
+  } catch {
+    // A full disk should not block showing a photo that is already in memory.
+  }
+}
+
 export function clearAvatarUrlCache() {
   signedUrlCache.clear()
+  if (typeof localStorage === 'undefined') return
+  try {
+    localStorage.removeItem(SIGNED_URL_STORAGE_KEY)
+  } catch {
+    // Ignore storage failures while clearing.
+  }
+}
+
+function rememberSignedUrl(path, url, expiresAt) {
+  signedUrlCache.set(path, { url, expiresAt })
+  const entries = readPersistedSignedUrls()
+  const now = Date.now()
+  entries[path] = { url, expiresAt }
+  for (const [key, value] of Object.entries(entries)) {
+    if (!value?.url || !value?.expiresAt || value.expiresAt <= now + REFRESH_BEFORE_MS) {
+      delete entries[key]
+    }
+  }
+  writePersistedSignedUrls(entries)
+}
+
+function readSignedUrl(path, now) {
+  const memory = signedUrlCache.get(path)
+  if (memory && memory.expiresAt > now + REFRESH_BEFORE_MS) return memory
+  const persisted = readPersistedSignedUrls()[path]
+  if (persisted?.url && persisted.expiresAt > now + REFRESH_BEFORE_MS) {
+    signedUrlCache.set(path, persisted)
+    return persisted
+  }
+  return null
 }
 
 export function buildAvatarPath(authUserId, fileId = crypto.randomUUID()) {
@@ -75,8 +125,8 @@ export async function resolveAvatarUrls(paths = []) {
   const now = Date.now()
   const missing = []
   unique.forEach((path) => {
-    const cached = signedUrlCache.get(path)
-    if (cached && cached.expiresAt > now + REFRESH_BEFORE_MS) {
+    const cached = readSignedUrl(path, now)
+    if (cached) {
       result.set(path, cached.url)
       return
     }
@@ -95,7 +145,7 @@ export async function resolveAvatarUrls(paths = []) {
     const path = `${row?.path ?? ''}`.trim()
     const url = `${row?.signedUrl ?? ''}`.trim()
     if (!path || !url || row?.error) return
-    signedUrlCache.set(path, { url, expiresAt })
+    rememberSignedUrl(path, url, expiresAt)
     result.set(path, url)
   })
   return result
@@ -118,6 +168,7 @@ export async function uploadMyAvatar({ authUserId, blob, previousPath = '' }) {
   const path = buildAvatarPath(owner)
   const { error } = await client.storage.from(AVATARS_BUCKET).upload(path, blob, {
     contentType: 'image/jpeg',
+    cacheControl: String(AVATAR_SIGNED_URL_SECONDS),
     upsert: false,
   })
   if (error) throw new Error(avatarErrorMessage(error))

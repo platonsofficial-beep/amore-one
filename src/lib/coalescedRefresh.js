@@ -8,6 +8,8 @@ export function createCoalescedRefresh(refresh, {
   doc = typeof document === 'undefined' ? null : document,
   win = typeof window === 'undefined' ? null : window,
 } = {}) {
+  // Realtime bursts collapse into one trailing refresh. A change that arrived
+  // while the tab was hidden still refreshes once when it is visible again.
   let timer = null
   let pendingWhileHidden = false
   const isHidden = () => Boolean(doc && doc.visibilityState === 'hidden')

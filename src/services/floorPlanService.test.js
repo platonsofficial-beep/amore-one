@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EDITOR_FLOOR_PLAN_COLUMNS, PUBLISHED_FLOOR_PLAN_COLUMNS } from './floorPlanService'
 
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -19,6 +20,15 @@ function isFloorPlanPermissionError(error) {
     || message.includes('permission denied')
     || message.includes('not authorized')
 }
+
+describe('floor plan read columns', () => {
+  it('keeps the draft layout out of the host read', () => {
+    expect(PUBLISHED_FLOOR_PLAN_COLUMNS).not.toContain('draft_layout_json')
+    expect(PUBLISHED_FLOOR_PLAN_COLUMNS).toContain('layout_json')
+    expect(PUBLISHED_FLOOR_PLAN_COLUMNS).toContain('updated_at')
+    expect(EDITOR_FLOOR_PLAN_COLUMNS).toContain('draft_layout_json')
+  })
+})
 
 describe('floorPlanService error detection', () => {
   it('detects missing floor_plans table errors only', () => {

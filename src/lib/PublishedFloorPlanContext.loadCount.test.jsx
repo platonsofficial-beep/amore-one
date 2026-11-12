@@ -225,6 +225,50 @@ describe('floor plan load does not retrigger itself', () => {
     view.unmount()
   })
 
+  it('two tabs do not ping-pong floor_plans reads, and a publish still arrives', async () => {
+    const viewA = renderHarness({ workspaceId: 'ws-tabs' })
+    const viewB = renderHarness({ workspaceId: 'ws-tabs' })
+    await flush()
+    const afterMount = floorReads.filter((name) => name === 'floor_plans').length
+    expect(afterMount).toBeLessThanOrEqual(2)
+
+    const key = 'amore-floor-plan-published-v1--ws-tabs'
+    const stored = window.localStorage.getItem(key)
+    for (let i = 0; i < 6; i += 1) {
+      act(() => {
+        window.dispatchEvent(new StorageEvent('storage', { key, newValue: stored }))
+      })
+      await flush()
+    }
+    expect(floorReads.filter((name) => name === 'floor_plans').length).toBe(afterMount)
+
+    const published = {
+      version: 1,
+      floors: [{ id: 'main', label: 'Main', workspace: { width: 1000, height: 700, x: 0, y: 0 } }],
+      activeFloorId: 'main',
+      objects: [{
+        id: 't4',
+        type: 'table',
+        floorId: 'main',
+        position: { x: 40, y: 40 },
+        size: { width: 80, height: 80 },
+        properties: { shape: 'round', tableNumber: '4', minGuests: 1, maxGuests: 4, visible: true },
+      }],
+      publishedAt: '2026-11-12T12:00:00.000Z',
+    }
+    act(() => {
+      window.localStorage.setItem(key, JSON.stringify(published))
+      window.dispatchEvent(new StorageEvent('storage', { key, newValue: JSON.stringify(published) }))
+    })
+    await flush()
+
+    expect(viewA.container.querySelector('[data-table]')?.getAttribute('data-table')).toBe('4')
+    expect(viewB.container.querySelector('[data-table]')?.getAttribute('data-table')).toBe('4')
+    expect(floorReads.filter((name) => name === 'floor_plans').length).toBe(afterMount)
+    viewA.unmount()
+    viewB.unmount()
+  })
+
   it('starts one new read when the workspace id changes, not one per rerender', async () => {
     const view = renderHarness({ workspaceId: 'ws-a' })
     await flush()

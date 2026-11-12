@@ -449,7 +449,35 @@ export async function updateMembershipDisplayName(authUserId, displayName, works
     throw new Error(formatProfileSaveError(error, 'Unable to update display name right now.'))
   }
 
+  invalidateMemberDisplayNames(workspaceId, normalizedUserId)
   return mapMembership(data)
+}
+
+const memberDisplayNameCache = new Map()
+
+function memberNameCacheKey(workspaceId, authUserId) {
+  return `${workspaceId}:${authUserId}`
+}
+
+export function clearMemberDisplayNameCache() {
+  memberDisplayNameCache.clear()
+}
+
+export function invalidateMemberDisplayNames(workspaceId, authUserId = '') {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  const normalizedUserId = `${authUserId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    memberDisplayNameCache.clear()
+    return
+  }
+  if (normalizedUserId) {
+    memberDisplayNameCache.delete(memberNameCacheKey(normalizedWorkspaceId, normalizedUserId))
+    return
+  }
+  const prefix = `${normalizedWorkspaceId}:`
+  for (const key of memberDisplayNameCache.keys()) {
+    if (key.startsWith(prefix)) memberDisplayNameCache.delete(key)
+  }
 }
 
 export async function getMemberDisplayNamesByAuthUserIds(workspaceId, authUserIds = []) {
@@ -457,25 +485,34 @@ export async function getMemberDisplayNamesByAuthUserIds(workspaceId, authUserId
   const ids = [...new Set((authUserIds ?? []).filter(Boolean))]
   if (!normalizedWorkspaceId || ids.length === 0) return {}
 
+  const namesByAuthUserId = {}
+  const missing = []
+  ids.forEach((authUserId) => {
+    const cached = memberDisplayNameCache.get(memberNameCacheKey(normalizedWorkspaceId, authUserId))
+    if (cached) namesByAuthUserId[authUserId] = cached
+    else missing.push(authUserId)
+  })
+  if (missing.length === 0) return namesByAuthUserId
+
   const { data, error } = await supabase
     .from(WORKSPACE_MEMBERS_TABLE)
     .select('auth_user_id, display_name, email')
     .eq('workspace_id', normalizedWorkspaceId)
-    .in('auth_user_id', ids)
+    .in('auth_user_id', missing)
 
   if (error) {
     console.warn('[membershipService] getMemberDisplayNamesByAuthUserIds error:', error)
-    return {}
+    return namesByAuthUserId
   }
-
-  const namesByAuthUserId = {}
 
   ;(data ?? []).forEach((record) => {
     const authUserId = record.auth_user_id ?? record.authUserId
     if (!authUserId) return
     const displayName = `${record.display_name ?? record.displayName ?? ''}`.trim()
     const email = `${record.email ?? ''}`.trim()
-    namesByAuthUserId[authUserId] = displayName || email.split('@')[0] || 'Unknown'
+    const name = displayName || email.split('@')[0] || 'Unknown'
+    namesByAuthUserId[authUserId] = name
+    memberDisplayNameCache.set(memberNameCacheKey(normalizedWorkspaceId, authUserId), name)
   })
 
   return namesByAuthUserId
