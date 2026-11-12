@@ -1,7 +1,7 @@
 import { isHeicFile } from './chatImage'
 
-export const AVATAR_EDGE = 512
-export const AVATAR_QUALITY = 0.85
+export const AVATAR_EDGE = 256
+export const AVATAR_QUALITY = 0.8
 export const AVATAR_MAX_BYTES = 500 * 1024
 
 export function squareCropRect(width, height) {

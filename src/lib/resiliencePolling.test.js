@@ -33,6 +33,18 @@ describe('startVisibleInterval', () => {
     startVisibleInterval(cb, 1000, { doc, win: globalThis })
     vi.advanceTimersByTime(10_000); expect(cb).not.toHaveBeenCalled()
   })
+  it('does not refresh again when the app returns within 30 seconds', () => {
+    vi.useFakeTimers()
+    const doc = fakeDoc(); const cb = vi.fn()
+    const stop = startVisibleInterval(cb, 60_000, { doc, win: globalThis })
+    vi.advanceTimersByTime(60_000)
+    expect(cb).toHaveBeenCalledTimes(1)
+    doc.set('hidden')
+    vi.advanceTimersByTime(10_000)
+    doc.set('visible')
+    expect(cb).toHaveBeenCalledTimes(1)
+    stop()
+  })
 })
 
 describe('createVisibleRefresh', () => {
@@ -40,7 +52,8 @@ describe('createVisibleRefresh', () => {
     let t = 0; const doc = fakeDoc(); const cb = vi.fn()
     const fire = createVisibleRefresh(cb, { doc, now: () => t })
     fire(); fire(); expect(cb).toHaveBeenCalledTimes(1)
-    t = 5000; doc.visibilityState = 'hidden'; fire(); expect(cb).toHaveBeenCalledTimes(1)
+    t = 5000; fire(); expect(cb).toHaveBeenCalledTimes(1)
+    t = 30_000; doc.visibilityState = 'hidden'; fire(); expect(cb).toHaveBeenCalledTimes(1)
     doc.visibilityState = 'visible'; fire(); expect(cb).toHaveBeenCalledTimes(2)
   })
 })

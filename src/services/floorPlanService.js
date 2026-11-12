@@ -9,6 +9,14 @@ import { supabase } from '../lib/supabaseClient'
 
 let activeBuilderLayoutCache = null
 let activePublishedLayoutCache = null
+const floorPlanSnapshotByWorkspace = new Map()
+
+export const PUBLISHED_FLOOR_PLAN_COLUMNS = 'id, layout_json, published_at, updated_at'
+export const EDITOR_FLOOR_PLAN_COLUMNS = 'id, layout_json, draft_layout_json, published_at, updated_at'
+
+export function clearFloorPlanSnapshotCache() {
+  floorPlanSnapshotByWorkspace.clear()
+}
 
 export function setActiveBuilderLayoutCache(layout) {
   activeBuilderLayoutCache = layout ? normalizeBuilderLayoutPayload(layout) : null
@@ -72,16 +80,39 @@ function buildLayoutPayload(layoutPayload = {}, { published = false } = {}) {
   }
 }
 
-async function fetchActiveFloorPlanRecord(workspaceId) {
-  return supabase
+async function fetchActiveFloorPlanRecord(workspaceId, { includeDraft = false } = {}) {
+  const columns = includeDraft ? EDITOR_FLOOR_PLAN_COLUMNS : PUBLISHED_FLOOR_PLAN_COLUMNS
+  const cached = floorPlanSnapshotByWorkspace.get(workspaceId)
+  const cacheHasDraft = Boolean(cached?.record && Object.prototype.hasOwnProperty.call(cached.record, 'draft_layout_json'))
+  if (cached?.updatedAt && (!includeDraft || cacheHasDraft)) {
+    const { data: stamp, error: stampError } = await supabase
+      .from('floor_plans')
+      .select('updated_at')
+      .eq('workspace_id', workspaceId)
+      .eq('is_active', true)
+      .maybeSingle()
+    if (!stampError && stamp?.updated_at === cached.updatedAt) {
+      return { data: cached.record, error: null }
+    }
+  }
+
+  const result = await supabase
     .from('floor_plans')
-    .select('id, workspace_id, name, layout_json, draft_layout_json, published_at, is_active, updated_at')
+    .select(columns)
     .eq('workspace_id', workspaceId)
     .eq('is_active', true)
     .maybeSingle()
+
+  if (!result.error && result.data?.updated_at) {
+    floorPlanSnapshotByWorkspace.set(workspaceId, {
+      updatedAt: result.data.updated_at,
+      record: result.data,
+    })
+  }
+  return result
 }
 
-export async function loadFloorPlanWorkspace(workspaceId = '') {
+export async function loadFloorPlanWorkspace(workspaceId = '', { includeDraft = false } = {}) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
 
   if (!normalizedWorkspaceId) {
@@ -100,7 +131,7 @@ export async function loadFloorPlanWorkspace(workspaceId = '') {
   const localDraftFallback = () => loadLocalDraftFloorPlanLayout(normalizedWorkspaceId)
 
   try {
-    const { data, error } = await fetchActiveFloorPlanRecord(normalizedWorkspaceId)
+    const { data, error } = await fetchActiveFloorPlanRecord(normalizedWorkspaceId, { includeDraft })
 
     if (error) {
       if (isTableUnavailableError(error)) {
@@ -127,14 +158,16 @@ export async function loadFloorPlanWorkspace(workspaceId = '') {
     }
 
     const publishedLayout = mapLayoutFromRecord(data, 'layout_json')
-    const draftLayout = mapLayoutFromRecord(data, 'draft_layout_json') ?? publishedLayout
+    const draftLayout = includeDraft
+      ? (mapLayoutFromRecord(data, 'draft_layout_json') ?? publishedLayout)
+      : (loadLocalDraftFloorPlanLayout(normalizedWorkspaceId) ?? publishedLayout)
 
     if (publishedLayout) {
       setActivePublishedLayoutCache(publishedLayout)
       saveLocalFloorPlanLayout(publishedLayout, normalizedWorkspaceId, { notify: false })
     }
 
-    if (draftLayout) {
+    if (includeDraft && draftLayout) {
       setActiveBuilderLayoutCache(draftLayout)
       saveLocalDraftFloorPlanLayout(draftLayout, normalizedWorkspaceId)
     }

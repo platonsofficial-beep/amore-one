@@ -2,9 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import {
   PUBLISHED_LAYOUT_EVENT,
   cloneBuilderLayout,
+  isDraftFloorPlanStorageKey,
   isFloorPlanStorageKey,
   loadLocalDraftFloorPlanLayout,
   loadLocalFloorPlanLayout,
+  normalizeBuilderLayoutPayload,
   saveLocalDraftFloorPlanLayout,
   saveLocalFloorPlanLayout,
 } from '../floor-plan-builder/lib/floorPlanStorage'
@@ -44,7 +46,7 @@ const PublishedFloorPlanContext = createContext({
   reload: () => {},
 })
 
-export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
+export function PublishedFloorPlanProvider({ children, workspaceId = '', includeDraft = false }) {
   const [publishedBuilderLayout, setPublishedBuilderLayout] = useState(null)
   const [draftBuilderLayout, setDraftBuilderLayout] = useState(null)
   const [publishedAt, setPublishedAt] = useState(null)
@@ -124,14 +126,14 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
       }
     }
 
-    const result = await loadFloorPlanWorkspace(normalizedWorkspaceId)
+    const result = await loadFloorPlanWorkspace(normalizedWorkspaceId, { includeDraft })
     return {
       publishedLayout: result.publishedLayout,
       draftLayout: result.draftLayout,
       publishedAt: result.publishedAt,
       error: result.error,
     }
-  }, [workspaceId])
+  }, [includeDraft, workspaceId])
 
   const reload = useCallback(async (nextBuilderLayout) => {
     if (isValidPublishedBuilderLayout(nextBuilderLayout)) {
@@ -291,8 +293,22 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     }
 
     const handleStorage = (event) => {
-      if (!isFloorPlanStorageKey(event.key)) return
-      reload(null)
+      if (!event?.key || !isFloorPlanStorageKey(event.key)) return
+      if (isDraftFloorPlanStorageKey(event.key)) return
+      if (!event.newValue) return
+      let parsed = null
+      try {
+        parsed = normalizeBuilderLayoutPayload(JSON.parse(event.newValue))
+      } catch {
+        parsed = null
+      }
+      if (!parsed) return
+      applyWorkspaceLayouts({
+        publishedLayout: parsed,
+        draftLayout: parsed,
+        publishedAt: parsed.publishedAt ?? null,
+      })
+      setLoadError(null)
     }
 
     window.addEventListener(PUBLISHED_LAYOUT_EVENT, handlePublished)

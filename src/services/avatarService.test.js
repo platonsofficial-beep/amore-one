@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { rpcMock, uploadMock, removeMock, signedMock, fromMock } = vi.hoisted(() => ({
@@ -68,6 +71,7 @@ describe('avatar upload', () => {
     expect(result.path).toMatch(/^user-1\/[0-9a-f-]+\.jpg$/)
     expect(uploadMock).toHaveBeenCalledWith(result.path, blob, {
       contentType: 'image/jpeg',
+      cacheControl: '86400',
       upsert: false,
     })
     expect(rpcMock).toHaveBeenCalledWith('set_my_avatar', { p_path: result.path })
@@ -94,6 +98,7 @@ describe('avatar upload', () => {
 describe('resolveAvatarUrls', () => {
   beforeEach(() => {
     signedMock.mockReset()
+    localStorage.clear()
     clearAvatarUrlCache()
   })
 
@@ -108,17 +113,32 @@ describe('resolveAvatarUrls', () => {
     try {
       const first = await resolveAvatarUrls(['user-1/a.jpg', 'user-2/b.jpg', 'user-1/a.jpg'])
       expect(signedMock).toHaveBeenCalledTimes(1)
-      expect(signedMock).toHaveBeenCalledWith(['user-1/a.jpg', 'user-2/b.jpg'], 3600)
+      expect(signedMock).toHaveBeenCalledWith(['user-1/a.jpg', 'user-2/b.jpg'], 24 * 60 * 60)
       expect(first.get('user-2/b.jpg')).toBe('https://signed.example/user-2/b.jpg')
 
       await resolveAvatarUrls(['user-1/a.jpg'])
       expect(signedMock).toHaveBeenCalledTimes(1)
 
-      now += (3600 * 1000) - 30_000
+      now += (24 * 60 * 60 * 1000) - 30_000
       await resolveAvatarUrls(['user-1/a.jpg'])
       expect(signedMock).toHaveBeenCalledTimes(2)
     } finally {
       vi.restoreAllMocks()
     }
+  })
+
+  it('reuses a signed URL saved from an earlier visit', async () => {
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000)
+    localStorage.setItem('one.avatarSignedUrls.v1', JSON.stringify({
+      'user-1/a.jpg': { url: 'https://signed.example/user-1/a.jpg', expiresAt },
+    }))
+    clearAvatarUrlCache()
+    localStorage.setItem('one.avatarSignedUrls.v1', JSON.stringify({
+      'user-1/a.jpg': { url: 'https://signed.example/user-1/a.jpg', expiresAt },
+    }))
+
+    const urls = await resolveAvatarUrls(['user-1/a.jpg'])
+    expect(signedMock).not.toHaveBeenCalled()
+    expect(urls.get('user-1/a.jpg')).toBe('https://signed.example/user-1/a.jpg')
   })
 })
