@@ -120,6 +120,8 @@ import {
 } from './lib/hostFloorPlanViewport'
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
+import { isLoadFailureMessage, presentLoadFailure } from './lib/userFacingLoadError'
+import { LoadFailureBanner } from './components/shell/LoadFailureBanner'
 import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, resolveWorkspaceLoadGate, reservationScopesMatch } from './lib/hostLoadRecovery'
 import {
   advanceHostFloorPointerInteraction,
@@ -2915,6 +2917,7 @@ function ScheduleView({
   onUnpublishWeekSchedule,
   isLoading,
   noticeMessage,
+  onRetryLoad,
   canSaveTemplateDefault = true,
   isSaving,
   workspaceId = '',
@@ -5929,7 +5932,9 @@ function ScheduleView({
       ) : null}
 
       {assignmentError ? <div className="staff-status-banner schedule-workspace-banner">{assignmentError}</div> : null}
-      {noticeMessage ? (
+      {isLoadFailureMessage(noticeMessage) ? (
+        <LoadFailureBanner message={noticeMessage} subject="the schedule" onRetry={onRetryLoad} className="schedule-workspace-banner" />
+      ) : noticeMessage ? (
         <div className={`staff-status-banner schedule-workspace-banner ${noticeMessage === 'Schedule published for employees.' ? 'schedule-publish-success-banner' : ''}`}>
           {noticeMessage === 'Schedule published for employees.' ? (
             <>
@@ -6090,10 +6095,12 @@ function ScheduleView({
 
       <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
         {blendGridRows.length === 0 ? (
+          isLoadFailureMessage(noticeMessage) ? null : (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
             <p>Create templates first, then assign employees directly in this grid.</p>
           </div>
+          )
         ) : (
           <div className="blend-grid-scroll">
             <div
@@ -15339,6 +15346,14 @@ function App() {
   const [loadStatuses, markLoad] = useLoadStatuses()
   const [todayRetryToken, setTodayRetryToken] = useState(0)
   const [scheduleNotice, setScheduleNotice] = useState('')
+  const [scheduleLoadFailed, setScheduleLoadFailed] = useState(false)
+  const [scheduleLoadNonce, setScheduleLoadNonce] = useState(0)
+  const [staffLoadNonce, setStaffLoadNonce] = useState(0)
+  const [operationsLoadNonce, setOperationsLoadNonce] = useState(0)
+  const [insightsLoadNonce, setInsightsLoadNonce] = useState(0)
+  const [tasksLoadFailed, setTasksLoadFailed] = useState(false)
+  const [inventoryLoadFailed, setInventoryLoadFailed] = useState(false)
+  const [suppliersLoadFailed, setSuppliersLoadFailed] = useState(false)
   const [scheduleLegacyTemplateSchema, setScheduleLegacyTemplateSchema] = useState(false)
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
   const [editingShift, setEditingShift] = useState(null)
@@ -16420,6 +16435,7 @@ function App() {
     }
 
     const weekDateKeys = getWeekDateKeys(normalizedWeekStart)
+    try {
     const [remoteShifts, remoteCapacities] = await Promise.all([
       getShifts(activeWorkspaceId, {
         startDate: weekDateKeys[0],
@@ -16427,6 +16443,7 @@ function App() {
       }),
       getScheduleCapacities({ shiftDates: weekDateKeys }),
     ])
+    setScheduleLoadFailed(false)
 
     if (normalizedWeekStart === scheduleWeekStart) {
       setShifts(remoteShifts)
@@ -16437,6 +16454,10 @@ function App() {
     }
 
     return { shifts: remoteShifts, capacities: remoteCapacities }
+    } catch (error) {
+      setScheduleLoadFailed(true)
+      throw error
+    }
   }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
 
   const isDashboardScheduleLoading = isViewingTodayWeekInScheduler
@@ -17317,10 +17338,13 @@ function App() {
       const remoteInventory = await getInventoryItems()
       setInventoryItems(remoteInventory)
       setIsInventoryModuleConnected(true)
+      setInventoryLoadFailed(false)
       return remoteInventory
     } catch (error) {
       setInventoryItems([])
-      setIsInventoryModuleConnected(!isModuleUnavailableMessage(error.message))
+      setIsInventoryModuleConnected(false)
+      setInventoryLoadFailed(true)
+      console.error('[load] Couldn\'t load inventory', error)
       throw error
     }
   }, [])
@@ -17528,6 +17552,7 @@ function App() {
       const remoteTasks = await getTasks(activeWorkspaceId)
       setTasks(remoteTasks)
       setIsTasksModuleConnected(true)
+      setTasksLoadFailed(false)
       markLoad('tasks', 'success')
       await refreshTaskChecklists(remoteTasks)
       return remoteTasks
@@ -17535,8 +17560,9 @@ function App() {
       markLoad('tasks', 'failure')
       setTasks([])
       setChecklistItemsByTaskId({})
-      setTasksError(error?.message || 'Unable to load tasks right now.')
-      setIsTasksModuleConnected(!isModuleUnavailableMessage(error?.message))
+      setTasksError(presentLoadFailure(error, 'operations'))
+      setIsTasksModuleConnected(false)
+      setTasksLoadFailed(true)
       throw error
     } finally {
       setIsTasksLoading(false)
@@ -17555,7 +17581,7 @@ function App() {
     } catch (error) {
       setTaskTemplates([])
       setTemplateChecklistItemsByTemplateId({})
-      setTaskTemplatesError(error?.message || 'Unable to load task templates right now.')
+      setTaskTemplatesError(presentLoadFailure(error, 'task templates'))
       throw error
     } finally {
       setIsTaskTemplatesLoading(false)
@@ -17637,34 +17663,44 @@ function App() {
   ])
 
   const reportsConnections = useMemo(() => ({
-    reservationsConnected: isReservationsModuleConnected,
-    tasksConnected: isTasksModuleConnected,
-    inventoryConnected: isInventoryModuleConnected,
-    stockModuleConnected: canAccessStockModule,
-    scheduleConnected: !`${scheduleNotice}`.toLowerCase().includes('not ready'),
-    suppliersConnected: !`${suppliersNotice}`.toLowerCase().includes('not ready'),
+    reservationsConnected: isReservationsModuleConnected && !reservationsLoadFailed,
+    reservationsLoadFailed,
+    tasksConnected: isTasksModuleConnected && !tasksLoadFailed,
+    tasksLoadFailed,
+    inventoryConnected: isInventoryModuleConnected && !inventoryLoadFailed,
+    stockModuleConnected: canAccessStockModule && !stockCatalogLoadFailed,
+    stockLoadFailed: stockCatalogLoadFailed,
+    scheduleConnected: !scheduleLoadFailed,
+    scheduleLoadFailed,
+    suppliersConnected: !suppliersLoadFailed,
+    suppliersLoadFailed,
   }), [
     isReservationsModuleConnected,
+    reservationsLoadFailed,
     isTasksModuleConnected,
+    tasksLoadFailed,
     isInventoryModuleConnected,
+    inventoryLoadFailed,
     canAccessStockModule,
-    scheduleNotice,
-    suppliersNotice,
+    stockCatalogLoadFailed,
+    scheduleLoadFailed,
+    suppliersLoadFailed,
   ])
 
   const workspaceModuleConnections = useMemo(() => ({
     reservations: isReservationsModuleConnected,
-    schedule: !`${scheduleNotice}`.toLowerCase().includes('not ready'),
-    tasks: isTasksModuleConnected,
-    suppliers: !`${suppliersNotice}`.toLowerCase().includes('not ready'),
+    schedule: !scheduleLoadFailed,
+    tasks: isTasksModuleConnected && !tasksLoadFailed,
+    suppliers: !suppliersLoadFailed,
     stock: isInventoryModuleConnected,
     reports: null,
   }), [
     isReservationsModuleConnected,
     isTasksModuleConnected,
     isInventoryModuleConnected,
-    scheduleNotice,
-    suppliersNotice,
+    scheduleLoadFailed,
+    tasksLoadFailed,
+    suppliersLoadFailed,
   ])
 
   const workspaceVenueSetupProps = useMemo(() => {
@@ -17831,7 +17867,7 @@ function App() {
         if (summary?.failedCount > 0) {
           setReportsLoadError(
             summary.failedCount === summary.totalCount
-              ? (summary.message || 'Unable to prepare insights.')
+              ? presentLoadFailure(summary.message || 'Unable to prepare insights.', 'insights')
               : 'Some insights could not be loaded. Showing what is available.',
           )
         } else {
@@ -17840,7 +17876,7 @@ function App() {
       })
       .catch((error) => {
         if (!isMounted) return
-        setReportsLoadError(error?.message || 'Unable to prepare insights.')
+        setReportsLoadError(presentLoadFailure(error, 'insights'))
       })
       .finally(() => {
         window.clearTimeout(timeoutId)
@@ -17853,7 +17889,7 @@ function App() {
       isMounted = false
       window.clearTimeout(timeoutId)
     }
-  }, [activeView, refreshReportsData])
+  }, [activeView, refreshReportsData, insightsLoadNonce])
 
   const isWorkspaceProfileDirty = useMemo(
     () => !areWorkspaceProfilesEqual(workspaceProfile, workspaceProfileDraft),
@@ -17978,7 +18014,7 @@ function App() {
         if (!isMounted) return
         setWorkspaceProfile(EMPTY_WORKSPACE_PROFILE)
         setWorkspaceProfileDraft(EMPTY_WORKSPACE_PROFILE)
-        setWorkspaceProfileNotice(error.message || 'Unable to load workspace profile right now.')
+        setWorkspaceProfileNotice(presentLoadFailure(error, 'venue settings'))
       } finally {
         if (isMounted) {
           setIsWorkspaceProfileLoading(false)
@@ -18056,9 +18092,12 @@ function App() {
           publishedBy: null,
         })
         markLoad('todayWeek', 'success')
-      } catch {
+        setScheduleLoadFailed(false)
+      } catch (error) {
         if (!isMounted) return
         markLoad('todayWeek', 'failure')
+        setScheduleLoadFailed(true)
+        console.error('[load] Couldn\'t load the schedule', error)
         setTodayWeekShifts([])
         setTodayWeekCapacities([])
         setTodayWeekPublishedShifts([])
@@ -18114,7 +18153,7 @@ function App() {
           return
         }
         setPositions([])
-        setPositionsNotice(error.message || 'Unable to load positions right now.')
+        setPositionsNotice(presentLoadFailure(error, 'positions'))
       } finally {
         if (isMounted) {
           setIsPositionsLoading(false)
@@ -18144,7 +18183,7 @@ function App() {
         }
         setEmployees([])
         setScheduleEmployees([])
-        setStaffNotice(error.message || 'Unable to load employees right now.')
+        setStaffNotice(presentLoadFailure(error, 'the team'))
       } finally {
         if (isMounted) {
           setIsLoadingStaff(false)
@@ -18175,7 +18214,7 @@ function App() {
         setReservationSeatings(remoteSeatings)
       } catch (error) {
         if (!isMounted || requestId !== seatingLoadSeqRef.current) return
-        setReservationSeatingsNotice(error.message || 'Unable to load reservation seatings right now.')
+        setReservationSeatingsNotice(presentLoadFailure(error, 'seating hours'))
       } finally {
         if (isMounted && requestId === seatingLoadSeqRef.current) {
           setIsReservationSeatingsLoading(false)
@@ -18188,7 +18227,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId])
+  }, [activeWorkspaceId, staffLoadNonce])
 
   useEffect(() => {
     let cancelled = false
@@ -18234,10 +18273,12 @@ function App() {
         const remoteSuppliers = await getSuppliers(activeWorkspaceId)
         if (!isMounted) return
         setSuppliers(remoteSuppliers)
+        setSuppliersLoadFailed(false)
       } catch (error) {
         if (!isMounted) return
         setSuppliers([])
-        setSuppliersNotice(error.message || 'Unable to load suppliers right now.')
+        setSuppliersLoadFailed(true)
+        setSuppliersNotice(presentLoadFailure(error, 'suppliers'))
       } finally {
         if (isMounted) {
           setIsSuppliersLoading(false)
@@ -18377,7 +18418,7 @@ function App() {
         await refreshStockOrders()
       } catch (error) {
         if (!isMounted) return
-        setStockOrdersNotice(error.message || 'Unable to load orders right now.')
+        setStockOrdersNotice(presentLoadFailure(error, 'orders'))
       } finally {
         if (isMounted) {
           setIsStockOrdersLoading(false)
@@ -18456,7 +18497,7 @@ function App() {
         ])
       } catch (error) {
         if (!isMounted) return
-        setOperationsNotice(error.message || 'Unable to load operations right now.')
+        setOperationsNotice(presentLoadFailure(error, 'operations'))
       } finally {
         if (isMounted) {
           setIsOperationsLoading(false)
@@ -18475,6 +18516,7 @@ function App() {
     refreshOperationsLogs,
     refreshOperationsAnnouncements,
     refreshOperationsChecklistTemplates,
+    operationsLoadNonce,
   ])
 
   useEffect(() => {
@@ -18536,7 +18578,8 @@ function App() {
           setShiftTemplates(buildSchedulePreviewTemplates())
         } else {
           setShiftTemplates([])
-          setScheduleNotice(templatesResult.reason?.message || 'Unable to load shift templates right now.')
+          setScheduleLoadFailed(true)
+          setScheduleNotice(presentLoadFailure(templatesResult.reason, 'the schedule'))
         }
 
         setWeeklyTemplates(weeklyResult.status === 'fulfilled' ? weeklyResult.value : [])
@@ -18552,7 +18595,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, syncScheduleTemplateSetupState])
+  }, [activeWorkspaceId, syncScheduleTemplateSetupState, scheduleLoadNonce])
 
   useEffect(() => {
     let isMounted = true
@@ -18591,6 +18634,7 @@ function App() {
 
         setShifts(remoteShifts)
         setScheduleCapacities(remoteCapacities)
+        setScheduleLoadFailed(false)
         setSchedulePublication(publicationState.publication ?? {
           weekStartDate,
           status: 'draft',
@@ -18614,7 +18658,8 @@ function App() {
           publishedBy: null,
         })
         setPublishedShifts([])
-        setScheduleNotice(error.message || 'Unable to load schedule right now.')
+        setScheduleLoadFailed(true)
+        setScheduleNotice(presentLoadFailure(error, 'the schedule'))
       } finally {
         if (isMounted) {
           setIsScheduleLoading(false)
@@ -18627,7 +18672,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey, markLoad, todayRetryToken])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart, disabledEmployeeKey, markLoad, todayRetryToken, scheduleLoadNonce])
 
   useEffect(() => {
     let isMounted = true
@@ -24497,7 +24542,15 @@ function App() {
 
   const moduleTitle = getModuleTitle(activeView, { teamSection, stockSection, operationsSection })
   const settingsLimited = canConfigureReservationSeatingsRole && !canOpenWorkspaceProfile
-  const moduleSubtitle = activeView === 'settings' && settingsLimited
+  const insightsFiguresUnavailable = reservationsLoadFailed
+    || tasksLoadFailed
+    || scheduleLoadFailed
+    || stockCatalogLoadFailed
+    || inventoryLoadFailed
+    || suppliersLoadFailed
+  const moduleSubtitle = activeView === 'insights' && insightsFiguresUnavailable
+    ? "Today's numbers aren't available yet."
+    : activeView === 'settings' && settingsLimited
     ? 'Seatings, notifications & privacy.'
     : getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection, operationsSection })
   const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
@@ -25601,6 +25654,7 @@ function App() {
             togglingEmployeeId={togglingEmployeeId}
             isLoading={isLoadingStaff}
             noticeMessage={staffNotice}
+            onRetryLoad={() => setStaffLoadNonce((nonce) => nonce + 1)}
             isSaving={isSavingEmployee}
             workspaceId={activeWorkspaceId}
             canManageInvites={canManageEmployeeInvitesRole}
@@ -25680,6 +25734,7 @@ function App() {
               onUnpublishWeekSchedule={handleUnpublishWeekSchedule}
               isLoading={isScheduleLoading}
               noticeMessage={scheduleNotice}
+              onRetryLoad={() => setScheduleLoadNonce((nonce) => nonce + 1)}
               canSaveTemplateDefault={!scheduleLegacyTemplateSchema}
               isSaving={isSavingShift}
               workspaceId={activeWorkspaceId}
@@ -25958,6 +26013,7 @@ function App() {
             attentionPermissions={todayAttentionPermissions}
             isLoading={isReportsLoading}
             loadError={reportsLoadError}
+            onRetryLoad={() => setInsightsLoadNonce((nonce) => nonce + 1)}
             searchTerm={searchTerm}
             onViewModule={handleInsightsViewModule}
             onAttentionItemClick={handleTodayAttentionItemClick}
@@ -25995,6 +26051,7 @@ function App() {
             todayKey={currentDateKey}
             isLoading={isOperationsLoading}
             noticeMessage={operationsNotice}
+            onRetryLoad={() => setOperationsLoadNonce((nonce) => nonce + 1)}
             canManage={canManageOperationsRole}
             canManageAnnouncements={canManageAnnouncementsRole}
             isSaving={isSavingOperations}
@@ -26059,6 +26116,7 @@ function App() {
             isSavingTemplate={isSavingTaskTemplate}
             isGeneratingTasks={isGeneratingTasksFromTemplates}
             errorMessage={tasksError}
+            onRetryLoad={() => { refreshTasks().catch(() => {}) }}
             templatesErrorMessage={taskTemplatesError}
             noticeMessage={tasksNotice}
             templatesNoticeMessage={taskTemplatesNotice}
@@ -26419,6 +26477,7 @@ function App() {
                             isSavingTemplate={isSavingTaskTemplate}
                             isGeneratingTasks={isGeneratingTasksFromTemplates}
                             errorMessage={tasksError}
+                            onRetryLoad={() => { refreshTasks().catch(() => {}) }}
                             templatesErrorMessage={taskTemplatesError}
                             noticeMessage={tasksNotice}
                             templatesNoticeMessage={taskTemplatesNotice}
@@ -26507,6 +26566,7 @@ function App() {
                           isSaving: isSavingShift,
                           canEdit: canEditScheduleRole,
                           noticeMessage: scheduleNotice,
+                          onRetryLoad: () => setScheduleLoadNonce((nonce) => nonce + 1),
                           onDateChange: (nextDate) => {
                             setPortraitScheduleDate(nextDate)
                             const nextWeek = getWeekStartDate(nextDate)

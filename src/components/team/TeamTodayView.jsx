@@ -1,4 +1,6 @@
 import { TeamTodayGroupsList } from './TeamTodayGroupsList'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
 export function TeamTodayView({
   teamStatus,
@@ -19,7 +21,9 @@ export function TeamTodayView({
 
   return (
     <section className="team-today-page" aria-label="Team today">
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoadFailureMessage(noticeMessage) ? (
+        <LoadFailureBanner message={noticeMessage} subject="the team" />
+      ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading today&apos;s team…</div> : null}
 
       <section className="team-today-status-card" aria-label="Team status">

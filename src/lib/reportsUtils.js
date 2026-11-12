@@ -483,11 +483,22 @@ export function buildInsightsHealthSummary({
   scheduleReport,
   serviceSnapshot = null,
 } = {}) {
+  const moduleReports = [reservationsReport, tasksReport, stockReport, scheduleReport]
+  const failedCount = moduleReports.filter((report) => report?.loadFailed).length
+  if (failedCount > 0) {
+    const connectedCount = moduleReports.filter((report) => report?.connected && !report.loadFailed).length
+    if (connectedCount === 0) {
+      return "Couldn't load today's picture. Check your connection and try again."
+    }
+    return period === REPORT_PERIOD_WEEK
+      ? "Some of this week's numbers couldn't be loaded."
+      : "Some of today's numbers couldn't be loaded."
+  }
+
   if (period === REPORT_PERIOD_WEEK) {
     return buildInsightsWeekSummary({ reservationsReport, tasksReport, scheduleReport })
   }
 
-  const moduleReports = [reservationsReport, tasksReport, stockReport, scheduleReport]
   const connectedCount = moduleReports.filter((report) => report?.connected).length
 
   if (connectedCount === 0) {
@@ -631,7 +642,36 @@ export function buildReportsOverview({
   ]
 }
 
-export function formatReportMetricValue(value, { connected = true, format = 'count' } = {}) {
+function markReportLoadFailure(report, failed) {
+  if (!failed) return { ...report, loadFailed: false }
+  return { ...report, connected: false, loadFailed: true }
+}
+
+const OVERVIEW_FAILURE_SOURCE = {
+  bookings: 'reservations',
+  covers: 'reservations',
+  guests: 'reservations',
+  seated: 'reservations',
+  'tasks-overdue': 'tasks',
+  'tasks-completed': 'tasks',
+  'items-to-order': 'stock',
+  'pending-orders': 'stock',
+  'schedule-issues': 'schedule',
+  'schedule-hours': 'schedule',
+  'stock-value': 'stock',
+}
+
+function applyOverviewLoadFailures(overview, reportsBySource) {
+  return (overview ?? []).map((metric) => {
+    const source = OVERVIEW_FAILURE_SOURCE[metric.key]
+    const loadFailed = Boolean(source && reportsBySource[source]?.loadFailed)
+    if (!loadFailed) return { ...metric, loadFailed: false }
+    return { ...metric, loadFailed: true, connected: false, value: null }
+  })
+}
+
+export function formatReportMetricValue(value, { connected = true, format = 'count', loadFailed = false } = {}) {
+  if (loadFailed) return 'Unavailable'
   if (!connected) return 'Not connected'
   if (value === null || value === undefined) return '—'
 
@@ -661,46 +701,51 @@ export function buildReportsBundle({
   operationsTasks = [],
   announcements = [],
 }) {
-  const reservationsReport = buildReservationsReport(reservations, {
+  const reservationsReport = markReportLoadFailure(buildReservationsReport(reservations, {
     period,
     todayKey,
     weekStartDate,
     connected: connections.reservationsConnected,
     serviceSnapshot: period === REPORT_PERIOD_TODAY ? serviceSnapshot : null,
     timeZone,
-  })
-  const tasksReport = buildTasksReport(tasks, {
+  }), connections.reservationsLoadFailed)
+  const tasksReport = markReportLoadFailure(buildTasksReport(tasks, {
     period,
     todayKey,
     weekStartDate,
     connected: connections.tasksConnected,
     operationsTasks,
     announcements,
-  })
-  const stockReport = buildInsightsStockReport({
+  }), connections.tasksLoadFailed)
+  const stockReport = markReportLoadFailure(buildInsightsStockReport({
     stockItems,
     stockOrders,
-    stockModuleConnected: connections.stockModuleConnected,
-  })
-  const scheduleReport = buildScheduleReport({
+    stockModuleConnected: connections.stockModuleConnected && !connections.stockLoadFailed,
+  }), connections.stockLoadFailed)
+  const scheduleReport = markReportLoadFailure(buildScheduleReport({
     ...schedule,
     period,
     todayKey,
     weekStartDate,
     connected: connections.scheduleConnected,
     coverageBreakdown: period === REPORT_PERIOD_TODAY ? coverageBreakdown : null,
-  })
-  const suppliersReport = buildSuppliersReport(suppliers, inventoryItems, {
+  }), connections.scheduleLoadFailed)
+  const suppliersReport = markReportLoadFailure(buildSuppliersReport(suppliers, inventoryItems, {
     suppliersConnected: connections.suppliersConnected,
     inventoryConnected: connections.inventoryConnected || connections.stockModuleConnected,
     stockItems,
-  })
-  const overview = buildReportsOverview({
+  }), connections.suppliersLoadFailed)
+  const overview = applyOverviewLoadFailures(buildReportsOverview({
     period,
     reservationsReport,
     tasksReport,
     stockReport,
     scheduleReport,
+  }), {
+    reservations: reservationsReport,
+    tasks: tasksReport,
+    stock: stockReport,
+    schedule: scheduleReport,
   })
   const insightsAttention = buildInsightsAttentionItems(attentionItems)
   const healthSummary = buildInsightsHealthSummary({
@@ -716,6 +761,7 @@ export function buildReportsBundle({
   return {
     overview,
     healthSummary,
+    sourcesFailed: [reservationsReport, tasksReport, stockReport, scheduleReport].some((report) => report.loadFailed),
     insightsAttention,
     reservationsReport,
     tasksReport,

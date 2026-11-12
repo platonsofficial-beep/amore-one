@@ -34,7 +34,7 @@ describe('Insights audit fixes', () => {
 
   it('shows the live-data line once and gives help a 44px target', () => {
     expect(reportsView).toContain("const MODULE_FOOTER = 'Powered by live ONE data'")
-    expect(reportsView).toContain('<p className="reports-page-footer">{MODULE_FOOTER}</p>')
+    expect(reportsView).toContain('reports-page-footer">{reports.sourcesFailed ? MODULE_FOOTER_UNAVAILABLE : MODULE_FOOTER}')
     expect(reportsView).not.toContain('reports-section-footer')
     expect(reportsView).not.toMatch(/Module summary/)
     expect(helpCss).toMatch(/min-width:\s*44px/)

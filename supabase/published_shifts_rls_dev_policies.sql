@@ -1,3 +1,8 @@
+-- DEV ONLY / DO NOT RUN
+-- This file is a local prototype. It is not the live policy.
+-- Live published_shifts access is workspace-scoped.
+-- Do not execute this file against a shared or production database.
+--
 -- TEMP DEVELOPMENT ONLY — replace with workspace/auth policies before production.
 -- Local prototype: no Supabase Auth. Permissive access for anon + authenticated.
 -- Table: public.published_shifts only.

@@ -13,9 +13,11 @@ import {
   normalizeInsightSearchQuery,
   presentInsightsAttentionItem,
 } from '../../lib/reportsUtils'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 
 const EXECUTIVE_OVERVIEW_CARD_COUNT = 6
 const MODULE_FOOTER = 'Powered by live ONE data'
+const MODULE_FOOTER_UNAVAILABLE = 'Numbers appear here after today’s modules load.'
 
 const EMPTY_STATE_GUIDANCE = {
   reservations: 'Bookings will appear here as guests are scheduled.',
@@ -100,7 +102,8 @@ function ReportSection({
   )
 }
 
-function formatSectionMetric(value, { connected = true, format = 'count' } = {}) {
+function formatSectionMetric(value, { connected = true, format = 'count', loadFailed = false } = {}) {
+  if (loadFailed) return 'Unavailable'
   if (!connected) return 'Not connected'
   if (value === null || value === undefined) return '—'
   if (format === 'currency') return formatReportCurrency(value)
@@ -118,6 +121,7 @@ function InsightsAttentionPanel({
   onCompleteAttentionItem,
   onViewModule,
   isLoading,
+  sourcesFailed = false,
 }) {
   if (isLoading) {
     return (
@@ -150,8 +154,14 @@ function InsightsAttentionPanel({
 
       {attentionItems.length === 0 && stockRemainders.length === 0 ? (
         <div className="schedule-empty-state reports-section-empty">
-          <p>No urgent issues right now.</p>
-          <p className="reports-section-empty-guidance">Operational alerts from tasks, stock, schedule, and service will appear here.</p>
+          {sourcesFailed ? (
+            <p>Couldn&apos;t tell what needs attention until today&apos;s data loads.</p>
+          ) : (
+            <>
+              <p>No urgent issues right now.</p>
+              <p className="reports-section-empty-guidance">Operational alerts from tasks, stock, schedule, and service will appear here.</p>
+            </>
+          )}
         </div>
       ) : attentionItems.length > 0 ? (
         <ul className="today-attention-list reports-attention-list">
@@ -210,6 +220,7 @@ export default function ReportsView({
   attentionPermissions = {},
   isLoading,
   loadError = '',
+  onRetryLoad,
   onViewModule,
   onAttentionItemClick,
   onCompleteAttentionItem,
@@ -570,7 +581,9 @@ export default function ReportsView({
       title: 'Reservations',
       icon: '📅',
       metrics: reservationMetrics,
-      emptyMessage: !reports.reservationsReport.connected
+      emptyMessage: reports.reservationsReport.loadFailed
+        ? "Couldn't load reservations. Check your connection and try again."
+        : !reports.reservationsReport.connected
         ? 'Reservations module is not connected.'
         : reservationsEmpty,
       emptyGuidance: reservationsEmpty ? EMPTY_STATE_GUIDANCE.reservations : null,
@@ -582,7 +595,9 @@ export default function ReportsView({
       title: 'Tasks',
       icon: '✓',
       metrics: taskMetrics,
-      emptyMessage: !reports.tasksReport.connected
+      emptyMessage: reports.tasksReport.loadFailed
+        ? "Couldn't load tasks. Check your connection and try again."
+        : !reports.tasksReport.connected
         ? 'Tasks module is not connected.'
         : tasksEmpty,
       emptyGuidance: tasksEmpty ? EMPTY_STATE_GUIDANCE.tasks : null,
@@ -595,7 +610,9 @@ export default function ReportsView({
       icon: '📦',
       note: stockOrderNote,
       metrics: stockMetrics,
-      emptyMessage: !stockConnected
+      emptyMessage: reports.stockReport.loadFailed
+        ? "Couldn't load stock. Check your connection and try again."
+        : !stockConnected
         ? 'Stock module is not connected.'
         : stockEmpty,
       emptyGuidance: stockEmpty ? EMPTY_STATE_GUIDANCE.stock : null,
@@ -608,7 +625,9 @@ export default function ReportsView({
       icon: '🕒',
       note: scheduleNote,
       metrics: scheduleMetrics,
-      emptyMessage: !reports.scheduleReport.connected
+      emptyMessage: reports.scheduleReport.loadFailed
+        ? "Couldn't load the schedule. Check your connection and try again."
+        : !reports.scheduleReport.connected
         ? 'Schedule module is not connected.'
         : scheduleEmpty,
       emptyGuidance: scheduleEmpty ? EMPTY_STATE_GUIDANCE.schedule : null,
@@ -650,6 +669,7 @@ export default function ReportsView({
       onCompleteAttentionItem={onCompleteAttentionItem}
       onViewModule={onViewModule}
       isLoading={isLoading}
+      sourcesFailed={reports.sourcesFailed}
     />
   ) : null
 
@@ -679,6 +699,7 @@ export default function ReportsView({
               value={formatReportMetricValue(metric.value, {
                 connected: metric.connected,
                 format: metric.format,
+                loadFailed: metric.loadFailed,
               })}
               emphasize
             />
@@ -714,9 +735,7 @@ export default function ReportsView({
       </div>
 
       {loadError ? (
-        <div className="staff-status-banner reports-load-error" role="alert">
-          {loadError}
-        </div>
+        <LoadFailureBanner message={loadError} onRetry={onRetryLoad} className="reports-load-error" />
       ) : null}
 
       {filtering && !anyCards ? (
@@ -748,7 +767,7 @@ export default function ReportsView({
         </div>
       ) : null}
 
-      <p className="reports-page-footer">{MODULE_FOOTER}</p>
+      <p className="reports-page-footer">{reports.sourcesFailed ? MODULE_FOOTER_UNAVAILABLE : MODULE_FOOTER}</p>
     </section>
   )
 }

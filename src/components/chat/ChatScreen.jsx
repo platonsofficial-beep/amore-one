@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { presentUserError } from '../../lib/userFacingLoadError'
 import { createPortal } from 'react-dom'
 import { useKeyboardInset } from '../../lib/keyboardInset'
 import { PersonAvatar } from '../identity/PersonAvatar'
@@ -651,7 +652,7 @@ export function ChatScreen({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          {error && !openId ? <p className="chat-banner" role="alert">{error}</p> : null}
+          {error && !openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
           <div className="chat-list-scroll">
             {listed.length === 0 ? (
               <p className="chat-empty">{query.trim() ? `No chats named “${query.trim()}”.` : 'No chats yet. Start one with New.'}</p>
@@ -777,7 +778,7 @@ export function ChatScreen({
               </button>
             ) : null}
           </header>
-          {error && openId ? <p className="chat-banner" role="alert">{error}</p> : null}
+          {error && openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
           {pinned.length > 0 ? (
             <div className="chat-pinned" aria-label="Pinned messages">
               {pinned.map((message) => (

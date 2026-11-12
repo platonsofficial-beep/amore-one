@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage, unavailableFigure } from '../../lib/userFacingLoadError'
 import {
   buildChecklistProgressRows,
   filterStandaloneOperationsTasks,
@@ -258,6 +260,7 @@ export function OperationsDashboardView({
   onFocusTaskHandled,
   boardOverdueCount = 0,
   onOpenTaskBoards,
+  onRetryLoad,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -267,6 +270,7 @@ export function OperationsDashboardView({
   const [logTypeFilter, setLogTypeFilter] = useState('all')
   const [isStartChecklistOpen, setIsStartChecklistOpen] = useState(false)
   const [activeFocusTaskId, setActiveFocusTaskId] = useState(null)
+  const figuresUnavailable = isLoadFailureMessage(noticeMessage)
   const focusHandledRef = useRef(false)
 
   const assigneeNameById = useMemo(() => (employeeId) => (
@@ -551,7 +555,9 @@ export function OperationsDashboardView({
   if (isMobileLayout) {
     return (
       <section className="operations-dashboard-page is-mobile-layout" aria-label="Operational control">
-        {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+        {figuresUnavailable ? (
+          <LoadFailureBanner message={noticeMessage} subject="operations" onRetry={onRetryLoad} />
+        ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
         {!isWorkspaceReady && workspaceSetupMessage ? (
           <div className="staff-status-banner">{workspaceSetupMessage}</div>
         ) : null}
@@ -716,7 +722,9 @@ export function OperationsDashboardView({
 
   return (
     <section className="operations-dashboard-page" aria-label="Operations dashboard">
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {figuresUnavailable ? (
+        <LoadFailureBanner message={noticeMessage} subject="operations" onRetry={onRetryLoad} />
+      ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
       ) : null}
@@ -761,19 +769,19 @@ export function OperationsDashboardView({
       </div>
 
       <div className="operations-summary-grid" aria-label="Today at a glance">
-        <OperationsSummaryCard label="Open tasks" value={taskSummary.openTasks} tone="warning" />
+        <OperationsSummaryCard label="Open tasks" value={unavailableFigure(figuresUnavailable, taskSummary.openTasks)} tone="warning" />
         <OperationsSummaryCard
           label="Past due"
-          value={taskSummary.overdueTasks}
-          tone={taskSummary.overdueTasks > 0 ? 'danger' : 'default'}
+          value={unavailableFigure(figuresUnavailable, taskSummary.overdueTasks)}
+          tone={!figuresUnavailable && taskSummary.overdueTasks > 0 ? 'danger' : 'default'}
         />
-        <OperationsSummaryCard label="Completed today" value={taskSummary.completedToday} tone="success" />
-        <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
-        <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />
+        <OperationsSummaryCard label="Completed today" value={unavailableFigure(figuresUnavailable, taskSummary.completedToday)} tone="success" />
+        <OperationsSummaryCard label="Urgent issues" value={unavailableFigure(figuresUnavailable, summary.urgentIssues)} tone="danger" />
+        <OperationsSummaryCard label="Team notes" value={unavailableFigure(figuresUnavailable, summary.teamNotes)} tone="gold" />
         <OperationsSummaryCard
           label="Task boards overdue"
-          value={boardOverdueCount}
-          tone={boardOverdueCount > 0 ? 'danger' : 'default'}
+          value={unavailableFigure(figuresUnavailable, boardOverdueCount)}
+          tone={!figuresUnavailable && boardOverdueCount > 0 ? 'danger' : 'default'}
           action={onOpenTaskBoards ? (
             <button
               type="button"
@@ -830,7 +838,7 @@ export function OperationsDashboardView({
           <p className="operations-section-count">{visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}</p>
         </header>
 
-        {visibleTasks.length === 0 && !isLoading ? (
+        {figuresUnavailable ? null : visibleTasks.length === 0 && !isLoading ? (
           <div className="operations-empty-state is-inline">
             <p>
               <strong>No open tasks</strong>
