@@ -1,7 +1,7 @@
 import { isManagerRole } from '../lib/permissions'
 import { HELP_ARTICLES, helpText } from './helpKnowledge'
 
-const MIN_SCORE = 0.42
+const MIN_SCORE = 0.6
 
 export function helpArticlesForRole(role, articles = HELP_ARTICLES) {
   const manager = isManagerRole(role)
@@ -18,8 +18,16 @@ export function foldHelpText(value) {
     .trim()
 }
 
+const STOP_WORDS = new Set(['how', 'do', 'does', 'did', 'i', 'a', 'an', 'the', 'to', 'for', 'of', 'on', 'my', 'me', 'can', 'what', 'where', 'who', 'why', 'is', 'are', 'with', 'and', 'or', 'it'])
+
 function tokens(value) {
   return foldHelpText(value).split(/\s+/).filter((token) => token.length > 1)
+}
+
+function meaningfulTokens(value) {
+  const all = tokens(value)
+  const kept = all.filter((token) => !STOP_WORDS.has(token))
+  return kept.length ? kept : all
 }
 
 function dice(left, right) {
@@ -77,9 +85,11 @@ function articleBlob(article, locale) {
 export function scoreHelpArticle(article, query, locale = 'en') {
   const folded = foldHelpText(query)
   if (!folded) return 0
+  const questions = [...(article.questions?.en ?? []), ...(article.questions?.el ?? [])].join(' ')
+  if (foldHelpText(questions).includes(folded)) return 1.2
   const blob = foldHelpText(articleBlob(article, locale))
   if (blob.includes(folded)) return 1
-  const queryTokens = tokens(folded)
+  const queryTokens = meaningfulTokens(folded)
   if (!queryTokens.length) return 0
   const hayTokens = tokens(blob)
   const average = queryTokens.reduce((sum, token) => sum + tokenScore(token, hayTokens), 0) / queryTokens.length
