@@ -104,7 +104,7 @@ export const HELP_ARTICLES = [
       en: 'See tables for the day and open a table’s bookings.',
       el: 'Δες τα τραπέζια της ημέρας και τις κρατήσεις τους.',
     },
-    keywords: ['floor', 'floor plan', 'table', 'tables', 'κατοψη', 'τραπεζι'],
+    keywords: ['floor', 'table', 'tables', 'κατοψη', 'τραπεζι'],
     questions: {
       en: ['How do I use the floor plan?', 'How do I see bookings for a table?'],
       el: ['Πώς βλέπω τις κρατήσεις ενός τραπεζιού;'],
