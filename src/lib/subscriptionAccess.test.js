@@ -6,6 +6,7 @@ import {
   addSubscriptionDays,
   previewSubscriptionAccess,
   readSubscriptionPreview,
+  perMonthEquivalent,
   resolveSubscriptionAccess,
   subscriptionBannerCopy,
 } from './subscriptionAccess'
@@ -126,5 +127,10 @@ describe('subscription grace', () => {
     expect(previewSubscriptionAccess('locked', new Date(TRIAL_END)).allowsWrites).toBe(false)
     expect(previewSubscriptionAccess('grace-trial', new Date(TRIAL_END)).phase).toBe('grace')
     expect(previewSubscriptionAccess('plans', new Date(TRIAL_END)).phase).toBe('active')
+  })
+
+  it('turns a 6-month total into the per-month price', () => {
+    expect(perMonthEquivalent(139, 6)).toBe(23.17)
+    expect(perMonthEquivalent(29, 1)).toBeNull()
   })
 })

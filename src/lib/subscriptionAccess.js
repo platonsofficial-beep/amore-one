@@ -14,11 +14,18 @@ export const SUBSCRIPTION_PRICES = {
 }
 
 export const BILLING_INTERVALS = [
-  { id: 'month', label: 'Monthly' },
-  { id: 'month3', label: '3 months' },
-  { id: 'month6', label: '6 months' },
-  { id: 'year', label: 'Yearly' },
+  { id: 'month', label: 'Monthly', shortLabel: 'Monthly', suffix: '/ month', months: 1, saving: '' },
+  { id: 'month3', label: '3 months', shortLabel: '3 mo', suffix: '/ 3 months', months: 3, saving: '−10%' },
+  { id: 'month6', label: '6 months', shortLabel: '6 mo', suffix: '/ 6 months', months: 6, saving: '−20%' },
+  { id: 'year', label: 'Yearly', shortLabel: 'Yearly', suffix: '/ year', months: 12, saving: '−25%' },
 ]
+
+export function perMonthEquivalent(amount, months) {
+  const count = Number(months) || 0
+  const total = Number(amount)
+  if (count <= 1 || !Number.isFinite(total)) return null
+  return Math.round((total / count) * 100) / 100
+}
 
 const PREVIEW_STATES = new Set(['trial', 'grace-trial', 'grace-payment', 'locked', 'plans'])
 

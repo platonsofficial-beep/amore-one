@@ -100,6 +100,7 @@ export function AttendanceClockScreen({
   // Owners/managers fix hours themselves in Time clock; never ask them to
   // "send to manager".
   isManager = false,
+  previewMode = false,
 }) {
   const [snapshot, setSnapshot] = useState(emptySnapshot)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -137,6 +138,27 @@ export function AttendanceClockScreen({
   }, [employeeId, memberId, timeZone, workspaceId])
 
   useEffect(() => {
+    if (!previewMode) return undefined
+    const today = dateKeyInZone(new Date(), timeZone)
+    setSnapshot({
+      settings: { venue_lat: 35.185, venue_lng: 33.382 },
+      entries: [],
+      breaks: [],
+      shifts: [{
+        employee_id: employeeId || 'preview-staff',
+        shift_date: today,
+        start_time: '18:00',
+        end_time: '23:00',
+        area: 'Main Dining',
+      }],
+    })
+    setSettingsLoaded(true)
+    setLoadError('')
+    return undefined
+  }, [employeeId, previewMode, timeZone])
+
+  useEffect(() => {
+    if (previewMode) return undefined
     let cancelled = false
     reload().catch((error) => {
       if (!cancelled) setLoadError(attendanceErrorMessage(error))
@@ -144,7 +166,7 @@ export function AttendanceClockScreen({
     return () => {
       cancelled = true
     }
-  }, [reload])
+  }, [previewMode, reload])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30000)

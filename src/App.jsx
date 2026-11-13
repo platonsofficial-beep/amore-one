@@ -586,6 +586,7 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { applyBillingPreviewToday, shouldUseBillingPreviewFixture } from './lib/billingPreviewFixture'
 import { PlansBillingSection } from './components/billing/PlansBillingSection'
 import { SubscriptionBanner } from './components/billing/SubscriptionBanner'
 import { SubscriptionLockScreen } from './components/billing/SubscriptionLockScreen'
@@ -16847,7 +16848,18 @@ function App() {
   const clockedInNowCount = useClockedInNow(activeWorkspaceId, workspaceTimeZone, canManageAttendanceRole)
   // Which Today data has actually arrived: cards show a neutral placeholder
   // (never "OK"/zero) until then, and "Couldn't load" + Retry on failure.
+  const billingPreviewActive = shouldUseBillingPreviewFixture()
   const todayDataStatus = useMemo(() => {
+    if (billingPreviewActive) {
+      return {
+        schedule: 'ready',
+        announcements: 'ready',
+        stock: 'ready',
+        tasks: 'ready',
+        reservations: 'ready',
+        attention: 'ready',
+      }
+    }
     const schedule = isViewingTodayWeekInScheduler ? loadStatuses.schedule : loadStatuses.todayWeek
     const stock = combineLoadStatus(loadStatuses.stockItems, loadStatuses.stockOrders, stockLiveLoadStatus(stockLiveSnapshot.status))
     const tasks = combineLoadStatus(loadStatuses.tasks, loadStatuses.operationsTasks)
@@ -16860,7 +16872,7 @@ function App() {
       reservations,
       attention: combineLoadStatus(schedule, stock, tasks, reservations),
     }
-  }, [isViewingTodayWeekInScheduler, loadStatuses, stockLiveSnapshot.status])
+  }, [billingPreviewActive, isViewingTodayWeekInScheduler, loadStatuses, stockLiveSnapshot.status])
 
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
@@ -16897,6 +16909,10 @@ function App() {
     stockLiveSnapshot.belowParCount,
     stockLiveSnapshot.parsReady,
   ])
+  const shownTodayStatusSummary = useMemo(
+    () => (billingPreviewActive ? applyBillingPreviewToday(todayStatusSummary) : todayStatusSummary),
+    [billingPreviewActive, todayStatusSummary],
+  )
 
   const teamTodayShiftSource = useMemo(() => (
     isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts
@@ -17218,7 +17234,7 @@ function App() {
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
     scheduleIssueCount: operationalSnapshot.issues,
-    todayStatusSummary,
+    todayStatusSummary: shownTodayStatusSummary,
     dashboardTaskOverview: { active: unifiedOperationalTaskCounts.boardOpen },
     operationsOpenCount,
     todayReservationsSummary,
@@ -17231,7 +17247,7 @@ function App() {
     clockedInNowCount,
     dashboardLiveStatus,
     operationalSnapshot.issues,
-    todayStatusSummary,
+    shownTodayStatusSummary,
     unifiedOperationalTaskCounts.boardOpen,
     operationsOpenCount,
     todayReservationsSummary,
@@ -25390,6 +25406,18 @@ function App() {
     isAuthDisabled,
   })
   const [subscriptionNotice, setSubscriptionNotice] = useState('')
+  const closeSubscriptionBilling = useCallback(() => {
+    setSubscriptionNotice('')
+    setActiveView('today')
+    setMobileExpandedView(null)
+    persistNavigation({
+      activeView: 'today',
+      settingsSection: 'profile',
+      teamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [teamSection, stockSection, operationsSection])
   const openSubscriptionBilling = useCallback(() => {
     setSubscriptionNotice('')
     setActiveView('settings')
@@ -25446,10 +25474,11 @@ function App() {
         />
       ) : null}
       {subscriptionUi.locked ? (
-        <SubscriptionLockScreen
+          <SubscriptionLockScreen
           manager={subscriptionUi.manager}
           venueName={workspace?.name || 'This venue'}
           notice={subscriptionNotice}
+          showPortal={subscriptionUi.hasStripeCustomer}
           onCheckout={handleSubscriptionCheckout}
           onPortal={handleSubscriptionPortal}
           onSignOut={signOut}
@@ -25544,10 +25573,11 @@ function App() {
             <AttendanceClockScreen
               workspaceId={activeWorkspaceId}
               memberId={membership?.id ?? ''}
-              employeeId={membership?.employeeId ?? ''}
-              employeeName={mobileLinkedEmployee?.name ?? ''}
+              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId ?? '')}
+              employeeName={billingPreviewActive ? 'Alex Costa' : (mobileLinkedEmployee?.name ?? '')}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
+              previewMode={billingPreviewActive}
             />
           ) : null
           const accountProfileProps = {
@@ -25685,7 +25715,7 @@ function App() {
           <CommandCenterView
             clockCard={attendanceClockCard}
             reminderCard={shiftReminderCard}
-            statusSummary={todayStatusSummary}
+            statusSummary={shownTodayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={enrichedTeamTodayGroups}
             teamTodayStatus={teamTodayStatus}
@@ -26314,8 +26344,10 @@ function App() {
               <PlansBillingSection
                 venueName={workspace?.name || ''}
                 notice={subscriptionNotice}
+                showPortal={subscriptionUi.hasStripeCustomer}
                 onCheckout={handleSubscriptionCheckout}
                 onPortal={handleSubscriptionPortal}
+                onClose={closeSubscriptionBilling}
               />
             ) : null}
           />
@@ -26346,7 +26378,7 @@ function App() {
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
-                      statusSummary: todayStatusSummary,
+                      statusSummary: shownTodayStatusSummary,
                       dataStatus: todayDataStatus,
                       onRetryData: retryTodayData,
                       attentionItems: todayAttentionItems,

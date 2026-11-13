@@ -43,6 +43,7 @@ export function useSubscriptionUi({
         bannerAction: '',
         locked: false,
         manager: false,
+        hasStripeCustomer: false,
       }
     }
     const access = preview
@@ -57,6 +58,7 @@ export function useSubscriptionUi({
       bannerAction: copy?.action ?? '',
       locked: access.phase === 'locked',
       manager,
+      hasStripeCustomer: remote?.hasStripeCustomer === true,
     }
   }, [enabled, preview, remote, role])
 }

@@ -13,7 +13,13 @@ function mapVenueRow(row) {
     graceStartedAt: row.grace_started_at,
     graceReason: row.grace_reason,
     freeForever: row.free_forever === true,
+    hasStripeCustomer: Boolean(stripeCustomerId(row)),
   }
+}
+
+function stripeCustomerId(row) {
+  const account = Array.isArray(row?.billing_accounts) ? row.billing_accounts[0] : row?.billing_accounts
+  return `${account?.stripe_customer_id ?? ''}`.trim()
 }
 
 export async function loadWorkspaceSubscription(workspaceId) {
@@ -21,7 +27,7 @@ export async function loadWorkspaceSubscription(workspaceId) {
   if (!id) return null
   const { data, error } = await supabase
     .from('billing_account_venues')
-    .select('plan, billing_interval, status, trial_ends_at, current_period_end, grace_started_at, grace_reason, free_forever')
+    .select('plan, billing_interval, status, trial_ends_at, current_period_end, grace_started_at, grace_reason, free_forever, billing_accounts(stripe_customer_id)')
     .eq('workspace_id', id)
     .maybeSingle()
   if (error || !data) return null

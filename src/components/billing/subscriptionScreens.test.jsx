@@ -82,11 +82,16 @@ describe('subscription screens', () => {
       onCheckout,
       onPortal: () => {},
     }))
-    const sixMonths = [...view.container.querySelectorAll('button')].find((button) => button.textContent === '6 months')
+    expect(view.container.textContent).toContain('Recommended')
+    expect(view.container.textContent).toContain('1 month free')
+    expect(view.container.textContent).not.toContain('Manage billing')
+    const sixMonths = [...view.container.querySelectorAll('button')].find((button) => button.textContent === '6 mo')
     act(() => sixMonths.click())
     expect(view.container.textContent).toContain('€139')
     expect(view.container.textContent).toContain('€283')
     expect(view.container.textContent).toContain('€619')
+    expect(view.container.textContent).toContain('−20%')
+    expect(view.container.textContent).toContain('/ 6 months')
     expect(view.container.textContent).toContain('Prices exclude VAT.')
     const start = [...view.container.querySelectorAll('button')].find((button) => button.textContent === 'Continue with Start')
     act(() => start.click())
