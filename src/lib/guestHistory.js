@@ -3,6 +3,11 @@ import { isManagerRole } from './permissions'
 import { parseReservationPhone } from './reservationPhoneUtils'
 import { normalizeReservationStatus } from './reservationHostStatus'
 
+export function countLabel(count, singular, plural) {
+  const n = Number(count) || 0
+  return `${n} ${n === 1 ? singular : plural}`
+}
+
 export function formatGuestDate(dateKey) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(`${dateKey ?? ''}`.trim())
   if (!match) return `${dateKey ?? ''}`.trim() || '—'

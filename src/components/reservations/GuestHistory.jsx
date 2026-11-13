@@ -5,6 +5,7 @@ import {
   buildGuestDirectory,
   canBlacklistGuest,
   canEditGuestNotes,
+  countLabel,
   findGuestByPhone,
   formatGuestDate,
   formatGuestFavourite,
@@ -81,9 +82,9 @@ export function useGuestDirectory({
 function GuestStats({ guest }) {
   return (
     <dl className="guest-card-stats">
-      <div><dt>Visits</dt><dd>{guest.visits}</dd></div>
-      <div><dt>No-shows</dt><dd>{guest.noShows}</dd></div>
-      <div><dt>Cancellations</dt><dd>{guest.cancellations}</dd></div>
+      <div><dt>{guest.visits === 1 ? 'Visit' : 'Visits'}</dt><dd>{guest.visits}</dd></div>
+      <div><dt>{guest.noShows === 1 ? 'No-show' : 'No-shows'}</dt><dd>{guest.noShows}</dd></div>
+      <div><dt>{guest.cancellations === 1 ? 'Cancellation' : 'Cancellations'}</dt><dd>{guest.cancellations}</dd></div>
       <div><dt>Last visit</dt><dd className="guest-date">{formatGuestDate(guest.lastVisit)}</dd></div>
       <div><dt>Usual party</dt><dd>{guest.usualPartySize || '—'}</dd></div>
       <div><dt>Favourite</dt><dd>{formatGuestFavourite(guest)}</dd></div>
@@ -159,7 +160,7 @@ export function GuestPhoneInsight({
     }
   }
 
-  const noShowLabel = guest.noShows === 1 ? '1 no-show' : `${guest.noShows} no-shows`
+  const noShowLabel = countLabel(guest.noShows, 'no-show', 'no-shows')
   return (
     <section className="guest-card" data-testid="guest-card" aria-label="Guest history">
       {confirm.warning ? <p className="guest-blacklist-warning" role="alert">{confirm.warning}</p> : null}
@@ -172,7 +173,7 @@ export function GuestPhoneInsight({
         onClick={() => setExpanded((current) => !current)}
       >
         <strong>{guest.guestName || guest.phone}</strong>
-        <span>{guest.visits} visits</span>
+        <span>{countLabel(guest.visits, 'visit', 'visits')}</span>
         <span>{noShowLabel}</span>
         {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
       </button>
@@ -334,7 +335,7 @@ export function GuestDirectory({
                 <span>
                   <strong>{guest.guestName || guest.phone}</strong>
                   <br />
-                  {guest.phone} · {guest.visits} visits
+                  {guest.phone} · {countLabel(guest.visits, 'visit', 'visits')}
                 </span>
                 {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
               </button>

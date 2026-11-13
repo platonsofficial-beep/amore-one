@@ -184,6 +184,10 @@
   border-radius: 12px;
 }
 
+.guest-history-detail h3 {
+  margin-top: 4px;
+}
+
 .guest-booking-row {
   display: flex;
   justify-content: space-between;
@@ -192,6 +196,17 @@
   min-height: 44px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--one-border);
+}
+
+.guest-booking-row .host-reservation-card-status-pill.is-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 0;
+  height: auto;
+  padding: 3px 8px;
+  line-height: 1.2;
 }
 
 .guest-booking-row:last-child {

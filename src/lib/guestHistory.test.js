@@ -9,6 +9,7 @@ import {
   guestPhoneKey,
   searchGuests,
   summarizeGuest,
+  countLabel,
   formatGuestDate,
   formatGuestFavourite,
 } from './guestHistory'
@@ -33,6 +34,10 @@ describe('guest history', () => {
     expect(guest.favouriteArea).toBe('Main Dining')
     expect(formatGuestFavourite(guest)).toBe('T4 · Main Dining')
     expect(formatGuestDate(guest.lastVisit)).toBe('1 Nov 2026')
+    expect(countLabel(1, 'visit', 'visits')).toBe('1 visit')
+    expect(countLabel(1, 'no-show', 'no-shows')).toBe('1 no-show')
+    expect(countLabel(1, 'cancellation', 'cancellations')).toBe('1 cancellation')
+    expect(countLabel(3, 'visit', 'visits')).toBe('3 visits')
     expect(guest.usualPartySize).toBe(4)
     expect(guest.bookings[0].date).toBe('2026-11-01')
   })
