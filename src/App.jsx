@@ -551,6 +551,7 @@ import { StockLiveCard } from './components/stock/StockLiveCard'
 import { InventoryCountView } from './components/stock/InventoryCountView'
 import { StockStorageCenter } from './components/stock/StockStorageCenter'
 import { StockOrdersView } from './components/stock/StockOrdersView'
+import { buildStockInvoicePreviewOrders, shouldUseStockInvoicePreview } from './lib/stockInvoicePreview'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
 import { InventoryImportWizardShell } from './components/stock/InventoryImportWizardShell'
@@ -16227,6 +16228,23 @@ function App() {
     }
   }, [stockAccessReady, stockSection, canManageStockRole, handleStockSectionChange])
 
+  const invoicePreviewBootRef = useRef(false)
+  useEffect(() => {
+    if (invoicePreviewBootRef.current || !shouldUseStockInvoicePreview()) return
+    invoicePreviewBootRef.current = true
+    stockEntryRequestRef.current = 'orders'
+    setActiveView('stock')
+    setStockSection('orders')
+    setMobileExpandedView('workspace')
+    persistNavigation({
+      activeView: 'stock',
+      settingsSection,
+      teamSection,
+      stockSection: 'orders',
+      operationsSection,
+    })
+  }, [settingsSection, teamSection, operationsSection])
+
   const handleOpenStockOrders = useCallback((statusFilter = 'all') => {
     if (statusFilter && statusFilter !== 'all') {
       setStockOrdersFilterHint(statusFilter)
@@ -17392,6 +17410,12 @@ function App() {
   }, [refreshStockItems])
 
   const refreshStockOrders = useCallback(async () => {
+    if (shouldUseStockInvoicePreview()) {
+      const previewOrders = buildStockInvoicePreviewOrders()
+      setStockOrders(previewOrders)
+      markLoad('stockOrders', 'success')
+      return previewOrders
+    }
     if (!activeWorkspaceId) {
       setStockOrders([])
       return []
