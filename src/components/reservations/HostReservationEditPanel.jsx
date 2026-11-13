@@ -34,6 +34,7 @@ import { ReservationSeatingSelect } from './ReservationSeatingSelect'
 import { buildSeatingsById } from '../../lib/reservationSeatings'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
+import { GuestPhoneInsight } from './GuestHistory'
 
 const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
@@ -96,8 +97,11 @@ export function HostReservationEditPanel({
   layout,
   seatings = [],
   workspaceProfile = null,
+  role = '',
+  workspaceId = '',
 }) {
   const [notesExpanded, setNotesExpanded] = useState(false)
+  const [guestBlocked, setGuestBlocked] = useState(false)
   const isDrawer = variant === 'drawer'
   const { layout: contextLayout } = usePublishedFloorPlan()
   const activeLayout = layout ?? contextLayout
@@ -181,6 +185,10 @@ export function HostReservationEditPanel({
   const formId = `host-reservation-edit-form-${reservation.id}`
 
   const handleSave = async () => {
+    if (guestBlocked) {
+      onValidationError?.('Blacklisted guest. Ask a manager before booking.')
+      return
+    }
     const validation = validateReservationFormFields(form, { dateFallback: todayKey })
     if (!validation.ok) {
       onValidationError?.(validation.error)
@@ -252,6 +260,14 @@ export function HostReservationEditPanel({
               workspaceProfile={workspaceProfile}
             />
           </label>
+
+          <GuestPhoneInsight
+            phone={form.phone}
+            reservations={reservations}
+            workspaceId={workspaceId || reservation.workspaceId}
+            role={role}
+            onBlockedChange={setGuestBlocked}
+          />
 
           <label className="host-reservation-edit-field">
             <span>Guests</span>

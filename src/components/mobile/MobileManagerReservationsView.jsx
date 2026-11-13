@@ -23,6 +23,8 @@ import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { buildHostQueueServiceMetrics } from '../../lib/hostQueueServiceMetrics'
 import { HostQueueServiceSummary } from './reservations/HostQueueServiceSummary'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
+import { GuestDirectory, GuestsButton } from '../reservations/GuestHistory'
+import { claimGuestPreview, guestPreviewPhone } from '../../lib/guestHistoryPreview'
 
 function reservationOnDate(reservation, dateKey) {
   return getReservationDateKey(reservation) === dateKey
@@ -86,12 +88,17 @@ export function MobileManagerReservationsView({
   onCreateReservation,
   onEditReservation,
   onQuickStatusUpdate = null,
+  role = '',
+  workspaceId = '',
 }) {
   const { layout } = usePublishedFloorPlan()
   const selectedDate = dateKey || todayKey
   const [createOpen, setCreateOpen] = useState(false)
   const [createMode, setCreateMode] = useState('create')
   const [createPrefill, setCreatePrefill] = useState(null)
+  const [guestsOpen, setGuestsOpen] = useState(false)
+  const [guestFocus, setGuestFocus] = useState('')
+  const [blacklistOpen, setBlacklistOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [problemsOnly, setProblemsOnly] = useState(false)
   const [uncontrolledSeatingId, setUncontrolledSeatingId] = useState(null)
@@ -194,6 +201,21 @@ export function MobileManagerReservationsView({
     onDateChange?.(addCalendarDays(selectedDate, days))
   }
 
+  useEffect(() => {
+    const mode = claimGuestPreview(true)
+    if (!mode) return
+    const phone = guestPreviewPhone(mode)
+    if (mode === 'list' || mode === 'history' || mode === 'blacklist') {
+      setGuestsOpen(true)
+      if (mode !== 'list') setGuestFocus('+35799111222')
+      if (mode === 'blacklist') setBlacklistOpen(true)
+      return
+    }
+    setCreateMode(mode === 'walkin' ? 'walk-in' : 'create')
+    setCreatePrefill({ phone, date: todayKey })
+    setCreateOpen(true)
+  }, [todayKey])
+
   const openCreate = (mode) => {
     setCreateMode(mode)
     setCreatePrefill(selectedSeating
@@ -254,6 +276,7 @@ export function MobileManagerReservationsView({
             <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
               Add
             </button>
+            <GuestsButton onClick={() => setGuestsOpen(true)} />
           </div>
         ) : null}
       </header>
@@ -361,6 +384,7 @@ export function MobileManagerReservationsView({
                 <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
                   + Reservation
                 </button>
+                <GuestsButton onClick={() => setGuestsOpen(true)} />
               </div>
             ) : null}
           </div>
@@ -450,6 +474,8 @@ export function MobileManagerReservationsView({
         isSaving={isSaving}
         seatings={seatings}
         reservations={reservations}
+        role={role}
+        workspaceId={workspaceId}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
         onOpenSeatingHours={onOpenReservationServices}
@@ -462,9 +488,21 @@ export function MobileManagerReservationsView({
         isSaving={isSaving}
         seatings={seatings}
         reservations={reservations}
+        role={role}
+        workspaceId={workspaceId}
         onClose={() => setEditingReservation(null)}
         onSubmit={handleEdit}
       />
+      {guestsOpen ? (
+        <GuestDirectory
+          workspaceId={workspaceId}
+          reservations={reservations}
+          role={role}
+          initialPhone={guestFocus}
+          startWithBlacklist={blacklistOpen}
+          onClose={() => setGuestsOpen(false)}
+        />
+      ) : null}
     </div>
   )
 }

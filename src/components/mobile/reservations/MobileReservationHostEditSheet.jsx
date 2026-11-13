@@ -16,6 +16,8 @@ export function MobileReservationHostEditSheet({
   onSave,
   onDelete,
   onValidationError,
+  role = '',
+  workspaceId = '',
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(null)
@@ -69,6 +71,8 @@ export function MobileReservationHostEditSheet({
       isSaving={isSaving}
       variant="inline"
       reservations={reservations}
+      role={role}
+      workspaceId={workspaceId}
       todayKey={todayKey}
       layout={layout}
       seatings={seatings}

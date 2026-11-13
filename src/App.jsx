@@ -551,6 +551,7 @@ import { StockLiveCard } from './components/stock/StockLiveCard'
 import { InventoryCountView } from './components/stock/InventoryCountView'
 import { StockStorageCenter } from './components/stock/StockStorageCenter'
 import { StockOrdersView } from './components/stock/StockOrdersView'
+import { buildStockInvoicePreviewOrders, shouldUseStockInvoicePreview } from './lib/stockInvoicePreview'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
 import { InventoryImportWizardShell } from './components/stock/InventoryImportWizardShell'
@@ -614,6 +615,7 @@ import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileProfileView } from './components/mobile/MobileProfileView'
 import { StaffWeekScreen } from './components/mobile/StaffWeekScreen'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
+import { GuestPreviewStage } from './components/reservations/GuestPreviewStage'
 import { MobileReservationQuickCreateSheet } from './components/mobile/reservations/MobileReservationQuickCreateSheet'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
@@ -12240,6 +12242,7 @@ function MobileReservationsHostShell({
   reservationsLoadFailed = false,
   bookingCertainty = 'unknown',
   onVisibleReservationDateChange = null,
+  role = '',
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -12330,6 +12333,7 @@ function MobileReservationsHostShell({
         seatingsLoadFailed={seatingsLoadFailed}
         reservationsLoadFailed={reservationsLoadFailed}
         bookingCertainty={bookingCertainty}
+        role={role}
       />
     </ReservationWorkspaceProvider>
   )
@@ -12370,6 +12374,7 @@ function MobileReservationsHostShellBody({
   seatingsLoadFailed = false,
   reservationsLoadFailed = false,
   bookingCertainty = 'unknown',
+  role = '',
 }) {
   const {
     selectedReservation,
@@ -12678,6 +12683,8 @@ function MobileReservationsHostShellBody({
   return (
     <MobileReservationsHostView
       reservations={reservations}
+      role={role}
+      workspaceId={workspaceId}
       workspaceTimeZone={workspaceTimeZone}
       todayKey={todayKey}
       workspaceTodayKey={workspaceTodayKey || todayKey}
@@ -16232,6 +16239,23 @@ function App() {
     }
   }, [stockAccessReady, stockSection, canManageStockRole, handleStockSectionChange])
 
+  const invoicePreviewBootRef = useRef(false)
+  useEffect(() => {
+    if (invoicePreviewBootRef.current || !shouldUseStockInvoicePreview()) return
+    invoicePreviewBootRef.current = true
+    stockEntryRequestRef.current = 'orders'
+    setActiveView('stock')
+    setStockSection('orders')
+    setMobileExpandedView('workspace')
+    persistNavigation({
+      activeView: 'stock',
+      settingsSection,
+      teamSection,
+      stockSection: 'orders',
+      operationsSection,
+    })
+  }, [settingsSection, teamSection, operationsSection])
+
   const handleOpenStockOrders = useCallback((statusFilter = 'all') => {
     if (statusFilter && statusFilter !== 'all') {
       setStockOrdersFilterHint(statusFilter)
@@ -17397,6 +17421,12 @@ function App() {
   }, [refreshStockItems])
 
   const refreshStockOrders = useCallback(async () => {
+    if (shouldUseStockInvoicePreview()) {
+      const previewOrders = buildStockInvoicePreviewOrders()
+      setStockOrders(previewOrders)
+      markLoad('stockOrders', 'success')
+      return previewOrders
+    }
     if (!activeWorkspaceId) {
       setStockOrders([])
       return []
@@ -25425,6 +25455,7 @@ function App() {
           onSignOut={signOut}
         />
       ) : null}
+      <GuestPreviewStage />
       <HelpModeChrome />
       {/* The owner's landscape Reservations screen hides the topbar that
           normally holds the bell, so it floats here like on the phone shell. */}
@@ -25858,6 +25889,7 @@ function App() {
               bookingCertainty={bookingCertainty}
               onVisibleReservationDateChange={setHostVisibleDateKey}
               workspaceId={activeWorkspaceId}
+              role={role}
               useControlledReloadReturn={isHostMobileRole(role)}
               reservationAttentionFocus={reservationAttentionFocus}
               canUndoAutoClose={isManagerRole(role)}
@@ -26453,6 +26485,7 @@ function App() {
                       bookingCertainty={bookingCertainty}
                       onVisibleReservationDateChange={setHostVisibleDateKey}
                       workspaceId={activeWorkspaceId}
+                      role={role}
                       useControlledReloadReturn
                       hostSettingsProps={{
                         profile: {
@@ -26636,6 +26669,8 @@ function App() {
                           onQuickStatusUpdate: handleQuickReservationStatus,
                           canEditFloorPlan: canEditFloorPlanRole,
                           canPublishFloorPlan: isManagerRole(role),
+                          role,
+                          workspaceId: activeWorkspaceId,
                         }}
                         scheduleProps={{
                           shifts,

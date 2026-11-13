@@ -17,6 +17,7 @@ export function StockOrderReceiveConfirmModal({
   isSaving = false,
   onClose,
   onConfirm,
+  onAddInvoice,
 }) {
   const pendingLines = buildPendingReceiveLines(order, receiveNowByItemId)
   const willComplete = willCompleteOrderAfterReceive(order, receiveNowByItemId)
@@ -118,6 +119,13 @@ export function StockOrderReceiveConfirmModal({
           <div className="stock-order-receive-confirm-notes panel staff-panel">
             <p>Stock levels will update immediately for the quantities above.</p>
             <p>Receive movements will be added to each product&apos;s history.</p>
+            {onAddInvoice ? (
+              <p>
+                <button type="button" className="ghost-btn stock-invoice-save" onClick={onAddInvoice}>
+                  Add invoice
+                </button>
+              </p>
+            ) : null}
             {willComplete ? (
               <p>This delivery completes the order — status will change to Received.</p>
             ) : (

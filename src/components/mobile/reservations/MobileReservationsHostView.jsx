@@ -40,6 +40,8 @@ import {
 } from './MobileHostReservationStatusMenu'
 import { getHostListGroupId, getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
+import { GuestDirectory, GuestsButton } from '../../reservations/GuestHistory'
+import { claimGuestPreview, guestPreviewPhone } from '../../../lib/guestHistoryPreview'
 import { buildHostWalkInCreatePrefill } from '../../../lib/hostQuickCreateForm'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
@@ -92,6 +94,8 @@ export function MobileReservationsHostView({
   seatingsLoadFailed = false,
   reservationsLoadFailed = false,
   bookingCertainty = 'unknown',
+  role = '',
+  workspaceId = '',
 }) {
   const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -104,6 +108,9 @@ export function MobileReservationsHostView({
   const [quickCreateMode, setQuickCreateMode] = useState('create')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
+  const [guestsOpen, setGuestsOpen] = useState(false)
+  const [guestFocus, setGuestFocus] = useState('')
+  const [blacklistOpen, setBlacklistOpen] = useState(false)
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
   const [isSplitLayout, setIsSplitLayout] = useState(() => (
     !shouldShowHostStationPortraitFallback() && isMobileHostSplitViewport()
@@ -359,6 +366,21 @@ export function MobileReservationsHostView({
     setIsCreateOpen(true)
   }, [])
 
+  useEffect(() => {
+    const mode = claimGuestPreview(!shouldShowHostStationPortraitFallback())
+    if (!mode) return
+    const phone = guestPreviewPhone(mode)
+    if (mode === 'list' || mode === 'history' || mode === 'blacklist') {
+      setGuestsOpen(true)
+      if (mode !== 'list') setGuestFocus('+35799111222')
+      if (mode === 'blacklist') setBlacklistOpen(true)
+      return
+    }
+    setQuickCreateMode(mode === 'walkin' ? 'walk-in' : 'create')
+    setCreatePrefill({ phone, date: todayKey })
+    setIsCreateOpen(true)
+  }, [todayKey])
+
   const handleOpenWalkInCreate = useCallback(() => {
     setEditingReservation(null)
     setCreatePrefill(buildHostWalkInCreatePrefill({ date: todayKey, nowMinutes }))
@@ -488,6 +510,7 @@ export function MobileReservationsHostView({
           >
             + Reservation
           </button>
+          <GuestsButton onClick={() => setGuestsOpen(true)} />
         </div>
       </div>
 
@@ -658,6 +681,8 @@ export function MobileReservationsHostView({
         prefill={createPrefill}
         seatings={reservationSeatings}
         reservations={reservations}
+        role={role}
+        workspaceId={workspaceId}
         onClose={handleCloseQuickCreate}
         onSubmit={handleCreateSubmit}
         seatingsLoading={seatingsLoading}
@@ -673,6 +698,8 @@ export function MobileReservationsHostView({
         isSaving={isSaving}
         seatings={reservationSeatings}
         reservations={reservations}
+        role={role}
+        workspaceId={workspaceId}
         onClose={() => setEditingReservation(null)}
         onSubmit={handleEditSubmit}
         seatingsLoading={seatingsLoading}
@@ -705,6 +732,8 @@ export function MobileReservationsHostView({
         noticeMessage={noticeMessage}
         onRetryLoad={onRetryReservations}
         canManage={typeof onCreateReservation === 'function'}
+        role={role}
+        workspaceId={workspaceId}
         canEditFloorPlan={canEditFloorPlan}
         canPublishFloorPlan={canPublishFloorPlan}
         seatings={reservationSeatings}
@@ -812,6 +841,17 @@ export function MobileReservationsHostView({
         </div>
       )}
 
+      {guestsOpen ? (
+        <GuestDirectory
+          workspaceId={workspaceId}
+          reservations={reservations}
+          role={role}
+          initialPhone={guestFocus}
+          startWithBlacklist={blacklistOpen}
+          onClose={() => setGuestsOpen(false)}
+        />
+      ) : null}
+
       {!useInlineDetailPane ? (
         <>
           <MobileReservationQuickCreateSheet
@@ -823,6 +863,8 @@ export function MobileReservationsHostView({
             prefill={createPrefill}
             seatings={reservationSeatings}
             reservations={reservations}
+            role={role}
+            workspaceId={workspaceId}
             onClose={handleCloseQuickCreate}
             onSubmit={handleCreateSubmit}
             onOpenSeatingHours={onOpenReservationServices}
@@ -839,6 +881,8 @@ export function MobileReservationsHostView({
             isSaving={isSaving}
             seatings={reservationSeatings}
             reservations={reservations}
+            role={role}
+            workspaceId={workspaceId}
             onClose={() => setEditingReservation(null)}
             onSubmit={handleEditSubmit}
             onOpenSeatingHours={onOpenReservationServices}
