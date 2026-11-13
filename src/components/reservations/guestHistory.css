@@ -1,0 +1,165 @@
+.guest-card,
+.guest-directory,
+.guest-blacklist-dialog {
+  color: var(--one-text);
+}
+
+.guest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--one-surface);
+  border: 1px solid var(--one-border);
+}
+
+.guest-card h3,
+.guest-card p,
+.guest-directory h2,
+.guest-directory h3,
+.guest-directory p {
+  margin: 0;
+}
+
+.guest-card-stats,
+.guest-directory-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.guest-card-stats div,
+.guest-directory-stats div {
+  background: var(--one-surface-2);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.guest-card dt,
+.guest-directory dt {
+  color: var(--one-text-muted);
+  font-size: 12px;
+}
+
+.guest-card dd,
+.guest-directory dd {
+  margin: 4px 0 0;
+}
+
+.guest-blacklist-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--one-danger-bg);
+  color: var(--one-danger);
+  font-weight: 650;
+}
+
+.guest-blacklist-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--one-danger-bg);
+  color: var(--one-danger);
+}
+
+.guest-history-open,
+.guest-card button,
+.guest-directory button,
+.guest-blacklist-dialog button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.guest-card textarea,
+.guest-directory input,
+.guest-blacklist-dialog textarea {
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--one-border-strong);
+  background: var(--one-surface-2);
+  color: var(--one-text);
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.guest-directory,
+.guest-blacklist-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  background: var(--one-bg);
+  color: var(--one-text);
+  overflow: auto;
+  padding: 16px 16px 32px;
+  box-sizing: border-box;
+}
+
+.guest-directory-card,
+.guest-blacklist-dialog {
+  width: min(720px, 100%);
+  margin: 0 auto;
+}
+
+.guest-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.guest-directory-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  background: var(--one-surface);
+  color: var(--one-text);
+  border: 1px solid var(--one-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.guest-booking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guest-booking-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--one-border);
+}
+
+.guest-blacklist-dialog-backdrop {
+  z-index: 13100;
+  background: var(--one-scrim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.guest-blacklist-dialog {
+  background: var(--one-surface-2);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.guest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

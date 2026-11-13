@@ -609,6 +609,7 @@ import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileProfileView } from './components/mobile/MobileProfileView'
 import { StaffWeekScreen } from './components/mobile/StaffWeekScreen'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
+import { GuestPreviewStage } from './components/reservations/GuestPreviewStage'
 import { MobileReservationQuickCreateSheet } from './components/mobile/reservations/MobileReservationQuickCreateSheet'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
@@ -12235,6 +12236,7 @@ function MobileReservationsHostShell({
   reservationsLoadFailed = false,
   bookingCertainty = 'unknown',
   onVisibleReservationDateChange = null,
+  role = '',
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -12325,6 +12327,7 @@ function MobileReservationsHostShell({
         seatingsLoadFailed={seatingsLoadFailed}
         reservationsLoadFailed={reservationsLoadFailed}
         bookingCertainty={bookingCertainty}
+        role={role}
       />
     </ReservationWorkspaceProvider>
   )
@@ -12365,6 +12368,7 @@ function MobileReservationsHostShellBody({
   seatingsLoadFailed = false,
   reservationsLoadFailed = false,
   bookingCertainty = 'unknown',
+  role = '',
 }) {
   const {
     selectedReservation,
@@ -12673,6 +12677,8 @@ function MobileReservationsHostShellBody({
   return (
     <MobileReservationsHostView
       reservations={reservations}
+      role={role}
+      workspaceId={workspaceId}
       workspaceTimeZone={workspaceTimeZone}
       todayKey={todayKey}
       workspaceTodayKey={workspaceTodayKey || todayKey}
@@ -25356,6 +25362,7 @@ function App() {
     >
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      <GuestPreviewStage />
       <HelpModeChrome />
       {/* The owner's landscape Reservations screen hides the topbar that
           normally holds the bell, so it floats here like on the phone shell. */}
@@ -25789,6 +25796,7 @@ function App() {
               bookingCertainty={bookingCertainty}
               onVisibleReservationDateChange={setHostVisibleDateKey}
               workspaceId={activeWorkspaceId}
+              role={role}
               useControlledReloadReturn={isHostMobileRole(role)}
               reservationAttentionFocus={reservationAttentionFocus}
               canUndoAutoClose={isManagerRole(role)}
@@ -26376,6 +26384,7 @@ function App() {
                       bookingCertainty={bookingCertainty}
                       onVisibleReservationDateChange={setHostVisibleDateKey}
                       workspaceId={activeWorkspaceId}
+                      role={role}
                       useControlledReloadReturn
                       hostSettingsProps={{
                         profile: {
@@ -26559,6 +26568,8 @@ function App() {
                           onQuickStatusUpdate: handleQuickReservationStatus,
                           canEditFloorPlan: canEditFloorPlanRole,
                           canPublishFloorPlan: isManagerRole(role),
+                          role,
+                          workspaceId: activeWorkspaceId,
                         }}
                         scheduleProps={{
                           shifts,
