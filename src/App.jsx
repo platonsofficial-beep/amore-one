@@ -26345,6 +26345,7 @@ function App() {
                 venueName={workspace?.name || ''}
                 notice={subscriptionNotice}
                 showPortal={subscriptionUi.hasStripeCustomer}
+                freeMonthEligible={subscriptionUi.freeMonthEligible}
                 onCheckout={handleSubscriptionCheckout}
                 onPortal={handleSubscriptionPortal}
                 onClose={closeSubscriptionBilling}

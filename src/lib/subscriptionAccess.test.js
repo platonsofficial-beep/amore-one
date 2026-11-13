@@ -8,6 +8,7 @@ import {
   readSubscriptionPreview,
   perMonthEquivalent,
   resolveSubscriptionAccess,
+  venueOffersFreeMonth,
   subscriptionBannerCopy,
 } from './subscriptionAccess'
 
@@ -132,5 +133,33 @@ describe('subscription grace', () => {
   it('turns a 6-month total into the per-month price', () => {
     expect(perMonthEquivalent(139, 6)).toBe(23.17)
     expect(perMonthEquivalent(29, 1)).toBeNull()
+  })
+
+  it('offers the free month only before a venue has had a trial', () => {
+    const now = new Date('2026-11-20T12:00:00.000Z')
+    expect(venueOffersFreeMonth(null, { phase: 'unenrolled' }, now)).toBe(true)
+    expect(venueOffersFreeMonth({ status: 'pending_payment' }, { phase: 'unenrolled' }, now)).toBe(true)
+
+    expect(venueOffersFreeMonth({
+      status: 'trialing',
+      trialEndsAt: '2026-12-20T12:00:00.000Z',
+    }, { phase: 'trial' }, now)).toBe(false)
+    expect(venueOffersFreeMonth({
+      status: 'trialing',
+      trialEndsAt: '2026-11-19T12:00:00.000Z',
+    }, { phase: 'grace', reason: 'trial' }, now)).toBe(false)
+    expect(venueOffersFreeMonth({
+      status: 'past_due',
+      graceReason: 'payment',
+      trialEndsAt: '2026-10-01T12:00:00.000Z',
+    }, { phase: 'grace', reason: 'payment' }, now)).toBe(false)
+    expect(venueOffersFreeMonth({
+      status: 'trialing',
+      trialEndsAt: '2026-11-12T12:00:00.000Z',
+    }, { phase: 'locked' }, now)).toBe(false)
+    expect(venueOffersFreeMonth({
+      status: 'active',
+      currentPeriodEnd: '2026-12-20T12:00:00.000Z',
+    }, { phase: 'active' }, now)).toBe(false)
   })
 })

@@ -40,6 +40,7 @@ export function SubscriptionLockScreen({
           onPortal={onPortal}
           notice={notice}
           showPortal={showPortal}
+          freeMonthEligible={false}
         />
         <button type="button" className="subscription-sign-out" onClick={onSignOut}>
           Sign out

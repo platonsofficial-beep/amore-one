@@ -20,6 +20,30 @@ export const BILLING_INTERVALS = [
   { id: 'year', label: 'Yearly', shortLabel: 'Yearly', suffix: '/ year', months: 12, saving: '−25%' },
 ]
 
+const FREE_MONTH_CLOSED_PHASES = new Set(['trial', 'grace', 'locked', 'active'])
+const FREE_MONTH_CLOSED_STATUSES = new Set(['trialing', 'past_due', 'locked', 'canceled', 'active'])
+
+/**
+ * Start and Pro include one free month only for a venue that has not started
+ * a trial. The lock screen, grace, a failed payment, and a trial that already
+ * ended are not eligible.
+ */
+export function venueOffersFreeMonth(row, access, now = new Date()) {
+  const phase = `${access?.phase ?? ''}`
+  if (FREE_MONTH_CLOSED_PHASES.has(phase)) return false
+  if (row?.freeForever) return false
+  const status = `${row?.status ?? ''}`
+  if (FREE_MONTH_CLOSED_STATUSES.has(status)) return false
+  const trialEnd = `${row?.trialEndsAt ?? ''}`.trim()
+  if (trialEnd) {
+    const end = new Date(trialEnd).getTime()
+    const nowMs = new Date(now).getTime()
+    if (!Number.isFinite(end) || end <= nowMs) return false
+    return false
+  }
+  return true
+}
+
 export function perMonthEquivalent(amount, months) {
   const count = Number(months) || 0
   const total = Number(amount)

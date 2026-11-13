@@ -62,6 +62,7 @@ describe('subscription screens', () => {
     expect(owner.container.textContent).toContain('paused')
     expect(owner.container.textContent).toContain('Choose a plan')
     expect(owner.container.textContent).toContain('Prices exclude VAT.')
+    expect(owner.container.textContent).not.toContain('1 month free')
     owner.unmount()
 
     const staff = render(createElement(SubscriptionLockScreen, {
@@ -83,7 +84,7 @@ describe('subscription screens', () => {
       onPortal: () => {},
     }))
     expect(view.container.textContent).toContain('Recommended')
-    expect(view.container.textContent).toContain('1 month free')
+    expect(view.container.textContent).not.toContain('1 month free')
     expect(view.container.textContent).not.toContain('Manage billing')
     const sixMonths = [...view.container.querySelectorAll('button')].find((button) => button.textContent === '6 mo')
     act(() => sixMonths.click())
@@ -97,5 +98,19 @@ describe('subscription screens', () => {
     act(() => start.click())
     expect(onCheckout).toHaveBeenCalledWith('start', 'month6')
     view.unmount()
+
+    const eligible = render(createElement(PlansBillingSection, {
+      venueName: 'Harbour',
+      freeMonthEligible: true,
+      onCheckout: () => {},
+      onPortal: () => {},
+    }))
+    const startCard = [...eligible.container.querySelectorAll('article')].find((card) => card.textContent.includes('Start'))
+    const proCard = [...eligible.container.querySelectorAll('article')].find((card) => card.textContent.includes('Pro'))
+    const groupCard = [...eligible.container.querySelectorAll('article')].find((card) => card.textContent.includes('Group'))
+    expect(startCard.textContent).toContain('1 month free')
+    expect(proCard.textContent).toContain('1 month free')
+    expect(groupCard.textContent).not.toContain('1 month free')
+    eligible.unmount()
   })
 })

@@ -6,6 +6,7 @@ import {
   resolveSubscriptionAccess,
   subscriptionBannerCopy,
   subscriptionsEnabled,
+  venueOffersFreeMonth,
 } from '../../lib/subscriptionAccess'
 import { loadWorkspaceSubscription } from '../../services/billingService'
 
@@ -44,6 +45,7 @@ export function useSubscriptionUi({
         locked: false,
         manager: false,
         hasStripeCustomer: false,
+        freeMonthEligible: false,
       }
     }
     const access = preview
@@ -59,6 +61,7 @@ export function useSubscriptionUi({
       locked: access.phase === 'locked',
       manager,
       hasStripeCustomer: remote?.hasStripeCustomer === true,
+      freeMonthEligible: venueOffersFreeMonth(preview ? null : remote, access),
     }
   }, [enabled, preview, remote, role])
 }

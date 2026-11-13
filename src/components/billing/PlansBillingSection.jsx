@@ -32,6 +32,7 @@ export function PlansBillingSection({
   notice = '',
   framed = true,
   showPortal = false,
+  freeMonthEligible = false,
 }) {
   const [interval, setInterval] = useState('month')
   const period = BILLING_INTERVALS.find((item) => item.id === interval) ?? BILLING_INTERVALS[0]
@@ -90,7 +91,7 @@ export function PlansBillingSection({
                 {equivalent != null ? (
                   <p className="subscription-plan-equivalent">{formatEuro(equivalent)} / month · {period.saving}</p>
                 ) : null}
-                {plan.freeMonth ? <p className="subscription-plan-free">1 month free</p> : null}
+                {freeMonthEligible && plan.freeMonth ? <p className="subscription-plan-free">1 month free</p> : null}
                 <p className="subscription-plan-detail">{plan.detail}</p>
                 {extra != null ? (
                   <p className="subscription-plan-detail">Extra venue {formatEuro(extra)} for this period.</p>
