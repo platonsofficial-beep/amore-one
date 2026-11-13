@@ -1,7 +1,7 @@
 import { isManagerRole } from '../lib/permissions'
 import { HELP_ARTICLES, helpText } from './helpKnowledge'
 
-const MIN_SCORE = 0.6
+const MIN_SCORE = 0.55
 
 export function helpArticlesForRole(role, articles = HELP_ARTICLES) {
   const manager = isManagerRole(role)
@@ -18,7 +18,7 @@ export function foldHelpText(value) {
     .trim()
 }
 
-const STOP_WORDS = new Set(['how', 'do', 'does', 'did', 'i', 'a', 'an', 'the', 'to', 'for', 'of', 'on', 'my', 'me', 'can', 'what', 'where', 'who', 'why', 'is', 'are', 'with', 'and', 'or', 'it'])
+const STOP_WORDS = new Set(['how', 'do', 'does', 'did', 'i', 'a', 'an', 'the', 'to', 'for', 'of', 'on', 'in', 'at', 'up', 'my', 'me', 'can', 'what', 'where', 'who', 'why', 'is', 'are', 'with', 'and', 'or', 'it', 'be'])
 
 function tokens(value) {
   return foldHelpText(value).split(/\s+/).filter((token) => token.length > 1)
@@ -60,7 +60,9 @@ function tokenScore(queryToken, hayTokens) {
   let best = 0
   for (const hay of hayTokens) {
     if (hay === queryToken) return 1
-    if (hay.includes(queryToken) || queryToken.includes(hay)) {
+    const shorter = Math.min(hay.length, queryToken.length)
+    const longer = Math.max(hay.length, queryToken.length)
+    if (shorter >= 4 && shorter / longer >= 0.6 && (hay.includes(queryToken) || queryToken.includes(hay))) {
       best = Math.max(best, 0.82)
       continue
     }
@@ -115,10 +117,12 @@ export function searchHelp(query, { role = 'staff', locale = 'en', articles = HE
   if (!folded) {
     return { matches: [], suggestions: suggestedHelpQuestions(role, locale, articles) }
   }
-  const matches = visible
+  const ranked = visible
     .map((article) => ({ article, score: scoreHelpArticle(article, query, locale) }))
     .filter((item) => item.score >= MIN_SCORE)
     .sort((left, right) => right.score - left.score || left.article.id.localeCompare(right.article.id))
+  const best = ranked[0]?.score ?? 0
+  const matches = ranked.filter((item) => item.score >= best - 0.2)
   return { matches, suggestions: suggestedHelpQuestions(role, locale, articles) }
 }
 

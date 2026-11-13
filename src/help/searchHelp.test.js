@@ -6,6 +6,8 @@ describe('help search', () => {
   it('finds a walk-in from a fuzzy question', () => {
     const { matches } = searchHelp('how do I add a walkin', { role: 'host' })
     expect(matches[0]?.article.id).toBe('walk-in')
+    expect(matches.map((item) => item.article.id)).not.toContain('tasks')
+    expect(matches.map((item) => item.article.id)).not.toContain('billing-plans')
   })
 
   it('finds clock-in when the spelling is off', () => {
