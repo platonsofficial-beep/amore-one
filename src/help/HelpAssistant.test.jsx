@@ -97,6 +97,20 @@ describe('help assistant', () => {
     view.unmount()
   })
 
+  it('closes when Escape is pressed', () => {
+    let closed = 0
+    const view = render(createElement(HelpAssistant, {
+      ...base,
+      role: 'staff',
+      onClose: () => { closed += 1 },
+    }))
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+    })
+    expect(closed).toBe(1)
+    view.unmount()
+  })
+
   it('leaves AI off unless the flag is on', () => {
     expect(helpAiEnabled({ VITE_HELP_AI_ENABLED: undefined })).toBe(false)
     expect(helpAiEnabled({ VITE_HELP_AI_ENABLED: 'true' })).toBe(true)

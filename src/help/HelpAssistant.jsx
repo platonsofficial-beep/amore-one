@@ -88,11 +88,18 @@ export function HelpAssistant({
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     document.body.classList.add('is-help-assistant-open')
+    const onKey = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose()
+    }
+    document.addEventListener('keydown', onKey)
     return () => {
+      document.removeEventListener('keydown', onKey)
       document.body.style.overflow = previous
       document.body.classList.remove('is-help-assistant-open')
     }
-  }, [open])
+  }, [open, onClose])
 
   useEffect(() => {
     if (!open || typeof window === 'undefined' || !window.visualViewport) return undefined

@@ -177,11 +177,12 @@ async function assertHelpMode(send, width, height) {
   const result = await send('Runtime.evaluate', {
     expression: `(async () => {
       const failures = []
-      const toggle = [...document.querySelectorAll('[data-testid="help-mode-toggle"]')].find((node) => {
+      const toggles = [...document.querySelectorAll('[data-testid="help-assistant-open"]')].filter((node) => {
         const rect = node.getBoundingClientRect()
         return rect.width > 8 && rect.height > 8
       })
-      if (!toggle) return ['help toggle is missing']
+      if (toggles.length !== 1) return ['help toggle is missing']
+      const toggle = toggles[0]
       const toggleRect = toggle.getBoundingClientRect()
       if (toggleRect.width < 8 || toggleRect.top < -1 || toggleRect.right > window.innerWidth + 1) {
         failures.push('help toggle is off screen')
@@ -199,37 +200,28 @@ async function assertHelpMode(send, width, height) {
           break
         }
       }
-      toggle.click()
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-      const banner = document.querySelector('.help-mode-banner')
-      if (!banner || !banner.textContent.includes('Help mode')) failures.push('help banner did not open')
-      const navItems = [...document.querySelectorAll('[data-help-nav]')].filter((node) => {
-        const rect = node.getBoundingClientRect()
-        return rect.width > 8 && rect.height > 8
-      })
-      const nav = navItems.find((node) => !node.classList.contains('active') && !node.classList.contains('is-active') && node.getAttribute('aria-current') !== 'page')
-        || navItems[0]
-      if (nav) {
-        const beforeActive = document.querySelector('.nav-link.active, .mobile-bottom-nav-item.is-active')
-        nav.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
-        nav.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-        const popover = document.querySelector('.help-mode-popover')
-        if (!popover) failures.push('help popover did not open')
-        else {
-          const rect = popover.getBoundingClientRect()
-          if (rect.left < -1 || rect.top < -1 || rect.right > window.innerWidth + 1 || rect.bottom > window.innerHeight + 1) {
-            failures.push('help popover does not fit on screen')
-          }
+      const waitFor = async (read) => {
+        const started = Date.now()
+        while (Date.now() - started < 1000) {
+          const value = read()
+          if (value) return value
+          await new Promise((resolve) => requestAnimationFrame(resolve))
         }
-        const afterActive = document.querySelector('.nav-link.active, .mobile-bottom-nav-item.is-active')
-        if (beforeActive && afterActive && beforeActive !== afterActive) {
-          failures.push('help mode let the first tap navigate')
+        return null
+      }
+      toggle.click()
+      const sheet = await waitFor(() => document.querySelector('[data-testid="help-assistant"]'))
+      if (!sheet) failures.push('help sheet did not open')
+      else {
+        const rect = sheet.getBoundingClientRect()
+        if (rect.left < -1 || rect.top < -1 || rect.right > window.innerWidth + 1 || rect.bottom > window.innerHeight + 1) {
+          failures.push('help sheet does not fit on screen')
         }
       }
+      if (document.querySelector('.help-mode-banner')) failures.push('old help mode banner opened')
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
-      if (document.querySelector('.help-mode-banner')) failures.push('escape did not turn help mode off')
+      const closed = await waitFor(() => (document.querySelector('[data-testid="help-assistant"]') ? '' : 'closed'))
+      if (closed !== 'closed') failures.push('escape did not close help')
       return failures
     })()`,
     awaitPromise: true,
