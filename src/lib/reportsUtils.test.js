@@ -624,7 +624,7 @@ describe('buildSuppliersReport (FK-first)', () => {
     expect(report.metrics.withoutStockItems).toBe(2)
   })
 
-  it('uses inventory text fallback when stock module data is empty', () => {
+  it('shows an empty link count when the stock catalog is empty', () => {
     const report = buildSuppliersReport([supplierA, supplierB], [
       { id: 'inv1', supplier: 'Malakakos AE' },
     ], {
@@ -632,8 +632,9 @@ describe('buildSuppliersReport (FK-first)', () => {
       stockItems: [],
     })
 
-    expect(report.metrics.linkedToStock).toBe(1)
-    expect(report.metrics.withoutStockItems).toBe(1)
+    expect(report.connected).toBe(true)
+    expect(report.metrics.linkedToStock).toBe(0)
+    expect(report.metrics.withoutStockItems).toBe(2)
   })
 })
 

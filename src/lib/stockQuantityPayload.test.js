@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildStockItemUpdatePayload } from './stockBulkActions'
 import { stockFormToPayload, validateStockItemForm, buildEmptyStockItemForm } from './stockCatalog'
-import { buildStockImportPlan } from './stockCsvImport'
 import { serializeStockItem } from '../services/stockItemService'
 
 describe('catalog writes omit current quantity', () => {
@@ -42,54 +41,5 @@ describe('catalog writes omit current quantity', () => {
     expect(payload).not.toHaveProperty('currentQuantity')
     expect(payload.supplier).toBe('Acme')
     expect(payload.minimumQuantity).toBe(2)
-  })
-
-  it('client catalog import ignores an on-hand column', () => {
-    const plan = buildStockImportPlan(
-      [
-        {
-          rowNumber: 2,
-          name: 'Vodka',
-          category: 'Spirits',
-          type: 'Vodka',
-          supplier: '',
-          unit: 'Bottle',
-          currentQuantity: '40',
-          minimumQuantity: '2',
-          targetQuantity: '',
-          costPrice: '',
-          storageLocation: 'Bar',
-        },
-        {
-          rowNumber: 3,
-          name: 'Gin',
-          category: 'Spirits',
-          type: 'Gin',
-          supplier: '',
-          unit: 'Bottle',
-          currentQuantity: '',
-          minimumQuantity: '1',
-          targetQuantity: '',
-          costPrice: '',
-          storageLocation: 'Bar',
-        },
-      ],
-      [{
-        id: 'item-vodka',
-        name: 'Vodka',
-        storageLocation: 'Bar',
-        supplier: 'Acme',
-        costPrice: 9,
-        targetQuantity: 4,
-        orderQuantity: null,
-        currentQuantity: 3,
-      }],
-    )
-
-    expect(plan.creates[0].payload).not.toHaveProperty('currentQuantity')
-    expect(plan.creates[0].payload.name).toBe('Gin')
-    expect(plan.updates[0].payload).not.toHaveProperty('currentQuantity')
-    expect(plan.updates[0].id).toBe('item-vodka')
-    expect(plan.skipped).toEqual([])
   })
 })

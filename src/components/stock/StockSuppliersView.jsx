@@ -229,7 +229,6 @@ export function StockSuppliersView({
   suppliers = [],
   stockItems = [],
   stockOrders = [],
-  inventoryItems = [],
   isLoading = false,
   noticeMessage = '',
   searchTerm = '',
@@ -290,7 +289,7 @@ export function StockSuppliersView({
   )
 
   const pendingDeleteHasHistory = pendingDeleteSupplier
-    ? supplierHasHistory(pendingDeleteSupplier, { stockItems, stockOrders, inventoryItems })
+    ? supplierHasHistory(pendingDeleteSupplier, { stockItems, stockOrders })
     : false
 
   const handleOpenCreate = () => {
@@ -460,7 +459,6 @@ export function StockSuppliersView({
           supplier={selectedSupplierRecord}
           stockItems={stockItems}
           stockOrders={stockOrders}
-          inventoryItems={inventoryItems}
           canManage={canManage}
           isSaving={isSaving}
           onClose={() => setSelectedSupplier(null)}
