@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { clampOverlayLeft } from '../../lib/safeInline'
+import { t } from '../../i18n/i18n'
 
 const MENU_Z_INDEX = 12000
 const MENU_MARGIN = 8
@@ -297,7 +298,7 @@ export function StockItemMoreMenu({
         {isMobileSheet ? (
           <header className="stock-item-more-menu-sheet-header">
             <span className="stock-item-more-menu-sheet-title">{itemName}</span>
-            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close menu">✕</button>
+            <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close menu")}>✕</button>
           </header>
         ) : null}
 

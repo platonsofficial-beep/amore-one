@@ -23,6 +23,7 @@ import { buildProductDisplayName } from '../../lib/stockProductIdentity'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 import './stockQuickTake.css'
 import { formatQuantityWithUnit, isStockPackSchemaAvailable, normalizeUnitsPerPack } from '../../lib/stockPackUnits'
+import { t } from '../../i18n/i18n'
 
 function StockFormSection({ title, children }) {
   return (
@@ -220,7 +221,7 @@ export function StockItemFormModal({
       >
         <div className="stock-item-form-header">
           <div>
-            <p className="eyebrow">Stock</p>
+            <p className="eyebrow">{t("Stock")}</p>
             <h3 id="stock-item-form-title">
               {isEditing ? 'Edit Stock Item' : isDuplicating ? 'Duplicate Stock Item' : 'New Stock Item'}
             </h3>
@@ -232,7 +233,7 @@ export function StockItemFormModal({
                   : 'Add a product to your inventory.'}
             </p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
         </div>
 
         <form className="stock-item-form" onSubmit={handleSubmit}>
@@ -241,14 +242,14 @@ export function StockItemFormModal({
               <div className="staff-status-banner">{workspaceSetupMessage}</div>
             ) : null}
 
-            <StockFormSection title="Identity">
+            <StockFormSection title={t("Identity")}>
               <label className="stock-form-field stock-form-field-full">
-                <span>Product Name</span>
+                <span>{t("Product Name")}</span>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="e.g. Belvedere Vodka"
+                  placeholder={t("e.g. Belvedere Vodka")}
                   autoFocus
                 />
                 {cardTitle && cardTitle !== storedProductName ? (
@@ -257,24 +258,24 @@ export function StockItemFormModal({
               </label>
 
               <label className="stock-form-field stock-form-field-full">
-                <span>Brand (optional)</span>
+                <span>{t("Brand (optional)")}</span>
                 <input
                   type="text"
                   value={form.brand ?? ''}
                   maxLength={PRODUCT_METADATA_LIMITS.brand}
                   onChange={(event) => setForm((current) => ({ ...current, brand: event.target.value }))}
-                  placeholder="e.g. Belvedere"
+                  placeholder={t("e.g. Belvedere")}
                 />
               </label>
 
               <div className="stock-form-row">
                 <label className="stock-form-field">
-                  <span>Category</span>
+                  <span>{t("Category")}</span>
                   <select
                     value={form.category}
                     onChange={(event) => handleCategoryChange(event.target.value)}
                   >
-                    <option value="">Choose a category</option>
+                    <option value="">{t("Choose a category")}</option>
                     {STOCK_CATEGORIES.map((category) => (
                       <option key={category} value={category}>{category}</option>
                     ))}
@@ -282,14 +283,14 @@ export function StockItemFormModal({
                 </label>
 
                 <label className="stock-form-field">
-                  <span>Subcategory</span>
+                  <span>{t("Subcategory")}</span>
                   <select
                     value={form.itemType}
                     onChange={(event) => setForm((current) => ({ ...current, itemType: event.target.value }))}
                     disabled={!form.category}
                     required
                   >
-                    <option value="">Choose a subcategory</option>
+                    <option value="">{t("Choose a subcategory")}</option>
                     {typeOptions.map((type) => (
                       <option key={type} value={type}>{type}</option>
                     ))}
@@ -298,10 +299,10 @@ export function StockItemFormModal({
               </div>
             </StockFormSection>
 
-            <StockFormSection title="Inventory">
+            <StockFormSection title={t("Inventory")}>
               <div className="stock-form-field stock-form-field-full">
-                <span>Inventory Unit</span>
-                <div className="stock-unit-preset-grid" role="group" aria-label="Inventory unit presets">
+                <span>{t("Inventory Unit")}</span>
+                <div className="stock-unit-preset-grid" role="group" aria-label={t("Inventory unit presets")}>
                   {unitPresets.map((preset) => (
                     <button
                       key={preset}
@@ -329,18 +330,18 @@ export function StockItemFormModal({
               )}
 
               <label className="stock-form-field stock-form-field-full">
-                <span>Size (optional)</span>
+                <span>{t("Size (optional)")}</span>
                 <input
                   type="text"
                   value={form.size ?? ''}
                   maxLength={PRODUCT_METADATA_LIMITS.size}
                   onChange={(event) => setForm((current) => ({ ...current, size: event.target.value }))}
-                  placeholder="e.g. 700 ml, 1 L, 250 ml"
+                  placeholder={t("e.g. 700 ml, 1 L, 250 ml")}
                 />
               </label>
 
               <label className="stock-form-field stock-form-field-full">
-                <span>Packaging note (optional)</span>
+                <span>{t("Packaging note (optional)")}</span>
                 <input
                   type="text"
                   value={form.packagingNote ?? ''}
@@ -349,28 +350,28 @@ export function StockItemFormModal({
                     ...current,
                     packagingNote: event.target.value,
                   }))}
-                  placeholder="e.g. Usually supplied in cases"
+                  placeholder={t("e.g. Usually supplied in cases")}
                 />
               </label>
 
               {isStockPackSchemaAvailable() ? (
                 <div className="stock-form-field stock-form-field-full stock-pack-size-field">
-                  <span>Pack size (optional)</span>
+                  <span>{t("Pack size (optional)")}</span>
                   <div className="stock-pack-size-row">
                     <span className="stock-pack-size-prefix">1</span>
                     <input
                       type="text"
-                      aria-label="Pack name"
+                      aria-label={t("Pack name")}
                       value={form.packUnit ?? ''}
                       maxLength={40}
                       onChange={(event) => setForm((current) => ({ ...current, packUnit: event.target.value }))}
-                      placeholder="Case"
+                      placeholder={t("Case")}
                     />
                     <span className="stock-pack-size-prefix">=</span>
                     <input
                       type="text"
                       inputMode="decimal"
-                      aria-label="Units in one pack"
+                      aria-label={t("Units in one pack")}
                       value={form.unitsPerPack ?? ''}
                       onChange={(event) => setForm((current) => ({ ...current, unitsPerPack: event.target.value }))}
                       placeholder="6"
@@ -386,20 +387,20 @@ export function StockItemFormModal({
               ) : null}
 
               <label className="stock-form-field stock-form-field-full">
-                <span>Barcode (optional)</span>
+                <span>{t("Barcode (optional)")}</span>
                 <input
                   type="text"
                   value={form.barcode ?? ''}
                   maxLength={PRODUCT_METADATA_LIMITS.barcode}
                   onChange={(event) => setForm((current) => ({ ...current, barcode: event.target.value }))}
-                  placeholder="Optional product barcode"
+                  placeholder={t("Optional product barcode")}
                 />
               </label>
             </StockFormSection>
 
-            <StockFormSection title="Purchasing">
+            <StockFormSection title={t("Purchasing")}>
               <div className="stock-form-field stock-form-field-full stock-supplier-field">
-                <span>Supplier</span>
+                <span>{t("Supplier")}</span>
                 <div className="stock-supplier-field-row">
                   <select
                     className="stock-supplier-select"
@@ -433,7 +434,7 @@ export function StockItemFormModal({
                 </div>
                 {hasInactiveSupplierSelected ? (
                   <p id="stock-supplier-inactive-note" className="stock-supplier-field-note">
-                    Current supplier is inactive or not in the directory. Select an active supplier to update.
+                    {t("Current supplier is inactive or not in the directory. Select an active supplier to update.")}
                   </p>
                 ) : null}
               </div>
@@ -451,9 +452,9 @@ export function StockItemFormModal({
               </label>
             </StockFormSection>
 
-            <StockFormSection title="Storage">
+            <StockFormSection title={t("Storage")}>
               <div className="stock-form-field stock-form-field-full">
-                <span>Default Storage</span>
+                <span>{t("Default Storage")}</span>
                 <WorkspaceStorageSelector
                   workspaceId={workspaceId}
                   value={form.storageLocation}
@@ -476,7 +477,7 @@ export function StockItemFormModal({
                     inputMode="decimal"
                     value={storagePar}
                     onChange={(event) => setStoragePar(event.target.value)}
-                    placeholder="Optional"
+                    placeholder={t("Optional")}
                     data-testid="stock-item-default-storage-par"
                   />
                 </label>
@@ -484,7 +485,7 @@ export function StockItemFormModal({
 
               <div className="stock-form-row">
                 <label className="stock-form-field">
-                  <span>Minimum</span>
+                  <span>{t("Minimum")}</span>
                   <input
                     type="number"
                     min="0"
@@ -496,19 +497,19 @@ export function StockItemFormModal({
                 </label>
 
                 <label className="stock-form-field">
-                  <span>Target</span>
+                  <span>{t("Target")}</span>
                   <input
                     type="number"
                     min="0"
                     step="any"
                     value={form.targetQuantity}
                     onChange={(event) => setForm((current) => ({ ...current, targetQuantity: event.target.value }))}
-                    placeholder="Par level"
+                    placeholder={t("Par level")}
                   />
                 </label>
               </div>
               <p className="stock-form-opening-hint" data-testid="stock-opening-quantity-hint">
-                Opening stock is set by receiving or counting a storage.
+                {t("Opening stock is set by receiving or counting a storage.")}
               </p>
             </StockFormSection>
 
@@ -517,7 +518,7 @@ export function StockItemFormModal({
 
           <div className="stock-item-form-footer">
             <button type="button" className="ghost-btn stock-item-form-cancel" onClick={onClose}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn stock-item-form-submit" disabled={isSaving || !isWorkspaceReady}>
               {isSaving ? 'Saving…' : isEditing ? 'Save changes' : isDuplicating ? 'Create duplicate' : '+ Create stock item'}

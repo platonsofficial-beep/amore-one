@@ -1,4 +1,5 @@
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 export function EmployeePostHireInvitePrompt({
   employee = null,
@@ -27,14 +28,14 @@ export function EmployeePostHireInvitePrompt({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Team</p>
-            <h3 id="employee-post-hire-invite-title">Employee created successfully.</h3>
+            <p className="eyebrow">{t("Team")}</p>
+            <h3 id="employee-post-hire-invite-title">{t("Employee created successfully.")}</h3>
           </div>
           <button
             type="button"
             className="icon-btn"
             onClick={onLater}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -46,10 +47,10 @@ export function EmployeePostHireInvitePrompt({
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={onLater}>
-            Later
+            {t("Later")}
           </button>
           <button type="button" className="primary-btn" onClick={onInviteNow}>
-            Invite Now
+            {t("Invite Now")}
           </button>
         </div>
       </div>

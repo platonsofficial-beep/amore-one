@@ -19,6 +19,7 @@ import {
 } from '../../lib/stockSupplierUtils'
 import { StockSupplierDetailDrawer } from './StockSupplierDetailDrawer'
 import { StockSupplierFormModal } from './StockSupplierFormModal'
+import { t } from '../../i18n/i18n'
 
 function StockSupplierSortDropdown({ value, options, onChange }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -48,14 +49,14 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
         onClick={() => setIsOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label="Sort suppliers"
+        aria-label={t("Sort suppliers")}
       >
         <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
       {isOpen ? (
-        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label="Sort options">
+        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label={t("Sort options")}>
           {options.map((option) => (
             <li key={option.id} role="presentation">
               <button
@@ -114,29 +115,29 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true, showCo
             <span>{supplier.email || '\u00a0'}</span>
           </>
         ) : (
-          <span className="is-muted">No contact</span>
+          <span className="is-muted">{t("No contact")}</span>
         )}
       </div>
       ) : null}
 
       <div className="stock-supplier-card-stats">
         <div className="stock-supplier-card-stat">
-          <span className="stock-supplier-card-stat-label">Products</span>
+          <span className="stock-supplier-card-stat-label">{t("Products")}</span>
           <span className="stock-supplier-card-stat-value">{metrics.productsCount}</span>
         </div>
         <div className="stock-supplier-card-stat">
-          <span className="stock-supplier-card-stat-label">Open orders</span>
+          <span className="stock-supplier-card-stat-label">{t("Open orders")}</span>
           <span className="stock-supplier-card-stat-value">{metrics.openOrdersCount}</span>
         </div>
         <div className="stock-supplier-card-stat">
-          <span className="stock-supplier-card-stat-label">Last order</span>
+          <span className="stock-supplier-card-stat-label">{t("Last order")}</span>
           <span className={`stock-supplier-card-stat-value stock-supplier-card-stat-value-compact${metrics.lastOrderDate ? '' : ' is-muted'}`}>
             {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
           </span>
         </div>
         {showSpend ? (
           <div className="stock-supplier-card-stat">
-            <span className="stock-supplier-card-stat-label">Received value</span>
+            <span className="stock-supplier-card-stat-label">{t("Received value")}</span>
             <span className={`stock-supplier-card-stat-value stock-supplier-card-stat-value-gold${receivedValue.value === '—' ? ' is-muted' : ''}`}>
               {receivedValue.value}
             </span>
@@ -173,12 +174,12 @@ function StockSupplierDeleteModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Supplier safety</p>
+            <p className="eyebrow">{t("Supplier safety")}</p>
             <h3 id="stock-supplier-delete-title">
               {hasHistory ? 'Deactivate supplier?' : 'Delete supplier?'}
             </h3>
           </div>
-          <button type="button" className="icon-btn stock-supplier-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn stock-supplier-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
@@ -187,18 +188,18 @@ function StockSupplierDeleteModal({
           {hasHistory ? (
             <>
               <p>
-                <strong>{supplier.companyName}</strong> has linked products or purchase orders.
+                <strong>{supplier.companyName}</strong> {t("has linked products or purchase orders.")}
               </p>
-              <p>Suppliers with history cannot be deleted. You can deactivate them instead.</p>
+              <p>{t("Suppliers with history cannot be deleted. You can deactivate them instead.")}</p>
             </>
           ) : (
-            <p>This will permanently remove <strong>{supplier.companyName}</strong>. This cannot be undone.</p>
+            <p>{t("This will permanently remove")} <strong>{supplier.companyName}</strong>. This cannot be undone.</p>
           )}
         </div>
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn stock-supplier-form-action" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {t("Cancel")}
           </button>
           {hasHistory ? (
             <button
@@ -332,14 +333,14 @@ export function StockSuppliersView({
   }
 
   return (
-    <section className="stock-suppliers-page" aria-label="Stock suppliers">
+    <section className="stock-suppliers-page" aria-label={t("Stock suppliers")}>
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
 
       <header className="stock-suppliers-header">
         <div className="stock-suppliers-header-copy">
-          <h2 className="stock-suppliers-title">Suppliers</h2>
+          <h2 className="stock-suppliers-title">{t("Suppliers")}</h2>
           <p className="stock-suppliers-subtitle">
-            Manage supplier contacts, linked products, and purchase history.
+            {t("Manage supplier contacts, linked products, and purchase history.")}
           </p>
         </div>
         {canManage ? (
@@ -349,27 +350,27 @@ export function StockSuppliersView({
             onClick={handleOpenCreate}
             disabled={isSaving}
           >
-            Add supplier
+            {t("Add supplier")}
           </button>
         ) : null}
       </header>
 
       <div className="stock-summary-grid stock-summary-grid-five">
         <article className="stock-summary-card">
-          <p className="stock-summary-label">Total suppliers</p>
+          <p className="stock-summary-label">{t("Total suppliers")}</p>
           <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.totalSuppliers}</p>
         </article>
         <article className="stock-summary-card tone-gold">
-          <p className="stock-summary-label">Active suppliers</p>
+          <p className="stock-summary-label">{t("Active suppliers")}</p>
           <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.activeSuppliers}</p>
         </article>
         <article className="stock-summary-card">
-          <p className="stock-summary-label">Products supplied</p>
+          <p className="stock-summary-label">{t("Products supplied")}</p>
           <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.totalProductsSupplied}</p>
         </article>
         {canManage ? (
           <article className="stock-summary-card">
-            <p className="stock-summary-label">Received value</p>
+            <p className="stock-summary-label">{t("Received value")}</p>
             <p className="stock-summary-value">{isLoading ? '—' : receivedKpi.value}</p>
             {!isLoading && receivedKpi.caption ? (
               <p className="stock-summary-caption">{receivedKpi.caption}</p>
@@ -377,15 +378,15 @@ export function StockSuppliersView({
           </article>
         ) : null}
         <article className="stock-summary-card tone-warning">
-          <p className="stock-summary-label">Pending orders</p>
+          <p className="stock-summary-label">{t("Pending orders")}</p>
           <p className="stock-summary-value">{isLoading ? '—' : dashboardSummary.pendingOrders}</p>
         </article>
       </div>
 
       <div className="stock-suppliers-browse">
         <div className="stock-filter-group stock-filter-group-status">
-          <span className="stock-filter-group-label">Filter</span>
-          <div className="stock-status-filters" role="tablist" aria-label="Supplier filters">
+          <span className="stock-filter-group-label">{t("Filter")}</span>
+          <div className="stock-status-filters" role="tablist" aria-label={t("Supplier filters")}>
             {STOCK_SUPPLIER_FILTERS.map((filter) => (
               <button
                 key={filter.id}
@@ -403,7 +404,7 @@ export function StockSuppliersView({
 
         <div className="stock-suppliers-browse-tools">
           <div className="stock-browse-control stock-browse-sort">
-            <span className="stock-browse-control-label">Sort</span>
+            <span className="stock-browse-control-label">{t("Sort")}</span>
             <StockSupplierSortDropdown
               value={sortKey}
               options={STOCK_SUPPLIER_SORT_OPTIONS}
@@ -420,7 +421,7 @@ export function StockSuppliersView({
       </div>
 
       {isLoading ? (
-        <div className="stock-supplier-card-grid" aria-busy="true" aria-label="Loading suppliers">
+        <div className="stock-supplier-card-grid" aria-busy="true" aria-label={t("Loading suppliers")}>
           {Array.from({ length: 6 }, (_, index) => (
             <div key={index} className="stock-list-skeleton-card panel staff-panel">
               <span className="stock-loading-skeleton-bar" />
@@ -435,7 +436,7 @@ export function StockSuppliersView({
           <p>{emptyState.description}</p>
           {emptyState.showCreate && canManage ? (
             <button type="button" className="primary-btn stock-suppliers-empty-btn" onClick={handleOpenCreate}>
-              Add supplier
+              {t("Add supplier")}
             </button>
           ) : null}
         </div>

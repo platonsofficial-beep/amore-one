@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchPendingLeaveForWorkspace } from '../../services/leaveService'
 import { ManagerLeaveDetailsDrawer } from './ManagerLeaveDetailsDrawer'
+import { t } from '../../i18n/i18n'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -123,7 +124,7 @@ export function ManagerLeaveInbox({
   )
 
   return (
-    <section className="manager-leave-inbox panel staff-panel" aria-label="Pending leave requests">
+    <section className="manager-leave-inbox panel staff-panel" aria-label={t("Pending leave requests")}>
       <style>{`
         .manager-leave-inbox {
           margin-bottom: 1rem;
@@ -202,12 +203,12 @@ export function ManagerLeaveInbox({
       `}</style>
 
       <div className="manager-leave-inbox-header">
-        <p className="eyebrow">Leave</p>
-        <h3>Pending requests</h3>
+        <p className="eyebrow">{t("Leave")}</p>
+        <h3>{t("Pending requests")}</h3>
       </div>
 
       {isLoading ? (
-        <div className="staff-status-banner" aria-live="polite">Loading pending leave requests…</div>
+        <div className="staff-status-banner" aria-live="polite">{t("Loading pending leave requests…")}</div>
       ) : null}
 
       {!isLoading && errorMessage ? (
@@ -219,7 +220,7 @@ export function ManagerLeaveInbox({
       ) : null}
 
       {!isLoading && !errorMessage && rows.length === 0 ? (
-        <p className="manager-leave-inbox-empty">No pending leave requests.</p>
+        <p className="manager-leave-inbox-empty">{t("No pending leave requests.")}</p>
       ) : null}
 
       {!isLoading && !errorMessage && rows.length > 0 ? (
@@ -241,24 +242,24 @@ export function ManagerLeaveInbox({
 
                 <dl className="manager-leave-inbox-meta">
                   <div className="manager-leave-inbox-meta-row">
-                    <dt>Leave type</dt>
+                    <dt>{t("Leave type")}</dt>
                     <dd>{row.leaveTypeLabel}</dd>
                   </div>
                   <div className="manager-leave-inbox-meta-row">
-                    <dt>Start date</dt>
+                    <dt>{t("Start date")}</dt>
                     <dd>{row.startDate}</dd>
                   </div>
                   <div className="manager-leave-inbox-meta-row">
-                    <dt>End date</dt>
+                    <dt>{t("End date")}</dt>
                     <dd>{row.endDate}</dd>
                   </div>
                   <div className="manager-leave-inbox-meta-row">
-                    <dt>Duration</dt>
+                    <dt>{t("Duration")}</dt>
                     <dd>{row.durationLabel}</dd>
                   </div>
                   {row.submittedDate ? (
                     <div className="manager-leave-inbox-meta-row">
-                      <dt>Submitted</dt>
+                      <dt>{t("Submitted")}</dt>
                       <dd>{row.submittedDate}</dd>
                     </div>
                   ) : null}

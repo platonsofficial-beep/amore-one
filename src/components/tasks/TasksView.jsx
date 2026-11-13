@@ -19,6 +19,7 @@ import TasksAssignmentFilter from './TasksAssignmentFilter'
 import TasksHomeView from './TasksHomeView'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
+import { t } from '../../i18n/i18n'
 
 export default function TasksView({
   tasks = [],
@@ -361,8 +362,8 @@ export default function TasksView({
     <section className={`staff-page tasks-page${isMobileLayout ? ' is-mobile-layout' : ''}`}>
       <div className="tasks-page-header">
         <div>
-          <p className="eyebrow">Operations</p>
-          <h3>{tasksScreen === 'templates' ? 'Daily templates' : 'Task boards'}</h3>
+          <p className="eyebrow">{t("Operations")}</p>
+          <h3>{tasksScreen === 'templates' ? t('Daily templates') : t('Task boards')}</h3>
           {!isMobileLayout ? (
             <p className="staff-subtitle">
               {tasksScreen === 'templates'
@@ -373,26 +374,26 @@ export default function TasksView({
         </div>
         {tasksScreen === 'boards' && !selectedDepartmentKey && !isMobileLayout && canManage ? (
           <button type="button" className="ghost-btn tasks-templates-nav-btn" onClick={handleOpenTemplates}>
-            Daily Templates
+            {t("Daily Templates")}
           </button>
         ) : null}
       </div>
 
       {isMobileLayout && tasksScreen === 'boards' && !selectedDepartmentKey && !boardsLoadFailed ? (
-        <section className="tasks-mobile-command-metrics" aria-label="Today task metrics">
-          <p className="tasks-mobile-metrics-label">Today</p>
+        <section className="tasks-mobile-command-metrics" aria-label={t("Today task metrics")}>
+          <p className="tasks-mobile-metrics-label">{t("Today")}</p>
           <div className="tasks-mobile-metrics-grid">
             <article className="tasks-mobile-metric">
               <strong>{taskOverview.active}</strong>
-              <span>Active tasks</span>
+              <span>{t("Active tasks")}</span>
             </article>
             <article className={`tasks-mobile-metric${taskOverview.overdue > 0 ? ' is-alert' : ''}`}>
               <strong>{taskOverview.overdue}</strong>
-              <span>Overdue</span>
+              <span>{t("Overdue")}</span>
             </article>
             <article className="tasks-mobile-metric">
               <strong>{taskOverview.completionPercent}%</strong>
-              <span>Completed</span>
+              <span>{t("Completed")}</span>
             </article>
           </div>
         </section>

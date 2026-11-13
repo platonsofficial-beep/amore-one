@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import { normalizeWorkspaceRole } from './membershipRoles'
 import { isManagerRole } from './permissions'
 import { parseReservationPhone } from './reservationPhoneUtils'
@@ -12,7 +13,7 @@ export function formatGuestDate(dateKey) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(`${dateKey ?? ''}`.trim())
   if (!match) return `${dateKey ?? ''}`.trim() || '—'
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString(uiLocale('en-GB'), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function formatGuestFavourite(guest) {

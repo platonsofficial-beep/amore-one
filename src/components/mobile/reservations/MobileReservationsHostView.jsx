@@ -50,6 +50,7 @@ import { isHostLoadFailureMessage } from '../../../lib/hostLoadNotice'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
 import { MobileHostReservationDateNav } from './MobileHostReservationDateNav'
 import { MobileManagerReservationsView } from '../MobileManagerReservationsView'
+import { t } from '../../../i18n/i18n'
 
 export function MobileReservationsHostView({
   reservations = [],
@@ -466,12 +467,12 @@ export function MobileReservationsHostView({
   const listControls = (
     <div className="mobile-host-list-controls">
       {isSplitLayout && bookingCertainty === 'stale' ? (
-        <p className="host-queue-list-metrics" role="status">Last loaded. Not rechecked.</p>
+        <p className="host-queue-list-metrics" role="status">{t("Last loaded. Not rechecked.")}</p>
       ) : null}
       {isSplitLayout ? (
         reservationLoadFailed && reservations.length === 0 ? (
           <p className="host-queue-list-metrics" role="status">
-            Service summary unavailable until reservations load.
+            {t("Service summary unavailable until reservations load.")}
           </p>
         ) : (
           // Emoji + words live above the list in landscape (Platon t370u), so the
@@ -481,12 +482,12 @@ export function MobileReservationsHostView({
       ) : null}
       <div className="mobile-host-reservations-toolbar host-queue-search-row">
         <label className="mobile-host-reservations-search">
-          <span className="sr-only">Search reservations</span>
+          <span className="sr-only">{t("Search reservations")}</span>
           <input
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search guest"
+            placeholder={t("Search guest")}
           />
         </label>
         <div className="mobile-host-reservations-create-actions">
@@ -498,7 +499,7 @@ export function MobileReservationsHostView({
             data-testid="host-walk-in-create-btn"
             data-help="reservations.walk-in"
           >
-            Walk-in
+            {t("Walk-in")}
           </button>
           <button
             type="button"
@@ -531,7 +532,7 @@ export function MobileReservationsHostView({
       ) : null}
 
       {!isSplitLayout ? (
-      <div className="mobile-host-reservations-tabs" role="tablist" aria-label="Service tabs">
+      <div className="mobile-host-reservations-tabs" role="tablist" aria-label={t("Service tabs")}>
         {MOBILE_HOST_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -551,7 +552,7 @@ export function MobileReservationsHostView({
   )
 
   const portraitReservationList = isLoading ? (
-    <p className="mobile-host-reservations-loading">Loading reservations…</p>
+    <p className="mobile-host-reservations-loading">{t("Loading reservations…")}</p>
   ) : visibleReservations.length === 0 ? (
     (() => {
       const emptyState = reservationLoadFailed || activeFilterCount > 0 || searchTerm.trim()
@@ -574,7 +575,7 @@ export function MobileReservationsHostView({
           {typeof onCreateReservation === 'function' && !reservationLoadFailed && activeFilterCount === 0 && !searchTerm.trim() ? (
             <div className="mobile-host-reservations-empty-actions">
               <button type="button" className="mobile-host-reservations-walk-in-btn" onClick={handleOpenWalkInCreate}>
-                Walk-in
+                {t("Walk-in")}
               </button>
               <button type="button" className="mobile-host-reservations-add-btn" onClick={handleOpenStandardCreate}>
                 + Reservation
@@ -657,7 +658,7 @@ export function MobileReservationsHostView({
         onClick={() => setIsFloorPlanOpen((current) => !current)}
         aria-expanded={isFloorPlanOpen}
       >
-        <span>Floor plan</span>
+        <span>{t("Floor plan")}</span>
         <span className="mobile-host-floor-toggle-icon" aria-hidden="true">
           {isFloorPlanOpen ? '▲' : '▼'}
         </span>
@@ -710,9 +711,9 @@ export function MobileReservationsHostView({
 
   const splitDetailFallback = (
     <div className="mobile-host-reservations-detail-empty" role="status">
-      <p className="mobile-host-reservations-detail-empty-title">Select a reservation</p>
+      <p className="mobile-host-reservations-detail-empty-title">{t("Select a reservation")}</p>
       <p className="mobile-host-reservations-detail-empty-copy">
-        Choose a guest from the list or tap + Reservation to create one.
+        {t("Choose a guest from the list or tap + Reservation to create one.")}
       </p>
     </div>
   )
@@ -750,21 +751,21 @@ export function MobileReservationsHostView({
 
   return (
     <div className={`mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape is-host-queue' : ' is-portrait'}`}>
-      <header className="mobile-host-sticky-bar" aria-label="Host mode header">
+      <header className="mobile-host-sticky-bar" aria-label={t("Host mode header")}>
         <div className="mobile-host-sticky-left">
-          <h1 className="mobile-host-sticky-title">Reservations</h1>
+          <h1 className="mobile-host-sticky-title">{t("Reservations")}</h1>
           <MobileHostReservationDateNav
             selectedDateKey={todayKey}
             workspaceTodayKey={effectiveWorkspaceTodayKey}
             onSelectDate={onSelectDate}
           />
         </div>
-        <div className="mobile-host-sticky-center" aria-label="Service summary">
+        <div className="mobile-host-sticky-center" aria-label={t("Service summary")}>
           {isSplitLayout ? null : (
             <>
-              <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
-              <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
-              <span><strong>{summary.seatedGuests || summary.inHouse || 0}</strong> seated</span>
+              <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> {t("covers")}</span>
+              <span><strong>{summary.upcomingArrivals ?? 0}</strong> {t("upcoming")}</span>
+              <span><strong>{summary.seatedGuests || summary.inHouse || 0}</strong> {t("seated")}</span>
             </>
           )}
         </div>
@@ -774,10 +775,10 @@ export function MobileReservationsHostView({
               type="button"
               className="mobile-host-services-btn"
               onClick={onOpenReservationServices}
-              aria-label="Seating hours"
-              title="Brunch, lunch and dinner hours"
+              aria-label={t("Seating hours")}
+              title={t("Brunch, lunch and dinner hours")}
             >
-              Services
+              {t("Services")}
             </button>
           ) : null}
           {hostSettingsProps ? (
@@ -785,10 +786,10 @@ export function MobileReservationsHostView({
               type="button"
               className="mobile-host-settings-btn"
               onClick={() => setIsSettingsOpen(true)}
-              aria-label="Host settings"
+              aria-label={t("Host settings")}
             >
               <span aria-hidden="true">⚙</span>
-              <span className="mobile-host-settings-label"> Settings</span>
+              <span className="mobile-host-settings-label"> {t("Settings")}</span>
             </button>
           ) : null}
           {onExitHostMode ? (
@@ -796,9 +797,9 @@ export function MobileReservationsHostView({
               type="button"
               className="mobile-host-mode-exit-btn"
               onClick={onExitHostMode}
-              aria-label="Exit Host Mode"
+              aria-label={t("Exit Host Mode")}
             >
-              Exit
+              {t("Exit")}
             </button>
           ) : null}
         </div>
@@ -814,7 +815,7 @@ export function MobileReservationsHostView({
 
       {isSplitLayout ? (
         <div className="mobile-host-reservations-landscape">
-          <section className="mobile-host-reservations-list-pane" aria-label="Host queue">
+          <section className="mobile-host-reservations-list-pane" aria-label={t("Host queue")}>
             <HostLoadNotice
               message={noticeMessage}
               onRetry={onRetryReservations}
@@ -827,7 +828,7 @@ export function MobileReservationsHostView({
               </div>
             </div>
           </section>
-          <section className="mobile-host-reservations-detail-pane host-station-form-pane" aria-label="Reservation details">
+          <section className="mobile-host-reservations-detail-pane host-station-form-pane" aria-label={t("Reservation details")}>
             {detailPaneContent ?? splitDetailFallback}
           </section>
         </div>
@@ -917,7 +918,7 @@ export function MobileReservationsHostView({
             type="button"
             className="mobile-host-settings-backdrop"
             onClick={() => setIsSettingsOpen(false)}
-            aria-label="Close settings"
+            aria-label={t("Close settings")}
           />
           <HostSettingsPanel
             {...hostSettingsProps}

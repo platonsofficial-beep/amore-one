@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 function ScheduleEntryActions({
   entry,
   isSaving,
@@ -14,7 +15,7 @@ function ScheduleEntryActions({
           disabled={isSaving}
           onClick={() => onCompleteReservation?.(entry.reservation)}
         >
-          Complete
+          {t("Complete")}
         </button>
         <button
           type="button"
@@ -22,7 +23,7 @@ function ScheduleEntryActions({
           disabled={isSaving}
           onClick={() => onEditReservation?.(entry.reservation)}
         >
-          Edit
+          {t("Edit")}
         </button>
       </div>
     )
@@ -37,7 +38,7 @@ function ScheduleEntryActions({
           disabled={isSaving}
           onClick={() => onSeatGuests?.(entry.reservation)}
         >
-          Seat guests
+          {t("Seat guests")}
         </button>
         <button
           type="button"
@@ -45,7 +46,7 @@ function ScheduleEntryActions({
           disabled={isSaving}
           onClick={() => onEditReservation?.(entry.reservation)}
         >
-          Edit
+          {t("Edit")}
         </button>
       </div>
     )
@@ -58,7 +59,7 @@ function ScheduleEntryActions({
       disabled={isSaving}
       onClick={() => onEditReservation?.(entry.reservation)}
     >
-      Edit
+      {t("Edit")}
     </button>
   )
 }
@@ -83,7 +84,7 @@ export function FloorTableScheduleCard({
         type="button"
         className="floor-table-schedule-card-backdrop"
         onClick={onClose}
-        aria-label="Close table schedule"
+        aria-label={t("Close table schedule")}
       />
       <div
         className="floor-table-schedule-card"
@@ -105,14 +106,14 @@ export function FloorTableScheduleCard({
             type="button"
             className="icon-btn floor-table-schedule-card-close"
             onClick={onClose}
-            aria-label="Close table schedule"
+            aria-label={t("Close table schedule")}
           >
             ✕
           </button>
         </header>
 
         {safeEntries.length > 0 ? (
-          <ol className="floor-table-schedule-card-timeline" aria-label="Table reservations">
+          <ol className="floor-table-schedule-card-timeline" aria-label={t("Table reservations")}>
             {safeEntries.map((entry, index) => (
               <li
                 key={entry.id}
@@ -150,7 +151,7 @@ export function FloorTableScheduleCard({
             ))}
           </ol>
         ) : (
-          <p className="floor-table-schedule-card-empty">No reservations for this table today.</p>
+          <p className="floor-table-schedule-card-empty">{t("No reservations for this table today.")}</p>
         )}
 
         <footer className="floor-table-schedule-card-footer">

@@ -10,8 +10,8 @@ describe('0026 operations portrait polish', () => {
     expect(src('../components/operations/OperationsUnifiedScreen.jsx')).not.toMatch(/'Today'/)
   })
   it('portrait title is Operations and Task boards eyebrow/title order is fixed', () => {
-    expect(src('../components/mobile/MobileManagerTasksView.jsx')).toMatch(/mobile-manager-tasks-title">Operations</)
-    expect(src('../components/tasks/TasksView.jsx')).toMatch(/eyebrow">Operations<\/p>[\s\S]*?'Task boards'/)
+    expect(src('../components/mobile/MobileManagerTasksView.jsx')).toMatch(/mobile-manager-tasks-title">\{t\("Operations"\)\}</)
+    expect(src('../components/tasks/TasksView.jsx')).toMatch(/eyebrow">\{t\("Operations"\)\}<\/p>[\s\S]*?Task boards/)
   })
   it('gap under chips and TODAY card in the app card colour', () => {
     expect(block).toMatch(/\.operations-unified-tabs \{\s*padding-bottom: 12px;/)

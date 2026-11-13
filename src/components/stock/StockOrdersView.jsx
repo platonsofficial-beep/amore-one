@@ -26,6 +26,7 @@ import { listInvoicedOrderIds } from '../../services/stockInvoiceService'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockOrderCleanupDialog } from './StockOrderCleanupDialog'
 import { StockOrderDetailDrawer } from './StockOrderDetailDrawer'
+import { t } from '../../i18n/i18n'
 import './stockInvoice.css'
 
 function StockOrderSortDropdown({ value, options, onChange }) {
@@ -56,14 +57,14 @@ function StockOrderSortDropdown({ value, options, onChange }) {
         onClick={() => setIsOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label="Sort orders"
+        aria-label={t("Sort orders")}
       >
         <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
       {isOpen ? (
-        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label="Sort options">
+        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label={t("Sort options")}>
           {options.map((option) => (
             <li key={option.id} role="presentation">
               <button
@@ -114,7 +115,7 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
         </div>
           <div className="stock-order-card-badges">
           {showPartialBadge ? (
-            <span className="stock-order-status-badge tone-info">Partial</span>
+            <span className="stock-order-status-badge tone-info">{t("Partial")}</span>
           ) : null}
           <span className={`stock-order-status-badge tone-${statusTone}`}>
             {getStockOrderStatusLabel(order.status)}
@@ -128,19 +129,19 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
 
       {nextAction?.hint && isActionable ? (
         <p className={`stock-order-card-next-action tone-${nextAction.tone}`}>
-          <span className="stock-order-card-next-action-label">Next:</span>
+          <span className="stock-order-card-next-action-label">{t("Next:")}</span>
           {nextAction.hint}
         </p>
       ) : null}
 
       <div className="stock-order-card-stats">
         <div className="stock-order-card-stat">
-          <span className="stock-order-card-stat-label">Products</span>
+          <span className="stock-order-card-stat-label">{t("Products")}</span>
           <span className="stock-order-card-stat-value">{itemCount}</span>
         </div>
         {showCost ? (
           <div className="stock-order-card-stat">
-            <span className="stock-order-card-stat-label">Est. total</span>
+            <span className="stock-order-card-stat-label">{t("Est. total")}</span>
             {/* S-36: a partial total gets a quiet "≈" with the note as tooltip, not an error-looking line. */}
             <span
               className="stock-order-card-stat-value stock-order-card-stat-value-gold"
@@ -275,14 +276,14 @@ export function StockOrdersView({
   const isActionBusy = isSaving || isLoading || isPreparingDrafts
 
   return (
-    <section className="stock-orders-page" aria-label="Stock orders">
+    <section className="stock-orders-page" aria-label={t("Stock orders")}>
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
 
       <header className="stock-orders-header">
         <div className="stock-orders-header-copy">
-          <h2 className="stock-orders-title">Orders</h2>
+          <h2 className="stock-orders-title">{t("Orders")}</h2>
           <p className="stock-orders-toolbar-copy">
-            Track supplier orders from draft through receiving.
+            {t("Track supplier orders from draft through receiving.")}
           </p>
         </div>
         {canManage ? (
@@ -293,11 +294,11 @@ export function StockOrdersView({
                 className="ghost-btn"
                 aria-expanded={ordersMenuOpen}
                 aria-haspopup="menu"
-                aria-label="Order actions"
+                aria-label={t("Order actions")}
                 onClick={() => setOrdersMenuOpen((open) => !open)}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                Order actions
+                {t("Order actions")}
               </button>
               {ordersMenuOpen ? (
                 <div className="stock-orders-more-menu" role="menu">
@@ -311,7 +312,7 @@ export function StockOrdersView({
                     }}
                     disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
                   >
-                    Delete orders
+                    {t("Delete orders")}
                   </button>
                 </div>
               ) : null}
@@ -340,8 +341,8 @@ export function StockOrdersView({
 
       <div className="stock-orders-browse">
         <div className="stock-filter-group stock-filter-group-status">
-          <span className="stock-filter-group-label">Status</span>
-          <div className="stock-status-filters" role="tablist" aria-label="Order status">
+          <span className="stock-filter-group-label">{t("Status")}</span>
+          <div className="stock-status-filters" role="tablist" aria-label={t("Order status")}>
             {STOCK_ORDER_STATUS_FILTERS.map((filter) => (
               <button
                 key={filter.id}
@@ -362,7 +363,7 @@ export function StockOrdersView({
 
         <div className="stock-orders-browse-tools">
           <div className="stock-browse-control stock-browse-sort">
-            <span className="stock-browse-control-label">Sort</span>
+            <span className="stock-browse-control-label">{t("Sort")}</span>
             <StockOrderSortDropdown
               value={sortKey}
               options={STOCK_ORDER_SORT_OPTIONS}
@@ -379,7 +380,7 @@ export function StockOrdersView({
       </div>
 
       {isLoading ? (
-        <div className="stock-orders-grid" aria-busy="true" aria-label="Loading orders">
+        <div className="stock-orders-grid" aria-busy="true" aria-label={t("Loading orders")}>
           {Array.from({ length: 6 }, (_, index) => (
             <div key={index} className="stock-list-skeleton-card panel staff-panel">
               <span className="stock-loading-skeleton-bar" />

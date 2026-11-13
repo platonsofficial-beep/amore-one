@@ -4,6 +4,7 @@ import { LEAVE_STATUS } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchEmployeeLeaveHistory } from '../../services/leaveService'
 import { LeaveHistoryDetailsModal } from './LeaveHistoryDetailsModal'
+import { t } from '../../i18n/i18n'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -123,7 +124,7 @@ export function LeaveHistoryPanel({
   }, [loadHistory])
 
   return (
-    <section className="leave-history-panel" aria-label="My leave history">
+    <section className="leave-history-panel" aria-label={t("My leave history")}>
       <style>{`
         .leave-history-panel {
           display: grid;
@@ -235,10 +236,10 @@ export function LeaveHistoryPanel({
         }
       `}</style>
 
-      <h4 className="leave-history-panel-title">My Leave History</h4>
+      <h4 className="leave-history-panel-title">{t("My Leave History")}</h4>
 
       {isLoading ? (
-        <div className="staff-status-banner" aria-live="polite">Loading leave history…</div>
+        <div className="staff-status-banner" aria-live="polite">{t("Loading leave history…")}</div>
       ) : null}
 
       {!isLoading && errorMessage ? (
@@ -250,7 +251,7 @@ export function LeaveHistoryPanel({
       ) : null}
 
       {!isLoading && !errorMessage && records.length === 0 ? (
-        <p className="leave-history-empty">You haven&apos;t submitted any leave requests yet.</p>
+        <p className="leave-history-empty">{t("You haven't submitted any leave requests yet.")}</p>
       ) : null}
 
       {!isLoading && !errorMessage && records.length > 0 ? (
@@ -277,25 +278,25 @@ export function LeaveHistoryPanel({
 
                   <dl className="leave-history-meta">
                     <div className="leave-history-meta-row">
-                      <dt>Start date</dt>
+                      <dt>{t("Start date")}</dt>
                       <dd>{entry.startDate}</dd>
                     </div>
                     <div className="leave-history-meta-row">
-                      <dt>End date</dt>
+                      <dt>{t("End date")}</dt>
                       <dd>{entry.endDate}</dd>
                     </div>
                     <div className="leave-history-meta-row">
-                      <dt>Duration</dt>
+                      <dt>{t("Duration")}</dt>
                       <dd>{formatDurationLabel(entry.startDate, entry.endDate)}</dd>
                     </div>
                     <div className="leave-history-meta-row">
-                      <dt>Submitted</dt>
+                      <dt>{t("Submitted")}</dt>
                       <dd>{formatSubmittedDate(entry.createdAt)}</dd>
                     </div>
                   </dl>
 
                   {noteText ? (
-                    <p className="leave-history-note-indicator">Includes note</p>
+                    <p className="leave-history-note-indicator">{t("Includes note")}</p>
                   ) : null}
                 </article>
               </li>

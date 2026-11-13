@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
 import { isWasteNote } from './stockWaste'
 import { getCurrentDateKey } from './currentDateUtils'
@@ -298,7 +299,7 @@ export function getStockCategoryFilters(items = []) {
 
 export function formatStockCurrency(value) {
   const amount = Number(value) || 0
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(uiLocale('en-US'), {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,
@@ -307,7 +308,7 @@ export function formatStockCurrency(value) {
 
 export function formatStockPurchasePrice(value) {
   const amount = Number(value) || 0
-  return new Intl.NumberFormat('en-IE', {
+  return new Intl.NumberFormat(uiLocale('en-IE'), {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,

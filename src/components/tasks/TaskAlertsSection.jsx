@@ -1,6 +1,7 @@
 import { resolveEmployeeName } from '../../lib/operationsUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { getTaskDepartmentLabel } from '../../lib/taskUtils'
+import { t } from '../../i18n/i18n'
 
 function formatAlertDueLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
@@ -57,7 +58,7 @@ export default function TaskAlertsSection({
     return (
       <section className={`tasks-alerts${compact ? ' is-compact' : ''}`} aria-label={title}>
         <header className="tasks-alerts-header">
-          {!compact ? <p className="eyebrow">Manager view</p> : null}
+          {!compact ? <p className="eyebrow">{t("Manager view")}</p> : null}
           <h3>{title}</h3>
         </header>
         <div className="tasks-alerts-empty">
@@ -70,14 +71,14 @@ export default function TaskAlertsSection({
   return (
     <section className={`tasks-alerts${compact ? ' is-compact' : ''}`} aria-label={title}>
       <header className="tasks-alerts-header">
-        {!compact ? <p className="eyebrow">Manager view</p> : null}
+        {!compact ? <p className="eyebrow">{t("Manager view")}</p> : null}
         <h3>{title}</h3>
       </header>
 
       <div className="tasks-alerts-groups">
-        <AlertGroup title="Overdue" tasks={alerts.overdue} tone="overdue" employees={employees} compact={compact} />
-        <AlertGroup title="Urgent active" tasks={alerts.urgent} tone="urgent" employees={employees} compact={compact} />
-        <AlertGroup title="Due today" tasks={alerts.dueToday} tone="today" employees={employees} compact={compact} />
+        <AlertGroup title={t("Overdue")} tasks={alerts.overdue} tone="overdue" employees={employees} compact={compact} />
+        <AlertGroup title={t("Urgent active")} tasks={alerts.urgent} tone="urgent" employees={employees} compact={compact} />
+        <AlertGroup title={t("Due today")} tasks={alerts.dueToday} tone="today" employees={employees} compact={compact} />
       </div>
     </section>
   )

@@ -50,6 +50,7 @@ import { OverlayPortal } from './OverlayPortal'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
 import { StockInvoiceSection } from './StockInvoiceSection'
 import { readStockInvoicePreview } from '../../lib/stockInvoicePreview'
+import { t } from '../../i18n/i18n'
 
 function receiveDestinationHint(storages = []) {
   const supplyCount = storages.filter((storage) => storage?.isSupply === true).length
@@ -126,7 +127,7 @@ function OrderTimeline({ order, timeZone = '' }) {
                 ) : null}
               </>
             ) : (
-              <span className="stock-order-timeline-pending">Pending</span>
+              <span className="stock-order-timeline-pending">{t("Pending")}</span>
             )}
           </div>
           {index < steps.length - 1 ? (
@@ -160,7 +161,7 @@ function DraftOrderItem({
         <div className="stock-order-detail-line-title-row">
           <strong>{lineName}</strong>
           {isInactive ? (
-            <span className="stock-order-status-badge tone-muted">Inactive</span>
+            <span className="stock-order-status-badge tone-muted">{t("Inactive")}</span>
           ) : null}
         </div>
         <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
@@ -168,14 +169,14 @@ function DraftOrderItem({
 
       {isInactive ? (
         <div className="stock-order-inactive-notice" role="status">
-          <p className="stock-order-inactive-warning">This product has been deactivated.</p>
+          <p className="stock-order-inactive-warning">{t("This product has been deactivated.")}</p>
           <div className="stock-order-inactive-actions">
             <button
               type="button"
               className="ghost-btn stock-order-inactive-action-btn"
               onClick={() => onRemove(item.id)}
             >
-              Remove from order
+              {t("Remove from order")}
             </button>
             <button
               type="button"
@@ -188,7 +189,7 @@ function DraftOrderItem({
           </div>
           {isReplaceOpen ? (
             <label className="stock-order-inactive-replace">
-              <span>Replace with</span>
+              <span>{t("Replace with")}</span>
               <select
                 className="stock-order-inactive-replace-select"
                 defaultValue=""
@@ -199,7 +200,7 @@ function DraftOrderItem({
                   onReplace(item.id, nextId)
                 }}
               >
-                <option value="">Select a product…</option>
+                <option value="">{t("Select a product…")}</option>
                 {replaceOptions.map((option) => (
                   <option key={option.id} value={option.id}>
                     {resolveListedProductName(option, option) || option.name}
@@ -265,15 +266,15 @@ function ReceivingOrderItem({
 
       <dl className="stock-order-receive-metrics">
         <div className="stock-order-receive-metric">
-          <dt>Ordered</dt>
+          <dt>{t("Ordered")}</dt>
           <dd>{formatStockQuantity(ordered, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric">
-          <dt>Received</dt>
+          <dt>{t("Received")}</dt>
           <dd>{formatStockQuantity(received, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric">
-          <dt>Remaining</dt>
+          <dt>{t("Remaining")}</dt>
           <dd>{formatStockQuantity(remaining, item.unit)}</dd>
         </div>
       </dl>
@@ -281,7 +282,7 @@ function ReceivingOrderItem({
       {remaining > 0 ? (
         <div className="stock-order-receive-now-wrap">
           <label className="stock-order-receive-now">
-            <span>Receive now</span>
+            <span>{t("Receive now")}</span>
             <input
               type="number"
               min="0"
@@ -303,7 +304,7 @@ function ReceivingOrderItem({
           </button>
         </div>
       ) : (
-        <p className="stock-order-receive-complete">Fully received</p>
+        <p className="stock-order-receive-complete">{t("Fully received")}</p>
       )}
     </article>
   )
@@ -355,15 +356,15 @@ function ReceivedOrderItem({ item, presentation, showCost = true }) {
 
       <dl className="stock-order-receive-metrics">
         <div className="stock-order-receive-metric">
-          <dt>Ordered</dt>
+          <dt>{t("Ordered")}</dt>
           <dd>{formatStockQuantity(ordered, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric">
-          <dt>Received</dt>
+          <dt>{t("Received")}</dt>
           <dd>{formatStockQuantity(received, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric stock-order-receive-metric-difference">
-          <dt>Difference</dt>
+          <dt>{t("Difference")}</dt>
           <dd>
             <span className="stock-order-difference-value">{differenceDisplay.value}</span>
             <span className={`stock-order-status-badge tone-${differenceDisplay.badgeTone}`}>
@@ -397,15 +398,15 @@ function CompletedOrderItem({ item, presentation, showCost = true }) {
 
       <dl className="stock-order-receive-metrics">
         <div className="stock-order-receive-metric">
-          <dt>Ordered</dt>
+          <dt>{t("Ordered")}</dt>
           <dd>{formatStockQuantity(ordered, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric">
-          <dt>Received</dt>
+          <dt>{t("Received")}</dt>
           <dd>{formatStockQuantity(received, item.unit)}</dd>
         </div>
         <div className="stock-order-receive-metric">
-          <dt>Difference</dt>
+          <dt>{t("Difference")}</dt>
           <dd className={difference < 0 ? 'tone-warning' : ''}>
             {difference === 0
               ? '—'
@@ -773,7 +774,7 @@ export function StockOrderDetailDrawer({
         >
           <header className="stock-order-detail-header">
             <div className="stock-order-detail-header-copy">
-              <p className="stock-order-detail-eyebrow">Purchase order</p>
+              <p className="stock-order-detail-eyebrow">{t("Purchase order")}</p>
               <div className="stock-product-history-title-row">
                 <h2 id="stock-order-detail-title" className="stock-product-history-title">
                   {order.supplier || '—'}
@@ -792,7 +793,7 @@ export function StockOrderDetailDrawer({
               className="icon-btn stock-product-history-close"
               onClick={handleDismiss}
               disabled={isSaving}
-              aria-label="Close order details"
+              aria-label={t("Close order details")}
             >
               ✕
             </button>
@@ -802,8 +803,8 @@ export function StockOrderDetailDrawer({
             {error ? <div className="staff-status-banner">{error}</div> : null}
 
             {canManage && nextAction?.hint && !isReceived && normalizeStockOrderStatus(order.status) !== 'cancelled' ? (
-              <div className={`stock-order-next-step panel staff-panel tone-${nextAction.tone}`} aria-label="Next step">
-                <p className="stock-order-next-step-label">Next step</p>
+              <div className={`stock-order-next-step panel staff-panel tone-${nextAction.tone}`} aria-label={t("Next step")}>
+                <p className="stock-order-next-step-label">{t("Next step")}</p>
                 <p className="stock-order-next-step-copy">{nextAction.hint}</p>
               </div>
             ) : null}
@@ -818,12 +819,12 @@ export function StockOrderDetailDrawer({
             ) : null}
 
             {showReceivingMode ? (
-              <div className="stock-order-receiving-guide panel staff-panel" aria-label="Receiving instructions">
-                <h4>Receiving this delivery</h4>
+              <div className="stock-order-receiving-guide panel staff-panel" aria-label={t("Receiving instructions")}>
+                <h4>{t("Receiving this delivery")}</h4>
                 <p>
                   Check each product against the delivery note. Enter the quantity arriving now — use
                   {' '}
-                  <strong>Receive all</strong>
+                  <strong>{t("Receive all")}</strong>
                   {' '}
                   when the full remaining amount arrived.
                 </p>
@@ -832,10 +833,10 @@ export function StockOrderDetailDrawer({
                   outstanding across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
                 </p>
                 <label className="stock-form-field">
-                  <span>Destination storage</span>
+                  <span>{t("Destination storage")}</span>
                   <select
                     className="stock-order-date-input"
-                    aria-label="Destination storage"
+                    aria-label={t("Destination storage")}
                     value={workspaceStorageId}
                     disabled={isSaving || isLoadingStorages}
                     onChange={(event) => setWorkspaceStorageId(event.target.value)}
@@ -853,8 +854,8 @@ export function StockOrderDetailDrawer({
             ) : null}
 
             {isReceived ? (
-              <div className="stock-order-completion-banner panel staff-panel" aria-label="Order completed">
-                <h4>Order completed</h4>
+              <div className="stock-order-completion-banner panel staff-panel" aria-label={t("Order completed")}>
+                <h4>{t("Order completed")}</h4>
                 <p>
                   Received by {order.receivedByName || 'System'}
                   {' · '}
@@ -866,11 +867,11 @@ export function StockOrderDetailDrawer({
               </div>
             ) : null}
 
-            <section className="stock-product-history-section" aria-label="Order dates">
-              <h3 className="stock-product-history-section-title">Dates</h3>
+            <section className="stock-product-history-section" aria-label={t("Order dates")}>
+              <h3 className="stock-product-history-section-title">{t("Dates")}</h3>
               <dl className="stock-product-history-overview">
                 <div className="stock-product-history-overview-row">
-                  <dt>Created</dt>
+                  <dt>{t("Created")}</dt>
                   <dd>
                     {order.createdByName || 'System'}
                     {' · '}
@@ -878,7 +879,7 @@ export function StockOrderDetailDrawer({
                   </dd>
                 </div>
                 <div className="stock-product-history-overview-row">
-                  <dt>Expected delivery</dt>
+                  <dt>{t("Expected delivery")}</dt>
                   <dd>
                     {isEditable ? (
                       <input
@@ -886,7 +887,7 @@ export function StockOrderDetailDrawer({
                         className="stock-order-date-input"
                         value={expectedDeliveryDate ?? ''}
                         onChange={(event) => setExpectedDeliveryDate(event.target.value)}
-                        aria-label="Expected delivery date"
+                        aria-label={t("Expected delivery date")}
                       />
                     ) : (
                       deliveryLabel || 'Not set'
@@ -895,7 +896,7 @@ export function StockOrderDetailDrawer({
                 </div>
                 {order.sentAt ? (
                   <div className="stock-product-history-overview-row">
-                    <dt>Sent</dt>
+                    <dt>{t("Sent")}</dt>
                     <dd>
                       {order.sentByName || 'System'}
                       {' · '}
@@ -905,7 +906,7 @@ export function StockOrderDetailDrawer({
                 ) : null}
                 {isReceived && order.receivedAt ? (
                   <div className="stock-product-history-overview-row">
-                    <dt>Completed</dt>
+                    <dt>{t("Completed")}</dt>
                     <dd>
                       {order.receivedByName || 'System'}
                       {' · '}
@@ -916,18 +917,18 @@ export function StockOrderDetailDrawer({
               </dl>
             </section>
 
-            <section className="stock-product-history-section" aria-label="Order summary">
+            <section className="stock-product-history-section" aria-label={t("Order summary")}>
               <h3 className="stock-product-history-section-title">
                 {isReceived ? 'Final summary' : 'Summary'}
               </h3>
               <dl className="stock-product-history-overview">
                 <div className="stock-product-history-overview-row">
-                  <dt>Products</dt>
+                  <dt>{t("Products")}</dt>
                   <dd>{displayItems.length}</dd>
                 </div>
                 {canManage && displayedEstimate.missingCostLines > 0 ? (
                   <div className="stock-product-history-overview-row">
-                    <dt>Missing cost</dt>
+                    <dt>{t("Missing cost")}</dt>
                     <dd>{formatMissingCostLineNote(displayedEstimate.missingCostLines)}</dd>
                   </div>
                 ) : null}
@@ -944,16 +945,16 @@ export function StockOrderDetailDrawer({
                 {showReceivingMode || isReceived ? (
                   <>
                     <div className="stock-product-history-overview-row">
-                      <dt>Units ordered</dt>
+                      <dt>{t("Units ordered")}</dt>
                       <dd>{receiveSummary.orderedTotal}</dd>
                     </div>
                     <div className="stock-product-history-overview-row">
-                      <dt>Units received</dt>
+                      <dt>{t("Units received")}</dt>
                       <dd>{receiveSummary.receivedTotal}</dd>
                     </div>
                     {!isReceived ? (
                       <div className="stock-product-history-overview-row">
-                        <dt>Units remaining</dt>
+                        <dt>{t("Units remaining")}</dt>
                         <dd>{receiveSummary.remainingTotal}</dd>
                       </div>
                     ) : null}
@@ -962,15 +963,15 @@ export function StockOrderDetailDrawer({
               </dl>
             </section>
 
-            <section className="stock-product-history-section" aria-label="Products">
+            <section className="stock-product-history-section" aria-label={t("Products")}>
               <h3 className="stock-product-history-section-title">
                 {isReceived ? 'Received products' : 'Products'}
               </h3>
               <div className="stock-order-detail-lines">
                 {displayItems.length === 0 ? (
                   <div className="stock-product-history-empty panel staff-panel">
-                    <h4>No products in this order</h4>
-                    <p>Add products before sending this order.</p>
+                    <h4>{t("No products in this order")}</h4>
+                    <p>{t("Add products before sending this order.")}</p>
                   </div>
                 ) : null}
 
@@ -1021,14 +1022,14 @@ export function StockOrderDetailDrawer({
               </div>
             </section>
 
-            <section className="stock-product-history-section" aria-label="Notes">
-              <h3 className="stock-product-history-section-title">Notes</h3>
+            <section className="stock-product-history-section" aria-label={t("Notes")}>
+              <h3 className="stock-product-history-section-title">{t("Notes")}</h3>
               {isEditable ? (
                 <label className="stock-create-order-notes stock-order-detail-notes">
                   <textarea
                     rows={3}
                     value={notes}
-                    placeholder="Delivery notes, reference, or instructions"
+                    placeholder={t("Delivery notes, reference, or instructions")}
                     onChange={(event) => setNotes(event.target.value)}
                   />
                 </label>
@@ -1039,8 +1040,8 @@ export function StockOrderDetailDrawer({
               )}
             </section>
 
-            <section className="stock-product-history-section" aria-label="Order timeline">
-              <h3 className="stock-product-history-section-title">Timeline</h3>
+            <section className="stock-product-history-section" aria-label={t("Order timeline")}>
+              <h3 className="stock-product-history-section-title">{t("Timeline")}</h3>
               <OrderTimeline order={order} timeZone={timeZone} />
             </section>
             {isEditable && missingContactHint ? (
@@ -1057,7 +1058,7 @@ export function StockOrderDetailDrawer({
               ) : null}
               <footer className={`stock-product-history-footer stock-order-detail-footer${isEditable ? ' has-send-actions' : ''}`}>
               {isEditable ? (
-                <div className="stock-order-action-bar" role="group" aria-label="Order actions">
+                <div className="stock-order-action-bar" role="group" aria-label={t("Order actions")}>
                   <div className="stock-order-action-menu">
                     <button
                       type="button"
@@ -1070,10 +1071,10 @@ export function StockOrderDetailDrawer({
                       }}
                       disabled={isSaving}
                     >
-                      Send
+                      {t("Send")}
                     </button>
                     {sendMenuOpen ? (
-                      <div className="stock-order-action-popover" role="menu" aria-label="Send order">
+                      <div className="stock-order-action-popover" role="menu" aria-label={t("Send order")}>
                         {canEmailSupplier ? (
                           <button
                             type="button"
@@ -1082,7 +1083,7 @@ export function StockOrderDetailDrawer({
                             onClick={handleSendEmail}
                             disabled={isSaving}
                           >
-                            Email
+                            {t("Email")}
                           </button>
                         ) : null}
                         {canMessageSupplier ? (
@@ -1093,7 +1094,7 @@ export function StockOrderDetailDrawer({
                             onClick={handleSendWhatsApp}
                             disabled={isSaving}
                           >
-                            WhatsApp
+                            {t("WhatsApp")}
                           </button>
                         ) : null}
                         {canMessageSupplier ? (
@@ -1104,7 +1105,7 @@ export function StockOrderDetailDrawer({
                             onClick={handleSendViber}
                             disabled={isSaving}
                           >
-                            Viber
+                            {t("Viber")}
                           </button>
                         ) : null}
                         <button
@@ -1114,7 +1115,7 @@ export function StockOrderDetailDrawer({
                           onClick={handlePrintOrder}
                           disabled={isSaving}
                         >
-                          Print
+                          {t("Print")}
                         </button>
                       </div>
                     ) : null}
@@ -1131,10 +1132,10 @@ export function StockOrderDetailDrawer({
                       }}
                       disabled={isSaving}
                     >
-                      More
+                      {t("More")}
                     </button>
                     {orderMoreOpen ? (
-                      <div className="stock-order-action-popover" role="menu" aria-label="More order actions">
+                      <div className="stock-order-action-popover" role="menu" aria-label={t("More order actions")}>
                         <button
                           type="button"
                           className="ghost-btn stock-product-history-action-btn"

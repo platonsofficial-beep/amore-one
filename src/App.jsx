@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { t, uiLocale } from './i18n/i18n'
 import { startVisibleInterval } from './lib/visibleInterval'
 import { combineLoadStatus, loadAreaForCard, stockLiveLoadStatus, useLoadStatuses } from './lib/loadStatus'
 import { LoadFailed, PendingValue } from './components/common/DataPending'
@@ -1161,8 +1162,8 @@ function formatDashboardHeroDate(date, timeZone = '') {
   const resolvedTimeZone = `${timeZone ?? ''}`.trim() || undefined
   const options = resolvedTimeZone ? { timeZone: resolvedTimeZone } : {}
 
-  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'long', ...options }).format(date)
-  const monthDay = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', ...options }).format(date)
+  const weekday = new Intl.DateTimeFormat(uiLocale('en-US'), { weekday: 'long', ...options }).format(date)
+  const monthDay = new Intl.DateTimeFormat(uiLocale('en-US'), { month: 'long', day: 'numeric', ...options }).format(date)
 
   return `${weekday} • ${monthDay}`
 }
@@ -1263,7 +1264,7 @@ function CommandCenterView({
   const showStockStatus = Boolean(statusSummary.stockSummaryLine)
 
   return (
-    <div className="today-page" aria-label="Today">
+    <div className="today-page" aria-label={t("Today")}>
       {reminderCard}
       {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
       <TodayAnnouncementsPanel
@@ -1292,7 +1293,7 @@ function CommandCenterView({
           <TodayCollapsiblePanel
             panelId={TODAY_PANEL_IDS.SERVICE_TIMELINE}
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.SERVICE_TIMELINE)}
-            title="Service Timeline"
+            title={t("Service Timeline")}
             ariaLabel="Service timeline"
             summary={formatTodayTimelineCollapsedSummary(timelineEvents, { isLoading: isScheduleLoading, now, timeZone })}
           >
@@ -1310,7 +1311,7 @@ function CommandCenterView({
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.TEAM_TODAY, {
               hasShiftsToday: hasTeamTodayShifts(teamTodayGroups),
             })}
-            title="Team Today"
+            title={t("Team Today")}
             ariaLabel="Team today"
             summary={formatTeamTodayCollapsedSummary({
               groups: teamTodayGroups,
@@ -1319,11 +1320,11 @@ function CommandCenterView({
             })}
           >
             {isScheduleLoading ? (
-              <p className="today-empty-note">Loading team schedule…</p>
+              <p className="today-empty-note">{t("Loading team schedule…")}</p>
             ) : scheduleStatus === 'error' && teamTodayGroups.length === 0 ? (
               <p className="today-empty-note"><LoadFailed onRetry={() => onRetryData?.('schedule')} /></p>
             ) : teamTodayGroups.length === 0 ? (
-              <p className="today-empty-note">No shifts scheduled today.</p>
+              <p className="today-empty-note">{t("No shifts scheduled today.")}</p>
             ) : (
               <TeamTodayGroupsList
                 groups={teamTodayGroups}
@@ -1339,7 +1340,7 @@ function CommandCenterView({
           <TodayCollapsiblePanel
             panelId={TODAY_PANEL_IDS.ATTENTION}
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.ATTENTION, { hasUrgentAttention: attentionHasUrgent })}
-            title="Attention"
+            title={t("Attention")}
             ariaLabel="Attention"
             summary={attentionPending ? (attentionStatus === 'error' ? "Couldn't load" : 'Loading…') : formatAttentionCollapsedSummary(attentionItems)}
           >
@@ -1387,13 +1388,13 @@ function toDateInputValue(value) {
 }
 
 function formatHireDate(value) {
-  if (!value) return 'TBD'
+  if (!value) return t('TBD')
 
   const trimmed = `${value}`.trim()
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     const [year, month, day] = trimmed.split('-')
     const parsed = new Date(`${year}-${month}-${day}`)
-    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    return parsed.toLocaleDateString(uiLocale('en-US'), { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   const parsed = new Date(trimmed)
@@ -1401,7 +1402,7 @@ function formatHireDate(value) {
     return trimmed
   }
 
-  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return parsed.toLocaleDateString(uiLocale('en-US'), { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function normalizeNumericValue(value) {
@@ -1701,7 +1702,7 @@ function EmployeePremiumDateField({
         }}
         aria-haspopup="dialog"
         aria-expanded={isPickerOpen}
-        aria-label="Start date"
+        aria-label={t("Start date")}
       >
         <span className={`employee-premium-date-value${displayLabel ? '' : ' is-placeholder'}`}>
           {displayLabel || 'Select start date'}
@@ -2040,8 +2041,8 @@ function EmployeePremiumPositionField({
             type="search"
             className="employee-premium-position-picker-search"
             value={searchQuery}
-            placeholder="Search positions"
-            aria-label="Search positions"
+            placeholder={t("Search positions")}
+            aria-label={t("Search positions")}
             autoComplete="off"
             enterKeyHint="search"
             onChange={(event) => {
@@ -2053,7 +2054,7 @@ function EmployeePremiumPositionField({
         <ul
           className="employee-premium-field-select-menu employee-premium-position-picker-menu"
           role="listbox"
-          aria-label="Primary position options"
+          aria-label={t("Primary position options")}
         >
           {filteredOptions.length > 0 ? filteredOptions.map((option, index) => (
             <li key={option.name} role="presentation">
@@ -2070,7 +2071,7 @@ function EmployeePremiumPositionField({
             </li>
           )) : (
             <li className="employee-premium-position-picker-empty" role="presentation">
-              No matching positions
+              {t("No matching positions")}
             </li>
           )}
         </ul>
@@ -2102,7 +2103,7 @@ function EmployeePremiumPositionField({
           }}
           aria-haspopup="listbox"
           aria-expanded={isOpen}
-          aria-label="Primary position"
+          aria-label={t("Primary position")}
         >
           <span className={`employee-premium-field-select-value${displayLabel ? '' : ' is-placeholder'}`}>
             {displayLabel || placeholder}
@@ -2500,14 +2501,14 @@ function EmployeePremiumAdditionalPositionsField({
           onClick={(event) => event.stopPropagation()}
         >
           <h4 id="employee-custom-position-remove-title" className="employee-premium-custom-position-remove-title">
-            Remove Custom Position
+            {t("Remove Custom Position")}
           </h4>
           <div className="employee-premium-custom-position-remove-body">
             <p className="employee-premium-custom-position-remove-lead">
               &ldquo;{removePending.label}&rdquo; will be removed from this employee.
             </p>
             <p className="employee-premium-custom-position-remove-followup">
-              If no other employee uses this position, it will also be removed from the workspace catalog after you save this employee.
+              {t("If no other employee uses this position, it will also be removed from the workspace catalog after you save this employee.")}
             </p>
           </div>
           {removeError ? (
@@ -2519,14 +2520,14 @@ function EmployeePremiumAdditionalPositionsField({
               className="ghost-btn employee-premium-custom-position-remove-cancel-btn"
               onClick={cancelRemoveDialog}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="button"
               className="primary-btn employee-premium-custom-position-remove-confirm-btn"
               onClick={confirmRemoveCustomPosition}
             >
-              Remove from Employee
+              {t("Remove from Employee")}
             </button>
           </div>
         </div>
@@ -2552,8 +2553,8 @@ function EmployeePremiumAdditionalPositionsField({
             type="search"
             className="employee-premium-position-picker-search"
             value={searchQuery}
-            placeholder="Search positions"
-            aria-label="Search positions"
+            placeholder={t("Search positions")}
+            aria-label={t("Search positions")}
             autoComplete="off"
             enterKeyHint="search"
             onChange={(event) => setSearchQuery(event.target.value)}
@@ -2587,7 +2588,7 @@ function EmployeePremiumAdditionalPositionsField({
                           aria-disabled="true"
                         >
                           <span className="employee-premium-additional-positions-option-label">{storedLabel}</span>
-                          <span className="employee-premium-additional-positions-option-meta">Primary Position</span>
+                          <span className="employee-premium-additional-positions-option-meta">{t("Primary Position")}</span>
                         </button>
                       </li>
                     )
@@ -2605,7 +2606,7 @@ function EmployeePremiumAdditionalPositionsField({
                       >
                         <span className="employee-premium-additional-positions-option-label">{position.label}</span>
                         {position.custom ? (
-                          <span className="employee-premium-additional-positions-option-meta">Custom</span>
+                          <span className="employee-premium-additional-positions-option-meta">{t("Custom")}</span>
                         ) : null}
                       </button>
                       {position.custom ? (
@@ -2625,7 +2626,7 @@ function EmployeePremiumAdditionalPositionsField({
                               <path d="M3.5 5.5h9l-.75 8.25H4.25L3.5 5.5Zm2 1.5v5.75h1V7h-1Zm2.5 0v5.75h1V7h-1Z" />
                             </svg>
                           </span>
-                          <span className="employee-premium-additional-positions-remove-btn-label">Remove</span>
+                          <span className="employee-premium-additional-positions-remove-btn-label">{t("Remove")}</span>
                         </button>
                       ) : null}
                     </li>
@@ -2634,16 +2635,16 @@ function EmployeePremiumAdditionalPositionsField({
               </ul>
             </section>
           )) : (
-            <p className="employee-premium-position-picker-empty">No matching positions</p>
+            <p className="employee-premium-position-picker-empty">{t("No matching positions")}</p>
           )}
         </div>
 
         <div className="employee-premium-additional-positions-picker-footer">
           <button type="button" className="ghost-btn employee-premium-additional-positions-cancel-btn" onClick={cancelPicker}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button type="button" className="primary-btn employee-premium-additional-positions-done-btn" onClick={applyPicker}>
-            Done
+            {t("Done")}
           </button>
         </div>
       </div>,
@@ -2674,7 +2675,7 @@ function EmployeePremiumAdditionalPositionsField({
           }}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          aria-label="Additional positions"
+          aria-label={t("Additional positions")}
         >
           <span
             className={`employee-premium-field-select-value${selectedValues.length > 0 ? '' : ' is-placeholder'}`}
@@ -2709,7 +2710,7 @@ function EmployeePremiumIdentitySection({
 }) {
   return (
     <section className="employee-premium-form-section employee-premium-form-section-identity">
-      <h4 className="employee-premium-form-section-title">Identity</h4>
+      <h4 className="employee-premium-form-section-title">{t("Identity")}</h4>
       <div className="employee-premium-identity-layout">
         <div className="employee-premium-identity-preview" aria-live="polite">
           <EmployeeIdentity employee={previewEmployee} size="xl" />
@@ -2717,13 +2718,13 @@ function EmployeePremiumIdentitySection({
 
         <div className="employee-premium-identity-controls">
           {isLoading ? (
-            <p className="employee-premium-identity-loading" role="status">Loading color availability…</p>
+            <p className="employee-premium-identity-loading" role="status">{t("Loading color availability…")}</p>
           ) : null}
 
           <div
             className="employee-premium-identity-picker"
             role="listbox"
-            aria-label="Personal identity colors"
+            aria-label={t("Personal identity colors")}
           >
             {IDENTITY_COLOR_PALETTE.map((color) => {
               const isSelected = selectedColorId === color.id
@@ -2777,7 +2778,7 @@ function EmployeePremiumIdentitySection({
             className="ghost-btn employee-premium-identity-clear-btn"
             onClick={onClearColor}
           >
-            Remove personal color
+            {t("Remove personal color")}
           </button>
         </div>
       </div>
@@ -4806,7 +4807,7 @@ function ScheduleView({
       cell: cell ?? null,
       selectedDayRecord: selectedDayRecord ?? null,
       dayLabel: assignmentDraft.shiftDate
-        ? new Date(`${assignmentDraft.shiftDate}T00:00:00`).toLocaleDateString('en-US', {
+        ? new Date(`${assignmentDraft.shiftDate}T00:00:00`).toLocaleDateString(uiLocale('en-US'), {
           weekday: 'long',
           month: 'short',
           day: 'numeric',
@@ -5740,9 +5741,9 @@ function ScheduleView({
           event.stopPropagation()
           handleExitSchedule()
         }}
-        aria-label="Exit Schedule"
+        aria-label={t("Exit Schedule")}
       >
-        Exit
+        {t("Exit")}
       </button>
     )
   }
@@ -5751,10 +5752,10 @@ function ScheduleView({
   const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate, timeZone)
 
   const scheduleHeader = isMobileScheduleShell ? (
-    <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label="Schedule controls">
+    <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label={t("Schedule controls")}>
       <div className="mobile-manager-schedule-toolbar-top">
         <div className="mobile-manager-schedule-toolbar-copy">
-          <p className="eyebrow">Schedule</p>
+          <p className="eyebrow">{t("Schedule")}</p>
           <h2 className="mobile-manager-schedule-week-label" title={formatScheduleHeaderWeekRange(weekDays)}>{formatScheduleHeaderWeekRange(weekDays)}</h2>
         </div>
         <div className="schedule-focus-header-actions">
@@ -5800,7 +5801,7 @@ function ScheduleView({
               }}
               disabled={isSaving || isPublishing}
             >
-              Unpublish
+              {t("Unpublish")}
             </button>
           )}
         </div>
@@ -5809,7 +5810,7 @@ function ScheduleView({
   ) : (
     <header className="schedule-header panel schedule-focus-header">
       <div className="schedule-header-copy">
-        <p className="eyebrow schedule-header-eyebrow">Schedule</p>
+        <p className="eyebrow schedule-header-eyebrow">{t("Schedule")}</p>
         <h2 className="schedule-header-title">{formatScheduleHeaderWeekRange(weekDays)}</h2>
       </div>
 
@@ -5821,7 +5822,7 @@ function ScheduleView({
             onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
             disabled={isScheduleWeekNavigationDisabled}
           >
-            ‹ Previous
+            {t("‹ Previous")}
           </button>
           <button
             type="button"
@@ -5829,7 +5830,7 @@ function ScheduleView({
             onClick={() => onWeekStartDateChange(getCurrentWeekStartDate(timeZone))}
             disabled={isScheduleWeekNavigationDisabled || isViewingCurrentScheduleWeek}
           >
-            This week
+            {t("This week")}
           </button>
           <button
             type="button"
@@ -5837,7 +5838,7 @@ function ScheduleView({
             onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
             disabled={isScheduleWeekNavigationDisabled}
           >
-            Next ›
+            {t("Next ›")}
           </button>
         </div>
 
@@ -5860,24 +5861,24 @@ function ScheduleView({
             aria-expanded={isScheduleMoreMenuOpen}
             aria-haspopup="menu"
           >
-            More ▾
+            {t('More ▾')}
           </button>
           {isScheduleMoreMenuOpen ? (
             <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
-              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>Add Shift</button>
-              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save as weekly template</button>
+              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>{t("Add Shift")}</button>
+              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>{t("Save as weekly template")}</button>
               {selectedWeeklyTemplateId ? (
                 <>
-                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>Load Week</button>
-                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving}>Rename Week</button>
-                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving}>Delete Week</button>
-                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving}>Auto Fill</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>{t("Load Week")}</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving}>{t("Rename Week")}</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving}>{t("Delete Week")}</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving}>{t("Auto Fill")}</button>
                 </>
               ) : null}
               {visibleWeekShifts.length > 0 ? (
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing}>Copy Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing}>{t("Copy Week")}</button>
               ) : null}
-              <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>Clear Week</button>
+              <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>{t("Clear Week")}</button>
             </div>
           ) : null}
         </div>
@@ -5907,7 +5908,7 @@ function ScheduleView({
             }}
             disabled={isSaving || isPublishing}
           >
-            Unpublish
+            {t("Unpublish")}
           </button>
         ) : null}
 
@@ -5927,14 +5928,14 @@ function ScheduleView({
         isCompactLandscape: isScheduleCompactLandscape,
       }) ? (
         <div className="staff-status-banner schedule-draft-changes-banner schedule-workspace-banner">
-          Unpublished changes in this week&apos;s schedule.
+          {t("Unpublished changes in this week's schedule.")}
         </div>
       ) : null}
 
       {!isWeekPublished ? (
         <div className="staff-status-banner schedule-draft-banner schedule-workspace-banner">
-          <strong>Draft schedule</strong>
-          <span>Only managers can see this until published.</span>
+          <strong>{t("Draft schedule")}</strong>
+          <span>{t("Only managers can see this until published.")}</span>
         </div>
       ) : null}
 
@@ -5951,7 +5952,7 @@ function ScheduleView({
           ) : noticeMessage}
         </div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
+      {isLoading ? <div className="staff-status-banner schedule-workspace-banner">{t("Loading schedule…")}</div> : null}
       {/* 0035: schedule issues and Staff availability are for schedulers only. */}
       {canEditSchedule && scheduleIssueNotice.count > 0 ? (
         <div className="staff-status-banner schedule-workspace-banner schedule-issue-banner" role="status">
@@ -5967,32 +5968,32 @@ function ScheduleView({
           {canEditSchedule ? (
           <details className="schedule-staff-availability panel staff-panel">
             <summary className="schedule-staff-availability-summary">
-              <span>Staff availability</span>
+              <span>{t("Staff availability")}</span>
               <span className="schedule-collapsible-chevron" aria-hidden="true">▾</span>
             </summary>
             <div className="schedule-staff-availability-body">
               <div className="schedule-filters-bar schedule-filters-bar-compact">
                 <label className="schedule-filter-field schedule-filter-search">
-                  <span className="schedule-filter-label">Search employee</span>
+                  <span className="schedule-filter-label">{t("Search employee")}</span>
                   <input
                     value={filters.search}
                     onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
-                    placeholder="Search by name"
+                    placeholder={t("Search by name")}
                   />
                 </label>
                 <label className="schedule-filter-field">
-                  <span className="schedule-filter-label">Department</span>
+                  <span className="schedule-filter-label">{t("Department")}</span>
                   <select value={filters.department} onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value }))}>
-                    <option value="All">All departments</option>
-                    <option value="Bar">Bar</option>
-                    <option value="Service">Service</option>
-                    <option value="Host">Host</option>
-                    <option value="Kitchen">Kitchen</option>
-                    <option value="Management">Management</option>
+                    <option value="All">{t("All departments")}</option>
+                    <option value="Bar">{t("Bar")}</option>
+                    <option value="Service">{t("Service")}</option>
+                    <option value="Host">{t("Host")}</option>
+                    <option value="Kitchen">{t("Kitchen")}</option>
+                    <option value="Management">{t("Management")}</option>
                   </select>
                 </label>
                 <label className="schedule-filter-field">
-                  <span className="schedule-filter-label">Position</span>
+                  <span className="schedule-filter-label">{t("Position")}</span>
                   <select value={filters.position} onChange={(event) => setFilters((current) => ({ ...current, position: event.target.value }))}>
                     {positionFilterOptions.map((option) => (
                       <option key={`schedule-position-filter-${option}`} value={option}>
@@ -6008,7 +6009,7 @@ function ScheduleView({
                     onChange={(event) => setFilters((current) => ({ ...current, publishedOnly: event.target.checked }))}
                     disabled={!isWeekPublished}
                   />
-                  <span>Show Published Only</span>
+                  <span>{t("Show Published Only")}</span>
                 </label>
               </div>
 
@@ -6086,7 +6087,7 @@ function ScheduleView({
                                   openAvailabilityEditor(employee)
                                 }}
                               >
-                                Edit
+                                {t("Edit")}
                               </button>
                             ) : null}
                           </div>
@@ -6104,8 +6105,8 @@ function ScheduleView({
         {blendGridRows.length === 0 ? (
           isLoadFailureMessage(noticeMessage) ? null : (
           <div className="schedule-empty-state">
-            <h4>No shift templates available.</h4>
-            <p>Create templates first, then assign employees directly in this grid.</p>
+            <h4>{t("No shift templates available.")}</h4>
+            <p>{t("Create templates first, then assign employees directly in this grid.")}</p>
           </div>
           )
         ) : (
@@ -6179,7 +6180,7 @@ function ScheduleView({
                       onClick={() => handleOpenCopyDayModal(day)}
                       disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
                     >
-                      Copy Day
+                      {t("Copy Day")}
                     </button>
                     <button
                       type="button"
@@ -6187,7 +6188,7 @@ function ScheduleView({
                       onClick={() => handleOpenClearDayModal(day)}
                       disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
                     >
-                      Clear Day
+                      {t("Clear Day")}
                     </button>
                   </ScheduleCardActionMenu>
                 </div>
@@ -6310,7 +6311,7 @@ function ScheduleView({
                               onClick={() => handleOpenCapacityEditModal(row.template, cell.day, cell)}
                               disabled={isSaving}
                             >
-                              Change required staff
+                              {t("Change required staff")}
                             </button>
                             <button
                               type="button"
@@ -6318,7 +6319,7 @@ function ScheduleView({
                               onClick={() => handleEditCellShift(row.template, cell.day)}
                               disabled={isSaving}
                             >
-                              Assign employees
+                              {t("Assign employees")}
                             </button>
                             <button
                               type="button"
@@ -6326,7 +6327,7 @@ function ScheduleView({
                               onClick={() => handleRequestCopyCellToNextDay(row.template, cell.day, cell)}
                               disabled={isSaving}
                             >
-                              Copy to next day
+                              {t("Copy to next day")}
                             </button>
                             <button
                               type="button"
@@ -6334,7 +6335,7 @@ function ScheduleView({
                               onClick={() => handleRequestCopyCellToRestOfWeek(row.template, cell.day, cell)}
                               disabled={isSaving}
                             >
-                              Copy to rest of week
+                              {t("Copy to rest of week")}
                             </button>
                             <button
                               type="button"
@@ -6342,7 +6343,7 @@ function ScheduleView({
                               onClick={() => handleDuplicateCellShifts(row.template, cell.day, cell)}
                               disabled={isSaving || cell.shifts.length === 0}
                             >
-                              Duplicate shift
+                              {t("Duplicate shift")}
                             </button>
                             <button
                               type="button"
@@ -6350,7 +6351,7 @@ function ScheduleView({
                               onClick={() => handleOpenClearCellModal(row.template, cell)}
                               disabled={isSaving || cell.assignedCount === 0}
                             >
-                              Remove shift
+                              {t("Remove shift")}
                             </button>
                           </ScheduleCardActionMenu>
                           </>}
@@ -6438,8 +6439,8 @@ function ScheduleView({
                                     ].filter(Boolean).join(', ')}
                                   >
                                     <span className="schedule-assigned-pill-name">{displayNameLabel}</span>
-                                    {isOverWeeklyHours ? <span className="schedule-assigned-pill-hours">Over weekly hours</span> : null}
-                                    {isAssignedUnavailable ? <span className="schedule-assigned-pill-availability">Unavailable</span> : null}
+                                    {isOverWeeklyHours ? <span className="schedule-assigned-pill-hours">{t("Over weekly hours")}</span> : null}
+                                    {isAssignedUnavailable ? <span className="schedule-assigned-pill-availability">{t("Unavailable")}</span> : null}
                                     {customTimeLabel ? <span className="schedule-assigned-pill-custom">Custom {customTimeLabel}</span> : null}
                                   </button>
                                 </li>
@@ -6459,11 +6460,11 @@ function ScheduleView({
                             handleOpenAssignmentModal(row.template, cell.day)
                           }}
                           disabled={isSaving}
-                          aria-label="Add employee"
-                          title="Add employee"
+                          aria-label={t("Add employee")}
+                          title={t("Add employee")}
                         >
                           <span className="schedule-assign-btn-icon" aria-hidden="true">+</span>
-                          <span className="schedule-assign-btn-label"> Add employee</span>
+                          <span className="schedule-assign-btn-label"> {t("Add employee")}</span>
                         </button>}
                       </div>
 
@@ -6492,14 +6493,14 @@ function ScheduleView({
             id="schedule-templates-panel"
             ref={scheduleTemplatesPanelRef}
             className={`schedule-templates-panel schedule-templates-overlay panel staff-panel${isShiftTemplatesOpen ? ' is-overlay-open' : ''}`}
-            aria-label="Shift templates"
+            aria-label={t("Shift templates")}
             aria-hidden={!isShiftTemplatesOpen}
           >
             <header className="schedule-templates-overlay-header schedule-templates-panel-header">
               <div className="schedule-templates-panel-header-copy">
-                <p className="eyebrow">Tools</p>
-                <h3>Shift templates</h3>
-                <p className="schedule-templates-panel-note">Assign employees to day cells in the week grid.</p>
+                <p className="eyebrow">{t("Tools")}</p>
+                <h3>{t("Shift templates")}</h3>
+                <p className="schedule-templates-panel-note">{t("Assign employees to day cells in the week grid.")}</p>
               </div>
               <button
                 type="button"
@@ -6508,7 +6509,7 @@ function ScheduleView({
                   event.stopPropagation()
                   setIsShiftTemplatesOpen(false)
                 }}
-                aria-label="Hide shift templates"
+                aria-label={t("Hide shift templates")}
               >
                 ›
               </button>
@@ -6575,7 +6576,7 @@ function ScheduleView({
                       <div className="schedule-template-card-staff">
                         <p className="schedule-template-card-staff-label">
                           <span className="schedule-template-card-meta-icon" aria-hidden="true">👥</span>
-                          <span>Required staff</span>
+                          <span>{t("Required staff")}</span>
                         </p>
                         <p className="schedule-template-card-staff-value">{templateStaffLabel}</p>
                       </div>
@@ -6587,17 +6588,17 @@ function ScheduleView({
                         className="schedule-template-inline-actions"
                         onClick={(event) => event.stopPropagation()}
                       >
-                        <div className="schedule-template-inline-actions-primary" role="group" aria-label="Template actions">
+                        <div className="schedule-template-inline-actions-primary" role="group" aria-label={t("Template actions")}>
                           <div className="schedule-template-inline-actions-row schedule-template-inline-actions-row-split">
-                            <button type="button" className="schedule-template-inline-action" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename</button>
-                            <button type="button" className="schedule-template-inline-action" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit</button>
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleStartRenameShiftTemplate(row.template)}>{t("Rename")}</button>
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleEditShiftTemplateFromCard(row.template)}>{t("Edit")}</button>
                           </div>
                           <div className="schedule-template-inline-actions-row">
-                            <button type="button" className="schedule-template-inline-action" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate</button>
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>{t("Duplicate")}</button>
                           </div>
                         </div>
                         <div className="schedule-template-inline-actions-danger">
-                          <button type="button" className="schedule-template-inline-action danger" onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}>Delete template</button>
+                          <button type="button" className="schedule-template-inline-action danger" onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}>{t("Delete template")}</button>
                         </div>
                       </div>
                     ) : null}
@@ -6618,21 +6619,21 @@ function ScheduleView({
 
       {scheduleGridTemplates.length > 0 ? (
         <ScheduleCollapsibleSection
-          title="Insights"
+          title={t("Insights")}
           meta="Statistics, saved weeks, employee views, and coverage"
           className="schedule-insights-collapsible"
         >
-          <section className="schedule-weekly-stats" aria-label="Weekly statistics">
+          <section className="schedule-weekly-stats" aria-label={t("Weekly statistics")}>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Employees</p>
+              <p className="schedule-weekly-stat-label">{t("Employees")}</p>
               <p className="schedule-weekly-stat-value">{weekSummary.employeeCount}</p>
             </article>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Shifts</p>
+              <p className="schedule-weekly-stat-label">{t("Shifts")}</p>
               <p className="schedule-weekly-stat-value">{weekSummary.totalShifts}</p>
             </article>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Scheduled Hours</p>
+              <p className="schedule-weekly-stat-label">{t("Scheduled Hours")}</p>
               <p className="schedule-weekly-stat-value">{weekSummary.totalHours}h</p>
               {weeklyHoursWarnings.length > 0 ? (
                 <ul className="schedule-hours-warnings">
@@ -6646,17 +6647,17 @@ function ScheduleView({
               ) : null}
             </article>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Coverage</p>
+              <p className="schedule-weekly-stat-label">{t("Coverage")}</p>
               <p className="schedule-weekly-stat-value">{weekCompletion.percent}%</p>
             </article>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Labour Cost</p>
+              <p className="schedule-weekly-stat-label">{t("Labour Cost")}</p>
               <p className={`schedule-weekly-stat-value ${weekLabourSummary.costConnected ? 'tone-gold' : 'tone-muted'}`}>
                 {weekLabourSummary.costConnected ? weekLabourSummary.costDisplay : 'Not Connected'}
               </p>
             </article>
             <article className="schedule-weekly-stat">
-              <p className="schedule-weekly-stat-label">Warnings</p>
+              <p className="schedule-weekly-stat-label">{t("Warnings")}</p>
               <button
                 type="button"
                 className={`schedule-weekly-stat-value schedule-warnings-toggle ${scheduleWarningItems.length > 0 ? 'tone-warning' : 'tone-muted'}`}
@@ -6676,30 +6677,30 @@ function ScheduleView({
                 </ul>
               ) : null}
               {isScheduleWarningsOpen && scheduleWarningItems.length === 0 ? (
-                <p className="schedule-warnings-empty">No coverage warnings this week.</p>
+                <p className="schedule-warnings-empty">{t("No coverage warnings this week.")}</p>
               ) : null}
             </article>
           </section>
 
           <div className="schedule-insights-block">
-            <h4 className="schedule-insights-block-title">Saved weeks</h4>
+            <h4 className="schedule-insights-block-title">{t("Saved weeks")}</h4>
         <div className="weekly-template-toolbar">
           <label className="form-field weekly-template-selector">
-            <span>Load Saved Week</span>
+            <span>{t("Load Saved Week")}</span>
             <select value={selectedWeeklyTemplateId} onChange={(event) => setSelectedWeeklyTemplateId(event.target.value)}>
-              <option value="">Choose a saved weekly schedule</option>
+              <option value="">{t("Choose a saved weekly schedule")}</option>
               {weeklyTemplates.map((template) => (
                 <option key={`weekly-template-${template.id}`} value={String(template.id)}>{formatScheduleShiftDisplayName(template.name)}</option>
               ))}
             </select>
           </label>
 
-          <p className="schedule-saved-weeks-hint">Use More ▾ in the toolbar for Save as weekly template, Load, Rename, Delete, Auto Fill, and Clear Week.</p>
+          <p className="schedule-saved-weeks-hint">{t('Use More ▾ in the toolbar for Save as weekly template, Load, Rename, Delete, Auto Fill, and Clear Week.')}</p>
         </div>
 
         <div className="weekly-history-panel">
           <label className="form-field weekly-template-selector">
-            <span>Week Picker</span>
+            <span>{t("Week Picker")}</span>
             <input
               type="date"
               value={browseWeekAnchorDate || weekStartDate}
@@ -6708,8 +6709,8 @@ function ScheduleView({
           </label>
 
           <div className="weekly-history-meta">
-            <p><strong>Selected Week:</strong> {weekRangeLabel(browseWeekDays)}</p>
-            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading && browseWeekAnchorDate && getWeekStartDate(parseLocalDate(browseWeekAnchorDate)) !== weekStartDate ? 'Loading…' : browsedWeekShifts.length}</p>
+            <p><strong>{t("Selected Week:")}</strong> {weekRangeLabel(browseWeekDays)}</p>
+            <p><strong>{t("Shifts Found:")}</strong> {isBrowseWeekLoading && browseWeekAnchorDate && getWeekStartDate(parseLocalDate(browseWeekAnchorDate)) !== weekStartDate ? 'Loading…' : browsedWeekShifts.length}</p>
             {browsedWeekPreview.length > 0 ? (
               <div className="weekly-history-preview">
                 {browsedWeekPreview.map((item) => (
@@ -6726,17 +6727,17 @@ function ScheduleView({
               onClick={handleOpenCopyThisWeekModal}
               disabled={isSaving || isBrowseWeekCurrentWeek || isBrowseWeekLoading || browsedWeekShifts.length === 0}
             >
-              Copy This Week
+              {t("Copy This Week")}
             </button>
           </div>
         </div>
           </div>
 
           <div className="schedule-insights-block">
-            <h4 className="schedule-insights-block-title">Employee overview</h4>
+            <h4 className="schedule-insights-block-title">{t("Employee overview")}</h4>
         <div className="employee-week-grid">
           {employeeWeekScheduleView.length === 0 ? (
-            <p className="staff-subtitle">No employees available for this week.</p>
+            <p className="staff-subtitle">{t("No employees available for this week.")}</p>
           ) : (
             employeeWeekScheduleView.map((employeeSchedule) => {
               const employeeAvailability = scheduleAvailabilityOverlay.byEmployeeId[String(employeeSchedule.employeeId)] ?? null
@@ -6760,7 +6761,7 @@ function ScheduleView({
                     <EmployeeIdentity employee={overviewEmployee} size="md" />
                     <h4>{employeeSchedule.employeeName}</h4>
                   </div>
-                  <div className="schedule-availability-row-indicators" aria-label="Weekly availability">
+                  <div className="schedule-availability-row-indicators" aria-label={t("Weekly availability")}>
                     {availabilityIndicators.map((entry) => (
                       <ScheduleAvailabilityDot
                         key={`availability-row-${employeeSchedule.employeeId}-${entry.dateKey}`}
@@ -6792,7 +6793,7 @@ function ScheduleView({
                         <ScheduleAvailabilityDot indicator={dayIndicator} />
                       </div>
                       {day.isDayOff ? (
-                        <p className="employee-week-day-off">DAY OFF</p>
+                        <p className="employee-week-day-off">{t("DAY OFF")}</p>
                       ) : (
                         <div className="employee-week-day-shifts">
                           {day.shifts.map((shift) => (
@@ -6828,8 +6829,8 @@ function ScheduleView({
             </h4>
         {filteredDayShifts.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
-            <h4>No employees match this view.</h4>
-            <p>Adjust the filters or create a new shift for this day.</p>
+            <h4>{t("No employees match this view.")}</h4>
+            <p>{t("Adjust the filters or create a new shift for this day.")}</p>
           </div>
         ) : null}
 
@@ -6842,7 +6843,7 @@ function ScheduleView({
               </div>
 
               {group.shifts.length === 0 ? (
-                <p className="roster-empty-department">No employees scheduled</p>
+                <p className="roster-empty-department">{t("No employees scheduled")}</p>
               ) : (
                 <div className="roster-shift-list">
                   {group.shifts.map((shift) => {
@@ -6903,19 +6904,19 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Save current week</p>
-                <h3>Save as weekly template</h3>
+                <p className="eyebrow">{t("Save current week")}</p>
+                <h3>{t("Save as weekly template")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>✕</button>
             </div>
 
             <form className="employee-form" onSubmit={handleSaveWeekTemplate}>
               <label className="form-field">
-                <span>Template Name</span>
+                <span>{t("Template Name")}</span>
                 <input
                   value={saveWeekTemplateName}
                   onChange={(event) => setSaveWeekTemplateName(event.target.value)}
-                  placeholder="Summer 2026"
+                  placeholder={t("Summer 2026")}
                   required
                 />
               </label>
@@ -6923,7 +6924,7 @@ function ScheduleView({
               {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save as weekly template'}</button>
               </div>
             </form>
@@ -6936,8 +6937,8 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Load template</p>
-                <h3>This will replace the current week's schedule.</h3>
+                <p className="eyebrow">{t("Load template")}</p>
+                <h3>{t("This will replace the current week's schedule.")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsLoadWeekTemplateModalOpen(false)}>✕</button>
             </div>
@@ -6945,30 +6946,30 @@ function ScheduleView({
             <div className="template-load-options">
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.employees} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, employees: event.target.checked }))} />
-                <span>Employees</span>
+                <span>{t("Employees")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.positions} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, positions: event.target.checked }))} />
-                <span>Positions</span>
+                <span>{t("Positions")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.areas} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, areas: event.target.checked }))} />
-                <span>Areas</span>
+                <span>{t("Areas")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.times} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, times: event.target.checked }))} />
-                <span>Start / End Times</span>
+                <span>{t("Start / End Times")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.notes} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, notes: event.target.checked }))} />
-                <span>Notes (optional)</span>
+                <span>{t("Notes (optional)")}</span>
               </label>
             </div>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsLoadWeekTemplateModalOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsLoadWeekTemplateModalOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmLoadWeekTemplate} disabled={isSaving}>{isSaving ? 'Loading…' : 'Load'}</button>
             </div>
           </div>
@@ -6980,22 +6981,22 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Rename template</p>
-                <h3>Update weekly template name</h3>
+                <p className="eyebrow">{t("Rename template")}</p>
+                <h3>{t("Update weekly template name")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setRenamingTemplateId(null)}>✕</button>
             </div>
 
             <form className="employee-form" onSubmit={handleSubmitRenameWeeklyTemplate}>
               <label className="form-field">
-                <span>Template Name</span>
+                <span>{t("Template Name")}</span>
                 <input value={renameTemplateName} onChange={(event) => setRenameTemplateName(event.target.value)} required />
               </label>
 
               {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => setRenamingTemplateId(null)}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={() => setRenamingTemplateId(null)}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Rename Template'}</button>
               </div>
             </form>
@@ -7008,21 +7009,21 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Template delete</p>
-                <h3>Delete shift template?</h3>
+                <p className="eyebrow">{t("Template delete")}</p>
+                <h3>{t("Delete shift template?")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>✕</button>
             </div>
 
             <p className="template-delete-copy">
-              Unused templates are deleted. If this template is used by existing shifts, it will be archived instead and existing assignments will be kept.
+              {t("Unused templates are deleted. If this template is used by existing shifts, it will be archived instead and existing assignments will be kept.")}
             </p>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>Cancel</button>
-              <button type="button" className="primary-btn" onClick={handleConfirmDeleteShiftTemplate} disabled={isSaving}>Delete Template</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>{t("Cancel")}</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmDeleteShiftTemplate} disabled={isSaving}>{t("Delete Template")}</button>
             </div>
           </div>
         </div>
@@ -7033,15 +7034,15 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Rename template</p>
-                <h3>Update shift template name</h3>
+                <p className="eyebrow">{t("Rename template")}</p>
+                <h3>{t("Update shift template name")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setShiftTemplatePendingRename(null)}>✕</button>
             </div>
 
             <form className="employee-form" onSubmit={handleSubmitRenameShiftTemplate}>
               <label className="form-field">
-                <span>Template Name</span>
+                <span>{t("Template Name")}</span>
                 <input
                   value={shiftTemplateRenameName}
                   onChange={(event) => setShiftTemplateRenameName(event.target.value)}
@@ -7052,8 +7053,8 @@ function ScheduleView({
               {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => setShiftTemplatePendingRename(null)}>Cancel</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>Rename Template</button>
+                <button type="button" className="ghost-btn" onClick={() => setShiftTemplatePendingRename(null)}>{t("Cancel")}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{t("Rename Template")}</button>
               </div>
             </form>
           </div>
@@ -7065,8 +7066,8 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Copy selected week</p>
-                <h3>This will replace the current week's schedule.</h3>
+                <p className="eyebrow">{t("Copy selected week")}</p>
+                <h3>{t("This will replace the current week's schedule.")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>✕</button>
             </div>
@@ -7078,8 +7079,8 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>Cancel</button>
-              <button type="button" className="primary-btn" onClick={handleConfirmCopyThisWeek} disabled={isSaving}>Copy This Week</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>{t("Cancel")}</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmCopyThisWeek} disabled={isSaving}>{t("Copy This Week")}</button>
             </div>
           </div>
         </div>
@@ -7090,19 +7091,19 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Copy day</p>
+                <p className="eyebrow">{t("Copy day")}</p>
                 <h3>Copy {copyDaySourceDay.label} assignments</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsCopyDayModalOpen(false)}>✕</button>
             </div>
 
             <label className="form-field">
-              <span>Copy to</span>
+              <span>{t("Copy to")}</span>
               <select
                 value={copyDayTargetKey}
                 onChange={(event) => setCopyDayTargetKey(event.target.value)}
               >
-                <option value="">Select target day</option>
+                <option value="">{t("Select target day")}</option>
                 {copyDayTargetGroups.map((group) => (
                   <optgroup key={`copy-day-week-${group.weekStart}`} label={group.label}>
                     {group.days.map((day) => (
@@ -7121,7 +7122,7 @@ function ScheduleView({
               </p>
             ) : copyDayWillReplaceTarget ? (
               <p className="template-delete-copy">
-                Any assignments already on that day will be replaced.
+                {t("Any assignments already on that day will be replaced.")}
               </p>
             ) : (
               <p className="template-delete-copy">
@@ -7132,7 +7133,7 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsCopyDayModalOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyDayModalOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmCopyDay} disabled={isSaving || !copyDayTargetKey}>
                 {copyDayWillReplaceTarget ? 'Replace & Copy' : 'Copy Day'}
               </button>
@@ -7146,7 +7147,7 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Clear day</p>
+                <p className="eyebrow">{t("Clear day")}</p>
                 <h3>Remove all {clearDayTarget.label} assignments?</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsClearDayModalOpen(false)}>✕</button>
@@ -7159,8 +7160,8 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsClearDayModalOpen(false)}>Cancel</button>
-              <button type="button" className="primary-btn" onClick={handleConfirmClearDay} disabled={isSaving}>Clear Day</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsClearDayModalOpen(false)}>{t("Cancel")}</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmClearDay} disabled={isSaving}>{t("Clear Day")}</button>
             </div>
           </div>
         </div>
@@ -7171,14 +7172,14 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Copy week</p>
+                <p className="eyebrow">{t("Copy week")}</p>
                 <h3>Copy {weekRangeLabel(weekDays)} to another week</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsCopyWeekModalOpen(false)}>✕</button>
             </div>
 
             <label className="form-field">
-              <span>Target week</span>
+              <span>{t("Target week")}</span>
               <input
                 type="date"
                 value={copyWeekTargetDate}
@@ -7197,13 +7198,13 @@ function ScheduleView({
                       : 'All assignments will be copied as draft shifts. Nothing will be published automatically.'}
               </p>
             ) : (
-              <p className="template-delete-copy">Pick any date in the week you want to copy into.</p>
+              <p className="template-delete-copy">{t("Pick any date in the week you want to copy into.")}</p>
             )}
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsCopyWeekModalOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyWeekModalOpen(false)}>{t("Cancel")}</button>
               <button
                 type="button"
                 className="primary-btn"
@@ -7222,14 +7223,14 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Clear week</p>
-                <h3>Clear entire week?</h3>
+                <p className="eyebrow">{t("Clear week")}</p>
+                <h3>{t("Clear entire week?")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsClearWeekModalOpen(false)}>✕</button>
             </div>
 
             {visibleWeekShifts.length === 0 ? (
-              <p className="template-delete-copy">This week is already empty.</p>
+              <p className="template-delete-copy">{t("This week is already empty.")}</p>
             ) : (
               <p className="template-delete-copy">
                 This will remove {visibleWeekShifts.length} draft assignment{visibleWeekShifts.length === 1 ? '' : 's'} from this week.
@@ -7239,14 +7240,14 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsClearWeekModalOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsClearWeekModalOpen(false)}>{t("Cancel")}</button>
               <button
                 type="button"
                 className="primary-btn"
                 onClick={handleConfirmClearWeek}
                 disabled={isSaving || visibleWeekShifts.length === 0}
               >
-                Clear Week
+                {t("Clear Week")}
               </button>
             </div>
           </div>
@@ -7258,7 +7259,7 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <h3>Remove shift assignments?</h3>
+                <h3>{t("Remove shift assignments?")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setClearCellPending(null)}>✕</button>
             </div>
@@ -7270,8 +7271,8 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setClearCellPending(null)}>Cancel</button>
-              <button type="button" className="primary-btn" onClick={handleConfirmClearCell} disabled={isSaving}>Remove</button>
+              <button type="button" className="ghost-btn" onClick={() => setClearCellPending(null)}>{t("Cancel")}</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmClearCell} disabled={isSaving}>{t("Remove")}</button>
             </div>
           </div>
         </div>
@@ -7282,7 +7283,7 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal schedule-capacity-edit-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <h3>Required staff</h3>
+                <h3>{t("Required staff")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setCapacityEditPending(null)}>✕</button>
             </div>
@@ -7305,7 +7306,7 @@ function ScheduleView({
                 className="schedule-capacity-stepper-btn"
                 onClick={() => handleAdjustCapacityEditDraft(-1)}
                 disabled={isSaving || (capacityEditPending.draftRequired ?? 0) <= 0}
-                aria-label="Decrease required staff"
+                aria-label={t("Decrease required staff")}
               >
                 −
               </button>
@@ -7320,7 +7321,7 @@ function ScheduleView({
                 className="schedule-capacity-stepper-btn"
                 onClick={() => handleAdjustCapacityEditDraft(1)}
                 disabled={isSaving || (capacityEditPending.draftRequired ?? 0) >= 99}
-                aria-label="Increase required staff"
+                aria-label={t("Increase required staff")}
               >
                 +
               </button>
@@ -7329,14 +7330,14 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions schedule-capacity-edit-actions">
-              <button type="button" className="ghost-btn" onClick={() => setCapacityEditPending(null)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setCapacityEditPending(null)}>{t("Cancel")}</button>
               {canSaveTemplateDefault && canEditSchedule ? (
                 <button type="button" className="ghost-btn" onClick={() => handleSaveCapacityEdit({ saveAsTemplateDefault: true })} disabled={isSaving}>
-                  Save as template default
+                  {t("Save as template default")}
                 </button>
               ) : null}
               <button type="button" className="primary-btn" onClick={() => handleSaveCapacityEdit()} disabled={isSaving}>
-                Save for this day
+                {t("Save for this day")}
               </button>
             </div>
           </div>
@@ -7362,9 +7363,9 @@ function ScheduleView({
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions schedule-cell-copy-actions">
-              <button type="button" className="ghost-btn" onClick={() => setCellCopyPending(null)}>Cancel</button>
-              <button type="button" className="ghost-btn" onClick={() => handleConfirmCellCopy('merge')}>Merge employees</button>
-              <button type="button" className="primary-btn" onClick={() => handleConfirmCellCopy('replace')}>Replace existing</button>
+              <button type="button" className="ghost-btn" onClick={() => setCellCopyPending(null)}>{t("Cancel")}</button>
+              <button type="button" className="ghost-btn" onClick={() => handleConfirmCellCopy('merge')}>{t("Merge employees")}</button>
+              <button type="button" className="primary-btn" onClick={() => handleConfirmCellCopy('replace')}>{t("Replace existing")}</button>
             </div>
           </div>
         </div>
@@ -7375,53 +7376,53 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Auto fill week</p>
-                <h3>Fill empty cells from template</h3>
+                <p className="eyebrow">{t("Auto fill week")}</p>
+                <h3>{t("Fill empty cells from template")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsAutoFillModalOpen(false)}>✕</button>
             </div>
 
             <p className="template-delete-copy">
-              Empty shift cells will be filled from the selected weekly template. Existing assignments are kept unless you choose Replace.
+              {t("Empty shift cells will be filled from the selected weekly template. Existing assignments are kept unless you choose Replace.")}
             </p>
 
             <div className="template-load-options">
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.employees} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, employees: event.target.checked }))} />
-                <span>Employees</span>
+                <span>{t("Employees")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.positions} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, positions: event.target.checked }))} />
-                <span>Positions</span>
+                <span>{t("Positions")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.areas} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, areas: event.target.checked }))} />
-                <span>Areas</span>
+                <span>{t("Areas")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.times} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, times: event.target.checked }))} />
-                <span>Start / End Times</span>
+                <span>{t("Start / End Times")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={loadWeekOptions.notes} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, notes: event.target.checked }))} />
-                <span>Notes (optional)</span>
+                <span>{t("Notes (optional)")}</span>
               </label>
               <label className="inline-check-row">
                 <input type="checkbox" checked={autoFillReplaceExisting} onChange={(event) => setAutoFillReplaceExisting(event.target.checked)} />
-                <span>Replace existing assignments</span>
+                <span>{t("Replace existing assignments")}</span>
               </label>
             </div>
 
             {autoFillReplaceExisting ? (
               <p className="template-delete-copy">
-                Replace will remove all current-week draft assignments before filling from the template.
+                {t("Replace will remove all current-week draft assignments before filling from the template.")}
               </p>
             ) : null}
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsAutoFillModalOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsAutoFillModalOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmAutoFillWeek} disabled={isSaving}>
                 {autoFillReplaceExisting ? 'Replace & Fill' : 'Auto Fill'}
               </button>
@@ -7435,7 +7436,7 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal schedule-assignment-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <h3>Assign employees</h3>
+                <h3>{t("Assign employees")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseAssignmentModal}>✕</button>
             </div>
@@ -7452,23 +7453,23 @@ function ScheduleView({
                 </p>
                 <div className="assignment-context-grid">
                   <div className="assignment-context-row">
-                    <span>Date</span>
+                    <span>{t("Date")}</span>
                     <strong className={assignmentFieldErrors.shift_date ? 'invalid' : ''}>
                       {assignmentContext?.dayLabel || 'No day selected'}
                     </strong>
                   </div>
                   <div className="assignment-context-row">
-                    <span>Time</span>
+                    <span>{t("Time")}</span>
                     <strong className={(assignmentFieldErrors.start_time || assignmentFieldErrors.end_time) ? 'invalid' : ''}>
                       {formatTimeRange24(assignmentContext?.template?.startTime, assignmentContext?.template?.endTime, ' - ')}
                     </strong>
                   </div>
                   <div className="assignment-context-row">
-                    <span>Required</span>
+                    <span>{t("Required")}</span>
                     <strong>{assignmentStaffingSummary.required}</strong>
                   </div>
                   <div className="assignment-context-row">
-                    <span>Selected</span>
+                    <span>{t("Selected")}</span>
                     <strong>{assignmentStaffingSummary.selected}</strong>
                   </div>
                 </div>
@@ -7488,7 +7489,7 @@ function ScheduleView({
                   </p>
 
                   <label className="form-field">
-                    <span>Area</span>
+                    <span>{t("Area")}</span>
                     <select
                       className={assignmentFieldErrors.area ? 'field-invalid' : ''}
                       value={assignmentDraft.area}
@@ -7500,30 +7501,30 @@ function ScheduleView({
                         }
                       }}
                     >
-                      <option value="">Select area</option>
+                      <option value="">{t("Select area")}</option>
                       {scheduleAreaOptions.filter((option) => option !== 'Other').map((option) => (
                         <option key={`assignment-area-${option}`} value={option}>{option}</option>
                       ))}
                     </select>
-                    {assignmentFieldErrors.area ? <small className="field-helper-error">Area is required.</small> : null}
+                    {assignmentFieldErrors.area ? <small className="field-helper-error">{t("Area is required.")}</small> : null}
                   </label>
 
                   <div className="assignment-area-apply">
-                    <span>Save this area on the template?</span>
+                    <span>{t("Save this area on the template?")}</span>
                     <div className="action-group">
                       <button
                         type="button"
                         className={`ghost-btn small ${assignmentAreaApplyMode === 'once' ? 'active' : ''}`}
                         onClick={() => setAssignmentAreaApplyMode('once')}
                       >
-                        Only this assignment
+                        {t("Only this assignment")}
                       </button>
                       <button
                         type="button"
                         className={`ghost-btn small ${assignmentAreaApplyMode === 'template' ? 'active' : ''}`}
                         onClick={handleSaveAssignmentAreaToTemplate}
                       >
-                        Save to template
+                        {t("Save to template")}
                       </button>
                     </div>
                   </div>
@@ -7532,34 +7533,34 @@ function ScheduleView({
 
               <div className="assignment-card-filters">
                 <label className="schedule-filter-field schedule-filter-search">
-                  <span className="schedule-filter-label">Search employee</span>
+                  <span className="schedule-filter-label">{t("Search employee")}</span>
                   <input
                     type="search"
                     value={assignmentEmployeeSearch}
                     onChange={(event) => setAssignmentEmployeeSearch(event.target.value)}
-                    placeholder="Search by name"
-                    aria-label="Search employee"
+                    placeholder={t("Search by name")}
+                    aria-label={t("Search employee")}
                   />
                 </label>
                 <label className="schedule-filter-field">
-                  <span className="schedule-filter-label">Department</span>
+                  <span className="schedule-filter-label">{t("Department")}</span>
                   <select
-                    aria-label="Department"
+                    aria-label={t("Department")}
                     value={assignmentDepartment}
                     onChange={(event) => setAssignmentDepartment(event.target.value)}
                   >
-                    <option value="All">All departments</option>
-                    <option value="Bar">Bar</option>
-                    <option value="Service">Service</option>
-                    <option value="Host">Host</option>
-                    <option value="Kitchen">Kitchen</option>
-                    <option value="Management">Management</option>
+                    <option value="All">{t("All departments")}</option>
+                    <option value="Bar">{t("Bar")}</option>
+                    <option value="Service">{t("Service")}</option>
+                    <option value="Host">{t("Host")}</option>
+                    <option value="Kitchen">{t("Kitchen")}</option>
+                    <option value="Management">{t("Management")}</option>
                   </select>
                 </label>
                 <label className="schedule-filter-field">
-                  <span className="schedule-filter-label">Position</span>
+                  <span className="schedule-filter-label">{t("Position")}</span>
                   <select
-                    aria-label="Position"
+                    aria-label={t("Position")}
                     value={assignmentPosition}
                     onChange={(event) => setAssignmentPosition(event.target.value)}
                   >
@@ -7575,7 +7576,7 @@ function ScheduleView({
               <div className="assignment-card-body">
               <div className={`assignment-employee-list ${assignmentFieldErrors.employee_ids ? 'field-invalid' : ''}`}>
                   {assignmentEmployeeOptions.length === 0 ? (
-                    <p className="schedule-staff-strip-empty">No employees match these filters.</p>
+                    <p className="schedule-staff-strip-empty">{t("No employees match these filters.")}</p>
                   ) : assignmentEmployeeOptions.map((employee) => {
                     const employeeId = String(employee.id)
                     const checked = (assignmentDraft.employeeIds ?? []).some((id) => String(id) === employeeId)
@@ -7622,15 +7623,15 @@ function ScheduleView({
                             {dayAvailability.label}
                           </small>
                           {alreadyAssigned ? (
-                            <small className="assignment-employee-warning">Already assigned to this shift</small>
+                            <small className="assignment-employee-warning">{t("Already assigned to this shift")}</small>
                           ) : null}
                         </div>
                       </label>
                     )
                   })}
                 </div>
-                {assignmentFieldErrors.employee_ids ? <small className="field-helper-error">Select at least one employee.</small> : null}
-                {assignmentFieldErrors.employee_positions ? <small className="field-helper-error">Every selected employee needs a position.</small> : null}
+                {assignmentFieldErrors.employee_ids ? <small className="field-helper-error">{t("Select at least one employee.")}</small> : null}
+                {assignmentFieldErrors.employee_positions ? <small className="field-helper-error">{t("Every selected employee needs a position.")}</small> : null}
               </div>
 
               {assignmentError ? (
@@ -7638,7 +7639,7 @@ function ScheduleView({
               ) : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={handleCloseAssignmentModal}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={handleCloseAssignmentModal}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
               </div>
             </form>
@@ -7651,17 +7652,17 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Shift placement</p>
-                <h3>Move or copy this shift?</h3>
+                <p className="eyebrow">{t("Shift placement")}</p>
+                <h3>{t("Move or copy this shift?")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseShiftDropPrompt}>✕</button>
             </div>
 
-            <p className="staff-subtitle">Choose whether to move the original assignment or keep it and create a copy in the target cell.</p>
+            <p className="staff-subtitle">{t("Choose whether to move the original assignment or keep it and create a copy in the target cell.")}</p>
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={handleCloseShiftDropPrompt}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={handleCloseShiftDropPrompt}>{t("Cancel")}</button>
               <button type="button" className="ghost-btn" onClick={handleConfirmShiftDropCopy} disabled={isSaving}>
                 {isSaving ? 'Saving…' : 'Copy'}
               </button>
@@ -7678,17 +7679,17 @@ function ScheduleView({
           <div className="employee-modal blend-quick-actions-popover" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Quick actions</p>
-                <h3>Shift actions</h3>
+                <p className="eyebrow">{t("Quick actions")}</p>
+                <h3>{t("Shift actions")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseAssignmentActions}>✕</button>
             </div>
 
             <div className="quick-actions-list">
-              <button type="button" className="quick-action-item" onClick={handleQuickEditShift}>Edit Shift</button>
+              <button type="button" className="quick-action-item" onClick={handleQuickEditShift}>{t("Edit Shift")}</button>
               <button type="button" className="quick-action-item" onClick={handleQuickCopyToNextDay} disabled={isSaving}>{isSaving ? 'Saving…' : 'Copy to Next Day'}</button>
               <button type="button" className="quick-action-item" onClick={handleQuickCopyToRestOfWeek} disabled={isSaving}>{isSaving ? 'Saving…' : 'Copy to Rest of Week'}</button>
-              <button type="button" className="quick-action-item danger" onClick={handleRequestDeleteShift}>Delete Shift</button>
+              <button type="button" className="quick-action-item danger" onClick={handleRequestDeleteShift}>{t("Delete Shift")}</button>
             </div>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
@@ -7701,8 +7702,8 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Edit assignment</p>
-                <h3>Edit shift</h3>
+                <p className="eyebrow">{t("Edit assignment")}</p>
+                <h3>{t("Edit shift")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseAssignmentTimeEdit}>✕</button>
             </div>
@@ -7715,28 +7716,28 @@ function ScheduleView({
               </div>
 
               <div className="assignment-time-mode">
-                <span>Time source</span>
+                <span>{t("Time source")}</span>
                 <div className="action-group">
                   <button
                     type="button"
                     className={`ghost-btn small ${assignmentTimeEdit.timeMode === 'template' ? 'active' : ''}`}
                     onClick={() => handleAssignmentTimeModeChange('template')}
                   >
-                    Use template time
+                    {t("Use template time")}
                   </button>
                   <button
                     type="button"
                     className={`ghost-btn small ${assignmentTimeEdit.timeMode === 'custom' ? 'active' : ''}`}
                     onClick={() => handleAssignmentTimeModeChange('custom')}
                   >
-                    Custom time
+                    {t("Custom time")}
                   </button>
                 </div>
               </div>
 
               <div className="form-grid">
                 <label className="form-field">
-                  <span>Start Time</span>
+                  <span>{t("Start Time")}</span>
                   <TimeSelect
                     value={assignmentTimeEdit.startTime}
                     onChange={(time) => setAssignmentTimeEdit((current) => ({
@@ -7749,7 +7750,7 @@ function ScheduleView({
                   />
                 </label>
                 <label className="form-field">
-                  <span>End Time</span>
+                  <span>{t("End Time")}</span>
                   <TimeSelect
                     value={assignmentTimeEdit.endTime}
                     onChange={(time) => setAssignmentTimeEdit((current) => ({
@@ -7764,7 +7765,7 @@ function ScheduleView({
               </div>
 
               <label className="form-field full-width">
-                <span>Role</span>
+                <span>{t("Role")}</span>
                 <input
                   value={assignmentTimeEdit.role ?? ''}
                   onChange={(event) => setAssignmentTimeEdit((current) => ({
@@ -7776,7 +7777,7 @@ function ScheduleView({
                 />
               </label>
               <label className="form-field full-width">
-                <span>Note</span>
+                <span>{t("Note")}</span>
                 <textarea
                   rows="2"
                   value={assignmentTimeEdit.notes ?? ''}
@@ -7785,13 +7786,13 @@ function ScheduleView({
                     notes: event.target.value,
                   }))}
                   disabled={isSaving}
-                  placeholder="Add a note"
+                  placeholder={t("Add a note")}
                 />
               </label>
 
               {assignmentTimeEdit.timeMode === 'custom' ? (
                 <p className="template-delete-copy">
-                  Custom time applies only to this employee. The shift template time stays unchanged.
+                  {t("Custom time applies only to this employee. The shift template time stays unchanged.")}
                 </p>
               ) : (
                 <p className="template-delete-copy">
@@ -7802,7 +7803,7 @@ function ScheduleView({
               {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={handleCloseAssignmentTimeEdit}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={handleCloseAssignmentTimeEdit}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
               </div>
             </form>
@@ -7815,17 +7816,17 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Delete this shift?</p>
-                <h3>Delete this shift?</h3>
+                <p className="eyebrow">{t("Delete this shift?")}</p>
+                <h3>{t("Delete this shift?")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setShiftPendingDelete(null)}>✕</button>
             </div>
 
-            <p className="staff-subtitle">Are you sure you want to delete this shift? This action cannot be undone.</p>
+            <p className="staff-subtitle">{t("Are you sure you want to delete this shift? This action cannot be undone.")}</p>
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setShiftPendingDelete(null)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setShiftPendingDelete(null)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmDeleteShift} disabled={isSaving}>
                 {isSaving ? 'Deleting…' : 'Delete Shift'}
               </button>
@@ -7840,7 +7841,7 @@ function ScheduleView({
           <aside className="employee-drawer">
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Shift details</p>
+                <p className="eyebrow">{t("Shift details")}</p>
                 <h3>{selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned'}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseShiftDetails}>✕</button>
@@ -7864,20 +7865,20 @@ function ScheduleView({
             </div>
 
             <div className="drawer-grid">
-              <div className="drawer-row"><span>Time</span><strong>{formatTimeRange24(selectedShift.startTime, selectedShift.endTime, ' – ')}</strong></div>
-              <div className="drawer-row"><span>Area</span><strong>{selectedShift.area || '—'}</strong></div>
-              <div className="drawer-row"><span>Status</span><strong>{selectedShift.status || 'Scheduled'}</strong></div>
-              <div className="drawer-row"><span>Date</span><strong>{selectedShift.date || '—'}</strong></div>
+              <div className="drawer-row"><span>{t("Time")}</span><strong>{formatTimeRange24(selectedShift.startTime, selectedShift.endTime, ' – ')}</strong></div>
+              <div className="drawer-row"><span>{t("Area")}</span><strong>{selectedShift.area || '—'}</strong></div>
+              <div className="drawer-row"><span>{t("Status")}</span><strong>{selectedShift.status || 'Scheduled'}</strong></div>
+              <div className="drawer-row"><span>{t("Date")}</span><strong>{selectedShift.date || '—'}</strong></div>
             </div>
 
             <div className="drawer-notes">
-              <p className="eyebrow">Notes</p>
+              <p className="eyebrow">{t("Notes")}</p>
               <p>{selectedShift.notes || 'No notes for this shift.'}</p>
             </div>
 
             <div className="action-group" style={{ marginTop: '16px' }}>
-              <button type="button" className="ghost-btn" onClick={handleEditSelectedShift}>Edit</button>
-              <button type="button" className="ghost-btn" onClick={handleDeleteSelectedShift}>Delete</button>
+              <button type="button" className="ghost-btn" onClick={handleEditSelectedShift}>{t("Edit")}</button>
+              <button type="button" className="ghost-btn" onClick={handleDeleteSelectedShift}>{t("Delete")}</button>
             </div>
           </aside>
         </>
@@ -7903,14 +7904,14 @@ function ScheduleView({
               }}>✕</button>
             </div>
 
-            {isPublishing ? <div className="staff-status-banner">Publishing...</div> : null}
+            {isPublishing ? <div className="staff-status-banner">{t("Publishing...")}</div> : null}
             {publishError ? <div className="staff-status-banner">{publishError}</div> : null}
 
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => {
                 setPublishError('')
                 setIsPublishConfirmOpen(false)
-              }}>Cancel</button>
+              }}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handlePublishConfirm} disabled={isPublishing}>
                 {isPublishing ? 'Publishing…' : hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
               </button>
@@ -7924,14 +7925,14 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Unpublish this schedule?</p>
-                <h3>Employees will no longer see this week. Your draft stays editable.</h3>
+                <p className="eyebrow">{t("Unpublish this schedule?")}</p>
+                <h3>{t("Employees will no longer see this week. Your draft stays editable.")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>✕</button>
             </div>
 
             <div className="modal-actions">
-              <button type="button" className="ghost-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmUnpublishSchedule} disabled={isPublishing}>
                 {isPublishing ? 'Unpublishing…' : 'Unpublish'}
               </button>
@@ -8420,7 +8421,7 @@ function ReservationsWorkspaceSegmentControl({ value, onChange }) {
     <div
       className="reservations-workspace-segment"
       role="tablist"
-      aria-label="Workspace focus"
+      aria-label={t("Workspace focus")}
     >
       {RESERVATION_WORKSPACE_VIEWS.map((view) => (
         <button
@@ -8947,7 +8948,7 @@ function ReservationsCommandPalette({
         className="command-palette"
         role="dialog"
         aria-modal="true"
-        aria-label="Quick Actions"
+        aria-label={t("Quick Actions")}
         onClick={(event) => event.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
@@ -8959,17 +8960,17 @@ function ReservationsCommandPalette({
             className="command-palette-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search guests, tables, reservations — or type a command"
-            aria-label="Quick Actions search"
+            placeholder={t("Search guests, tables, reservations — or type a command")}
+            aria-label={t("Quick Actions search")}
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="command-palette-kbd">Esc</kbd>
+          <kbd className="command-palette-kbd">{t("Esc")}</kbd>
         </div>
 
-        <div className="command-palette-results" ref={listRef} role="listbox" aria-label="Quick Actions results">
+        <div className="command-palette-results" ref={listRef} role="listbox" aria-label={t("Quick Actions results")}>
           {items.length === 0 ? (
-            <p className="command-palette-empty">No matching actions or records.</p>
+            <p className="command-palette-empty">{t("No matching actions or records.")}</p>
           ) : (
             items.map((item, index) => (
               <button
@@ -8985,8 +8986,8 @@ function ReservationsCommandPalette({
               >
                 <span className="command-palette-item-icon" aria-hidden="true">{item.icon}</span>
                 <span className="command-palette-item-copy">
-                  <strong>{item.label}</strong>
-                  <span>{item.subtitle}</span>
+                  <strong>{t(item.label)}</strong>
+                  <span>{t(item.subtitle)}</span>
                 </span>
               </button>
             ))
@@ -8994,9 +8995,9 @@ function ReservationsCommandPalette({
         </div>
 
         <footer className="command-palette-footer">
-          <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
-          <span><kbd>Enter</kbd> Run</span>
-          <span><kbd>Esc</kbd> Close</span>
+          <span><kbd>↑</kbd><kbd>↓</kbd> {t("Navigate")}</span>
+          <span><kbd>{t("Enter")}</kbd> {t("Run")}</span>
+          <span><kbd>{t("Esc")}</kbd> {t("Close")}</span>
         </footer>
       </div>
     </div>
@@ -9492,7 +9493,7 @@ const DESKTOP_FLOOR_PLAN_LEGEND_ITEMS = Object.entries(FLOOR_TABLE_STATUS_META).
 
 function FloorHeatmapLegend() {
   return (
-    <div className="floor-plan-legend floor-heatmap-legend" aria-label="Utilization legend">
+    <div className="floor-plan-legend floor-heatmap-legend" aria-label={t("Utilization legend")}>
       {FLOOR_HEATMAP_TIERS.map((tier) => (
         <span key={tier.id} className={`floor-plan-legend-item heatmap-tier-${tier.id}`}>
           <span className="floor-plan-legend-swatch" aria-hidden="true" />
@@ -9505,7 +9506,7 @@ function FloorHeatmapLegend() {
 
 function FloorPlanViewModeToggle({ value, onChange }) {
   return (
-    <div className="floor-plan-view-toggle" role="tablist" aria-label="Floor plan view mode">
+    <div className="floor-plan-view-toggle" role="tablist" aria-label={t("Floor plan view mode")}>
       {FLOOR_PLAN_VIEW_MODES.map((mode) => (
         <button
           key={mode.id}
@@ -9531,7 +9532,7 @@ function FloorHeatmapPeriodFilter({
   onCustomEndChange,
 }) {
   return (
-    <div className="floor-heatmap-period-filter" aria-label="Heatmap time period">
+    <div className="floor-heatmap-period-filter" aria-label={t("Heatmap time period")}>
       <div className="floor-heatmap-period-chips">
         {FLOOR_HEATMAP_PERIODS.map((period) => (
           <button
@@ -9547,7 +9548,7 @@ function FloorHeatmapPeriodFilter({
       {periodId === 'custom' ? (
         <div className="floor-heatmap-custom-range">
           <label className="floor-heatmap-date-field">
-            <span>From</span>
+            <span>{t("From")}</span>
             <input
               type="date"
               value={customStart}
@@ -9555,7 +9556,7 @@ function FloorHeatmapPeriodFilter({
             />
           </label>
           <label className="floor-heatmap-date-field">
-            <span>To</span>
+            <span>{t("To")}</span>
             <input
               type="date"
               value={customEnd}
@@ -9570,29 +9571,29 @@ function FloorHeatmapPeriodFilter({
 
 function FloorPlanLiveStats({ stats }) {
   return (
-    <div className="floor-plan-live-stats" aria-label="Live floor statistics">
+    <div className="floor-plan-live-stats" aria-label={t("Live floor statistics")}>
       <div className="floor-plan-occupancy-metric">
-        <span>Occupied</span>
+        <span>{t("Occupied")}</span>
         <strong>{stats.occupied}</strong>
       </div>
       <div className="floor-plan-occupancy-metric">
-        <span>Available</span>
+        <span>{t("Available")}</span>
         <strong>{stats.available}</strong>
       </div>
       <div className="floor-plan-occupancy-metric floor-plan-occupancy-highlight">
-        <span>Occupancy</span>
+        <span>{t("Occupancy")}</span>
         <strong>{stats.occupancyPercent}%</strong>
       </div>
       <div className="floor-plan-occupancy-metric">
-        <span>Guests inside</span>
+        <span>{t("Guests inside")}</span>
         <strong>{stats.guestsInside}</strong>
       </div>
       <div className="floor-plan-occupancy-metric">
-        <span>Upcoming</span>
+        <span>{t("Upcoming")}</span>
         <strong>{stats.upcomingArrivals}</strong>
       </div>
       <div className="floor-plan-occupancy-metric">
-        <span>Waiting</span>
+        <span>{t("Waiting")}</span>
         <strong>{stats.reservationsWaiting}</strong>
       </div>
     </div>
@@ -9609,7 +9610,7 @@ function TimelineLiveNowRail({ positionPercent, nowMinutes, todayKey }) {
       <div className="timeline-live-now-rail-line" />
       <div className="timeline-live-now-rail-marker">
         <span className="timeline-live-now-rail-dot" />
-        <span className="timeline-live-now-rail-label">NOW</span>
+        <span className="timeline-live-now-rail-label">{t("NOW")}</span>
         <time dateTime={`${todayKey}T${formatTimelineSlotLabel(nowMinutes)}`}>
           {formatTimelineSlotLabel(nowMinutes)}
         </time>
@@ -9623,7 +9624,7 @@ function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder 
 
   return (
     <>
-      <button type="button" className="floor-plan-context-backdrop" onClick={onClose} aria-label="Close table menu" />
+      <button type="button" className="floor-plan-context-backdrop" onClick={onClose} aria-label={t("Close table menu")} />
       <div
         className="floor-plan-context-menu"
         style={{ left: menu.x, top: menu.y }}
@@ -9636,9 +9637,9 @@ function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder 
           onClick={onSplitPlaceholder}
           title={mergedGroup ? 'Split merged tables' : 'Select merged tables first'}
         >
-          Split table
+          {t("Split table")}
         </button>
-        <button type="button" role="menuitem" onClick={onClose}>Close</button>
+        <button type="button" role="menuitem" onClick={onClose}>{t("Close")}</button>
       </div>
     </>
   )
@@ -9993,7 +9994,7 @@ function FloorTableNode({
               />
             ) : null}
             {linkMeta?.isMultiLinked ? (
-              <span className="floor-table-linked-indicator" aria-hidden="true" aria-label="Linked tables">⛓</span>
+              <span className="floor-table-linked-indicator" aria-hidden="true" aria-label={t("Linked tables")}>⛓</span>
             ) : null}
             {isHostFloor || !guestName || showCompactLinkedLabel ? (
               <span className="floor-table-number">
@@ -10021,7 +10022,7 @@ function FloorTableNode({
               </div>
             ) : showUpcomingLabel ? (
               <div className="floor-table-next-booking">
-                <span className="floor-table-next-label">Next</span>
+                <span className="floor-table-next-label">{t("Next")}</span>
                 <span className="floor-table-next-time">{hostOperational.nextReservationTime}</span>
               </div>
             ) : showActiveGuestLabel ? (
@@ -10068,24 +10069,24 @@ function FloorTableNode({
         >
           <strong>Table {table.label}</strong>
           <div className="floor-table-analytics-row">
-            <span>Occupancy</span>
+            <span>{t("Occupancy")}</span>
             <strong>{heatmapMetrics?.utilizationPercent ?? 0}%</strong>
           </div>
           <div className="floor-table-analytics-row">
-            <span>Today&apos;s visits</span>
+            <span>{t("Today's visits")}</span>
             <strong>{heatmapMetrics?.todaysVisits ?? 0}</strong>
           </div>
           <div className="floor-table-analytics-row">
-            <span>Average dining time</span>
+            <span>{t("Average dining time")}</span>
             <strong>{formatHeatmapDuration(heatmapMetrics?.avgDiningMinutes ?? 0)}</strong>
           </div>
           <div className="floor-table-analytics-row">
-            <span>Average party size</span>
+            <span>{t("Average party size")}</span>
             <strong>{heatmapMetrics?.avgPartySize ?? 0}</strong>
           </div>
           <div className="floor-table-analytics-row floor-table-analytics-muted">
-            <span>Revenue</span>
-            <strong>Coming later</strong>
+            <span>{t("Revenue")}</span>
+            <strong>{t("Coming later")}</strong>
           </div>
         </div>
       ) : !isHostFloor && guestName ? (
@@ -10120,19 +10121,19 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
   }
 
   return (
-    <div className="floor-plan-area-switcher" aria-label="Restaurant area">
+    <div className="floor-plan-area-switcher" aria-label={t("Restaurant area")}>
       <button
         type="button"
         className="floor-plan-area-nav-btn"
         onClick={() => switchZone('prev')}
-        aria-label="Previous area"
+        aria-label={t("Previous area")}
         data-help="reservations.area-prev"
       >
         ‹
       </button>
 
       <label className="floor-plan-area-select">
-        <span className="sr-only">Restaurant area</span>
+        <span className="sr-only">{t("Restaurant area")}</span>
         <select
           className="floor-plan-area-select-input"
           value={activeZoneId}
@@ -10149,7 +10150,7 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
         type="button"
         className="floor-plan-area-nav-btn"
         onClick={() => switchZone('next')}
-        aria-label="Next area"
+        aria-label={t("Next area")}
         data-help="reservations.area-next"
       >
         ›
@@ -11797,17 +11798,17 @@ function FloorPlanView({
           <HostLoadNotice message={saveError} className="floor-plan-persistence-notice" />
         ) : null}
         <div className="floor-plan-empty">
-          <p className="eyebrow">Floor plan</p>
-          <h3>No published layout</h3>
+          <p className="eyebrow">{t("Floor plan")}</p>
+          <h3>{t("No published layout")}</h3>
           {canEditFloorPlan ? (
             <>
-              <p>Open Reservations, click Edit layout, arrange your tables, then publish.</p>
+              <p>{t("Open Reservations, click Edit layout, arrange your tables, then publish.")}</p>
               <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
-                Edit layout
+                {t("Edit layout")}
               </button>
             </>
           ) : (
-            <p>Ask a manager to publish the floor plan before seating guests.</p>
+            <p>{t("Ask a manager to publish the floor plan before seating guests.")}</p>
           )}
         </div>
       </div>
@@ -11826,7 +11827,7 @@ function FloorPlanView({
         <div className="floor-plan-host-main">
       <div className="floor-plan-toolbar">
         <div>
-          {!isCompact ? <p className="eyebrow">Service layout</p> : null}
+          {!isCompact ? <p className="eyebrow">{t("Service layout")}</p> : null}
           {isCompact ? (
             <FloorPlanAreaSwitcher
               zones={floorPlanSnapshot.layout.zones}
@@ -11850,7 +11851,7 @@ function FloorPlanView({
                     data-help="reservations.edit-layout"
                     onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
                   >
-                    Edit layout
+                    {t("Edit layout")}
                   </button>
                 ) : null}
                 <button
@@ -11858,7 +11859,7 @@ function FloorPlanView({
                   className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
                   onClick={toggleDiningTimers}
                   aria-pressed={showDiningTimers}
-                  aria-label="Dining timers"
+                  aria-label={t("Dining timers")}
                   data-testid="host-floor-dining-timers-toggle"
                   data-help="reservations.timers"
                 >
@@ -11875,7 +11876,7 @@ function FloorPlanView({
                   data-help="reservations.more"
                   onClick={() => setFloorMoreOpen((open) => !open)}
                 >
-                  More
+                  {t("More")}
                 </button>
                 {floorMoreOpen ? createPortal(
                   <div
@@ -11895,7 +11896,7 @@ function FloorPlanView({
                           setFloorPlanMode('edit')
                         }}
                       >
-                        Edit layout
+                        {t("Edit layout")}
                       </button>
                     ) : null}
                     <button
@@ -11908,7 +11909,7 @@ function FloorPlanView({
                         toggleDiningTimers()
                       }}
                       aria-pressed={showDiningTimers}
-                      aria-label="Dining timers"
+                      aria-label={t("Dining timers")}
                     >
                       ⏱ Timers
                     </button>
@@ -11916,13 +11917,13 @@ function FloorPlanView({
                   document.body,
                 ) : null}
               </div>
-              <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
+              <div className="floor-plan-zoom-controls" aria-label={t("Floor plan zoom")}>
               <div className="floor-plan-zoom-controls-group">
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out" data-help="reservations.zoom-out" disabled={floorInteractionLocked}>−</button>
-                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view" data-help="reservations.fit" disabled={floorInteractionLocked}>
-                  Fit
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label={t("Zoom out")} data-help="reservations.zoom-out" disabled={floorInteractionLocked}>−</button>
+                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label={t("Fit to view")} data-help="reservations.fit" disabled={floorInteractionLocked}>
+                  {t("Fit")}
                 </button>
-                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in" data-help="reservations.zoom-in" disabled={floorInteractionLocked}>+</button>
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label={t("Zoom in")} data-help="reservations.zoom-in" disabled={floorInteractionLocked}>+</button>
               </div>
               <button
                 type="button"
@@ -11999,7 +12000,7 @@ function FloorPlanView({
             onClick={startHostMultiTableSelect}
             data-testid="host-multi-table-entry"
           >
-            Select multiple tables
+            {t("Select multiple tables")}
           </button>
         </div>
       ) : null}
@@ -12142,7 +12143,7 @@ function FloorPlanView({
         ) : null}
 
         {showHostSeatingBar ? (
-          <aside className="host-seating-drawer" aria-label="Assign seating">
+          <aside className="host-seating-drawer" aria-label={t("Assign seating")}>
             <SeatingConfirmPanel
               variant="host-drawer"
               reservation={selectedReservation}
@@ -12553,7 +12554,7 @@ function MobileReservationsHostShellBody({
   if (isBootRestoring) {
     return (
       <div className="mobile-host-floor-refreshing" role="status">
-        <p>Loading published layout…</p>
+        <p>{t("Loading published layout…")}</p>
       </div>
     )
   }
@@ -12561,11 +12562,11 @@ function MobileReservationsHostShellBody({
   if (bootRestoreFailed && !hasDisplayableLayout) {
     return (
       <div className="host-station-error-boundary" role="alert">
-        <h3>Host Station could not load.</h3>
+        <h3>{t("Host Station could not load.")}</h3>
         <p>{formatHostLoadError(publishedLayoutLoadError) || "Couldn't load"}</p>
         <div className="host-station-error-actions">
           <button type="button" className="host-station-error-retry" onClick={() => reload()}>
-            Retry
+            {t("Retry")}
           </button>
           {canEditFloorPlan ? (
             <button
@@ -12573,7 +12574,7 @@ function MobileReservationsHostShellBody({
               className="host-station-error-return-editor"
               onClick={() => setFloorPlanMode('edit')}
             >
-              Open layout editor
+              {t("Open layout editor")}
             </button>
           ) : null}
         </div>
@@ -12634,20 +12635,20 @@ function MobileReservationsHostShellBody({
       </div>
     ) : floorLayoutStatus === 'error' ? (
       <div className="host-station-error-boundary" role="alert">
-        <h3>Couldn't load</h3>
-        <p>The floor plan did not load. This is not an empty layout.</p>
+        <h3>{t("Couldn't load")}</h3>
+        <p>{t("The floor plan did not load. This is not an empty layout.")}</p>
         <div className="host-station-error-actions">
           <button type="button" className="host-station-error-retry" onClick={() => reload()}>
-            Retry
+            {t("Retry")}
           </button>
         </div>
       </div>
     ) : (
       <div className="mobile-host-floor-empty" role="status">
-        <p>No published floor layout yet.</p>
+        <p>{t("No published floor layout yet.")}</p>
         {canEditFloorPlan ? (
           <button type="button" className="mobile-host-layout-btn" onClick={() => setFloorPlanMode('edit')}>
-            Edit layout
+            {t("Edit layout")}
           </button>
         ) : null}
       </div>
@@ -13477,7 +13478,7 @@ function HostServicePressureBar({ slots, nowMinutes, selectedHour = null, onHour
   const currentHour = Math.floor(nowMinutes / 60)
 
   return (
-    <div className="host-service-pressure-bar" aria-label="Service time pressure">
+    <div className="host-service-pressure-bar" aria-label={t("Service time pressure")}>
       {slots.map((slot) => (
         <button
           key={slot.hour}
@@ -13613,7 +13614,7 @@ function ReservationWorkflowStrip({ reservation, nowMinutes, todayKey }) {
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
 
   return (
-    <div className="reservation-workflow-strip" aria-label="Reservation workflow">
+    <div className="reservation-workflow-strip" aria-label={t("Reservation workflow")}>
       {RESERVATION_WORKFLOW_STAGES.map((stage, index) => {
         const isComplete = !isTerminal && index < stageIndex
         const isCurrent = !isTerminal && index === stageIndex
@@ -13642,7 +13643,7 @@ function ArrivalWavePanel({ waves }) {
   if (waves.length === 0) return null
 
   return (
-    <section className="arrival-wave-panel" aria-label="Arrival intelligence">
+    <section className="arrival-wave-panel" aria-label={t("Arrival intelligence")}>
       {waves.map((wave) => {
         const focusReservation = wave.reservations?.[0] ?? null
         const selected = focusReservation ? isSelected(focusReservation) : false
@@ -13681,7 +13682,7 @@ function ReservationConfidenceBadge({ reservation, allReservations }) {
   if (confidence.tone === 'muted') return null
 
   return (
-    <span className={`reservation-confidence tone-${confidence.tone}`} title="Reservation confidence (prototype)">
+    <span className={`reservation-confidence tone-${confidence.tone}`} title={t("Reservation confidence (prototype)")}>
       {confidence.percent}% {confidence.label}
     </span>
   )
@@ -13697,7 +13698,7 @@ function SmartGuestFormPanel({ guestReservation, allReservations, onApplyGuest }
     <section className="smart-guest-form-panel">
       <div className="smart-guest-form-header">
         <div>
-          <p className="eyebrow">Returning guest detected</p>
+          <p className="eyebrow">{t("Returning guest detected")}</p>
           <h4>{formatReservationGuestName(guestReservation.guestName)}</h4>
         </div>
         {badges.length > 0 ? (
@@ -13709,10 +13710,10 @@ function SmartGuestFormPanel({ guestReservation, allReservations, onApplyGuest }
         ) : null}
       </div>
       <div className="smart-guest-form-grid">
-        <div><span>Visits</span><strong>{profile.lifetimeVisits}</strong></div>
-        <div><span>Last visit</span><strong>{profile.lastVisit}</strong></div>
-        <div><span>Favorite table</span><strong>{profile.favoriteTable}</strong></div>
-        <div><span>Favorite area</span><strong>{profile.favoriteArea}</strong></div>
+        <div><span>{t("Visits")}</span><strong>{profile.lifetimeVisits}</strong></div>
+        <div><span>{t("Last visit")}</span><strong>{profile.lastVisit}</strong></div>
+        <div><span>{t("Favorite table")}</span><strong>{profile.favoriteTable}</strong></div>
+        <div><span>{t("Favorite area")}</span><strong>{profile.favoriteArea}</strong></div>
       </div>
       {profile.history.length > 0 ? (
         <ul className="smart-guest-form-history">
@@ -13723,7 +13724,7 @@ function SmartGuestFormPanel({ guestReservation, allReservations, onApplyGuest }
       ) : null}
       {onApplyGuest ? (
         <button type="button" className="ghost-btn smart-guest-form-apply" onClick={() => onApplyGuest(guestReservation)}>
-          Apply guest preferences
+          {t("Apply guest preferences")}
         </button>
       ) : null}
     </section>
@@ -13754,10 +13755,10 @@ function GuestProfileDrawer({
       <aside className="employee-drawer guest-profile-drawer">
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Smart guest profile</p>
+            <p className="eyebrow">{t("Smart guest profile")}</p>
             <h3>{guestName}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close guest profile">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close guest profile")}>✕</button>
         </div>
 
         <div className="drawer-profile">
@@ -13785,36 +13786,36 @@ function GuestProfileDrawer({
         <ReservationWorkflowStrip reservation={reservation} nowMinutes={nowMinutes} todayKey={todayKey} />
 
         <section className="guest-profile-section guest-profile-intelligence">
-          <p className="eyebrow">Guest intelligence</p>
+          <p className="eyebrow">{t("Guest intelligence")}</p>
           <div className="guest-profile-intelligence-grid">
-            <div className="drawer-row"><span>Lifetime visits</span><strong>{profile.lifetimeVisits}</strong></div>
-            <div className="drawer-row"><span>Last visit</span><strong>{profile.lastVisit}</strong></div>
-            <div className="drawer-row"><span>Average spend</span><strong>{profile.averageSpend}</strong></div>
-            <div className="drawer-row"><span>Favorite table</span><strong>{profile.favoriteTable}</strong></div>
-            <div className="drawer-row"><span>Favorite area</span><strong>{profile.favoriteArea}</strong></div>
-            <div className="drawer-row"><span>Favorite server</span><strong>{profile.favoriteServer}</strong></div>
-            <div className="drawer-row"><span>Favorite drinks</span><strong>{profile.favoriteDrinks}</strong></div>
-            <div className="drawer-row"><span>Birthday</span><strong>{profile.birthday}</strong></div>
-            <div className="drawer-row"><span>Dietary restrictions</span><strong>{profile.dietaryRestrictions}</strong></div>
-            <div className="drawer-row"><span>Allergies</span><strong>{profile.allergies}</strong></div>
+            <div className="drawer-row"><span>{t("Lifetime visits")}</span><strong>{profile.lifetimeVisits}</strong></div>
+            <div className="drawer-row"><span>{t("Last visit")}</span><strong>{profile.lastVisit}</strong></div>
+            <div className="drawer-row"><span>{t("Average spend")}</span><strong>{profile.averageSpend}</strong></div>
+            <div className="drawer-row"><span>{t("Favorite table")}</span><strong>{profile.favoriteTable}</strong></div>
+            <div className="drawer-row"><span>{t("Favorite area")}</span><strong>{profile.favoriteArea}</strong></div>
+            <div className="drawer-row"><span>{t("Favorite server")}</span><strong>{profile.favoriteServer}</strong></div>
+            <div className="drawer-row"><span>{t("Favorite drinks")}</span><strong>{profile.favoriteDrinks}</strong></div>
+            <div className="drawer-row"><span>{t("Birthday")}</span><strong>{profile.birthday}</strong></div>
+            <div className="drawer-row"><span>{t("Dietary restrictions")}</span><strong>{profile.dietaryRestrictions}</strong></div>
+            <div className="drawer-row"><span>{t("Allergies")}</span><strong>{profile.allergies}</strong></div>
           </div>
         </section>
 
         <div className="drawer-grid guest-profile-grid">
-          <div className="drawer-row"><span>Current status</span><strong>{getReservationDisplayStatus(reservation, nowMinutes, todayKey)}</strong></div>
-          <div className="drawer-row"><span>Arrival</span><strong>{formatTime24(reservation.time) || '—'} · {formatEuropeanDayMonth(reservation.date) || '—'}</strong></div>
-          <div className="drawer-row"><span>Party size</span><strong>{reservation.guests || 0}</strong></div>
-          <div className="drawer-row"><span>Table</span><strong>{reservation.tableNumber || '—'}</strong></div>
+          <div className="drawer-row"><span>{t("Current status")}</span><strong>{getReservationDisplayStatus(reservation, nowMinutes, todayKey)}</strong></div>
+          <div className="drawer-row"><span>{t("Arrival")}</span><strong>{formatTime24(reservation.time) || '—'} · {formatEuropeanDayMonth(reservation.date) || '—'}</strong></div>
+          <div className="drawer-row"><span>{t("Party size")}</span><strong>{reservation.guests || 0}</strong></div>
+          <div className="drawer-row"><span>{t("Table")}</span><strong>{reservation.tableNumber || '—'}</strong></div>
         </div>
 
         <div className="drawer-notes">
-          <p className="eyebrow">Internal notes</p>
+          <p className="eyebrow">{t("Internal notes")}</p>
           <p>{profile.internalNotes}</p>
         </div>
 
         <section className="guest-profile-section">
           <div className="guest-profile-section-heading">
-            <p className="eyebrow">Reservation history</p>
+            <p className="eyebrow">{t("Reservation history")}</p>
             <h4>{profile.visitCount} visit{profile.visitCount === 1 ? '' : 's'}</h4>
           </div>
           <div className="guest-history-list">
@@ -13833,14 +13834,14 @@ function GuestProfileDrawer({
         </section>
 
         <div className="guest-profile-actions">
-          <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit reservation</button>
+          <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>{t("Edit reservation")}</button>
           <button
             type="button"
             className="primary-btn"
             onClick={() => onQuickStatusUpdate(reservation, 'Checked In')}
             disabled={normalizeReservationStatus(reservation.status) === 'Checked In'}
           >
-            Seat guest
+            {t("Seat guest")}
           </button>
         </div>
       </aside>
@@ -13852,37 +13853,37 @@ function ServiceHealthCard({ metrics }) {
   const { selectReservation, isSelected } = useReservationWorkspace()
 
   return (
-    <section className="service-health-ribbon" aria-label="Live service health">
+    <section className="service-health-ribbon" aria-label={t("Live service health")}>
       <div className="service-health-ribbon-status">
         <span className="service-health-live-dot" aria-hidden="true" />
         <strong className={`service-health-status tone-${metrics.overallTone}`}>{metrics.overallStatus}</strong>
       </div>
       <div className="service-health-ribbon-metrics" role="list">
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>Seated</span>
+          <span>{t("Seated")}</span>
           <strong>{metrics.guestsInHouse > 0 ? metrics.guestsInHouse : '—'}</strong>
         </div>
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>Arrivals</span>
+          <span>{t("Arrivals")}</span>
           <strong>{metrics.expectedArrivals > 0 ? metrics.expectedArrivals : '—'}</strong>
         </div>
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>Walk-ins</span>
+          <span>{t("Walk-ins")}</span>
           <strong>{metrics.walkIns > 0 ? metrics.walkIns : '—'}</strong>
         </div>
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>Occupancy</span>
+          <span>{t("Occupancy")}</span>
           <strong>{metrics.tableOccupancy !== null ? metrics.tableOccupancy : '—'}</strong>
         </div>
         <div className="service-health-ribbon-metric" role="listitem">
-          <span>Avg delay</span>
+          <span>{t("Avg delay")}</span>
           <strong className={metrics.averageDelay !== null ? 'tone-alert' : ''}>
             {metrics.averageDelay !== null ? `${metrics.averageDelay}m` : '—'}
           </strong>
         </div>
       </div>
       {metrics.alerts?.length > 0 ? (
-        <div className="service-health-alerts" aria-label="Service alerts">
+        <div className="service-health-alerts" aria-label={t("Service alerts")}>
           {metrics.alerts.map((alert) => (
             <button
               key={alert.id}
@@ -13909,8 +13910,8 @@ function ServiceInsightsPanel({ insights }) {
   if (insights.length === 0) return null
 
   return (
-    <section className="service-insights-panel" aria-label="Service insights">
-      <p className="eyebrow">Smart insights</p>
+    <section className="service-insights-panel" aria-label={t("Service insights")}>
+      <p className="eyebrow">{t("Smart insights")}</p>
       <ul className="service-insights-list">
         {insights.map((insight) => (
           <li key={insight.id}>
@@ -13996,10 +13997,10 @@ function ReservationQuickActions({
           className="reservation-quick-action-btn reservation-quick-action-primary"
           onClick={() => onQuickStatusUpdate(reservation, 'Waiting')}
           disabled={isSaving}
-          title="Mark arrived"
-          aria-label="Mark arrived"
+          title={t("Mark arrived")}
+          aria-label={t("Mark arrived")}
         >
-          Arrived
+          {t("Arrived")}
         </button>
       ) : null}
       <button
@@ -14007,29 +14008,29 @@ function ReservationQuickActions({
         className="reservation-quick-action-btn reservation-quick-action-primary"
         onClick={() => onQuickStatusUpdate(reservation, 'Checked In')}
         disabled={isSaving || !canSeat}
-        title="Seat guest"
-        aria-label="Seat guest"
+        title={t("Seat guest")}
+        aria-label={t("Seat guest")}
       >
-        Seat
+        {t("Seat")}
       </button>
       {phone ? (
         <a
           className="reservation-quick-action-btn reservation-quick-action-primary"
           href={`tel:${phone}`}
-          title="Call guest"
-          aria-label="Call guest"
+          title={t("Call guest")}
+          aria-label={t("Call guest")}
         >
-          Call
+          {t("Call")}
         </a>
       ) : (
         <button
           type="button"
           className="reservation-quick-action-btn reservation-quick-action-primary"
           disabled
-          title="No phone on file"
-          aria-label="Call guest (no phone on file)"
+          title={t("No phone on file")}
+          aria-label={t("Call guest (no phone on file)")}
         >
-          Call
+          {t("Call")}
         </button>
       )}
       <button
@@ -14037,10 +14038,10 @@ function ReservationQuickActions({
         className="reservation-quick-action-btn reservation-quick-action-primary"
         onClick={() => onOpenEditReservation(reservation)}
         disabled={isSaving}
-        title="Edit reservation"
-        aria-label="Edit reservation"
+        title={t("Edit reservation")}
+        aria-label={t("Edit reservation")}
       >
-        Edit
+        {t("Edit")}
       </button>
       <div className="reservation-quick-action-more">
         <button
@@ -14049,30 +14050,30 @@ function ReservationQuickActions({
           onClick={onToggleMore}
           disabled={isSaving}
           aria-expanded={isMoreOpen}
-          title="More actions"
-          aria-label="More actions"
+          title={t("More actions")}
+          aria-label={t("More actions")}
         >
           ⋯
         </button>
         {isMoreOpen ? (
           <div className="reservation-quick-action-menu">
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Not Shown'); onToggleMore() }} disabled={isSaving || !canMarkNoShow}>
-              Mark no-show
+              {t("Mark no-show")}
             </button>
             <button type="button" onClick={() => { onOpenAddNote(reservation); onToggleMore() }} disabled={isSaving}>
-              Add note
+              {t("Add note")}
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked In (Partial)'); onToggleMore() }} disabled={isSaving || (!isReservationInHouse(reservation) && status !== 'Waiting')}>
-              Partial check-in
+              {t("Partial check-in")}
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isSaving || !canComplete}>
-              Complete
+              {t("Complete")}
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={isSaving || status === 'Cancelled'}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="button" onClick={() => { onOpenGuestProfile(reservation); onToggleMore() }} disabled={isSaving}>
-              Guest profile
+              {t("Guest profile")}
             </button>
           </div>
         ) : null}
@@ -14379,11 +14380,11 @@ function HostReservationListControls({
     <div className="host-reservation-list-controls">
       <div className="host-reservation-list-toolbar">
         <label className="host-reservation-list-sort">
-          <span>Sort</span>
+          <span>{t("Sort")}</span>
           <select
             value={listSort}
             onChange={(event) => onListSortChange(event.target.value)}
-            aria-label="Sort reservations"
+            aria-label={t("Sort reservations")}
           >
             {HOST_LIST_SORTS.map((sort) => (
               <option key={sort.id} value={sort.id}>{sort.label}</option>
@@ -14397,7 +14398,7 @@ function HostReservationListControls({
             onClick={onToggleHourFilter}
             aria-pressed={showHourFilter}
           >
-            By hour
+            {t("By hour")}
           </button>
         ) : null}
       </div>
@@ -14515,7 +14516,7 @@ function ReservationsUnifiedCanvas({
       data-floor-plan-mode={floorPlanMode}
     >
       {floorPlanMode !== 'edit' ? (
-      <section className="host-operations-list" aria-label="Reservation list">
+      <section className="host-operations-list" aria-label={t("Reservation list")}>
         <div className="host-operations-list-sticky">
           <HostManagerSummaryBar
             dashboard={hostServiceDashboard}
@@ -14575,7 +14576,7 @@ function ReservationsUnifiedCanvas({
       </section>
       ) : null}
 
-      <section className="host-operations-floor" aria-label="Floor plan">
+      <section className="host-operations-floor" aria-label={t("Floor plan")}>
         {floorPlanMode === 'edit' && canEditFloorPlan ? (
           <EmbeddedFloorPlanEditor
             onExit={() => setFloorPlanMode('view')}
@@ -14589,7 +14590,7 @@ function ReservationsUnifiedCanvas({
       </section>
 
       {floorPlanMode !== 'edit' ? (
-      <section className={`host-operations-timeline${isTimelineCollapsed ? ' is-collapsed' : ''}`} aria-label="Service timeline">
+      <section className={`host-operations-timeline${isTimelineCollapsed ? ' is-collapsed' : ''}`} aria-label={t("Service timeline")}>
         <button
           type="button"
           className="host-timeline-toggle-bar"
@@ -15171,7 +15172,7 @@ function ReservationsWorkspaceContent({
       <div className="reservations-command-sticky">
         <header className="reservations-host-header">
           <div className="reservations-host-header-main">
-            <h2>Reservations</h2>
+            <h2>{t("Reservations")}</h2>
             <p className="reservations-host-header-date">
               {formatHostWorkspaceShortDateLabel(todayKey)}
             </p>
@@ -15191,18 +15192,18 @@ function ReservationsWorkspaceContent({
                 className="mobile-reservations-open-host-btn"
                 onClick={onOpenHostMode}
               >
-                Open Host Mode
+                {t("Open Host Mode")}
               </button>
             ) : null}
           </div>
           <div className="reservations-host-header-actions">
-            <label className="reservations-search" aria-label="Search reservations">
+            <label className="reservations-search" aria-label={t("Search reservations")}>
               <span aria-hidden="true">⌕</span>
               <input
                 type="search"
                 value={searchTerm}
                 onChange={(event) => onSearchTermChange(event.target.value)}
-                placeholder="Search guest or table"
+                placeholder={t("Search guest or table")}
               />
             </label>
             <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving} data-help="reservations.add">
@@ -15214,8 +15215,8 @@ function ReservationsWorkspaceContent({
       ) : (
         <header className="reservations-layout-edit-page-header">
           <div>
-            <p className="eyebrow">Floor plan</p>
-            <h3>Edit layout</h3>
+            <p className="eyebrow">{t("Floor plan")}</p>
+            <h3>{t("Edit layout")}</h3>
           </div>
         </header>
       )}
@@ -15225,7 +15226,7 @@ function ReservationsWorkspaceContent({
           {noticeMessage}
         </div>
       ) : null}
-      {!isLayoutEditMode && isLoading ? <div className="staff-status-banner reservations-notice">Loading reservations…</div> : null}
+      {!isLayoutEditMode && isLoading ? <div className="staff-status-banner reservations-notice">{t("Loading reservations…")}</div> : null}
 
       <div className="reservations-host-panel">
         <ReservationsUnifiedCanvas
@@ -15289,23 +15290,23 @@ function ReservationsWorkspaceContent({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Guest note</p>
+                <p className="eyebrow">{t("Guest note")}</p>
                 <h3>{formatReservationGuestName(noteDraftReservation.guestName)}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={onCloseAddNote}>✕</button>
             </div>
             <form className="employee-form" onSubmit={onSaveNote}>
               <label className="form-field full-width">
-                <span>Note</span>
+                <span>{t("Note")}</span>
                 <textarea
                   rows="4"
                   value={noteDraftValue}
                   onChange={(event) => onNoteDraftValueChange(event.target.value)}
-                  placeholder="Add service notes, preferences, or reminders"
+                  placeholder={t("Add service notes, preferences, or reminders")}
                 />
               </label>
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={onCloseAddNote}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={onCloseAddNote}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>
                   {isSaving ? 'Saving…' : 'Save note'}
                 </button>
@@ -24565,9 +24566,9 @@ function App() {
     || stockCatalogLoadFailed
     || suppliersLoadFailed
   const moduleSubtitle = activeView === 'insights' && insightsFiguresUnavailable
-    ? "Today's numbers aren't available yet."
+    ? t("Today's numbers aren't available yet.")
     : activeView === 'settings' && settingsLimited
-    ? 'Seatings, notifications & privacy.'
+    ? t('Seatings, notifications & privacy.')
     : getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection, operationsSection })
   const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
   const hideStandardTopbar = shouldHideStandardTopbar(activeView, teamSection)
@@ -25470,11 +25471,11 @@ function App() {
       ) : null}
       {notificationSettingsOpen && !useDedicatedShell && activeView !== 'chat' ? (
         <div className="notification-settings-overlay" role="presentation">
-          <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label="Notifications">
+          <div className="notification-settings-dialog" role="dialog" aria-modal="true" aria-label={t("Notifications")}>
             <button
               type="button"
               className="icon-btn notification-settings-close"
-              aria-label="Close notification settings"
+              aria-label={t("Close notification settings")}
               onClick={() => setNotificationSettingsOpen(false)}
             >
               ✕
@@ -25487,7 +25488,7 @@ function App() {
       <aside className="sidebar">
         <div className="brand-block">
           <img src="/brand/one-mark.svg" alt="" className="brand-product-mark" />
-          <p className="brand-wordmark">ONE</p>
+          <p className="brand-wordmark">{t("ONE")}</p>
           <p className="brand-tagline">{ONE_TAGLINE}</p>
           <h1
             className="brand-business-name"
@@ -25498,7 +25499,7 @@ function App() {
           <VenueSwitcher />
         </div>
 
-        <nav className="nav-links" aria-label="Sidebar navigation">
+        <nav className="nav-links" aria-label={t("Sidebar navigation")}>
           {visibleNavItems.map((item) => (
             <button
               key={item.id}
@@ -25520,7 +25521,7 @@ function App() {
                   <span className="chat-nav-badge">{chatInbox.unread > 9 ? '9+' : chatInbox.unread}</span>
                 ) : null}
               </span>
-              <span>{item.label}</span>
+              <span>{t(item.label)}</span>
             </button>
           ))}
         </nav>
@@ -25530,8 +25531,8 @@ function App() {
       <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${activeView === 'chat' ? ' main-panel-chat' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
         {isLinkedEmployeeDisabled ? (
           <div className="employee-access-paused" role="alert">
-            <h2>Access paused</h2>
-            <p>Your access to this venue has been paused by the manager. Your history is kept, and they can turn it back on any time.</p>
+            <h2>{t("Access paused")}</h2>
+            <p>{t("Your access to this venue has been paused by the manager. Your history is kept, and they can turn it back on any time.")}</p>
           </div>
         ) : null}
         {(() => {
@@ -25578,7 +25579,7 @@ function App() {
             <>
         {isAuthLoading ? (
           <div className="staff-status-banner" role="status" aria-live="polite">
-            Loading your venue…
+            {t("Loading your venue…")}
           </div>
         ) : null}
         {!isAuthLoading && visibleWorkspaceLoadError ? (
@@ -25594,7 +25595,7 @@ function App() {
               className="ghost-btn small workspace-invite-notice-dismiss"
               onClick={() => setInviteAcceptedNotice('')}
             >
-              Dismiss
+              {t("Dismiss")}
             </button>
           </div>
         ) : null}
@@ -25611,15 +25612,15 @@ function App() {
         {activeView === 'stock' && isActiveViewAllowed ? (
           <div className="stock-focus-chrome">
             {isStockFocusMode ? (
-              <header className="stock-focus-header" aria-label="Stock workspace">
+              <header className="stock-focus-header" aria-label={t("Stock workspace")}>
                 <button
                   type="button"
                   className="ghost-btn stock-focus-exit-btn"
                   onClick={handleExitStockFocusMode}
-                  aria-label="Exit Stock"
+                  aria-label={t("Exit Stock")}
                   data-help="stock.exit"
                 >
-                  ← Exit Stock
+                  {t('← Exit Stock')}
                 </button>
                 {showModuleSearch ? (
                   <label className="search-bar stock-focus-search" aria-label={`Search ${moduleTitle}`}>
@@ -25677,7 +25678,7 @@ function App() {
         ) : null}
         {isActiveViewAllowed && activeView === 'clock' ? (
           <div className="staff-host-personal-page staff-host-clock-page">
-            <button type="button" className="mobile-back-btn" onClick={leavePersonalView}>‹ Back</button>
+            <button type="button" className="mobile-back-btn" onClick={leavePersonalView}>{t("‹ Back")}</button>
             {attendanceClockCard}
           </div>
         ) : null}
@@ -25946,9 +25947,9 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'floor-plan-builder' ? (
           <div className="floor-plan-deprecated-notice">
-            <p>Floor Plan Builder now lives inside Reservations.</p>
+            <p>{t("Floor Plan Builder now lives inside Reservations.")}</p>
             <button type="button" className="primary-btn" onClick={() => handleActiveViewChange('reservations')}>
-              Open Reservations
+              {t("Open Reservations")}
             </button>
           </div>
         ) : null}
@@ -26340,7 +26341,7 @@ function App() {
                       <div className="auth-page auth-loading-page mobile-auth-loading" aria-busy="true" aria-live="polite">
                         <div className="auth-loading-card panel staff-panel">
                           <OneFullLogo compact />
-                          <p className="auth-loading-text">Loading your venue…</p>
+                          <p className="auth-loading-text">{t("Loading your venue…")}</p>
                         </div>
                       </div>
                     )
@@ -26917,35 +26918,35 @@ function App() {
             <div ref={employeePremiumFormModalRef} className="employee-modal employee-premium-form-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header employee-premium-form-header">
                 <div>
-                  <p className="eyebrow">Employee</p>
+                  <p className="eyebrow">{t("Employee")}</p>
                   <h3>{editingEmployee ? 'Edit employee' : 'Add employee'}</h3>
                 </div>
-                <button type="button" className="icon-btn employee-premium-form-close" onClick={handleCloseEmployeeModal} aria-label="Close employee form">✕</button>
+                <button type="button" className="icon-btn employee-premium-form-close" onClick={handleCloseEmployeeModal} aria-label={t("Close employee form")}>✕</button>
               </div>
 
               <form className="employee-form employee-premium-form" onSubmit={handleEmployeeSubmit} onKeyDownCapture={handleEmployeeFormEnterKey}>
                 <section className="employee-premium-form-section">
-                  <h4 className="employee-premium-form-section-title">Basic Information</h4>
+                  <h4 className="employee-premium-form-section-title">{t("Basic Information")}</h4>
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
-                      <span>First Name</span>
+                      <span>{t("First Name")}</span>
                       <input
                         value={employeeForm.firstName}
                         onChange={(event) => setEmployeeForm((current) => ({ ...current, firstName: event.target.value }))}
-                        placeholder="First name"
+                        placeholder={t("First name")}
                         required
                       />
                     </label>
                     <label className="form-field">
-                      <span>Last Name</span>
+                      <span>{t("Last Name")}</span>
                       <input
                         value={employeeForm.lastName}
                         onChange={(event) => setEmployeeForm((current) => ({ ...current, lastName: event.target.value }))}
-                        placeholder="Last name"
+                        placeholder={t("Last name")}
                       />
                     </label>
                     <label className="form-field">
-                      <span>Department</span>
+                      <span>{t("Department")}</span>
                       <EmployeePremiumFieldSelect
                         id="employee-form-department"
                         ariaLabel="Department"
@@ -26959,7 +26960,7 @@ function App() {
                       />
                     </label>
                     <label className="form-field">
-                      <span>Primary Position</span>
+                      <span>{t("Primary Position")}</span>
                       <EmployeePremiumPositionField
                         id="employee-form-primary-position"
                         menuId="employee-primary-position"
@@ -26976,7 +26977,7 @@ function App() {
                       />
                       {employeePrimaryPositionDepartmentMismatch ? (
                         <small className="employee-premium-field-warning" role="status">
-                          This position belongs to another department.
+                          {t("This position belongs to another department.")}
                         </small>
                       ) : null}
                     </label>
@@ -27004,10 +27005,10 @@ function App() {
                 />
 
                 <section className="employee-premium-form-section">
-                  <h4 className="employee-premium-form-section-title">Employment</h4>
+                  <h4 className="employee-premium-form-section-title">{t("Employment")}</h4>
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
-                      <span>Start Date</span>
+                      <span>{t("Start Date")}</span>
                       <EmployeePremiumDateField
                         id="employee-form-start-date"
                         value={employeeForm.hireDate}
@@ -27016,17 +27017,17 @@ function App() {
                       />
                     </label>
                     <label className="form-field">
-                      <span>Weekly Hours</span>
-                      <input value={employeeForm.weeklyHours} onChange={(event) => setEmployeeForm((current) => ({ ...current, weeklyHours: event.target.value }))} placeholder="Weekly hours" />
+                      <span>{t("Weekly Hours")}</span>
+                      <input value={employeeForm.weeklyHours} onChange={(event) => setEmployeeForm((current) => ({ ...current, weeklyHours: event.target.value }))} placeholder={t("Weekly hours")} />
                     </label>
                     {canAssignManagerInviteRoleFlag ? (
                       <label className="form-field">
-                        <span>Salary</span>
-                        <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
+                        <span>{t("Salary")}</span>
+                        <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder={t("Salary")} />
                       </label>
                     ) : null}
                     <label className="form-field">
-                      <span>Shift</span>
+                      <span>{t("Shift")}</span>
                       <EmployeePremiumFieldSelect
                         id="employee-form-shift"
                         ariaLabel="Shift"
@@ -27039,7 +27040,7 @@ function App() {
                       />
                     </label>
                     <label className="form-field">
-                      <span>Status</span>
+                      <span>{t("Status")}</span>
                       <EmployeePremiumFieldSelect
                         id="employee-form-status"
                         ariaLabel="Status"
@@ -27055,10 +27056,10 @@ function App() {
                 </section>
 
                 <section className="employee-premium-form-section">
-                  <h4 className="employee-premium-form-section-title">Contact</h4>
+                  <h4 className="employee-premium-form-section-title">{t("Contact")}</h4>
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
-                      <span>Phone</span>
+                      <span>{t("Phone")}</span>
                       <div
                         className="employee-premium-phone-field-wrap"
                         onPointerDownCapture={() => setEmployeeFormOpenMenuId(null)}
@@ -27067,26 +27068,26 @@ function App() {
                           className="reservation-phone-field employee-premium-phone-field"
                           value={normalizeEmployeePhoneForDisplay(employeeForm.phone)}
                           onChange={(phone) => setEmployeeForm((current) => ({ ...current, phone }))}
-                          placeholder="Local number"
+                          placeholder={t("Local number")}
                           workspaceProfile={workspaceProfile}
                         />
                       </div>
                     </label>
                     <label className="form-field">
-                      <span>Email</span>
-                      <input type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                      <span>{t("Email")}</span>
+                      <input type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder={t("Email")} />
                     </label>
                     <label className="form-field full-width">
-                      <span>Emergency Contact</span>
-                      <input value={employeeForm.emergencyContact} onChange={(event) => setEmployeeForm((current) => ({ ...current, emergencyContact: event.target.value }))} placeholder="Emergency contact" />
+                      <span>{t("Emergency Contact")}</span>
+                      <input value={employeeForm.emergencyContact} onChange={(event) => setEmployeeForm((current) => ({ ...current, emergencyContact: event.target.value }))} placeholder={t("Emergency contact")} />
                     </label>
                   </div>
                 </section>
 
                 <section className="employee-premium-form-section">
-                  <h4 className="employee-premium-form-section-title">Additional Positions</h4>
+                  <h4 className="employee-premium-form-section-title">{t("Additional Positions")}</h4>
                   <label className="form-field full-width">
-                    <span className="sr-only">Additional positions</span>
+                    <span className="sr-only">{t("Additional positions")}</span>
                     <EmployeePremiumAdditionalPositionsField
                       id="employee-form-additional-positions"
                       menuId="employee-additional-positions"
@@ -27104,15 +27105,15 @@ function App() {
                     <div className="employee-premium-custom-position-panel-header">
                       <span className="employee-premium-custom-position-panel-icon" aria-hidden="true">✦</span>
                       <div>
-                        <h5 className="employee-premium-custom-position-panel-title">Create Custom Position</h5>
+                        <h5 className="employee-premium-custom-position-panel-title">{t("Create Custom Position")}</h5>
                         <p className="employee-premium-custom-position-panel-helper">
-                          Add a workspace-specific role that is not in the standard catalog.
+                          {t("Add a workspace-specific role that is not in the standard catalog.")}
                         </p>
                       </div>
                     </div>
                     <div className="employee-premium-custom-position-panel-controls">
                       <label className="form-field employee-premium-custom-position-input-field">
-                        <span className="sr-only">Custom position name</span>
+                        <span className="sr-only">{t("Custom position name")}</span>
                         <input
                           className="employee-premium-custom-position-input"
                           value={employeeForm.customPositionName}
@@ -27124,7 +27125,7 @@ function App() {
                               handleAddCustomPositionToEmployee()
                             }
                           }}
-                          placeholder="e.g. Sommelier, VIP Host, Pizza Chef"
+                          placeholder={t("e.g. Sommelier, VIP Host, Pizza Chef")}
                           autoComplete="off"
                           enterKeyHint="done"
                         />
@@ -27142,15 +27143,15 @@ function App() {
                 </section>
 
                 <section className="employee-premium-form-section">
-                  <h4 className="employee-premium-form-section-title">Manager Notes</h4>
+                  <h4 className="employee-premium-form-section-title">{t("Manager Notes")}</h4>
                   <label className="form-field full-width">
-                    <span className="sr-only">Manager notes</span>
+                    <span className="sr-only">{t("Manager notes")}</span>
                     <textarea
                       className="employee-premium-notes-input"
                       rows="6"
                       value={employeeForm.notes}
                       onChange={(event) => setEmployeeForm((current) => ({ ...current, notes: event.target.value }))}
-                      placeholder="Notes for managers about this employee"
+                      placeholder={t("Notes for managers about this employee")}
                     />
                   </label>
                 </section>
@@ -27158,7 +27159,7 @@ function App() {
                 {saveError ? <div className="staff-status-banner">{saveError}</div> : null}
 
                 <div className="modal-actions employee-premium-form-actions">
-                  <button type="button" className="ghost-btn employee-premium-form-cancel-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
+                  <button type="button" className="ghost-btn employee-premium-form-cancel-btn" onClick={handleCloseEmployeeModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn employee-premium-form-save-btn" disabled={isSavingEmployee}>
                     {isSavingEmployee ? 'Saving…' : 'Save'}
                   </button>
@@ -27173,17 +27174,17 @@ function App() {
             <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Schedule overlap</p>
-                  <h3>Employee already works another shift at this time</h3>
+                  <p className="eyebrow">{t("Schedule overlap")}</p>
+                  <h3>{t("Employee already works another shift at this time")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={() => resolveShiftOverlapConfirmation(false)}>✕</button>
               </div>
 
-              <p className="staff-subtitle">Add anyway?</p>
+              <p className="staff-subtitle">{t("Add anyway?")}</p>
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => resolveShiftOverlapConfirmation(false)}>Cancel</button>
-                <button type="button" className="primary-btn" onClick={() => resolveShiftOverlapConfirmation(true)}>Add Anyway</button>
+                <button type="button" className="ghost-btn" onClick={() => resolveShiftOverlapConfirmation(false)}>{t("Cancel")}</button>
+                <button type="button" className="primary-btn" onClick={() => resolveShiftOverlapConfirmation(true)}>{t("Add Anyway")}</button>
               </div>
             </div>
           </div>
@@ -27194,13 +27195,13 @@ function App() {
             <div className="employee-modal schedule-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header schedule-compact-modal-header">
                 <h3>{editingShift ? 'Edit shift' : 'Add shift'}</h3>
-                <button type="button" className="icon-btn" onClick={handleCloseShiftModal} aria-label="Close">✕</button>
+                <button type="button" className="icon-btn" onClick={handleCloseShiftModal} aria-label={t("Close")}>✕</button>
               </div>
 
               <form className="employee-form schedule-shift-form" onSubmit={handleShiftSubmit}>
                 <div className="form-grid schedule-shift-form-grid">
                   <label className="form-field">
-                    <span>Employee</span>
+                    <span>{t("Employee")}</span>
                     <select
                       value={formData.employee_id}
                       onChange={(event) => {
@@ -27220,7 +27221,7 @@ function App() {
                         }))
                       }}
                     >
-                      <option value="">Select employee</option>
+                      <option value="">{t("Select employee")}</option>
                       {employeeOptions.map((employee) => (
                         <option key={employee.id} value={String(employee.id)}>
                           {employee.full_name || employee.name}
@@ -27229,26 +27230,26 @@ function App() {
                     </select>
                   </label>
                   <label className="form-field">
-                    <span>Date</span>
+                    <span>{t("Date")}</span>
                     <input type="date" value={formData.shift_date} onChange={(event) => setFormData((current) => ({ ...current, shift_date: event.target.value }))} />
                   </label>
                   <div className="template-field-row schedule-shift-template-row">
                     <label className="form-field">
-                      <span>Template</span>
+                      <span>{t("Template")}</span>
                       <select value={formData.shift_template} onChange={(event) => handleSelectShiftTemplate(event.target.value)}>
-                        <option value="custom">Custom</option>
+                        <option value="custom">{t("Custom")}</option>
                         {shiftTemplates.length === 0 ? (
-                          <option value="" disabled>No custom templates yet</option>
+                          <option value="" disabled>{t("No custom templates yet")}</option>
                         ) : null}
                         {shiftTemplates.map((template) => (
                           <option key={template.id} value={template.id}>{formatScheduleShiftDisplayName(template.name)}</option>
                         ))}
                       </select>
                     </label>
-                    <button type="button" className="ghost-btn schedule-shift-manage-templates-btn" onClick={handleOpenTemplateModal}>Templates</button>
+                    <button type="button" className="ghost-btn schedule-shift-manage-templates-btn" onClick={handleOpenTemplateModal}>{t("Templates")}</button>
                   </div>
                   <div className="form-field schedule-shift-time-row full-width">
-                    <span>Time</span>
+                    <span>{t("Time")}</span>
                     <div className="schedule-shift-time-fields">
                       <TimeSelect
                         value={formData.start_time}
@@ -27278,16 +27279,16 @@ function App() {
                     ) : null}
                   </div>
                   <label className="form-field">
-                    <span>Position</span>
+                    <span>{t("Position")}</span>
                     <select value={formData.role} onChange={(event) => setFormData((current) => ({ ...current, role: event.target.value }))}>
-                      <option value="">Select position</option>
+                      <option value="">{t("Select position")}</option>
                       {selectedShiftEmployeePositionOptions.map((name) => (
                         <option key={`shift-role-${name}`} value={name}>{name}</option>
                       ))}
                     </select>
                   </label>
                   <label className="form-field">
-                    <span>Area</span>
+                    <span>{t("Area")}</span>
                     <select value={formData.area_option} onChange={(event) => setFormData((current) => ({ ...current, area_option: event.target.value }))}>
                       {scheduleAreaOptions.map((option) => (
                         <option key={option} value={option}>{option}</option>
@@ -27296,34 +27297,34 @@ function App() {
                   </label>
                   {formData.area_option === 'Other' ? (
                     <label className="form-field full-width">
-                      <span>Custom area</span>
+                      <span>{t("Custom area")}</span>
                       <input
                         value={formData.area_custom}
                         onChange={(event) => setFormData((current) => ({ ...current, area_custom: event.target.value }))}
-                        placeholder="Enter custom area"
+                        placeholder={t("Enter custom area")}
                       />
                     </label>
                   ) : null}
                   <label className="form-field full-width">
-                    <span>Status</span>
+                    <span>{t("Status")}</span>
                     <select value={formData.status} onChange={(event) => setFormData((current) => ({ ...current, status: event.target.value }))}>
-                      <option value="Scheduled">Scheduled</option>
-                      <option value="Confirmed">Confirmed</option>
-                      <option value="Pending">Pending</option>
-                      <option value="Completed">Completed</option>
+                      <option value="Scheduled">{t("Scheduled")}</option>
+                      <option value="Confirmed">{t("Confirmed")}</option>
+                      <option value="Pending">{t("Pending")}</option>
+                      <option value="Completed">{t("Completed")}</option>
                     </select>
                   </label>
                 </div>
 
                 <details className="schedule-shift-notes-details">
-                  <summary>Notes (optional)</summary>
+                  <summary>{t("Notes (optional)")}</summary>
                   <label className="form-field full-width">
-                    <textarea rows="2" value={formData.notes} onChange={(event) => setFormData((current) => ({ ...current, notes: event.target.value }))} placeholder="Add notes" />
+                    <textarea rows="2" value={formData.notes} onChange={(event) => setFormData((current) => ({ ...current, notes: event.target.value }))} placeholder={t("Add notes")} />
                   </label>
                 </details>
 
                 <div className="modal-actions schedule-compact-modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseShiftModal}>Cancel</button>
+                  <button type="button" className="ghost-btn" onClick={handleCloseShiftModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn" disabled={isSavingShift}>
                     {isSavingShift ? 'Saving…' : 'Save'}
                   </button>
@@ -27337,13 +27338,13 @@ function App() {
           <div className="employee-modal-backdrop" onClick={handleCloseTemplateModal}>
             <div className="employee-modal schedule-compact-modal schedule-template-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header schedule-compact-modal-header">
-                <h3>Manage templates</h3>
-                <button type="button" className="icon-btn" onClick={handleCloseTemplateModal} aria-label="Close">✕</button>
+                <h3>{t("Manage templates")}</h3>
+                <button type="button" className="icon-btn" onClick={handleCloseTemplateModal} aria-label={t("Close")}>✕</button>
               </div>
 
               <div className="template-list schedule-template-list">
                 {customShiftTemplates.length === 0 ? (
-                  <p className="roster-empty-department">No custom templates yet.</p>
+                  <p className="roster-empty-department">{t("No custom templates yet.")}</p>
                 ) : (
                   customShiftTemplates.map((template) => {
                     const isTemplateRowDragging = draggedShiftTemplateId === String(template.id)
@@ -27377,7 +27378,7 @@ function App() {
                         <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · {template.defaultArea || 'No area'} · Staff {getTemplateDefaultRequiredCount(template)}</p>
                       </div>
                       <div className="action-group schedule-template-list-actions">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)} disabled={isReorderingTemplates}>Edit</button>
+                        <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)} disabled={isReorderingTemplates}>{t("Edit")}</button>
                         <button type="button" className="ghost-btn small" onClick={() => handleDeleteTemplate(template)} disabled={isDeletingTemplate || isReorderingTemplates}>
                           {isDeletingTemplate ? 'Deleting…' : 'Delete'}
                         </button>
@@ -27391,11 +27392,11 @@ function App() {
               <form className="employee-form schedule-template-form" onSubmit={handleTemplateSubmit}>
                 <div className="form-grid schedule-template-form-grid">
                   <label className="form-field full-width">
-                    <span>Template name</span>
-                    <input value={templateForm.name} onChange={(event) => setTemplateForm((current) => ({ ...current, name: event.target.value }))} placeholder="e.g. Dinner service" required />
+                    <span>{t("Template name")}</span>
+                    <input value={templateForm.name} onChange={(event) => setTemplateForm((current) => ({ ...current, name: event.target.value }))} placeholder={t("e.g. Dinner service")} required />
                   </label>
                   <label className="form-field">
-                    <span>Start</span>
+                    <span>{t("Start")}</span>
                     <TimeSelect
                       value={templateForm.startTime}
                       onChange={(time) => setTemplateForm((current) => ({ ...current, startTime: time }))}
@@ -27403,7 +27404,7 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>End</span>
+                    <span>{t("End")}</span>
                     <TimeSelect
                       value={templateForm.endTime}
                       onChange={(time) => setTemplateForm((current) => ({ ...current, endTime: time }))}
@@ -27411,16 +27412,16 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Default role</span>
-                    <input value={templateForm.defaultRole} onChange={(event) => setTemplateForm((current) => ({ ...current, defaultRole: event.target.value }))} placeholder="Optional" />
+                    <span>{t("Default role")}</span>
+                    <input value={templateForm.defaultRole} onChange={(event) => setTemplateForm((current) => ({ ...current, defaultRole: event.target.value }))} placeholder={t("Optional")} />
                   </label>
                   <label className="form-field">
-                    <span>Default area</span>
+                    <span>{t("Default area")}</span>
                     <select
                       value={templateForm.defaultAreaOption}
                       onChange={(event) => setTemplateForm((current) => ({ ...current, defaultAreaOption: event.target.value }))}
                     >
-                      <option value="">Select area</option>
+                      <option value="">{t("Select area")}</option>
                       {scheduleAreaOptions.map((option) => (
                         <option key={`template-area-${option}`} value={option}>{option}</option>
                       ))}
@@ -27428,16 +27429,16 @@ function App() {
                   </label>
                   {templateForm.defaultAreaOption === 'Other' ? (
                     <label className="form-field full-width">
-                      <span>Custom area</span>
+                      <span>{t("Custom area")}</span>
                       <input
                         value={templateForm.defaultAreaCustom}
                         onChange={(event) => setTemplateForm((current) => ({ ...current, defaultAreaCustom: event.target.value }))}
-                        placeholder="Enter custom area"
+                        placeholder={t("Enter custom area")}
                       />
                     </label>
                   ) : null}
                   <label className="form-field">
-                    <span>Required staff</span>
+                    <span>{t("Required staff")}</span>
                     <input
                       type="number"
                       min="0"
@@ -27452,9 +27453,9 @@ function App() {
                 </div>
 
                 <details className="schedule-shift-notes-details">
-                  <summary>Notes (optional)</summary>
+                  <summary>{t("Notes (optional)")}</summary>
                   <label className="form-field full-width">
-                    <textarea rows="2" value={templateForm.notes} onChange={(event) => setTemplateForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Add notes" />
+                    <textarea rows="2" value={templateForm.notes} onChange={(event) => setTemplateForm((current) => ({ ...current, notes: event.target.value }))} placeholder={t("Add notes")} />
                   </label>
                 </details>
 
@@ -27478,7 +27479,7 @@ function App() {
             <div className="employee-modal reservation-smart-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Smart reservation</p>
+                  <p className="eyebrow">{t("Smart reservation")}</p>
                   <h3>{editingReservation ? 'Edit reservation' : 'Add reservation'}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseReservationModal}>✕</button>
@@ -27499,12 +27500,12 @@ function App() {
 
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>Guest Name</span>
+                    <span>{t("Guest Name")}</span>
                     <input
                       list="reservation-guest-suggestions"
                       value={reservationForm.guestName}
                       onChange={(event) => handleReservationGuestNameChange(event.target.value)}
-                      placeholder="Guest Name"
+                      placeholder={t("Guest Name")}
                       required
                     />
                   </label>
@@ -27516,7 +27517,7 @@ function App() {
                     </datalist>
                   ) : null}
                   <label className="form-field">
-                    <span>Phone</span>
+                    <span>{t("Phone")}</span>
                     <ReservationPhoneField
                       value={reservationForm.phone}
                       onChange={(phone) => setReservationForm((current) => ({ ...current, phone }))}
@@ -27524,7 +27525,7 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Date</span>
+                    <span>{t("Date")}</span>
                     <ReservationDateField
                       value={reservationForm.date}
                       onChange={(date) => setReservationForm((current) => ({ ...current, date }))}
@@ -27544,7 +27545,7 @@ function App() {
                     onTimeChange={(time) => setReservationForm((current) => ({ ...current, time }))}
                   />
                   <label className="form-field">
-                    <span>Time</span>
+                    <span>{t("Time")}</span>
                     <ReservationTimeSelect
                       value={reservationForm.time}
                       onChange={(time) => setReservationForm((current) => ({ ...current, time, seatingId: null }))}
@@ -27552,11 +27553,11 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Guests</span>
+                    <span>{t("Guests")}</span>
                     <input type="number" min="1" value={reservationForm.guests} onChange={(event) => setReservationForm((current) => ({ ...current, guests: event.target.value }))} required />
                   </label>
                   <label className="form-field">
-                    <span>Status</span>
+                    <span>{t("Status")}</span>
                     <select value={reservationForm.status} onChange={(event) => setReservationForm((current) => ({ ...current, status: event.target.value }))}>
                       {HOST_RESERVATION_STATUS_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>{option.label}</option>
@@ -27593,13 +27594,13 @@ function App() {
                 />
 
                 <label className="form-field full-width">
-                  <span>Notes</span>
-                  <textarea rows="4" value={reservationForm.notes} onChange={(event) => setReservationForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
-                  <small className="sensitive-field-hint">Don't write health details. Allergies only if needed for the booking — this is sensitive data.</small>
+                  <span>{t("Notes")}</span>
+                  <textarea rows="4" value={reservationForm.notes} onChange={(event) => setReservationForm((current) => ({ ...current, notes: event.target.value }))} placeholder={t("Notes")} />
+                  <small className="sensitive-field-hint">{t("Don't write health details. Allergies only if needed for the booking — this is sensitive data.")}</small>
                 </label>
 
                 <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>Cancel</button>
+                  <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>{t("Cancel")}</button>
                   <button type="button" className="primary-btn" disabled={isSavingReservation} onClick={handleReservationSubmit}>
                     {isSavingReservation ? 'Saving…' : 'Save'}
                   </button>
@@ -27652,8 +27653,8 @@ function App() {
             <div className="employee-modal quick-reservation-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Quick reservation</p>
-                  <h3>Fast booking</h3>
+                  <p className="eyebrow">{t("Quick reservation")}</p>
+                  <h3>{t("Fast booking")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseQuickReservation}>✕</button>
               </div>
@@ -27664,13 +27665,13 @@ function App() {
                 onKeyDownCapture={handleReservationFormEnterKey}
               >
                 <label className="form-field full-width">
-                  <span>Guest</span>
+                  <span>{t("Guest")}</span>
                   <input
                     autoFocus
                     list="quick-reservation-guest-suggestions"
                     value={quickReservationForm.guestName}
                     onChange={(event) => setQuickReservationForm((current) => ({ ...current, guestName: event.target.value }))}
-                    placeholder="Guest name"
+                    placeholder={t("Guest name")}
                     required
                   />
                 </label>
@@ -27680,7 +27681,7 @@ function App() {
                   ))}
                 </datalist>
                 <label className="form-field full-width">
-                  <span>Date</span>
+                  <span>{t("Date")}</span>
                   <ReservationDateField
                     value={quickReservationForm.date}
                     onChange={(date) => setQuickReservationForm((current) => ({ ...current, date }))}
@@ -27690,7 +27691,7 @@ function App() {
                 </label>
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>Time</span>
+                    <span>{t("Time")}</span>
                     <ReservationTimeSelect
                       value={quickReservationForm.time}
                       onChange={(time) => setQuickReservationForm((current) => ({ ...current, time }))}
@@ -27698,7 +27699,7 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Guests</span>
+                    <span>{t("Guests")}</span>
                     <input
                       type="number"
                       min="1"
@@ -27708,17 +27709,17 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Table</span>
+                    <span>{t("Table")}</span>
                     <input
                       value={quickReservationForm.tableNumber}
                       onChange={(event) => setQuickReservationForm((current) => ({ ...current, tableNumber: event.target.value }))}
-                      placeholder="Table"
+                      placeholder={t("Table")}
                     />
                   </label>
                 </div>
                 <p className="quick-reservation-hint">Tap Create to save · Pending status</p>
                 <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseQuickReservation}>Cancel</button>
+                  <button type="button" className="ghost-btn" onClick={handleCloseQuickReservation}>{t("Cancel")}</button>
                   <button type="button" className="primary-btn" disabled={isSavingReservation} onClick={handleQuickReservationSubmit}>
                     {isSavingReservation ? 'Creating…' : 'Create'}
                   </button>
@@ -27733,7 +27734,7 @@ function App() {
             <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Supplier form</p>
+                  <p className="eyebrow">{t("Supplier form")}</p>
                   <h3>{editingSupplier ? 'Edit supplier' : 'Add supplier'}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseSupplierModal}>✕</button>
@@ -27742,46 +27743,46 @@ function App() {
               <form className="employee-form" onSubmit={handleSupplierSubmit}>
                 <div className="form-grid">
                   <label className="form-field">
-                    <span>Company Name</span>
-                    <input value={supplierForm.companyName} onChange={(event) => setSupplierForm((current) => ({ ...current, companyName: event.target.value }))} placeholder="Company Name" required />
+                    <span>{t("Company Name")}</span>
+                    <input value={supplierForm.companyName} onChange={(event) => setSupplierForm((current) => ({ ...current, companyName: event.target.value }))} placeholder={t("Company Name")} required />
                   </label>
                   <label className="form-field">
-                    <span>VAT / Tax ID</span>
-                    <input value={supplierForm.taxId} onChange={(event) => setSupplierForm((current) => ({ ...current, taxId: event.target.value }))} placeholder="VAT / Tax ID" />
+                    <span>{t("VAT / Tax ID")}</span>
+                    <input value={supplierForm.taxId} onChange={(event) => setSupplierForm((current) => ({ ...current, taxId: event.target.value }))} placeholder={t("VAT / Tax ID")} />
                   </label>
                   <label className="form-field">
-                    <span>Contact Person</span>
-                    <input value={supplierForm.contactPerson} onChange={(event) => setSupplierForm((current) => ({ ...current, contactPerson: event.target.value }))} placeholder="Contact Person" />
+                    <span>{t("Contact Person")}</span>
+                    <input value={supplierForm.contactPerson} onChange={(event) => setSupplierForm((current) => ({ ...current, contactPerson: event.target.value }))} placeholder={t("Contact Person")} />
                   </label>
                   <label className="form-field">
-                    <span>Phone</span>
-                    <input value={supplierForm.phone} onChange={(event) => setSupplierForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                    <span>{t("Phone")}</span>
+                    <input value={supplierForm.phone} onChange={(event) => setSupplierForm((current) => ({ ...current, phone: event.target.value }))} placeholder={t("Phone")} />
                   </label>
                   <label className="form-field">
-                    <span>Email</span>
-                    <input type="email" value={supplierForm.email} onChange={(event) => setSupplierForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                    <span>{t("Email")}</span>
+                    <input type="email" value={supplierForm.email} onChange={(event) => setSupplierForm((current) => ({ ...current, email: event.target.value }))} placeholder={t("Email")} />
                   </label>
                   <label className="form-field">
-                    <span>Address</span>
-                    <input value={supplierForm.address} onChange={(event) => setSupplierForm((current) => ({ ...current, address: event.target.value }))} placeholder="Address" />
+                    <span>{t("Address")}</span>
+                    <input value={supplierForm.address} onChange={(event) => setSupplierForm((current) => ({ ...current, address: event.target.value }))} placeholder={t("Address")} />
                   </label>
                   <label className="form-field">
-                    <span>Payment Terms</span>
-                    <input value={supplierForm.paymentTerms} onChange={(event) => setSupplierForm((current) => ({ ...current, paymentTerms: event.target.value }))} placeholder="Payment Terms" />
+                    <span>{t("Payment Terms")}</span>
+                    <input value={supplierForm.paymentTerms} onChange={(event) => setSupplierForm((current) => ({ ...current, paymentTerms: event.target.value }))} placeholder={t("Payment Terms")} />
                   </label>
                   <label className="form-field">
-                    <span>Delivery Days</span>
-                    <input value={supplierForm.deliveryDays} onChange={(event) => setSupplierForm((current) => ({ ...current, deliveryDays: event.target.value }))} placeholder="Delivery Days" />
+                    <span>{t("Delivery Days")}</span>
+                    <input value={supplierForm.deliveryDays} onChange={(event) => setSupplierForm((current) => ({ ...current, deliveryDays: event.target.value }))} placeholder={t("Delivery Days")} />
                   </label>
                 </div>
 
                 <label className="form-field full-width">
-                  <span>Notes</span>
-                  <textarea rows="4" value={supplierForm.notes} onChange={(event) => setSupplierForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
+                  <span>{t("Notes")}</span>
+                  <textarea rows="4" value={supplierForm.notes} onChange={(event) => setSupplierForm((current) => ({ ...current, notes: event.target.value }))} placeholder={t("Notes")} />
                 </label>
 
                 <div className="modal-actions">
-                  <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseSupplierModal}>Cancel</button>
+                  <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseSupplierModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn supplier-modal-action-btn" disabled={isSavingSupplier}>
                     {isSavingSupplier ? 'Saving…' : 'Save'}
                   </button>
@@ -27802,10 +27803,10 @@ function App() {
             >
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Delete confirmation</p>
-                  <h3 id="delete-supplier-title">Delete supplier?</h3>
+                  <p className="eyebrow">{t("Delete confirmation")}</p>
+                  <h3 id="delete-supplier-title">{t("Delete supplier?")}</h3>
                 </div>
-                <button type="button" className="icon-btn" onClick={handleCloseDeleteSupplierModal} aria-label="Close delete supplier dialog">
+                <button type="button" className="icon-btn" onClick={handleCloseDeleteSupplierModal} aria-label={t("Close delete supplier dialog")}>
                   ✕
                 </button>
               </div>
@@ -27814,18 +27815,18 @@ function App() {
                 {supplierDeleteHasHistory ? (
                   <>
                     <p>
-                      <strong>{supplierPendingDelete.companyName}</strong> has linked products or purchase orders.
+                      <strong>{supplierPendingDelete.companyName}</strong> {t("has linked products or purchase orders.")}
                     </p>
-                    <p>Suppliers with history cannot be deleted. Deactivate them from the Suppliers tab instead.</p>
+                    <p>{t("Suppliers with history cannot be deleted. Deactivate them from the Suppliers tab instead.")}</p>
                   </>
                 ) : (
-                  <p>This cannot be undone.</p>
+                  <p>{t("This cannot be undone.")}</p>
                 )}
               </div>
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseDeleteSupplierModal} disabled={isDeletingSupplier}>
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 {!supplierDeleteHasHistory ? (
                   <button type="button" className="primary-btn supplier-delete-confirm-btn supplier-modal-action-btn" onClick={handleConfirmDeleteSupplier} disabled={isDeletingSupplier}>
@@ -27852,8 +27853,8 @@ function App() {
             <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Delete position</p>
-                  <h3>Confirm delete</h3>
+                  <p className="eyebrow">{t("Delete position")}</p>
+                  <h3>{t("Confirm delete")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={() => setPositionPendingDelete(null)}>✕</button>
               </div>
@@ -27866,7 +27867,7 @@ function App() {
               ) : null}
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => setPositionPendingDelete(null)}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={() => setPositionPendingDelete(null)}>{t("Cancel")}</button>
                 <button type="button" className="primary-btn" onClick={handleConfirmDeletePosition} disabled={isSavingPosition}>
                   {isSavingPosition ? 'Deleting…' : 'Delete Position'}
                 </button>
@@ -27880,8 +27881,8 @@ function App() {
             <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Delete seating</p>
-                  <h3>Confirm delete</h3>
+                  <p className="eyebrow">{t("Delete seating")}</p>
+                  <h3>{t("Confirm delete")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={() => setReservationSeatingPendingDelete(null)}>✕</button>
               </div>
@@ -27891,7 +27892,7 @@ function App() {
               </p>
 
               <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={() => setReservationSeatingPendingDelete(null)}>Cancel</button>
+                <button type="button" className="ghost-btn" onClick={() => setReservationSeatingPendingDelete(null)}>{t("Cancel")}</button>
                 <button type="button" className="primary-btn" onClick={handleConfirmDeleteReservationSeating} disabled={isSavingReservationSeating}>
                   {isSavingReservationSeating ? 'Deleting…' : 'Delete seating'}
                 </button>
@@ -27914,14 +27915,14 @@ function App() {
             >
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Reservations</p>
-                  <h3 id="seating-hours-title">Seating hours</h3>
+                  <p className="eyebrow">{t("Reservations")}</p>
+                  <h3 id="seating-hours-title">{t("Seating hours")}</h3>
                 </div>
                 <button
                   type="button"
                   className="icon-btn"
                   onClick={() => setIsSeatingHoursOpen(false)}
-                  aria-label="Close seating hours"
+                  aria-label={t("Close seating hours")}
                 >
                   ✕
                 </button>

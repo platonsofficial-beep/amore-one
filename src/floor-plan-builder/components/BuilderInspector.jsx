@@ -26,15 +26,16 @@ import {
   supportsTableSections,
 } from '../lib/tableSections'
 import { PanelHeader } from './PanelHeader'
+import { t } from '../../i18n/i18n'
 
 const TABLE_ROTATION_STEP = 45
 
 function InspectorEmptyState() {
   return (
     <div className="fpb-inspector-empty">
-      <p className="fpb-inspector-empty-title">No table selected</p>
+      <p className="fpb-inspector-empty-title">{t("No table selected")}</p>
       <p className="fpb-inspector-empty-copy">
-        Tap a table to edit its properties. Tap empty space to clear selection.
+        {t("Tap a table to edit its properties. Tap empty space to clear selection.")}
       </p>
     </div>
   )
@@ -65,7 +66,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
   return (
     <div className="fpb-inspector-multi-actions">
       <p className="fpb-inspector-empty-copy">
-        Click another table to add it. Click a selected table again to remove it.
+        {t("Click another table to add it. Click a selected table again to remove it.")}
       </p>
       <div className="fpb-inspector-actions">
         <button
@@ -74,7 +75,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
           onClick={handleAlignHorizontal}
           disabled={isReadOnly || count < 2}
         >
-          Align horizontal
+          {t("Align horizontal")}
         </button>
         <button
           type="button"
@@ -82,7 +83,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
           onClick={handleAlignVertical}
           disabled={isReadOnly || count < 2}
         >
-          Align vertical
+          {t("Align vertical")}
         </button>
         <button
           type="button"
@@ -90,7 +91,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
           onClick={handleMatchSize}
           disabled={isReadOnly || count < 2}
         >
-          Match size
+          {t("Match size")}
         </button>
         <button
           type="button"
@@ -98,7 +99,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
           onClick={handleDelete}
           disabled={isReadOnly}
         >
-          Delete selected
+          {t("Delete selected")}
         </button>
       </div>
     </div>
@@ -119,7 +120,7 @@ export function BuilderInspector({
 
   if (showMultiSelectPanel) {
     return (
-      <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
+      <aside className="fpb-inspector fpb-inspector-simple" aria-label={t("Table properties")}>
         <PanelHeader
           eyebrow="Properties"
           title={`${selectionCount} tables selected`}
@@ -134,10 +135,10 @@ export function BuilderInspector({
 
   if (!selectedObject || selectedObject.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
     return (
-      <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
+      <aside className="fpb-inspector fpb-inspector-simple" aria-label={t("Table properties")}>
         <PanelHeader
           eyebrow="Properties"
-          title="Table"
+          title={t("Table")}
           onClose={onClose}
           showClose={showCloseButton}
           closeLabel={closeLabel}
@@ -190,7 +191,7 @@ export function BuilderInspector({
   }
 
   return (
-    <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label="Table properties">
+    <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label={t("Table properties")}>
       <PanelHeader
         eyebrow="Properties"
         title={displayLabel}
@@ -198,23 +199,23 @@ export function BuilderInspector({
         showClose={showCloseButton}
         closeLabel={closeLabel}
       >
-        {isReadOnly ? <p className="fpb-inspector-readonly-note">View mode — click Edit layout to change tables.</p> : null}
+        {isReadOnly ? <p className="fpb-inspector-readonly-note">{t("View mode — click Edit layout to change tables.")}</p> : null}
       </PanelHeader>
 
       <div className="fpb-inspector-fields">
         <label className="fpb-inspector-field">
-          <span>Table name</span>
+          <span>{t("Table name")}</span>
           <input
             type="text"
             value={tableNumber}
             onChange={(event) => updateTable({ tableNumber: event.target.value })}
-            placeholder="e.g. T1"
+            placeholder={t("e.g. T1")}
             disabled={isReadOnly}
           />
         </label>
 
         <label className="fpb-inspector-field">
-          <span>Minimum guests</span>
+          <span>{t("Minimum guests")}</span>
           <div className="fpb-inspector-stepper">
             <button
               type="button"
@@ -224,7 +225,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly || minGuests <= TABLE_CAPACITY_MIN}
-              aria-label="Decrease minimum guests"
+              aria-label={t("Decrease minimum guests")}
             >
               −
             </button>
@@ -238,7 +239,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly}
-              aria-label="Minimum guests"
+              aria-label={t("Minimum guests")}
             />
             <button
               type="button"
@@ -248,7 +249,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly || minGuests >= maxGuests || minGuests >= TABLE_CAPACITY_MAX}
-              aria-label="Increase minimum guests"
+              aria-label={t("Increase minimum guests")}
             >
               +
             </button>
@@ -256,7 +257,7 @@ export function BuilderInspector({
         </label>
 
         <label className="fpb-inspector-field">
-          <span>Maximum guests</span>
+          <span>{t("Maximum guests")}</span>
           <div className="fpb-inspector-stepper">
             <button
               type="button"
@@ -266,7 +267,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly || maxGuests <= minGuests || maxGuests <= TABLE_CAPACITY_MIN}
-              aria-label="Decrease maximum guests"
+              aria-label={t("Decrease maximum guests")}
             >
               −
             </button>
@@ -280,7 +281,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly}
-              aria-label="Maximum guests"
+              aria-label={t("Maximum guests")}
             />
             <button
               type="button"
@@ -290,7 +291,7 @@ export function BuilderInspector({
                 updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
               }}
               disabled={showSections || isReadOnly || maxGuests >= TABLE_CAPACITY_MAX}
-              aria-label="Increase maximum guests"
+              aria-label={t("Increase maximum guests")}
             >
               +
             </button>
@@ -300,7 +301,7 @@ export function BuilderInspector({
         {showSections ? (
           <div className="fpb-inspector-sections">
             <div className="fpb-inspector-sections-header">
-              <span>Sections</span>
+              <span>{t("Sections")}</span>
               <button
                 type="button"
                 className="fpb-inspector-sections-add"
@@ -319,7 +320,7 @@ export function BuilderInspector({
                   })
                 }}
               >
-                Add section
+                {t("Add section")}
               </button>
             </div>
 
@@ -329,7 +330,7 @@ export function BuilderInspector({
                 className="fpb-inspector-sections-seed"
                 onClick={() => updateTable({ sections: createDefaultSections(shape, floorId) })}
               >
-                Add default sections
+                {t("Add default sections")}
               </button>
             ) : null}
 
@@ -346,7 +347,7 @@ export function BuilderInspector({
                     ))
                     updateTable({ sections: nextSections })
                   }}
-                  placeholder="Label"
+                  placeholder={t("Label")}
                 />
                 <input
                   type="number"
@@ -360,7 +361,7 @@ export function BuilderInspector({
                     ))
                     updateTable({ sections: nextSections })
                   }}
-                  aria-label="Stools"
+                  aria-label={t("Stools")}
                 />
                 <input
                   type="number"
@@ -374,7 +375,7 @@ export function BuilderInspector({
                     ))
                     updateTable({ sections: nextSections })
                   }}
-                  aria-label="Max guests"
+                  aria-label={t("Max guests")}
                 />
                 <button
                   type="button"
@@ -382,7 +383,7 @@ export function BuilderInspector({
                   onClick={() => updateTable({
                     sections: sections.filter((_, entryIndex) => entryIndex !== index),
                   })}
-                  aria-label="Remove section"
+                  aria-label={t("Remove section")}
                 >
                   ×
                 </button>
@@ -396,7 +397,7 @@ export function BuilderInspector({
         ) : null}
 
         <label className="fpb-inspector-field">
-          <span>Shape</span>
+          <span>{t("Shape")}</span>
           <select
             className="fpb-inspector-select"
             value={shape}
@@ -411,9 +412,9 @@ export function BuilderInspector({
           </select>
         </label>
 
-        <div className="fpb-inspector-size-presets" aria-label="Table size presets">
+        <div className="fpb-inspector-size-presets" aria-label={t("Table size presets")}>
           <div className="fpb-inspector-size-presets-header">
-            <span className="fpb-inspector-size-presets-label">Quick size</span>
+            <span className="fpb-inspector-size-presets-label">{t("Quick size")}</span>
             <span
               className={`fpb-inspector-size-presets-status${activeSizePreset ? '' : ' is-custom'}`}
               aria-live="polite"
@@ -447,21 +448,21 @@ export function BuilderInspector({
             onClick={() => updateTable(buildTableSizeResetPatch(shape))}
             disabled={isReadOnly}
           >
-            Reset size
+            {t("Reset size")}
           </button>
         </div>
 
         {!isTabletLayout ? (
         <div className="fpb-inspector-dimension-controls">
           <label className="fpb-inspector-field">
-            <span>Width</span>
+            <span>{t("Width")}</span>
             <div className="fpb-inspector-stepper">
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
                 onClick={() => updateTable({ width: width - 8 })}
                 disabled={isReadOnly || !canDecreaseTableDimension(width, -8, shape, 'width')}
-                aria-label="Decrease width"
+                aria-label={t("Decrease width")}
               >
                 −
               </button>
@@ -477,7 +478,7 @@ export function BuilderInspector({
                 className="fpb-inspector-stepper-btn"
                 onClick={() => updateTable({ width: width + 8 })}
                 disabled={isReadOnly}
-                aria-label="Increase width"
+                aria-label={t("Increase width")}
               >
                 +
               </button>
@@ -485,14 +486,14 @@ export function BuilderInspector({
           </label>
 
           <label className="fpb-inspector-field">
-            <span>Height</span>
+            <span>{t("Height")}</span>
             <div className="fpb-inspector-stepper">
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
                 onClick={() => updateTable({ height: height - 8 })}
                 disabled={isReadOnly || !canDecreaseTableDimension(height, -8, shape, 'height')}
-                aria-label="Decrease height"
+                aria-label={t("Decrease height")}
               >
                 −
               </button>
@@ -508,7 +509,7 @@ export function BuilderInspector({
                 className="fpb-inspector-stepper-btn"
                 onClick={() => updateTable({ height: height + 8 })}
                 disabled={isReadOnly}
-                aria-label="Increase height"
+                aria-label={t("Increase height")}
               >
                 +
               </button>
@@ -518,14 +519,14 @@ export function BuilderInspector({
         ) : null}
 
         <div className="fpb-inspector-field">
-          <span>Rotation</span>
+          <span>{t("Rotation")}</span>
           <div className="fpb-inspector-rotation-controls">
             <button
               type="button"
               className="fpb-inspector-rotation-btn"
               onClick={() => updateTable({ rotation: stepRotation(rotation, -TABLE_ROTATION_STEP) })}
               disabled={isReadOnly}
-              aria-label="Rotate left 45 degrees"
+              aria-label={t("Rotate left 45 degrees")}
             >
               ↺ Left
             </button>
@@ -537,14 +538,14 @@ export function BuilderInspector({
               value={rotation}
               onChange={(event) => updateTable({ rotation: event.target.value })}
               disabled={isReadOnly}
-              aria-label="Rotation degrees"
+              aria-label={t("Rotation degrees")}
             />
             <button
               type="button"
               className="fpb-inspector-rotation-btn"
               onClick={() => updateTable({ rotation: stepRotation(rotation, TABLE_ROTATION_STEP) })}
               disabled={isReadOnly}
-              aria-label="Rotate right 45 degrees"
+              aria-label={t("Rotate right 45 degrees")}
             >
               Right ↻
             </button>
@@ -552,7 +553,7 @@ export function BuilderInspector({
         </div>
 
         <label className="fpb-inspector-field">
-          <span>Area</span>
+          <span>{t("Area")}</span>
           <select
             className="fpb-inspector-select"
             value={floorId}
@@ -573,7 +574,7 @@ export function BuilderInspector({
           onClick={handleDelete}
           disabled={isReadOnly}
         >
-          Delete table
+          {t("Delete table")}
         </button>
       </div>
     </aside>

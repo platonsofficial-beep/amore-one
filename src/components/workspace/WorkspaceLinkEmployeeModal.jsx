@@ -1,4 +1,5 @@
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 function resolveEmployeeLabel(employee) {
   const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || 'Unnamed employee'
@@ -33,19 +34,19 @@ export function WorkspaceLinkEmployeeModal({
       <div className="employee-modal blend-compact-modal workspace-link-employee-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Team member</p>
-            <h3>Link employee</h3>
+            <p className="eyebrow">{t("Team member")}</p>
+            <h3>{t("Link employee")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
         </div>
 
         <div className="workspace-link-employee-body">
           <p className="workspace-link-employee-copy">
-            Connect your signed-in account to an existing staff record.
+            {t("Connect your signed-in account to an existing staff record.")}
           </p>
 
           <label className="form-field full-width">
-            <span>Employee</span>
+            <span>{t("Employee")}</span>
             <select
               value={selectedEmployeeId}
               onChange={(event) => onSelectEmployeeId?.(event.target.value)}
@@ -69,7 +70,7 @@ export function WorkspaceLinkEmployeeModal({
 
         <div className="drawer-footer workspace-link-employee-footer">
           <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"

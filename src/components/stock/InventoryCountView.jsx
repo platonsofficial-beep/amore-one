@@ -14,6 +14,7 @@ import { InventoryCountPostedReview } from './InventoryCountPostedReview'
 import { InventoryCountCorrectionReview } from './InventoryCountCorrectionReview'
 import { staffShelfCountPresentation } from '../../lib/staffShelfCount'
 import { formatVenueDateTime } from '../../lib/timeFormatUtils'
+import { t } from '../../i18n/i18n'
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
@@ -87,7 +88,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
               type="button"
               className="inventory-count-session-delete-btn"
               aria-label={`Delete ${title} inventory count`}
-              title="Delete inventory count"
+              title={t("Delete inventory count")}
               disabled={deleteDisabled}
               onClick={(event) => {
                 event.preventDefault()
@@ -102,24 +103,24 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
       </div>
       <dl className="inventory-count-session-card-meta">
         <div>
-          <dt>Started</dt>
+          <dt>{t("Started")}</dt>
           <dd>{formatSessionDate(session.startedAt, timeZone)}</dd>
         </div>
         <div>
-          <dt>Operator</dt>
+          <dt>{t("Operator")}</dt>
           <dd>{operator}</dd>
         </div>
         <div>
-          <dt>Locations</dt>
+          <dt>{t("Locations")}</dt>
           <dd>{formatLocations(session)}</dd>
         </div>
         <div>
-          <dt>Progress</dt>
+          <dt>{t("Progress")}</dt>
           <dd>{formatProgress(session)}</dd>
         </div>
         {shelfCount?.detail ? (
           <div>
-            <dt>Approval</dt>
+            <dt>{t("Approval")}</dt>
             <dd>{shelfCount.detail}</dd>
           </div>
         ) : null}
@@ -158,11 +159,11 @@ function InventoryCountDeleteDialog({
         onClick={(event) => event.stopPropagation()}
       >
         <h2 id="inventory-count-delete-title" className="inventory-count-delete-dialog-title">
-          Delete Inventory Count?
+          {t("Delete Inventory Count?")}
         </h2>
         <div id="inventory-count-delete-body" className="inventory-count-delete-dialog-body">
-          <p>Are you sure you want to permanently delete this inventory count?</p>
-          <p>This action cannot be undone.</p>
+          <p>{t("Are you sure you want to permanently delete this inventory count?")}</p>
+          <p>{t("This action cannot be undone.")}</p>
         </div>
         {error ? (
           <p className="inventory-count-session-card-error" role="alert">{error}</p>
@@ -174,7 +175,7 @@ function InventoryCountDeleteDialog({
             disabled={isDeleting}
             onClick={onCancel}
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -230,7 +231,7 @@ function InventoryCountSessionCard({
             onClick={() => onReview?.(session)}
             disabled={isBusy}
           >
-            Review
+            {t("Review")}
           </button>
           <button
             type="button"
@@ -293,7 +294,7 @@ function InventoryCountSessionCard({
               if (!isBusy) onOpen?.(session)
             }}
           >
-            Continue count
+            {t("Continue count")}
           </button>
         </div>
       ) : null}
@@ -327,7 +328,7 @@ function InventoryCountSessionPanel({
     <article className="panel staff-panel inventory-count-panel">
       <h3 className="inventory-count-panel-title">{title}</h3>
       {isLoading ? (
-        <p className="inventory-count-panel-loading" role="status">Loading…</p>
+        <p className="inventory-count-panel-loading" role="status">{t("Loading…")}</p>
       ) : hasSessions ? (
         <div className="inventory-count-session-list" role="list">
           {sessions.map((session) => (
@@ -781,12 +782,12 @@ export function InventoryCountView({
   }
 
   return (
-    <section className="inventory-count-page" aria-label="Counts">
+    <section className="inventory-count-page" aria-label={t("Counts")}>
       <header className="inventory-count-header">
         <div className="inventory-count-header-copy">
-          <h2 className="inventory-count-title">Counts</h2>
+          <h2 className="inventory-count-title">{t("Counts")}</h2>
           <p className="inventory-count-subtitle">
-            Count inventory by location, review variances, and post verified stock levels.
+            {t("Count inventory by location, review variances, and post verified stock levels.")}
           </p>
         </div>
         {canManage ? (
@@ -795,7 +796,7 @@ export function InventoryCountView({
             className="primary-btn inventory-count-start-btn"
             onClick={() => setIsWizardOpen(true)}
           >
-            Start count
+            {t("Start count")}
           </button>
         ) : null}
       </header>
@@ -826,16 +827,16 @@ export function InventoryCountView({
             ? ' is-recent-only'
             : ''
         }`}
-        aria-label="Inventory count status"
+        aria-label={t("Inventory count status")}
       >
         {!isLoadingSessions && activeSessions.length === 0 && pausedSessions.length === 0 ? (
           <div className="inventory-count-quiet-empty">
-            <p>No active counts.</p>
+            <p>{t("No active counts.")}</p>
           </div>
         ) : (
           <>
             <InventoryCountSessionPanel
-              title="Active counts"
+              title={t("Active counts")}
               sessions={visibleActiveSessions}
               emptyTitle={searchNeedle && activeSessions.length > 0 ? 'No active counts match this search.' : 'No active counts.'}
               emptyTitle="No active counts."
@@ -853,7 +854,7 @@ export function InventoryCountView({
               timeZone={timeZone}
             />
             <InventoryCountSessionPanel
-              title="Paused counts"
+              title={t("Paused counts")}
               sessions={visiblePausedSessions}
               emptyTitle={searchNeedle && pausedSessions.length > 0 ? 'No paused counts match this search.' : 'No paused counts.'}
               emptyCopy=""
@@ -869,7 +870,7 @@ export function InventoryCountView({
           </>
         )}
         <InventoryCountSessionPanel
-          title="Recent counts"
+          title={t("Recent counts")}
           sessions={visibleRecentSessions}
           emptyTitle={searchNeedle && recentSessions.length > 0 ? 'No completed counts match this search.' : 'No completed counts yet.'}
           emptyCopy=""
@@ -884,12 +885,12 @@ export function InventoryCountView({
         />
       </div>
 
-      <aside className="panel staff-panel inventory-count-howto" aria-label="How Inventory Count will work">
-        <h3 className="inventory-count-panel-title">How Inventory Count will work</h3>
+      <aside className="panel staff-panel inventory-count-howto" aria-label={t("How Inventory Count will work")}>
+        <h3 className="inventory-count-panel-title">{t("How Inventory Count will work")}</h3>
         <ol className="inventory-count-howto-steps">
-          <li>Choose locations or items</li>
-          <li>Count and review variances</li>
-          <li>Post verified stock levels</li>
+          <li>{t("Choose locations or items")}</li>
+          <li>{t("Count and review variances")}</li>
+          <li>{t("Post verified stock levels")}</li>
         </ol>
       </aside>
 

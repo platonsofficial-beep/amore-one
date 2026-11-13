@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { approveLeaveRequest, rejectLeaveRequest } from '../../services/leaveService'
+import { t } from '../../i18n/i18n'
 
 function normalizeRejectionReason(value) {
   return `${value ?? ''}`.trim()
@@ -269,13 +270,13 @@ export function ManagerLeaveDetailsDrawer({
         `}</style>
 
         <div className="manager-leave-details-drawer-top">
-          <p className="eyebrow">Leave request</p>
+          <p className="eyebrow">{t("Leave request")}</p>
           <button
             type="button"
             className="icon-btn"
             onClick={handleClose}
             disabled={isActionPending}
-            aria-label="Close leave request details"
+            aria-label={t("Close leave request details")}
           >
             ✕
           </button>
@@ -290,27 +291,27 @@ export function ManagerLeaveDetailsDrawer({
 
         <div className="manager-leave-details-drawer-body">
           <section>
-            <h4 className="manager-leave-details-drawer-section-title">Request details</h4>
+            <h4 className="manager-leave-details-drawer-section-title">{t("Request details")}</h4>
             <dl className="manager-leave-details-drawer-fields">
               <div className="manager-leave-details-drawer-field">
-                <dt>Leave type</dt>
+                <dt>{t("Leave type")}</dt>
                 <dd>{leaveDetail.leaveTypeLabel}</dd>
               </div>
               <div className="manager-leave-details-drawer-field">
-                <dt>Start date</dt>
+                <dt>{t("Start date")}</dt>
                 <dd>{leaveDetail.startDate}</dd>
               </div>
               <div className="manager-leave-details-drawer-field">
-                <dt>End date</dt>
+                <dt>{t("End date")}</dt>
                 <dd>{leaveDetail.endDate}</dd>
               </div>
               <div className="manager-leave-details-drawer-field">
-                <dt>Duration</dt>
+                <dt>{t("Duration")}</dt>
                 <dd>{leaveDetail.durationLabel}</dd>
               </div>
               {leaveDetail.submittedDate ? (
                 <div className="manager-leave-details-drawer-field">
-                  <dt>Submitted</dt>
+                  <dt>{t("Submitted")}</dt>
                   <dd>{leaveDetail.submittedDate}</dd>
                 </div>
               ) : null}
@@ -318,7 +319,7 @@ export function ManagerLeaveDetailsDrawer({
           </section>
 
           <section>
-            <h4 className="manager-leave-details-drawer-section-title">Note</h4>
+            <h4 className="manager-leave-details-drawer-section-title">{t("Note")}</h4>
             <p className={`manager-leave-details-drawer-note${noteText ? '' : ' is-empty'}`}>
               {noteText || 'No note provided.'}
             </p>
@@ -327,7 +328,7 @@ export function ManagerLeaveDetailsDrawer({
           {isPending ? (
             <section>
               <label className="manager-leave-rejection-reason-field form-field full-width">
-                <span>Rejection reason</span>
+                <span>{t("Rejection reason")}</span>
                 <textarea
                   className="manager-leave-rejection-reason"
                   value={rejectionReason}
@@ -337,7 +338,7 @@ export function ManagerLeaveDetailsDrawer({
                       setRejectionReasonError('')
                     }
                   }}
-                  placeholder="Enter the reason for rejecting this leave request..."
+                  placeholder={t("Enter the reason for rejecting this leave request...")}
                   rows={3}
                   disabled={isActionPending}
                   aria-invalid={rejectionReasonError ? 'true' : 'false'}
@@ -361,7 +362,7 @@ export function ManagerLeaveDetailsDrawer({
                 onClick={handleRejectClick}
                 disabled={isActionPending || !hasRejectionReason}
               >
-                Reject Leave
+                {t("Reject Leave")}
               </button>
               <button
                 type="button"
@@ -369,7 +370,7 @@ export function ManagerLeaveDetailsDrawer({
                 onClick={handleApproveClick}
                 disabled={isActionPending}
               >
-                Approve Leave
+                {t("Approve Leave")}
               </button>
             </div>
           ) : null}
@@ -388,22 +389,22 @@ export function ManagerLeaveDetailsDrawer({
           >
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Leave approval</p>
-                <h3 id="manager-leave-approve-confirm-title">Approve leave request?</h3>
+                <p className="eyebrow">{t("Leave approval")}</p>
+                <h3 id="manager-leave-approve-confirm-title">{t("Approve leave request?")}</h3>
               </div>
               <button
                 type="button"
                 className="icon-btn"
                 onClick={handleConfirmCancel}
                 disabled={isActionPending}
-                aria-label="Close approval confirmation"
+                aria-label={t("Close approval confirmation")}
               >
                 ✕
               </button>
             </div>
 
             <p className="manager-leave-approve-confirm-copy">
-              This will approve the leave request and cannot be undone from this screen.
+              {t("This will approve the leave request and cannot be undone from this screen.")}
             </p>
 
             <div className="modal-actions">
@@ -413,7 +414,7 @@ export function ManagerLeaveDetailsDrawer({
                 onClick={handleConfirmCancel}
                 disabled={isActionPending}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -440,22 +441,22 @@ export function ManagerLeaveDetailsDrawer({
           >
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">Leave rejection</p>
-                <h3 id="manager-leave-reject-confirm-title">Reject leave request?</h3>
+                <p className="eyebrow">{t("Leave rejection")}</p>
+                <h3 id="manager-leave-reject-confirm-title">{t("Reject leave request?")}</h3>
               </div>
               <button
                 type="button"
                 className="icon-btn"
                 onClick={handleConfirmCancel}
                 disabled={isActionPending}
-                aria-label="Close rejection confirmation"
+                aria-label={t("Close rejection confirmation")}
               >
                 ✕
               </button>
             </div>
 
             <p className="manager-leave-reject-confirm-copy">
-              This will reject the leave request and cannot be undone from this screen.
+              {t("This will reject the leave request and cannot be undone from this screen.")}
             </p>
 
             <div className="modal-actions">
@@ -465,7 +466,7 @@ export function ManagerLeaveDetailsDrawer({
                 onClick={handleConfirmCancel}
                 disabled={isActionPending}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"

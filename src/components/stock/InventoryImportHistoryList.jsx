@@ -8,6 +8,7 @@ import {
 } from '../../services/inventoryImportService'
 import { listRecentInventoryImportSessions as listRecentInventoryImportSessionsDefault } from '../../services/inventoryImportHistoryService'
 import { InventoryImportUndoConfirm } from './InventoryImportUndoConfirm'
+import { t } from '../../i18n/i18n'
 
 export function InventoryImportHistoryList({
   workspaceId = '',
@@ -127,22 +128,22 @@ export function InventoryImportHistoryList({
   }
 
   return (
-    <section className="inventory-import-history" aria-label="Recent imports" data-import-history="list">
+    <section className="inventory-import-history" aria-label={t("Recent imports")} data-import-history="list">
       <header className="inventory-import-history-header">
-        <h3 className="inventory-import-history-title">Recent imports</h3>
+        <h3 className="inventory-import-history-title">{t("Recent imports")}</h3>
         <p className="inventory-import-history-copy">
-          Recent imports stay on this page after you finish.
+          {t("Recent imports stay on this page after you finish.")}
         </p>
       </header>
 
       {isLoading ? (
-        <p className="inventory-import-history-status" role="status">Loading recent imports…</p>
+        <p className="inventory-import-history-status" role="status">{t("Loading recent imports…")}</p>
       ) : null}
       {loadError ? (
         <p className="inventory-import-history-error" role="alert">{loadError}</p>
       ) : null}
       {!isLoading && !loadError && sessions.length === 0 ? (
-        <p className="inventory-import-history-status">No imports yet.</p>
+        <p className="inventory-import-history-status">{t("No imports yet.")}</p>
       ) : null}
 
       {sessions.length > 0 ? (
@@ -150,11 +151,11 @@ export function InventoryImportHistoryList({
         <table className="inventory-import-history-table">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Who</th>
-              <th>File</th>
-              <th>Result</th>
-              <th>Status</th>
+              <th>{t("When")}</th>
+              <th>{t("Who")}</th>
+              <th>{t("File")}</th>
+              <th>{t("Result")}</th>
+              <th>{t("Status")}</th>
               <th />
             </tr>
           </thead>
@@ -195,7 +196,7 @@ export function InventoryImportHistoryList({
                       setConfirmSessionId(session.id)
                     }}
                   >
-                    Undo import
+                    {t("Undo import")}
                   </button>
                 ) : null}
                 {reasons.length > 0 ? (
@@ -206,7 +207,7 @@ export function InventoryImportHistoryList({
                   </ul>
                 ) : null}
                 {session.status === 'completed' && eligibility && !eligibility.allowed && !eligibility.hidden && reasons.length === 0 ? (
-                  <p className="inventory-import-history-reasons">This import cannot be undone.</p>
+                  <p className="inventory-import-history-reasons">{t("This import cannot be undone.")}</p>
                 ) : null}
               </td>
               </tr>

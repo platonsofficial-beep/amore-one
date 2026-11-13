@@ -15,6 +15,7 @@ import {
   matchesStockItemPermanentDeletePhrase,
 } from '../../lib/stockItemPermanentDeleteUi'
 import { getOpenInventoryCountBlockerForStockItem } from '../../services/inventoryCountService'
+import { t } from '../../i18n/i18n'
 
 function readInputValue(ref) {
   return `${ref.current?.value ?? ''}`.trim()
@@ -313,13 +314,13 @@ export function StockItemPermanentDeleteDialog({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Destructive action</p>
+            <p className="eyebrow">{t("Destructive action")}</p>
             <h3 id="stock-item-permanent-delete-title">
               {phase === 'success' ? 'Product deleted' : 'Delete product'}
             </h3>
             {phase !== 'success' ? (
               <p className="stock-item-permanent-delete-subtitle">
-                This action permanently removes this Stock product.
+                {t("This action permanently removes this Stock product.")}
               </p>
             ) : null}
           </div>
@@ -328,7 +329,7 @@ export function StockItemPermanentDeleteDialog({
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isBusy || phase === 'executing'}
-            aria-label="Close permanent delete"
+            aria-label={t("Close permanent delete")}
           >
             ✕
           </button>
@@ -339,7 +340,7 @@ export function StockItemPermanentDeleteDialog({
             <div className="stock-item-permanent-delete-body is-internal-scroll">
               <div className="stock-item-permanent-delete-success" role="status">
                 <p className="stock-item-permanent-delete-copy">
-                  <strong>Successfully deleted:</strong>
+                  <strong>{t("Successfully deleted:")}</strong>
                 </p>
                 <ul className="stock-item-permanent-delete-list">
                   <li>✓ Product</li>
@@ -353,7 +354,7 @@ export function StockItemPermanentDeleteDialog({
                   </li>
                 </ul>
                 <p className="stock-item-permanent-delete-copy">
-                  <strong>Preserved:</strong>
+                  <strong>{t("Preserved:")}</strong>
                 </p>
                 <ul className="stock-item-permanent-delete-list">
                   <li>✓ Purchase Orders</li>
@@ -365,7 +366,7 @@ export function StockItemPermanentDeleteDialog({
             </div>
             <div className="modal-actions stock-item-permanent-delete-actions is-dialog-footer">
               <button type="button" className="primary-btn" onClick={handleDismiss}>
-                Done
+                {t("Done")}
               </button>
             </div>
           </>
@@ -374,7 +375,7 @@ export function StockItemPermanentDeleteDialog({
             <div className="stock-item-permanent-delete-body is-internal-scroll">
               {phase === 'loading' ? (
                 <p className="stock-item-permanent-delete-copy" role="status">
-                  Loading permanent delete preview…
+                  {t("Loading permanent delete preview…")}
                 </p>
               ) : null}
 
@@ -386,7 +387,7 @@ export function StockItemPermanentDeleteDialog({
 
               {(phase === 'ready' || phase === 'executing') && preview?.product ? (
                 <>
-                  <div className="stock-item-permanent-delete-product-card" aria-label="Product summary">
+                  <div className="stock-item-permanent-delete-product-card" aria-label={t("Product summary")}>
                     <strong>{preview.product.name}</strong>
                     <p>
                       {preview.product.unit || '—'}
@@ -399,24 +400,24 @@ export function StockItemPermanentDeleteDialog({
                     </p>
                   </div>
 
-                  <section className="stock-item-permanent-delete-section" aria-label="Deleted records">
-                    <h4>This product will be deleted</h4>
+                  <section className="stock-item-permanent-delete-section" aria-label={t("Deleted records")}>
+                    <h4>{t("This product will be deleted")}</h4>
                     <ul className="stock-item-permanent-delete-list">
                       <li>✓ Product</li>
                       <li>✓ Current quantity</li>
                       <li>✓ Stock movements</li>
                     </ul>
                     <dl className="stock-item-permanent-delete-stats">
-                      <div><dt>Receive</dt><dd>{countOrZero(movements.receive)}</dd></div>
-                      <div><dt>Usage</dt><dd>{countOrZero(movements.usage)}</dd></div>
-                      <div><dt>Adjustments</dt><dd>{countOrZero(movements.adjustment)}</dd></div>
-                      <div><dt>Stock Count</dt><dd>{countOrZero(movements.stock_count)}</dd></div>
-                      <div><dt>Total</dt><dd>{countOrZero(movements.total)}</dd></div>
+                      <div><dt>{t("Receive")}</dt><dd>{countOrZero(movements.receive)}</dd></div>
+                      <div><dt>{t("Usage")}</dt><dd>{countOrZero(movements.usage)}</dd></div>
+                      <div><dt>{t("Adjustments")}</dt><dd>{countOrZero(movements.adjustment)}</dd></div>
+                      <div><dt>{t("Stock Count")}</dt><dd>{countOrZero(movements.stock_count)}</dd></div>
+                      <div><dt>{t("Total")}</dt><dd>{countOrZero(movements.total)}</dd></div>
                     </dl>
                   </section>
 
-                  <section className="stock-item-permanent-delete-section" aria-label="Preserved records">
-                    <h4>The following will be preserved</h4>
+                  <section className="stock-item-permanent-delete-section" aria-label={t("Preserved records")}>
+                    <h4>{t("The following will be preserved")}</h4>
                     <ul className="stock-item-permanent-delete-list">
                       <li>
                         ✓ Purchase Orders (
@@ -447,14 +448,14 @@ export function StockItemPermanentDeleteDialog({
                       </li>
                     </ul>
                     <p className="stock-item-permanent-delete-copy">
-                      Historical documents remain readable.
+                      {t("Historical documents remain readable.")}
                     </p>
                   </section>
 
                   {hasOpenCountBlock ? (
                     <section
                       className="stock-item-permanent-delete-block-card"
-                      aria-label="Blocked by Inventory Count"
+                      aria-label={t("Blocked by Inventory Count")}
                     >
                       <h4>{openCountBlockDetails.title}</h4>
                       {openCountBlockDetails.fields ? (
@@ -485,7 +486,7 @@ export function StockItemPermanentDeleteDialog({
                           }}
                           disabled={isBusy}
                         >
-                          Open Inventory Count
+                          {t("Open Inventory Count")}
                         </button>
                       ) : null}
                     </section>
@@ -509,12 +510,12 @@ export function StockItemPermanentDeleteDialog({
                         setConfirmText(event.target.value)
                       }}
                       disabled={isBusy}
-                      aria-label="Typed confirmation phrase"
+                      aria-label={t("Typed confirmation phrase")}
                     />
                   </label>
 
                   <label className="form-field stock-item-permanent-delete-password-field">
-                    <span>Confirm with your account password</span>
+                    <span>{t("Confirm with your account password")}</span>
                     <input
                       ref={passwordRef}
                       type="password"
@@ -527,7 +528,7 @@ export function StockItemPermanentDeleteDialog({
                         syncPasswordFromDom()
                       }}
                       disabled={isBusy}
-                      aria-label="Account password"
+                      aria-label={t("Account password")}
                     />
                   </label>
                 </>
@@ -552,7 +553,7 @@ export function StockItemPermanentDeleteDialog({
                   onClick={handleDismiss}
                   disabled={isBusy || phase === 'executing'}
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="submit"

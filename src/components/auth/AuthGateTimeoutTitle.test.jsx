@@ -27,9 +27,9 @@ const renderWith = (membershipLoadError) => {
 }
 
 describe('AuthGate error title', () => {
-  it('shows «Πρόβλημα σύνδεσης» with Try again for the bootstrap timeout', () => {
+  it('shows the connection problem with Try again for the bootstrap timeout', () => {
     const r = renderWith('TIMEOUT_MSG')
-    expect(r.title).toBe('Πρόβλημα σύνδεσης')
+    expect(r.title).toBe('Connection problem')
     expect(r.buttons).toEqual(['Try again', 'Sign out'])
   })
   it('keeps the existing title for other join errors', () => {

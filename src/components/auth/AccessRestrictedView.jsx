@@ -1,5 +1,6 @@
 import { getModuleLabel } from '../../lib/appNavigation'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
+import { t } from '../../i18n/i18n'
 
 export function AccessRestrictedView({
   moduleId = '',
@@ -13,13 +14,13 @@ export function AccessRestrictedView({
   return (
     <section className="access-restricted-view panel staff-panel" aria-live="polite">
       <div className="access-restricted-icon" aria-hidden="true">🔒</div>
-      <h3>Access restricted</h3>
+      <h3>{t("Access restricted")}</h3>
       <p>
         {moduleLabel} is not available for your role
         {resolvedRoleLabel ? ` (${resolvedRoleLabel})` : ''}.
       </p>
       <button type="button" className="primary-btn" onClick={onGoDashboard}>
-        Go to Today
+        {t("Go to Today")}
       </button>
     </section>
   )

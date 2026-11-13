@@ -3,6 +3,7 @@ import {
   formatUserFacingLoadError,
   isTechnicalErrorText,
 } from '../../lib/userFacingLoadError'
+import { t } from '../../i18n/i18n'
 
 export function LoadFailureBanner({
   message = '',
@@ -21,7 +22,7 @@ export function LoadFailureBanner({
       <p>{text}</p>
       {typeof onRetry === 'function' ? (
         <button type="button" className="ghost-btn load-failure-retry" onClick={onRetry}>
-          {LOAD_RETRY_LABEL}
+          {t(LOAD_RETRY_LABEL)}
         </button>
       ) : null}
     </div>

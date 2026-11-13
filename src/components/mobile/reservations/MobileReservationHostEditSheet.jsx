@@ -4,6 +4,7 @@ import {
   HostReservationEditPanel,
 } from '../../reservations/HostReservationEditPanel'
 import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
+import { t } from '../../../i18n/i18n'
 
 export function MobileReservationHostEditSheet({
   reservation = null,
@@ -43,7 +44,7 @@ export function MobileReservationHostEditSheet({
   const header = (
     <header className="mobile-host-reservation-panel-header">
       <div className="mobile-host-reservation-panel-header-copy">
-        <p className="mobile-screen-eyebrow">Reservation</p>
+        <p className="mobile-screen-eyebrow">{t("Reservation")}</p>
         <h2 className="mobile-host-reservation-panel-title">
           {reservation.guestName || 'Edit reservation'}
         </h2>
@@ -52,7 +53,7 @@ export function MobileReservationHostEditSheet({
         type="button"
         className="mobile-sheet-close-btn"
         onClick={onClose}
-        aria-label="Close"
+        aria-label={t("Close")}
       >
         ✕
       </button>
@@ -81,7 +82,7 @@ export function MobileReservationHostEditSheet({
 
   if (variant === 'inline') {
     return (
-      <div className="mobile-host-reservation-inline-panel host-station-form-surface is-edit" role="region" aria-label="Edit reservation">
+      <div className="mobile-host-reservation-inline-panel host-station-form-surface is-edit" role="region" aria-label={t("Edit reservation")}>
         {header}
         <div className="mobile-host-reservation-inline-body mobile-host-reservation-edit-body">
           {panelBody}
@@ -100,7 +101,7 @@ export function MobileReservationHostEditSheet({
           aria-modal="true"
           aria-labelledby="mobile-host-reservation-edit-title"
         >
-          <div id="mobile-host-reservation-edit-title" className="sr-only">Edit reservation</div>
+          <div id="mobile-host-reservation-edit-title" className="sr-only">{t("Edit reservation")}</div>
           {header}
           <div className="mobile-host-reservation-panel-body mobile-host-reservation-edit-body">
             {panelBody}
@@ -122,7 +123,7 @@ export function MobileReservationHostEditSheet({
         <div className="mobile-sheet-handle" aria-hidden="true" />
         <header className="mobile-sheet-header">
           <div className="mobile-sheet-header-copy">
-            <p className="mobile-screen-eyebrow">Reservation</p>
+            <p className="mobile-screen-eyebrow">{t("Reservation")}</p>
             <h2 id="mobile-host-reservation-edit-title" className="mobile-sheet-title">
               {reservation.guestName || 'Edit reservation'}
             </h2>
@@ -131,7 +132,7 @@ export function MobileReservationHostEditSheet({
             type="button"
             className="mobile-sheet-close-btn"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>

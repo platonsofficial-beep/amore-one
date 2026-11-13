@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel } from '../../lib/seatingAssignment'
 import { HostTableInspectorContent } from './HostTableInspectorContent'
+import { t } from '../../i18n/i18n'
 
 export { formatTableDayViewCapacity } from './HostTableInspectorContent'
 
@@ -41,7 +42,7 @@ export function FloorTableSeatingDialog({
         type="button"
         className="floor-table-seating-dialog-backdrop"
         onClick={onClose}
-        aria-label="Close table day view"
+        aria-label={t("Close table day view")}
       />
       <div
         className={`floor-table-seating-dialog floor-table-day-view${assignmentContext ? ' is-assignment-mode' : ''}`}

@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeFormatUtils'
 import { calculateShiftDurationHours, parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
@@ -510,7 +511,7 @@ function parsePositiveNumber(value) {
 
 function formatEuroAmount(value) {
   const rounded = Math.round(value)
-  return new Intl.NumberFormat('en-IE', {
+  return new Intl.NumberFormat(uiLocale('en-IE'), {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,

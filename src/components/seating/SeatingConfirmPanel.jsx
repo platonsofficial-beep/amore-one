@@ -11,6 +11,7 @@ import { formatTime24 } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getHostSeatingAssignmentAdvisory } from '../../lib/hostAssignmentPanelUtils'
 import { useHostAssignmentScrollPolicy } from '../../lib/useHostAssignmentScrollPolicy'
+import { t } from '../../i18n/i18n'
 
 export function SeatingConfirmPanel({
   reservation,
@@ -75,14 +76,14 @@ export function SeatingConfirmPanel({
       <div
         className="seating-confirm-panel is-host-drawer is-tablet-density"
         role="region"
-        aria-label="Assign seating"
+        aria-label={t("Assign seating")}
         data-testid="host-assignment-panel"
         data-assignment-mode="true"
         data-layout-density="tablet"
       >
         <header className="host-seating-drawer-header">
           <div className="host-seating-drawer-heading">
-            <p className="host-seating-drawer-eyebrow">Assign seating</p>
+            <p className="host-seating-drawer-eyebrow">{t("Assign seating")}</p>
             <h4 className="host-seating-drawer-title">{reservation.guestName}</h4>
             {headerMeta ? (
               <p className="host-seating-drawer-subtitle">{headerMeta}</p>
@@ -92,7 +93,7 @@ export function SeatingConfirmPanel({
             type="button"
             className="icon-btn host-seating-drawer-close"
             onClick={onCancel}
-            aria-label="Close assign seating panel"
+            aria-label={t("Close assign seating panel")}
             data-testid="host-assignment-close"
           >
             ✕
@@ -106,7 +107,7 @@ export function SeatingConfirmPanel({
           data-scroll-policy={needsScroll ? 'overflow' : 'content-fit'}
         >
           <div className="host-seating-drawer-section">
-            <span className="host-seating-drawer-label">Selected tables</span>
+            <span className="host-seating-drawer-label">{t("Selected tables")}</span>
             <p className="host-seating-drawer-tables" data-testid="host-assignment-selected-tables">
               {hasSelection ? drawerLabels : 'Click tables on the floor plan'}
             </p>
@@ -114,15 +115,15 @@ export function SeatingConfirmPanel({
 
           <dl className="host-seating-drawer-capacity" data-testid="host-assignment-metrics">
             <div>
-              <dt>Guests</dt>
+              <dt>{t("Guests")}</dt>
               <dd>{totals.guests}</dd>
             </div>
             <div>
-              <dt>Capacity</dt>
+              <dt>{t("Capacity")}</dt>
               <dd>{totals.totalGuestCapacity}</dd>
             </div>
             <div className="host-seating-drawer-capacity-adjust">
-              <dt>Extra chairs</dt>
+              <dt>{t("Extra chairs")}</dt>
               <dd>
                 <input
                   type="number"
@@ -130,7 +131,7 @@ export function SeatingConfirmPanel({
                   min="0"
                   max="12"
                   value={extraChairs}
-                  aria-label="Extra chairs"
+                  aria-label={t("Extra chairs")}
                   data-testid="host-assignment-extra-chairs"
                   onChange={(event) => onExtraChairsChange(Math.max(0, Number(event.target.value) || 0))}
                 />
@@ -154,7 +155,7 @@ export function SeatingConfirmPanel({
 
           {canUseStanding ? (
             <label className="host-seating-drawer-field host-seating-drawer-field-compact">
-              <span>Standing guests</span>
+              <span>{t("Standing guests")}</span>
               <input
                 type="number"
                 min="0"
@@ -175,7 +176,7 @@ export function SeatingConfirmPanel({
             disabled={isSaving}
             data-testid="host-assignment-cancel"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -184,7 +185,7 @@ export function SeatingConfirmPanel({
             disabled={isSaving || assignedUnits.length === 0}
             data-testid="host-assignment-confirm"
           >
-            Confirm seating
+            {t("Confirm seating")}
           </button>
         </div>
       </div>
@@ -192,28 +193,28 @@ export function SeatingConfirmPanel({
   }
 
   return (
-    <div className="seating-confirm-panel" role="region" aria-label="Confirm seating">
+    <div className="seating-confirm-panel" role="region" aria-label={t("Confirm seating")}>
       <div className="seating-confirm-header">
-        <p className="seating-confirm-eyebrow">Seat guest</p>
+        <p className="seating-confirm-eyebrow">{t("Seat guest")}</p>
         <h4 className="seating-confirm-title">{reservation.guestName}</h4>
       </div>
 
       <div className="seating-confirm-units">
-        <span className="seating-confirm-label">Selected</span>
+        <span className="seating-confirm-label">{t("Selected")}</span>
         <p className="seating-confirm-unit-list">{unitLabels}</p>
       </div>
 
       <dl className="seating-confirm-summary">
         <div>
-          <dt>Guests</dt>
+          <dt>{t("Guests")}</dt>
           <dd>{totals.guests}</dd>
         </div>
         <div>
-          <dt>Seats</dt>
+          <dt>{t("Seats")}</dt>
           <dd>{totals.totalSeatedCapacity}</dd>
         </div>
         <div>
-          <dt>Capacity</dt>
+          <dt>{t("Capacity")}</dt>
           <dd>{totals.totalGuestCapacity}</dd>
         </div>
       </dl>
@@ -226,7 +227,7 @@ export function SeatingConfirmPanel({
 
       <div className="seating-confirm-adjustments">
         <label className="seating-confirm-field">
-          <span>Extra chairs</span>
+          <span>{t("Extra chairs")}</span>
           <input
             type="number"
             min="0"
@@ -238,7 +239,7 @@ export function SeatingConfirmPanel({
 
         {canUseStanding ? (
           <label className="seating-confirm-field">
-            <span>Standing guests</span>
+            <span>{t("Standing guests")}</span>
             <input
               type="number"
               min="0"
@@ -257,7 +258,7 @@ export function SeatingConfirmPanel({
           onClick={() => onConfirm(draftAssignment)}
           disabled={isSaving || assignedUnits.length === 0}
         >
-          Confirm seating
+          {t("Confirm seating")}
         </button>
         <button
           type="button"
@@ -265,7 +266,7 @@ export function SeatingConfirmPanel({
           onClick={onCancel}
           disabled={isSaving}
         >
-          Cancel
+          {t("Cancel")}
         </button>
       </div>
     </div>

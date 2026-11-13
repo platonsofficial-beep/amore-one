@@ -4,6 +4,7 @@ import {
   isHostFloorDebugEnabled,
   subscribeHostFloorDebugTrace,
 } from '../../lib/hostFloorDebugTrace'
+import { t } from '../../i18n/i18n'
 
 export function HostFloorDebugOverlay() {
   const [trace, setTrace] = useState(() => getHostFloorDebugTrace())
@@ -17,7 +18,7 @@ export function HostFloorDebugOverlay() {
 
   return (
     <div className="host-floor-debug-overlay" aria-live="polite" data-testid="host-floor-debug-overlay">
-      <strong>Host Debug</strong>
+      <strong>{t("Host Debug")}</strong>
       <div>DOWN: {trace.down ? '✓' : '✗'}</div>
       <div>TARGET: {trace.targetElement}</div>
       <div>TABLE NODE: {trace.tableNodeFound}</div>

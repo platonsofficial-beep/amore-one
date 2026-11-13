@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './subscription.css'
 import { BILLING_INTERVALS, SUBSCRIPTION_PRICES, formatEuro, perMonthEquivalent } from '../../lib/subscriptionAccess'
+import { t } from '../../i18n/i18n'
 
 const PLANS = [
   {
@@ -43,21 +44,21 @@ export function PlansBillingSection({
         <header className="subscription-sheet-header">
           <div className="subscription-sheet-heading">
             {onClose ? (
-              <button type="button" className="mobile-sheet-close-btn" aria-label="Back" onClick={onClose}>‹</button>
+              <button type="button" className="mobile-sheet-close-btn" aria-label={t("Back")} onClick={onClose}>‹</button>
             ) : null}
             <div className="subscription-sheet-copy">
-              <p className="mobile-screen-eyebrow">Settings</p>
-              <h2 className="mobile-screen-title">Plans & billing</h2>
+              <p className="mobile-screen-eyebrow">{t("Settings")}</p>
+              <h2 className="mobile-screen-title">{t("Plans & billing")}</h2>
               {venue ? <p className="subscription-sheet-venue">{venue}</p> : null}
             </div>
           </div>
           {onClose ? (
-            <button type="button" className="mobile-sheet-close-btn" aria-label="Close" onClick={onClose}>✕</button>
+            <button type="button" className="mobile-sheet-close-btn" aria-label={t("Close")} onClick={onClose}>✕</button>
           ) : null}
         </header>
       ) : null}
       <div className="subscription-plans-body">
-        <div className="subscription-intervals" role="group" aria-label="Billing period">
+        <div className="subscription-intervals" role="group" aria-label={t("Billing period")}>
           {BILLING_INTERVALS.map((item) => (
             <button
               key={item.id}
@@ -82,7 +83,7 @@ export function PlansBillingSection({
               >
                 <div className="subscription-plan-name">
                   <h3>{plan.name}</h3>
-                  {plan.recommended ? <span className="subscription-plan-badge">Recommended</span> : null}
+                  {plan.recommended ? <span className="subscription-plan-badge">{t("Recommended")}</span> : null}
                 </div>
                 <p className="subscription-plan-price">
                   <span>{formatEuro(amount)}</span>
@@ -91,7 +92,7 @@ export function PlansBillingSection({
                 {equivalent != null ? (
                   <p className="subscription-plan-equivalent">{formatEuro(equivalent)} / month · {period.saving}</p>
                 ) : null}
-                {freeMonthEligible && plan.freeMonth ? <p className="subscription-plan-free">1 month free</p> : null}
+                {freeMonthEligible && plan.freeMonth ? <p className="subscription-plan-free">{t("1 month free")}</p> : null}
                 <p className="subscription-plan-detail">{plan.detail}</p>
                 {extra != null ? (
                   <p className="subscription-plan-detail">Extra venue {formatEuro(extra)} for this period.</p>
@@ -103,11 +104,11 @@ export function PlansBillingSection({
             )
           })}
         </div>
-        <p className="subscription-vat">Prices exclude VAT.</p>
+        <p className="subscription-vat">{t("Prices exclude VAT.")}</p>
         {notice ? <p className="subscription-notice" role="status">{notice}</p> : null}
         {showPortal ? (
           <button type="button" className="subscription-portal" onClick={onPortal}>
-            Manage billing
+            {t("Manage billing")}
           </button>
         ) : null}
       </div>

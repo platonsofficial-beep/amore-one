@@ -3,6 +3,7 @@
  */
 
 import { InventoryOperationalCategory } from './InventoryOperationalCategory'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {string|undefined} parserVersion
@@ -41,26 +42,26 @@ export function InventoryOperationalReview({ model = null } = {}) {
   const parserLabel = formatOperationalParserVersionLabel(model?.parserVersion)
 
   return (
-    <div className="inventory-operational-review" aria-label="Operational weekly stock review">
+    <div className="inventory-operational-review" aria-label={t("Operational weekly stock review")}>
       <section className="inventory-operational-review-summary">
         <h3 className="inventory-operational-review-title">
-          Operational Weekly Stock Sheet
+          {t("Operational Weekly Stock Sheet")}
         </h3>
         <p className="inventory-operational-review-meta">
           <span>Categories: {categoryCount}</span>
           <span>Products: {productCount}</span>
           <span>Parser: {parserLabel}</span>
-          <span>Read-only</span>
+          <span>{t("Read-only")}</span>
         </p>
       </section>
 
       {categoryCount === 0 ? (
         <div className="inventory-operational-review-empty" role="status">
           <p className="inventory-operational-review-empty-title">
-            No categories detected
+            {t("No categories detected")}
           </p>
           <p className="inventory-operational-review-empty-copy">
-            This operational worksheet did not yield any category groups to preview.
+            {t("This operational worksheet did not yield any category groups to preview.")}
           </p>
         </div>
       ) : (

@@ -9,6 +9,7 @@ import {
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION,
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS,
 } from '../../lib/inventoryOperationalImportPreview'
+import { t } from '../../i18n/i18n'
 
 export const INVENTORY_OPERATIONAL_IMPORT_PREVIEW_UI_LIMIT = 50
 
@@ -155,7 +156,7 @@ export function InventoryOperationalImportPreview({
     return (
       <div
         className="inventory-operational-import-preview"
-        aria-label="Operational import preview"
+        aria-label={t("Operational import preview")}
         data-preview-state="error"
       >
         <div
@@ -163,7 +164,7 @@ export function InventoryOperationalImportPreview({
           role="alert"
         >
           <p className="inventory-operational-review-empty-title">
-            Unable to build import preview
+            {t("Unable to build import preview")}
           </p>
           <p className="inventory-operational-review-empty-copy">
             {errorMessage}
@@ -185,7 +186,7 @@ export function InventoryOperationalImportPreview({
   return (
     <div
       className="inventory-operational-import-preview"
-      aria-label="Operational import preview"
+      aria-label={t("Operational import preview")}
       data-preview-state="ready"
       data-preview-total={total}
       data-preview-visible={visibleRows.length}
@@ -193,43 +194,43 @@ export function InventoryOperationalImportPreview({
       <header className="inventory-operational-import-preview-header">
         <div className="inventory-operational-import-preview-header-text">
           <h3 className="inventory-operational-review-title">
-            What ONE will do
+            {t("What ONE will do")}
           </h3>
           <p className="inventory-operational-import-preview-subtext">
-            Full row review with CREATE, LINK, and SKIP outcomes.
+            {t("Full row review with CREATE, LINK, and SKIP outcomes.")}
           </p>
         </div>
         <span className="inventory-operational-import-preview-readonly-badge">
-          Read-only
+          {t("Read-only")}
         </span>
       </header>
 
       <section
         className="inventory-operational-import-preview-summary"
-        aria-label="Import preview summary"
+        aria-label={t("Import preview summary")}
       >
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">Total rows</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("Total rows")}</span>
           <span className="inventory-operational-import-preview-summary-value">{total}</span>
         </div>
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">Existing links</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("Existing links")}</span>
           <span className="inventory-operational-import-preview-summary-value">{linkExisting}</span>
         </div>
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">New products</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("New products")}</span>
           <span className="inventory-operational-import-preview-summary-value">{createNew}</span>
         </div>
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">Needs resolution</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("Needs resolution")}</span>
           <span className="inventory-operational-import-preview-summary-value">{requiresResolution}</span>
         </div>
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">Blocked</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("Blocked")}</span>
           <span className="inventory-operational-import-preview-summary-value">{blocked}</span>
         </div>
         <div className="inventory-operational-import-preview-summary-card">
-          <span className="inventory-operational-import-preview-summary-label">Missing units</span>
+          <span className="inventory-operational-import-preview-summary-label">{t("Missing units")}</span>
           <span className="inventory-operational-import-preview-summary-value">{missingUnits}</span>
         </div>
       </section>
@@ -237,10 +238,10 @@ export function InventoryOperationalImportPreview({
       {rows.length === 0 ? (
         <div className="inventory-operational-review-empty" role="status">
           <p className="inventory-operational-review-empty-title">
-            No import preview rows
+            {t("No import preview rows")}
           </p>
           <p className="inventory-operational-review-empty-copy">
-            This worksheet did not produce any operational products to review.
+            {t("This worksheet did not produce any operational products to review.")}
           </p>
         </div>
       ) : (
@@ -288,19 +289,19 @@ export function InventoryOperationalImportPreview({
 
                   <dl className="inventory-operational-import-preview-facts">
                     <div>
-                      <dt>Storage</dt>
+                      <dt>{t("Storage")}</dt>
                       <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
                     </div>
                     <div>
-                      <dt>BAR</dt>
+                      <dt>{t("BAR")}</dt>
                       <dd>{formatOperationalImportPreviewValue(row.source?.bar)}</dd>
                     </div>
                     <div>
-                      <dt>Order</dt>
+                      <dt>{t("Order")}</dt>
                       <dd>{formatOperationalImportPreviewValue(row.source?.order)}</dd>
                     </div>
                     <div>
-                      <dt>Stock Control</dt>
+                      <dt>{t("Stock Control")}</dt>
                       <dd>{formatOperationalImportPreviewValue(row.source?.stockControl)}</dd>
                     </div>
                   </dl>
@@ -319,11 +320,11 @@ export function InventoryOperationalImportPreview({
 
                   <dl className="inventory-operational-import-preview-policy">
                     <div>
-                      <dt>Quantity</dt>
+                      <dt>{t("Quantity")}</dt>
                       <dd>{getOperationalImportPreviewPolicyLabel(row.quantityProposal?.status)}</dd>
                     </div>
                     <div>
-                      <dt>Location</dt>
+                      <dt>{t("Location")}</dt>
                       <dd>{getOperationalImportPreviewPolicyLabel(row.locationProposal?.status)}</dd>
                     </div>
                   </dl>
@@ -370,7 +371,7 @@ function renderMatchPanel(row) {
     return (
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
-          Existing ONE product
+          {t("Existing ONE product")}
         </p>
         <p className="inventory-operational-import-preview-match-body">
           {formatOperationalImportPreviewValue(item?.name)}
@@ -393,7 +394,7 @@ function renderMatchPanel(row) {
     return (
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
-          Requires resolution
+          {t("Requires resolution")}
         </p>
         <p className="inventory-operational-import-preview-match-body">
           {candidates.length}
@@ -410,7 +411,7 @@ function renderMatchPanel(row) {
     return (
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
-          Will create new product
+          {t("Will create new product")}
         </p>
         <p className="inventory-operational-import-preview-match-body">
           Category:
@@ -431,7 +432,7 @@ function renderMatchPanel(row) {
     return (
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
-          Invalid source row
+          {t("Invalid source row")}
         </p>
       </div>
     )
@@ -441,10 +442,10 @@ function renderMatchPanel(row) {
     return (
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
-          Skipped
+          {t("Skipped")}
         </p>
         <p className="inventory-operational-import-preview-match-body">
-          This source row will not be imported.
+          {t("This source row will not be imported.")}
         </p>
       </div>
     )
@@ -453,7 +454,7 @@ function renderMatchPanel(row) {
   return (
     <div className="inventory-operational-import-preview-match-panel">
       <p className="inventory-operational-import-preview-match-title">
-        Blocked
+        {t("Blocked")}
       </p>
     </div>
   )

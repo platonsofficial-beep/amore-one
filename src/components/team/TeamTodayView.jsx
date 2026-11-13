@@ -1,6 +1,7 @@
 import { TeamTodayGroupsList } from './TeamTodayGroupsList'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
+import { t } from '../../i18n/i18n'
 
 export function TeamTodayView({
   teamStatus,
@@ -20,13 +21,13 @@ export function TeamTodayView({
   }
 
   return (
-    <section className="team-today-page" aria-label="Team today">
+    <section className="team-today-page" aria-label={t("Team today")}>
       {isLoadFailureMessage(noticeMessage) ? (
         <LoadFailureBanner message={noticeMessage} subject="the team" />
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading today&apos;s team…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading today's team…")}</div> : null}
 
-      <section className="team-today-status-card" aria-label="Team status">
+      <section className="team-today-status-card" aria-label={t("Team status")}>
         <div className="team-today-status-row">
           <span className="team-today-status-label">{status.scheduleLabel}</span>
           <span className="team-today-status-value">{status.scheduleValue}</span>
@@ -47,7 +48,7 @@ export function TeamTodayView({
       </section>
 
       {isLoading ? null : (teamTodayGroups ?? []).length === 0 ? (
-        <p className="team-today-empty">No shifts scheduled today.</p>
+        <p className="team-today-empty">{t("No shifts scheduled today.")}</p>
       ) : (
         <TeamTodayGroupsList groups={teamTodayGroups} />
       )}

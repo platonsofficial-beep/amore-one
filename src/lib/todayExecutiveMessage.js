@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 export const TODAY_EXECUTIVE_MESSAGE_MAX_LENGTH = 70
 
 function clampExecutiveMessage(message) {
@@ -42,15 +44,15 @@ export function buildTodayExecutiveMessage({
 } = {}) {
   // Never say "Everything is ready" before the data that proves it arrived.
   if (dataStatus === 'loading') {
-    return buildExecutivePresentation({ tone: 'neutral', message: "Loading today's status…" })
+    return buildExecutivePresentation({ tone: 'neutral', message: t("Loading today's status…") })
   }
   if (dataStatus === 'error') {
-    return buildExecutivePresentation({ tone: 'warning', message: "Couldn't load today's status. Tap a card to retry." })
+    return buildExecutivePresentation({ tone: 'warning', message: t("Couldn't load today's status. Tap a card to retry.") })
   }
   if (hasUrgentAttention) {
     const urgentMessage = isServiceInProgress
-      ? 'Service requires immediate attention.'
-      : 'Attention is required before service.'
+      ? t('Service requires immediate attention.')
+      : t('Attention is required before service.')
     return buildExecutivePresentation({
       tone: 'critical',
       message: urgentMessage,
@@ -60,8 +62,8 @@ export function buildTodayExecutiveMessage({
   const overdue = Number(overdueTaskCount) || 0
   if (overdue > 0) {
     const overdueMessage = overdue === 1
-      ? '1 overdue task needs your attention.'
-      : `${overdue} overdue tasks need your attention.`
+      ? t('1 overdue task needs your attention.')
+      : t('{{count}} overdue tasks need your attention.', { count: overdue })
     return buildExecutivePresentation({
       tone: 'warning',
       message: overdueMessage,
@@ -71,15 +73,15 @@ export function buildTodayExecutiveMessage({
   if (hasScheduleGaps) {
     return buildExecutivePresentation({
       tone: 'warning',
-      message: 'Staffing gaps need attention before service.',
+      message: t('Staffing gaps need attention before service.'),
     })
   }
 
   const reservations = Number(reservationsTodayCount) || 0
   if (reservations > 0) {
     const reservationsMessage = reservations === 1
-      ? '1 reservation is expected today.'
-      : `${reservations} reservations are expected today.`
+      ? t('1 reservation is expected today.')
+      : t('{{count}} reservations are expected today.', { count: reservations })
     return buildExecutivePresentation({
       tone: 'neutral',
       message: reservationsMessage,
@@ -90,26 +92,26 @@ export function buildTodayExecutiveMessage({
   if (!isServiceInProgress && shiftStart) {
     return buildExecutivePresentation({
       tone: 'neutral',
-      message: `The first shift starts at ${shiftStart}.`,
+      message: t('The first shift starts at {{time}}.', { time: shiftStart }),
     })
   }
 
   if (isServiceInProgress) {
     return buildExecutivePresentation({
       tone: 'positive',
-      message: 'Service is currently in progress.',
+      message: t('Service is currently in progress.'),
     })
   }
 
   if (hasStockProblems) {
     return buildExecutivePresentation({
       tone: 'warning',
-      message: 'Stock items require attention.',
+      message: t('Stock items require attention.'),
     })
   }
 
   return buildExecutivePresentation({
     tone: 'positive',
-    message: "Everything is ready for today's service.",
+    message: t("Everything is ready for today's service."),
   })
 }

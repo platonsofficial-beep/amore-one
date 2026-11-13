@@ -42,6 +42,7 @@ import { OperationsLogFormModal } from './OperationsLogFormModal'
 import { OperationsStartChecklistModal } from './OperationsStartChecklistModal'
 import { OperationsTaskCompleteModal } from './OperationsTaskCompleteModal'
 import { OperationsTaskFormModal } from './OperationsTaskFormModal'
+import { t } from '../../i18n/i18n'
 
 const MOBILE_COMMUNICATION_LIMIT = 4
 
@@ -141,10 +142,10 @@ function OperationsTaskRow({
       {canManage && !task.checklistRun ? (
         <div className="operations-task-actions">
           <button type="button" className="ghost-btn operations-task-action" onClick={() => onEdit(task)}>
-            Edit
+            {t("Edit")}
           </button>
           <button type="button" className="ghost-btn operations-task-action operations-task-delete" onClick={() => onDelete(task)}>
-            Delete
+            {t("Delete")}
           </button>
         </div>
       ) : null}
@@ -180,10 +181,10 @@ function OperationsLogItem({ log, canManage, onEdit, onDelete, compact = false }
       {canManage ? (
         <div className="operations-log-actions">
           <button type="button" className="ghost-btn operations-log-action" onClick={() => onEdit(log)}>
-            Edit
+            {t("Edit")}
           </button>
           <button type="button" className="ghost-btn operations-log-action operations-log-delete" onClick={() => onDelete(log)}>
-            Delete
+            {t("Delete")}
           </button>
         </div>
       ) : null}
@@ -196,7 +197,7 @@ function OperationsMobileCommunicationItem({ item, canManage, onEditLog, onDelet
     const announcement = item.data
     return (
       <article className="operations-mobile-comm-card is-announcement">
-        <span className="operations-mobile-comm-badge">Announcement</span>
+        <span className="operations-mobile-comm-badge">{t("Announcement")}</span>
         <p className="operations-mobile-comm-title">{announcement.title}</p>
         <p className="operations-mobile-comm-body">
           {truncateAnnouncementMessage(announcement.message, 90)}
@@ -554,20 +555,20 @@ export function OperationsDashboardView({
 
   if (isMobileLayout) {
     return (
-      <section className="operations-dashboard-page is-mobile-layout" aria-label="Operational control">
+      <section className="operations-dashboard-page is-mobile-layout" aria-label={t("Operational control")}>
         {figuresUnavailable ? (
           <LoadFailureBanner message={noticeMessage} subject="operations" onRetry={onRetryLoad} />
         ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
         {!isWorkspaceReady && workspaceSetupMessage ? (
           <div className="staff-status-banner">{workspaceSetupMessage}</div>
         ) : null}
-        {isLoading ? <div className="staff-status-banner">Loading operations…</div> : null}
+        {isLoading ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
 
         <header className="operations-mobile-command-header">
-          <h3 className="operations-mobile-command-title">Operational control</h3>
+          <h3 className="operations-mobile-command-title">{t("Operational control")}</h3>
         </header>
 
-        <div className="operations-summary-grid operations-mobile-metrics" aria-label="Operations metrics">
+        <div className="operations-summary-grid operations-mobile-metrics" aria-label={t("Operations metrics")}>
           <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
           <OperationsSummaryCard
             label="Past due"
@@ -580,14 +581,14 @@ export function OperationsDashboardView({
         </div>
 
         {canManage ? (
-          <div className="operations-mobile-actions" aria-label="Operations actions">
+          <div className="operations-mobile-actions" aria-label={t("Operations actions")}>
             <button
               type="button"
               className="primary-btn operations-mobile-action"
               onClick={openCreateTask}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Create task
+              {t("Create task")}
             </button>
             <button
               type="button"
@@ -595,7 +596,7 @@ export function OperationsDashboardView({
               onClick={openCreateLog}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Add note
+              {t("Add note")}
             </button>
             <button
               type="button"
@@ -603,15 +604,15 @@ export function OperationsDashboardView({
               onClick={() => setIsStartChecklistOpen(true)}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Start checklist
+              {t("Start checklist")}
             </button>
           </div>
         ) : null}
 
         {focusedTask ? (
-          <section className="operations-mobile-section" aria-label="Focused task">
+          <section className="operations-mobile-section" aria-label={t("Focused task")}>
             <header className="operations-mobile-section-header">
-              <h4>Task</h4>
+              <h4>{t("Task")}</h4>
             </header>
             <ul className="operations-task-list">
               <OperationsTaskRow
@@ -628,12 +629,12 @@ export function OperationsDashboardView({
           </section>
         ) : null}
 
-        <section className="operations-mobile-section" aria-label="Team communication">
+        <section className="operations-mobile-section" aria-label={t("Team communication")}>
           <header className="operations-mobile-section-header">
-            <h4>Team communication</h4>
+            <h4>{t("Team communication")}</h4>
           </header>
           {mobileCommunicationItems.length === 0 && !isLoading ? (
-            <p className="operations-mobile-inline-empty">No announcements or notes yet</p>
+            <p className="operations-mobile-inline-empty">{t("No announcements or notes yet")}</p>
           ) : (
             <div className="operations-mobile-comm-list">
               {mobileCommunicationItems.map((item) => (
@@ -652,11 +653,11 @@ export function OperationsDashboardView({
           )}
         </section>
 
-        <section className="operations-mobile-section" aria-label="Department overview">
+        <section className="operations-mobile-section" aria-label={t("Department overview")}>
           <DepartmentPerformanceSummary
             summaries={departmentPerformance}
             compact
-            title="Department overview"
+            title={t("Department overview")}
           />
         </section>
 
@@ -721,21 +722,21 @@ export function OperationsDashboardView({
   }
 
   return (
-    <section className="operations-dashboard-page" aria-label="Operations dashboard">
+    <section className="operations-dashboard-page" aria-label={t("Operations dashboard")}>
       {figuresUnavailable ? (
         <LoadFailureBanner message={noticeMessage} subject="operations" onRetry={onRetryLoad} />
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">Loading operations…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
 
       <div className="operations-dashboard-toolbar">
         <div>
-          <p className="operations-dashboard-eyebrow">Today</p>
-          <h3 className="operations-dashboard-heading">Operational control center</h3>
+          <p className="operations-dashboard-eyebrow">{t("Today")}</p>
+          <h3 className="operations-dashboard-heading">{t("Operational control center")}</h3>
           <p className="operations-dashboard-copy">
-            Track daily tasks, urgent issues, and shift communication.
+            {t("Track daily tasks, urgent issues, and shift communication.")}
           </p>
         </div>
         {canManage ? (
@@ -746,7 +747,7 @@ export function OperationsDashboardView({
               onClick={() => setIsStartChecklistOpen(true)}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Start checklist
+              {t("Start checklist")}
             </button>
             <button
               type="button"
@@ -754,7 +755,7 @@ export function OperationsDashboardView({
               onClick={openCreateLog}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Add note
+              {t("Add note")}
             </button>
             <button
               type="button"
@@ -762,13 +763,13 @@ export function OperationsDashboardView({
               onClick={openCreateTask}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Create task
+              {t("Create task")}
             </button>
           </div>
         ) : null}
       </div>
 
-      <div className="operations-summary-grid" aria-label="Today at a glance">
+      <div className="operations-summary-grid" aria-label={t("Today at a glance")}>
         <OperationsSummaryCard label="Open tasks" value={unavailableFigure(figuresUnavailable, taskSummary.openTasks)} tone="warning" />
         <OperationsSummaryCard
           label="Past due"
@@ -788,7 +789,7 @@ export function OperationsDashboardView({
               className="ghost-btn operations-dashboard-action operations-summary-card-action"
               onClick={onOpenTaskBoards}
             >
-              Open task boards
+              {t("Open task boards")}
             </button>
           ) : null}
         />
@@ -809,11 +810,11 @@ export function OperationsDashboardView({
       />
 
       {checklistProgressRows.length > 0 ? (
-        <section className="operations-section panel staff-panel" aria-label="Checklist progress">
+        <section className="operations-section panel staff-panel" aria-label={t("Checklist progress")}>
           <header className="operations-section-header">
             <div>
-              <p className="eyebrow">Checklists</p>
-              <h3>Start a checklist</h3>
+              <p className="eyebrow">{t("Checklists")}</p>
+              <h3>{t("Start a checklist")}</h3>
             </div>
           </header>
           <div className="operations-checklist-progress-grid">
@@ -829,11 +830,11 @@ export function OperationsDashboardView({
         </section>
       ) : null}
 
-      <section className="operations-section panel staff-panel" aria-label="Open tasks">
+      <section className="operations-section panel staff-panel" aria-label={t("Open tasks")}>
         <header className="operations-section-header">
           <div>
-            <p className="eyebrow">Tasks</p>
-            <h3>Open tasks</h3>
+            <p className="eyebrow">{t("Tasks")}</p>
+            <h3>{t("Open tasks")}</h3>
           </div>
           <p className="operations-section-count">{visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}</p>
         </header>
@@ -841,7 +842,7 @@ export function OperationsDashboardView({
         {figuresUnavailable ? null : visibleTasks.length === 0 && !isLoading ? (
           <div className="operations-empty-state is-inline">
             <p>
-              <strong>No open tasks</strong>
+              <strong>{t("No open tasks")}</strong>
               {canManage ? (
                 <>
                   {' · '}
@@ -851,7 +852,7 @@ export function OperationsDashboardView({
                     onClick={openCreateTask}
                     disabled={!isWorkspaceReady || isSaving}
                   >
-                    Create task
+                    {t("Create task")}
                   </button>
                 </>
               ) : ' · Check back when tasks are assigned.'}
@@ -876,15 +877,15 @@ export function OperationsDashboardView({
         )}
       </section>
 
-      <section className="operations-section panel staff-panel" aria-label="Shift Notes">
+      <section className="operations-section panel staff-panel" aria-label={t("Shift Notes")}>
         <header className="operations-section-header">
           <div>
-            <p className="eyebrow">Shift Notes</p>
-            <h3>Team communication</h3>
+            <p className="eyebrow">{t("Shift Notes")}</p>
+            <h3>{t("Team communication")}</h3>
           </div>
         </header>
 
-        <div className="operations-log-filters" role="tablist" aria-label="Note types">
+        <div className="operations-log-filters" role="tablist" aria-label={t("Note types")}>
           {OPERATIONS_LOG_FILTERS.map((filter) => (
             <button
               key={filter.id}
@@ -902,7 +903,7 @@ export function OperationsDashboardView({
         {visibleLogs.length === 0 && !isLoading ? (
           <div className="operations-empty-state is-inline">
             <p>
-              <strong>No notes yet</strong>
+              <strong>{t("No notes yet")}</strong>
               {canManage ? (
                 <>
                   {' · '}
@@ -912,7 +913,7 @@ export function OperationsDashboardView({
                     onClick={openCreateLog}
                     disabled={!isWorkspaceReady || isSaving}
                   >
-                    Add note
+                    {t("Add note")}
                   </button>
                 </>
               ) : ' · Leave updates for the next shift.'}

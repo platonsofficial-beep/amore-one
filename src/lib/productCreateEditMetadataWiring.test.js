@@ -153,10 +153,10 @@ describe('StockItemFormModal section layout contract', () => {
       resolve(process.cwd(), 'src/components/stock/StockItemFormModal.jsx'),
       'utf8',
     )
-    expect(source).toContain('title="Identity"')
-    expect(source).toContain('title="Inventory"')
-    expect(source).toContain('title="Purchasing"')
-    expect(source).toContain('title="Storage"')
+    expect(source).toContain('title={t("Identity")}')
+    expect(source).toContain('title={t("Inventory")}')
+    expect(source).toContain('title={t("Purchasing")}')
+    expect(source).toContain('title={t("Storage")}')
     expect(source).toContain('Product Name')
     expect(source).toContain('Subcategory')
     expect(source).toContain('Inventory Unit')

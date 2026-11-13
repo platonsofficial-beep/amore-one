@@ -21,6 +21,7 @@ import {
   formatEmployeeWeeklyHoursDisplay,
   formatStoredPhoneForDisplay,
 } from '../../lib/teamPeopleDisplay'
+import { t } from '../../i18n/i18n'
 
 export const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
 export const DISABLED_PEOPLE_FILTER = 'Disabled'
@@ -315,11 +316,11 @@ export function TeamPeopleView({
     : formatEmployeeTodayShiftSummary(selectedEmployeeTodayStatus)
 
   return (
-    <section className="team-people-page" aria-label="Team people">
+    <section className="team-people-page" aria-label={t("Team people")}>
       <div className="team-people-header">
         <div className="team-people-header-copy">
-          <p className="eyebrow">People</p>
-          <h3>Your team</h3>
+          <p className="eyebrow">{t("People")}</p>
+          <h3>{t("Your team")}</h3>
           <p className="team-people-metrics">{directoryLoadFailed ? 'Team size unavailable' : metricsLine}</p>
         </div>
         <div className="team-people-header-actions">
@@ -335,7 +336,7 @@ export function TeamPeopleView({
 
       <div className="team-people-controls">
         {showSearch ? (
-          <label className="team-people-search search-bar" aria-label="Search employees">
+          <label className="team-people-search search-bar" aria-label={t("Search employees")}>
             <span className="team-people-search-icon" aria-hidden="true">⌕</span>
             <input
               type="search"
@@ -366,12 +367,12 @@ export function TeamPeopleView({
       {directoryLoadFailed ? (
         <LoadFailureBanner message={noticeMessage} subject="the team" onRetry={onRetryLoad} />
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading staff roster…")}</div> : null}
 
       {isRosterEmpty ? (
         <div className="team-people-empty team-people-empty-roster">
-          <p>No employees yet.</p>
-          <p className="team-people-empty-hint">Add your first team member, then assign a department and position.</p>
+          <p>{t("No employees yet.")}</p>
+          <p className="team-people-empty-hint">{t("Add your first team member, then assign a department and position.")}</p>
           <button
             type="button"
             className="primary-btn team-people-add-btn team-people-empty-add-btn"
@@ -414,7 +415,7 @@ export function TeamPeopleView({
                     <h4 className="team-people-card-name">
                       {employee.name}
                       {isEmployeeDisabled(employee) ? (
-                        <span className="status-pill disabled team-people-disabled-badge">Disabled</span>
+                        <span className="status-pill disabled team-people-disabled-badge">{t("Disabled")}</span>
                       ) : null}
                     </h4>
                     <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
@@ -424,7 +425,7 @@ export function TeamPeopleView({
 
                 <dl className="team-people-card-meta">
                   <div className="team-people-card-meta-row team-people-card-meta-row--today">
-                    <dt>Today</dt>
+                    <dt>{t("Today")}</dt>
                     <dd className="team-people-card-today">
                       <span className={getEmployeeTodayStatusPillClass(cardPresentation.toneKey)}>
                         {cardPresentation.pillLabel}
@@ -437,7 +438,7 @@ export function TeamPeopleView({
                 </dl>
 
                 <span className="team-people-card-action" aria-hidden="true">
-                  Open
+                  {t("Open")}
                 </span>
               </article>
             )
@@ -450,12 +451,12 @@ export function TeamPeopleView({
         <div className="drawer-backdrop" onClick={() => onSelectEmployee(null)} />
         <aside className="employee-drawer employee-profile-drawer" aria-label={`${selectedEmployee.name} profile`}>
           <div className="employee-profile-drawer-top">
-            <p className="eyebrow">Employee profile</p>
+            <p className="eyebrow">{t("Employee profile")}</p>
             <button
               type="button"
               className="icon-btn employee-profile-drawer-close"
               onClick={() => onSelectEmployee(null)}
-              aria-label="Close employee profile"
+              aria-label={t("Close employee profile")}
             >
               ✕
             </button>
@@ -481,7 +482,7 @@ export function TeamPeopleView({
           </header>
 
           <div className="employee-profile-drawer-body">
-            <EmployeeProfileDrawerSection title="Profile">
+            <EmployeeProfileDrawerSection title={t("Profile")}>
               <EmployeeProfileDrawerField label="Primary position">
                 {formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}
               </EmployeeProfileDrawerField>
@@ -506,7 +507,7 @@ export function TeamPeopleView({
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 
-            <EmployeeProfileDrawerSection title="Employment">
+            <EmployeeProfileDrawerSection title={t("Employment")}>
               <EmployeeProfileDrawerField label="Start date">
                 {formatDrawerFieldValue(selectedEmployee.hireDate)}
               </EmployeeProfileDrawerField>
@@ -523,7 +524,7 @@ export function TeamPeopleView({
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 
-            <EmployeeProfileDrawerSection title="Contact">
+            <EmployeeProfileDrawerSection title={t("Contact")}>
               <EmployeeProfileDrawerField label="Phone">
                 {formatDrawerFieldValue(formatStoredPhoneForDisplay(selectedEmployee.phone))}
               </EmployeeProfileDrawerField>
@@ -536,7 +537,7 @@ export function TeamPeopleView({
             </EmployeeProfileDrawerSection>
 
             <section className="employee-profile-drawer-section employee-profile-drawer-notes-section">
-              <h4 className="employee-profile-drawer-section-title">Notes</h4>
+              <h4 className="employee-profile-drawer-section-title">{t("Notes")}</h4>
               <p className="employee-profile-drawer-notes">
                 {formatDrawerFieldValue(selectedEmployee.notes)}
               </p>
@@ -568,7 +569,7 @@ export function TeamPeopleView({
               className="primary-btn employee-profile-drawer-edit-btn"
               onClick={() => onOpenEditEmployee(selectedEmployee)}
             >
-              Edit
+              {t("Edit")}
             </button>
             {typeof onToggleEmployeeEnabled === 'function' ? (
               <button
@@ -594,17 +595,17 @@ export function TeamPeopleView({
               className="ghost-btn employee-profile-drawer-delete-btn"
               onClick={() => onRequestDeleteEmployee(selectedEmployee)}
             >
-              Delete
+              {t("Delete")}
             </button>
           </div>
           {confirmDisableId && confirmDisableId === selectedEmployee.id ? (
-            <div className="employee-disable-confirm" role="alertdialog" aria-label="Confirm disable" data-testid="employee-disable-confirm">
+            <div className="employee-disable-confirm" role="alertdialog" aria-label={t("Confirm disable")} data-testid="employee-disable-confirm">
               <p>
                 Disable {selectedEmployee.full_name ?? selectedEmployee.name ?? 'this person'}? They can&apos;t sign in and their upcoming shifts are hidden. You can enable them again any time.
               </p>
               <div className="employee-disable-confirm-actions">
                 <button type="button" className="ghost-btn" onClick={() => setConfirmDisableId(null)}>
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="button"
@@ -614,7 +615,7 @@ export function TeamPeopleView({
                     onToggleEmployeeEnabled(selectedEmployee, false)
                   }}
                 >
-                  Disable
+                  {t("Disable")}
                 </button>
               </div>
             </div>

@@ -10,6 +10,7 @@ import {
   truncateAnnouncementMessage,
 } from '../../lib/operationsAnnouncementUtils'
 import { OperationsAnnouncementFormModal } from './OperationsAnnouncementFormModal'
+import { t } from '../../i18n/i18n'
 
 function OperationsAnnouncementCard({
   announcement,
@@ -32,7 +33,7 @@ function OperationsAnnouncementCard({
               {getAnnouncementPriorityLabel(priority)}
             </span>
           ) : null}
-          {!isActive ? <span className="operations-announcement-status">Hidden from team</span> : null}
+          {!isActive ? <span className="operations-announcement-status">{t("Hidden from team")}</span> : null}
         </div>
 
         <div className="operations-announcement-card-heading">
@@ -60,7 +61,7 @@ function OperationsAnnouncementCard({
           onClick={() => onEdit?.(announcement)}
           disabled={isSaving}
         >
-          Edit
+          {t("Edit")}
         </button>
         {isActive ? (
           <button
@@ -69,7 +70,7 @@ function OperationsAnnouncementCard({
             onClick={() => onHide?.(announcement)}
             disabled={isSaving}
           >
-            Hide
+            {t("Hide")}
           </button>
         ) : (
           <button
@@ -78,7 +79,7 @@ function OperationsAnnouncementCard({
             onClick={() => onPublish?.(announcement)}
             disabled={isSaving}
           >
-            Publish
+            {t("Publish")}
           </button>
         )}
       </div>
@@ -122,11 +123,11 @@ export function OperationsAnnouncementsSection({
   }
 
   return (
-    <section className="operations-section panel staff-panel" aria-label="Announcements">
+    <section className="operations-section panel staff-panel" aria-label={t("Announcements")}>
       <header className="operations-section-header">
         <div>
-          <p className="eyebrow">Announcements</p>
-          <h3>Team updates</h3>
+          <p className="eyebrow">{t("Announcements")}</p>
+          <h3>{t("Team updates")}</h3>
         </div>
         <button
           type="button"
@@ -144,7 +145,7 @@ export function OperationsAnnouncementsSection({
       {visibleAnnouncements.length === 0 && !isLoading ? (
         <div className="operations-empty-state is-inline">
           <p>
-            <strong>No announcements yet</strong>
+            <strong>{t("No announcements yet")}</strong>
             {' · Share important updates with your team.'}
           </p>
         </div>

@@ -1,4 +1,5 @@
 import { getChecklistDepartmentLabel } from '../../lib/operationsChecklistUtils'
+import { t } from '../../i18n/i18n'
 
 export function OperationsStartChecklistModal({
   isOpen,
@@ -22,19 +23,19 @@ export function OperationsStartChecklistModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Daily checklists</p>
-            <h3 id="operations-start-checklist-title">Start checklist</h3>
-            <p className="operations-section-subtitle">Generate today&apos;s operational tasks from a template.</p>
+            <p className="eyebrow">{t("Daily checklists")}</p>
+            <h3 id="operations-start-checklist-title">{t("Start checklist")}</h3>
+            <p className="operations-section-subtitle">{t("Generate today's operational tasks from a template.")}</p>
           </div>
-          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
 
         {activeTemplates.length === 0 ? (
           <div className="operations-empty-state">
-            <h4>No active checklists</h4>
-            <p>Create a checklist template with items first.</p>
+            <h4>{t("No active checklists")}</h4>
+            <p>{t("Create a checklist template with items first.")}</p>
           </div>
         ) : (
           <ul className="operations-start-checklist-list">

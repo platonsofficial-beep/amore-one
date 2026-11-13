@@ -1,5 +1,6 @@
 import { getTodayAttentionItemA11y } from '../../lib/todayAttentionNavigation'
 import { getTodayAttentionRowBadge } from '../../lib/todayAttentionPresentationUtils'
+import { t } from '../../i18n/i18n'
 
 export function TodayAttentionListItem({
   item,
@@ -68,7 +69,7 @@ export function TodayAttentionListItem({
             onCompleteAttentionItem?.(item)
           }}
         >
-          Complete
+          {t("Complete")}
         </button>
       ) : null}
     </li>

@@ -14,6 +14,7 @@ import {
   getWorkspaceProfile,
 } from '../../services/workspaceProfileService'
 import { WorkspaceLinkEmployeeModal } from './WorkspaceLinkEmployeeModal'
+import { t } from '../../i18n/i18n'
 
 function countActiveStaff(employees = []) {
   return employees.filter((employee) => {
@@ -178,13 +179,13 @@ export function WorkspaceTeamSection({
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">👥</span>
-            Team
+            {t("Team")}
           </h3>
           <p className="workspace-section-subtitle">
-            Your venue membership and staff overview.
+            {t("Your venue membership and staff overview.")}
           </p>
         </div>
         <button type="button" className="ghost-btn workspace-action-btn workspace-link-btn" onClick={onManageStaff}>
@@ -195,25 +196,25 @@ export function WorkspaceTeamSection({
       <div className="panel staff-panel workspace-panel workspace-member-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Signed in member</p>
-            <h3>Current user</h3>
+            <p className="eyebrow">{t("Signed in member")}</p>
+            <h3>{t("Current user")}</h3>
           </div>
         </div>
         <dl className="workspace-member-details">
           <div className="workspace-member-row">
-            <dt>Name</dt>
+            <dt>{t("Name")}</dt>
             <dd>{memberDisplayName}</dd>
           </div>
           <div className="workspace-member-row">
-            <dt>Role</dt>
+            <dt>{t("Role")}</dt>
             <dd><span className="user-menu-role-badge">{resolvedRoleLabel}</span></dd>
           </div>
           <div className="workspace-member-row">
-            <dt>Email</dt>
+            <dt>{t("Email")}</dt>
             <dd>{memberEmail || '—'}</dd>
           </div>
           <div className="workspace-member-row workspace-member-row-linked">
-            <dt>Linked employee</dt>
+            <dt>{t("Linked employee")}</dt>
             <dd>
               <div className="workspace-member-linked-value">
                 <span>{linkedEmployeeName || 'Not linked'}</span>
@@ -233,7 +234,7 @@ export function WorkspaceTeamSection({
             </dd>
           </div>
           <div className="workspace-member-row">
-            <dt>Venue</dt>
+            <dt>{t("Venue")}</dt>
             <dd>
               <div className="workspace-member-linked-value">
                 <span>{workspaceIdentity.primary}</span>
@@ -251,21 +252,21 @@ export function WorkspaceTeamSection({
 
       {totalStaff === 0 ? (
         <div className="staff-status-banner">
-          No staff records yet. Use Manage Staff to add people, then invite them to ONE.
+          {t("No staff records yet. Use Manage Staff to add people, then invite them to ONE.")}
         </div>
       ) : null}
 
       <div className="workspace-team-grid">
         <article className="workspace-stat-card panel staff-panel">
-          <p className="workspace-stat-label">Total staff</p>
+          <p className="workspace-stat-label">{t("Total staff")}</p>
           <p className="workspace-stat-value">{totalStaff}</p>
         </article>
         <article className="workspace-stat-card panel staff-panel">
-          <p className="workspace-stat-label">Active staff</p>
+          <p className="workspace-stat-label">{t("Active staff")}</p>
           <p className="workspace-stat-value">{totalStaff > 0 ? activeStaff : '—'}</p>
         </article>
         <article className="workspace-stat-card panel staff-panel workspace-stat-card-wide">
-          <p className="workspace-stat-label">Manager</p>
+          <p className="workspace-stat-label">{t("Manager")}</p>
           <p className="workspace-stat-value workspace-stat-value-text">
             {trimmedManager || 'Not set — configure in Business Profile'}
           </p>

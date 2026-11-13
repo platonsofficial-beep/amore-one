@@ -8,6 +8,7 @@ import {
   reverseInventoryCountSession,
 } from '../../services/inventoryCountService'
 import { sumPriorCorrectionDeltasBySessionItemId } from './InventoryCountCorrectionReview'
+import { t } from '../../i18n/i18n'
 
 const AUDIT_ORIGINAL_ANCHOR_ID = 'inventory-count-audit-original'
 const AUDIT_REVERSAL_ANCHOR_ID = 'inventory-count-audit-reversal'
@@ -438,14 +439,14 @@ export function InventoryCountPostedReview({
   return (
     <section
       className="inventory-count-posted-review"
-      aria-label="Posted inventory count review"
+      aria-label={t("Posted inventory count review")}
       data-inventory-count-posted-review="true"
       data-session-id={sessionId}
       data-inventory-count-reversed={isAlreadyReversed ? 'true' : 'false'}
     >
       <header className="inventory-count-posted-review-header">
         <div className="inventory-count-posted-review-header-copy">
-          <p className="inventory-count-posted-review-eyebrow">Posted Count History</p>
+          <p className="inventory-count-posted-review-eyebrow">{t("Posted Count History")}</p>
           <div className="inventory-count-posted-review-title-row">
             <h2 className="inventory-count-posted-review-title">
               {session?.countTypeLabel || 'Inventory Count'}
@@ -467,41 +468,41 @@ export function InventoryCountPostedReview({
           </div>
           <dl className="inventory-count-posted-review-meta">
             <div>
-              <dt>Started</dt>
+              <dt>{t("Started")}</dt>
               <dd>{formatSessionDate(session?.startedAt, timeZone)}</dd>
             </div>
             <div>
-              <dt>Posted</dt>
+              <dt>{t("Posted")}</dt>
               <dd>{formatSessionDate(session?.postedAt, timeZone)}</dd>
             </div>
             <div>
-              <dt>Operator</dt>
+              <dt>{t("Operator")}</dt>
               <dd>{operatorName}</dd>
             </div>
             <div>
-              <dt>Posted by</dt>
+              <dt>{t("Posted by")}</dt>
               <dd>{postedByName}</dd>
             </div>
             <div>
-              <dt>Locations</dt>
+              <dt>{t("Locations")}</dt>
               <dd>{formatLocations(locations)}</dd>
             </div>
             <div>
-              <dt>Count mode</dt>
+              <dt>{t("Count mode")}</dt>
               <dd>{visibilityLabel}</dd>
             </div>
             {isAlreadyReversed ? (
               <>
                 <div data-inventory-count-reversed-at="true">
-                  <dt>Reversed at</dt>
+                  <dt>{t("Reversed at")}</dt>
                   <dd>{formatSessionDate(session?.reversedAt, timeZone)}</dd>
                 </div>
                 <div data-inventory-count-reversed-by="true">
-                  <dt>Reversed by</dt>
+                  <dt>{t("Reversed by")}</dt>
                   <dd>{reversedByLabel}</dd>
                 </div>
                 <div data-inventory-count-reversal-reason="true">
-                  <dt>Reason</dt>
+                  <dt>{t("Reason")}</dt>
                   <dd>{reversalReason || '—'}</dd>
                 </div>
               </>
@@ -509,7 +510,7 @@ export function InventoryCountPostedReview({
           </dl>
           {sessionNote ? (
             <p className="inventory-count-posted-review-note">
-              <span className="inventory-count-posted-review-note-label">Session note</span>
+              <span className="inventory-count-posted-review-note-label">{t("Session note")}</span>
               {sessionNote}
             </p>
           ) : null}
@@ -520,7 +521,7 @@ export function InventoryCountPostedReview({
             className="ghost-btn inventory-count-posted-review-back-btn"
             onClick={() => onClose?.()}
           >
-            Back
+            {t("Back")}
           </button>
           {canShowReverse ? (
             <button
@@ -530,7 +531,7 @@ export function InventoryCountPostedReview({
               disabled={isReversing}
               onClick={openReverseDialog}
             >
-              Reverse
+              {t("Reverse")}
             </button>
           ) : null}
           {canShowSuggestCorrection ? (
@@ -540,7 +541,7 @@ export function InventoryCountPostedReview({
               disabled={isLoading || Boolean(loadError) || !review}
               onClick={() => onSuggestCorrection?.()}
             >
-              Suggest Correction
+              {t("Suggest Correction")}
             </button>
           ) : null}
         </div>
@@ -553,7 +554,7 @@ export function InventoryCountPostedReview({
       ) : null}
 
       {isLoading ? (
-        <div className="staff-status-banner" role="status">Loading posted count…</div>
+        <div className="staff-status-banner" role="status">{t("Loading posted count…")}</div>
       ) : null}
 
       {loadError ? (
@@ -566,7 +567,7 @@ export function InventoryCountPostedReview({
         <>
           <div
             className="inventory-count-posted-review-summary"
-            aria-label="Posted count summary"
+            aria-label={t("Posted count summary")}
           >
             {[
               ['Total lines', summary?.totalLines],
@@ -599,8 +600,8 @@ export function InventoryCountPostedReview({
                 </h3>
                 <p className="inventory-count-posted-review-corrections-order-note">
                   {isAlreadyReversed
-                    ? 'Chronological: Posted, then corrections (if any), then Reversal.'
-                    : 'Chronological: Original, then Correction 1 (oldest) → newest.'}
+                    ? t('Chronological: Posted, then corrections (if any), then Reversal.')
+                    : t('Chronological: Original, then Correction 1 (oldest) → newest.')}
                 </p>
               </div>
 
@@ -613,22 +614,21 @@ export function InventoryCountPostedReview({
                   role="note"
                 >
                   <span className="inventory-count-posted-review-audit-historical-badge">
-                    Reversal Applied
+                    {t("Reversal Applied")}
                   </span>
                   <p className="inventory-count-posted-review-audit-historical-copy">
-                    Inventory impact has been fully compensated.
-                    Historical values are preserved for audit purposes.
+                    {t('Inventory impact has been fully compensated. Historical values are preserved for audit purposes.')}
                   </p>
                 </div>
               ) : null}
               <div
                 className="inventory-count-posted-review-audit-summary"
                 data-inventory-count-audit-summary="true"
-                aria-label="Audit summary"
+                aria-label={t("Audit summary")}
               >
                 <div className="inventory-count-posted-review-audit-summary-item">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Posted Total
+                    {t("Posted Total")}
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {formatQuantity(auditSummary.originalPostedQuantity)}
@@ -636,7 +636,7 @@ export function InventoryCountPostedReview({
                 </div>
                 <div className="inventory-count-posted-review-audit-summary-item is-effective">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Current Total
+                    {t("Current Total")}
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {formatQuantity(auditSummary.currentEffectiveQuantity)}
@@ -644,7 +644,7 @@ export function InventoryCountPostedReview({
                 </div>
                 <div className="inventory-count-posted-review-audit-summary-item">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Correction Batches
+                    {t("Correction Batches")}
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {auditSummary.totalCorrections}
@@ -652,7 +652,7 @@ export function InventoryCountPostedReview({
                 </div>
                 <div className="inventory-count-posted-review-audit-summary-item">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Net Adjustment
+                    {t("Net Adjustment")}
                   </span>
                   <span
                     className={`inventory-count-posted-review-audit-summary-value ${deltaToneClass(auditSummary.netAdjustment)}`.trim()}
@@ -666,7 +666,7 @@ export function InventoryCountPostedReview({
 
               <nav
                 className="inventory-count-posted-review-timeline"
-                aria-label="Posted count audit timeline"
+                aria-label={t("Posted count audit timeline")}
                 data-inventory-count-correction-timeline="true"
               >
                 <ol className="inventory-count-posted-review-timeline-list">
@@ -679,7 +679,7 @@ export function InventoryCountPostedReview({
                     >
                       <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
                       <span className="inventory-count-posted-review-timeline-label">
-                        Posted Count
+                        {t("Posted Count")}
                       </span>
                     </button>
                   </li>
@@ -720,7 +720,7 @@ export function InventoryCountPostedReview({
                       >
                         <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
                         <span className="inventory-count-posted-review-timeline-label">
-                          Final Reversal
+                          {t("Final Reversal")}
                         </span>
                       </button>
                     </li>
@@ -734,7 +734,7 @@ export function InventoryCountPostedReview({
                   className="inventory-count-posted-review-version-card is-original"
                   data-correction-version="original"
                 >
-                  <div className="inventory-count-posted-review-version-label">Original</div>
+                  <div className="inventory-count-posted-review-version-label">{t("Original")}</div>
                   <p className="inventory-count-posted-review-version-summary">
                     Posted inventory count ·
                     {' '}
@@ -743,7 +743,7 @@ export function InventoryCountPostedReview({
                     {postedByName}
                   </p>
                   <p className="inventory-count-posted-review-version-copy">
-                    Immutable historical record. Corrections below are append-only adjustments.
+                    {t("Immutable historical record. Corrections below are append-only adjustments.")}
                   </p>
                 </article>
 
@@ -820,7 +820,7 @@ export function InventoryCountPostedReview({
                     className="inventory-count-posted-review-version-card is-reversal"
                     data-inventory-count-reversal-event="true"
                   >
-                    <div className="inventory-count-posted-review-version-label">Final Reversal</div>
+                    <div className="inventory-count-posted-review-version-label">{t("Final Reversal")}</div>
                     <p className="inventory-count-posted-review-version-summary">
                       Inventory count reversed ·
                       {' '}
@@ -834,7 +834,7 @@ export function InventoryCountPostedReview({
                         data-inventory-count-reversal-event-reason="true"
                       >
                         <span className="inventory-count-posted-review-reversal-field-label">
-                          Reason
+                          {t("Reason")}
                         </span>
                         <p className="inventory-count-posted-review-reversal-field-value">
                           {reversalReason || '—'}
@@ -846,7 +846,7 @@ export function InventoryCountPostedReview({
                           data-inventory-count-reversal-event-note="true"
                         >
                           <span className="inventory-count-posted-review-reversal-field-label">
-                            Note
+                            {t("Note")}
                           </span>
                           <p className="inventory-count-posted-review-reversal-field-value">
                             {reversalNote}
@@ -855,7 +855,7 @@ export function InventoryCountPostedReview({
                       ) : null}
                     </div>
                     <p className="inventory-count-posted-review-version-copy">
-                      Compensating adjustments were appended. Original posted history remains unchanged.
+                      {t("Compensating adjustments were appended. Original posted history remains unchanged.")}
                     </p>
                   </article>
                 ) : null}
@@ -869,8 +869,8 @@ export function InventoryCountPostedReview({
           >
             {items.length === 0 ? (
               <div className="stock-empty-state">
-                <h4>No posted lines</h4>
-                <p>This posted count has no session item rows.</p>
+                <h4>{t("No posted lines")}</h4>
+                <p>{t("This posted count has no session item rows.")}</p>
               </div>
             ) : (
               <table className="inventory-count-posted-review-table">
@@ -879,15 +879,15 @@ export function InventoryCountPostedReview({
                   data-inventory-count-posted-table-sticky="true"
                 >
                   <tr>
-                    <th scope="col" className="is-item">Item</th>
-                    <th scope="col" className="is-location">Location</th>
-                    <th scope="col" className="is-num">Expected</th>
-                    <th scope="col" className="is-num">Counted</th>
-                    <th scope="col" className="is-num">Variance</th>
-                    <th scope="col" className="is-num">Posted</th>
-                    <th scope="col" className="is-num">Current</th>
+                    <th scope="col" className="is-item">{t("Item")}</th>
+                    <th scope="col" className="is-location">{t("Location")}</th>
+                    <th scope="col" className="is-num">{t("Expected")}</th>
+                    <th scope="col" className="is-num">{t("Counted")}</th>
+                    <th scope="col" className="is-num">{t("Variance")}</th>
+                    <th scope="col" className="is-num">{t("Posted")}</th>
+                    <th scope="col" className="is-num">{t("Current")}</th>
                     <th scope="col" className="is-num">Δ</th>
-                    <th scope="col" className="is-movement">Movement</th>
+                    <th scope="col" className="is-movement">{t("Movement")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -984,26 +984,26 @@ export function InventoryCountPostedReview({
               id="inventory-count-reverse-title"
               className="inventory-count-reverse-dialog-title"
             >
-              Reverse Inventory Count?
+              {t("Reverse Inventory Count?")}
             </h2>
             <div
               id="inventory-count-reverse-body"
               className="inventory-count-reverse-dialog-body"
             >
-              <p>The original inventory count remains in history.</p>
+              <p>{t("The original inventory count remains in history.")}</p>
               <p>
                 Stock changes created by this count and its corrections will be compensated
                 with new adjustment movements.
               </p>
-              <p>Later stock movements are not affected.</p>
-              <p>This action cannot be undone from the app.</p>
-              <p>If another correction is needed later, start a new inventory count.</p>
+              <p>{t("Later stock movements are not affected.")}</p>
+              <p>{t("This action cannot be undone from the app.")}</p>
+              <p>{t("If another correction is needed later, start a new inventory count.")}</p>
             </div>
 
             <label className="inventory-count-reverse-field">
               <span className="inventory-count-reverse-field-label">
-                Reason
-                <span className="inventory-count-reverse-field-required">Required</span>
+                {t("Reason")}
+                <span className="inventory-count-reverse-field-required">{t("Required")}</span>
               </span>
               <textarea
                 className="inventory-count-reverse-reason"
@@ -1012,14 +1012,14 @@ export function InventoryCountPostedReview({
                 value={reverseReason}
                 disabled={isReversing}
                 onChange={(event) => setReverseReason(event.target.value)}
-                placeholder="Why is this posted count being reversed?"
+                placeholder={t("Why is this posted count being reversed?")}
               />
             </label>
 
             <label className="inventory-count-reverse-field">
               <span className="inventory-count-reverse-field-label">
-                Internal note
-                <span className="inventory-count-reverse-field-optional">Optional</span>
+                {t("Internal note")}
+                <span className="inventory-count-reverse-field-optional">{t("Optional")}</span>
               </span>
               <textarea
                 className="inventory-count-reverse-note"
@@ -1028,7 +1028,7 @@ export function InventoryCountPostedReview({
                 value={reverseNote}
                 disabled={isReversing}
                 onChange={(event) => setReverseNote(event.target.value)}
-                placeholder="Optional internal note"
+                placeholder={t("Optional internal note")}
               />
             </label>
 
@@ -1045,7 +1045,7 @@ export function InventoryCountPostedReview({
                 disabled={isReversing}
                 onClick={closeReverseDialog}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"

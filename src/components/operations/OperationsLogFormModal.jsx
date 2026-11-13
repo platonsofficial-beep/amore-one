@@ -3,6 +3,7 @@ import {
   getOperationsLogTypeLabel,
   validateOperationsLogForm,
 } from '../../lib/operationsUtils'
+import { t } from '../../i18n/i18n'
 
 const LOG_TYPE_OPTIONS = [
   { id: 'note', label: 'Note' },
@@ -80,30 +81,30 @@ export function OperationsLogFormModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Shift Notes</p>
+            <p className="eyebrow">{t("Shift Notes")}</p>
             <h3 id="operations-log-form-title">{log ? 'Edit note' : 'Add note'}</h3>
           </div>
-          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
 
         <form className="employee-form operations-form" onSubmit={handleSubmit}>
           <label className="form-field full-width">
-            <span>What happened?</span>
+            <span>{t("What happened?")}</span>
             <textarea
               rows={5}
               value={form.message}
               onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-              placeholder="Share an update for the next shift"
+              placeholder={t("Share an update for the next shift")}
               required
               autoFocus
             />
           </label>
 
           <fieldset className="operations-shift-note-type-fieldset">
-            <legend className="operations-shift-note-type-legend">Type</legend>
-            <div className="operations-shift-note-type-options" role="group" aria-label="Note type">
+            <legend className="operations-shift-note-type-legend">{t("Type")}</legend>
+            <div className="operations-shift-note-type-options" role="group" aria-label={t("Note type")}>
               {LOG_TYPE_OPTIONS.map((option) => (
                 <button
                   key={option.id}
@@ -122,7 +123,7 @@ export function OperationsLogFormModal({
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn operations-form-action" onClick={onClose}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
               {isSaving ? 'Saving…' : log ? 'Save note' : 'Add note'}

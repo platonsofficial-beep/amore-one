@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { buildTodayStatusCardsFromSummary } from '../../lib/todayStatusPresentationUtils'
 import { areaStatus, loadAreaForCard } from '../../lib/loadStatus'
 import { PendingValue } from '../common/DataPending'
+import { t } from '../../i18n/i18n'
 
 function TodayStatusCard({ card, status = 'ready', onSelect, onRetry }) {
   const isReady = status === 'ready'
@@ -39,7 +40,7 @@ export function TodayStatusCards({ statusSummary = {}, showStock = false, onSele
   )
 
   return (
-    <section className="today-status-premium-grid" aria-label="Business status">
+    <section className="today-status-premium-grid" aria-label={t("Business status")}>
       {cards.map((card) => (
         <TodayStatusCard
           key={card.id}

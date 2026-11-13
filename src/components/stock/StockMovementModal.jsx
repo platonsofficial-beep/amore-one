@@ -20,6 +20,7 @@ import {
 } from '../../services/stockMutationService'
 import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
 import { WASTE_REASONS, formatWasteNote } from '../../lib/stockWaste'
+import { t } from '../../i18n/i18n'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
 
@@ -445,7 +446,7 @@ export function StockMovementModal({
             <h3>{title}</h3>
             <p className="stock-modal-subtitle">{buildProductDisplayNameFromItem(item)}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label={t("Close")}>✕</button>
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
@@ -461,7 +462,7 @@ export function StockMovementModal({
           {pickerMode ? (
             <>
               <div className="stock-movement-storage-field">
-                <span className="stock-movement-storage-field-label" id="stock-movement-storage-label">Storage</span>
+                <span className="stock-movement-storage-field-label" id="stock-movement-storage-label">{t("Storage")}</span>
                 <button
                   type="button"
                   className="stock-movement-storage-row"
@@ -485,7 +486,7 @@ export function StockMovementModal({
                   {typeof onRetryStorages === 'function' ? (
                     <>
                       {' '}
-                      <button type="button" className="ghost-btn" onClick={onRetryStorages}>Retry</button>
+                      <button type="button" className="ghost-btn" onClick={onRetryStorages}>{t("Retry")}</button>
                     </>
                   ) : null}
                 </p>
@@ -510,11 +511,11 @@ export function StockMovementModal({
 
           {isAdjustment ? (
             <fieldset className="stock-adjustment-operation" disabled={isBusy}>
-              <legend>Operation</legend>
+              <legend>{t("Operation")}</legend>
               <div
                 className="stock-adjustment-operation-toggle"
                 role="group"
-                aria-label="Adjustment operation"
+                aria-label={t("Adjustment operation")}
                 data-testid="stock-adjustment-operation"
               >
                 <button
@@ -547,8 +548,8 @@ export function StockMovementModal({
 
           {isWaste ? (
             <fieldset className="stock-waste-reasons" disabled={isBusy}>
-              <legend>Reason</legend>
-              <div role="group" aria-label="Waste reason" data-testid="stock-waste-reasons">
+              <legend>{t("Reason")}</legend>
+              <div role="group" aria-label={t("Waste reason")} data-testid="stock-waste-reasons">
                 {WASTE_REASONS.map((reason) => (
                   <button
                     key={reason.id}
@@ -578,10 +579,10 @@ export function StockMovementModal({
                 enterKeyHint="done"
                 value={quantity}
                 onChange={handleAdjustmentQuantityChange}
-                placeholder="Qty"
+                placeholder={t("Qty")}
                 required
                 disabled={isBusy}
-                aria-label="Adjustment quantity"
+                aria-label={t("Adjustment quantity")}
                 data-testid="stock-adjustment-quantity"
               />
             ) : (
@@ -607,7 +608,7 @@ export function StockMovementModal({
               aria-live="polite"
             >
               <div className="stock-adjustment-preview-row">
-                <span>Current</span>
+                <span>{t("Current")}</span>
                 <strong>{adjustmentBalance == null ? '—' : formatStockQuantity(adjustmentBalance, item?.unit)}</strong>
               </div>
               <div className="stock-adjustment-preview-row">
@@ -619,7 +620,7 @@ export function StockMovementModal({
                 </strong>
               </div>
               <div className="stock-adjustment-preview-row">
-                <span>New balance</span>
+                <span>{t("New balance")}</span>
                 <strong data-testid="stock-adjustment-preview-result">
                   {previewNewBalance == null
                     ? '—'
@@ -632,7 +633,7 @@ export function StockMovementModal({
                   role="alert"
                   data-testid="stock-adjustment-negative-blocker"
                 >
-                  Adjustment would make the balance negative.
+                  {t("Adjustment would make the balance negative.")}
                 </p>
               ) : null}
             </div>
@@ -672,7 +673,7 @@ export function StockMovementModal({
               disabled={isBusy}
               data-testid={isAdjustment ? 'stock-adjustment-cancel' : undefined}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="submit"
@@ -693,12 +694,12 @@ export function StockMovementModal({
             <div
               className="stock-movement-storage-sheet"
               role="dialog"
-              aria-label="Choose storage"
+              aria-label={t("Choose storage")}
               onClick={(event) => event.stopPropagation()}
             >
-              <h4>Choose storage</h4>
+              <h4>{t("Choose storage")}</h4>
               {storageChoices.length === 0 ? (
-                <p className="stock-movement-storage-gap">No active storage is available.</p>
+                <p className="stock-movement-storage-gap">{t("No active storage is available.")}</p>
               ) : storageChoices.map((storage) => {
                 const storageId = `${storage?.id ?? ''}`
                 const storageName = storage?.name || storage?.locationKey || 'Storage'

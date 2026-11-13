@@ -10,6 +10,7 @@ import { MobileProfileView } from './MobileProfileView'
 import { MobileScheduleView } from './MobileScheduleView'
 import { MobileTasksView } from './MobileTasksView'
 import { OperationsUnifiedScreen } from '../operations/OperationsUnifiedScreen'
+import { t } from '../../i18n/i18n'
 
 const STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Today', icon: '◈' },
@@ -215,7 +216,7 @@ export function MobileStaffApp({
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
       <p>{noticeMessage}</p>
       {onDismissNotice ? (
-        <button type="button" className="mobile-notice-dismiss" onClick={onDismissNotice} aria-label="Dismiss">
+        <button type="button" className="mobile-notice-dismiss" onClick={onDismissNotice} aria-label={t("Dismiss")}>
           ✕
         </button>
       ) : null}
@@ -253,7 +254,7 @@ export function MobileStaffApp({
 
   const scheduleBody = (
     <div className="mobile-schedule-shell">
-      <div className="mobile-segmented-control mobile-schedule-segments" role="tablist" aria-label="Schedule">
+      <div className="mobile-segmented-control mobile-schedule-segments" role="tablist" aria-label={t("Schedule")}>
         <button
           type="button"
           role="tab"
@@ -261,7 +262,7 @@ export function MobileStaffApp({
           className={`mobile-segmented-btn${resolvedActiveTab !== 'availability' ? ' is-active' : ''}`}
           onClick={() => handleTabChange('schedule')}
         >
-          Shifts
+          {t("Shifts")}
         </button>
         <button
           type="button"
@@ -270,7 +271,7 @@ export function MobileStaffApp({
           className={`mobile-segmented-btn${resolvedActiveTab === 'availability' ? ' is-active' : ''}`}
           onClick={() => handleTabChange('availability')}
         >
-          My week
+          {t("My week")}
         </button>
       </div>
       {resolvedActiveTab === 'availability' ? availabilityView : <MobileScheduleView {...scheduleProps} />}
@@ -284,14 +285,14 @@ export function MobileStaffApp({
         {showLeaveConfirm ? (
           <div className="mobile-availability-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="mobile-availability-leave-title">
             <div className="mobile-availability-leave-dialog-card">
-              <h2 id="mobile-availability-leave-title">Discard unsaved changes?</h2>
-              <p>Your availability changes have not been saved.</p>
+              <h2 id="mobile-availability-leave-title">{t("Discard unsaved changes?")}</h2>
+              <p>{t("Your availability changes have not been saved.")}</p>
               <div className="mobile-availability-leave-dialog-actions">
                 <button type="button" className="mobile-secondary-btn" onClick={handleCancelLeave}>
-                  Keep editing
+                  {t("Keep editing")}
                 </button>
                 <button type="button" className="mobile-primary-btn" onClick={handleConfirmLeave}>
-                  Leave without saving
+                  {t("Leave without saving")}
                 </button>
               </div>
             </div>
@@ -312,7 +313,7 @@ export function MobileStaffApp({
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
             <button type="button" className="mobile-back-btn" onClick={onBackFromExpanded}>
-              ‹ Back
+              {t("‹ Back")}
             </button>
             <h1>{expandedTitle}</h1>
           </header>
@@ -338,14 +339,14 @@ export function MobileStaffApp({
       {showLeaveConfirm ? (
         <div className="mobile-availability-leave-dialog" role="dialog" aria-modal="true" aria-labelledby="mobile-availability-leave-title">
           <div className="mobile-availability-leave-dialog-card">
-            <h2 id="mobile-availability-leave-title">Discard unsaved changes?</h2>
-            <p>Your availability changes have not been saved.</p>
+            <h2 id="mobile-availability-leave-title">{t("Discard unsaved changes?")}</h2>
+            <p>{t("Your availability changes have not been saved.")}</p>
             <div className="mobile-availability-leave-dialog-actions">
               <button type="button" className="mobile-secondary-btn" onClick={handleCancelLeave}>
-                Keep editing
+                {t("Keep editing")}
               </button>
               <button type="button" className="mobile-primary-btn" onClick={handleConfirmLeave}>
-                Leave without saving
+                {t("Leave without saving")}
               </button>
             </div>
           </div>
@@ -361,7 +362,7 @@ export function MobileStaffApp({
               onLeavePersonal?.()
             }}
           >
-            ‹ Back
+            {t("‹ Back")}
           </button>
           {homeProps?.clockCard}
         </div>
@@ -395,7 +396,7 @@ export function MobileStaffApp({
           ) : menuProps?.screen === 'notifications' ? (
             <div className="mobile-screen mobile-notification-settings">
               <button type="button" className="mobile-back-btn" onClick={menuProps.onBackFromNotifications}>
-                ‹ Back
+                {t("‹ Back")}
               </button>
               {menuProps.notificationSettings}
             </div>

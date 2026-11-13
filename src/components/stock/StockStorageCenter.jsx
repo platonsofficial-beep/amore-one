@@ -30,6 +30,7 @@ import {
 import { renameWorkspaceStorage } from '../../services/workspaceStorageService'
 import { RenameWorkspaceStorageDialog } from './RenameWorkspaceStorageDialog'
 import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
+import { t } from '../../i18n/i18n'
 
 const defaultDepartmentActions = {
   createDepartment: createWorkspaceDepartment,
@@ -118,7 +119,7 @@ function StorageSummaryCard({
                 title={`${SUPPLY_STORAGE_LABEL} · ${SUPPLY_STORAGE_LABEL_EL}`}
                 aria-label={`${SUPPLY_STORAGE_LABEL}. ${SUPPLY_STORAGE_LABEL_EL}`}
               >
-                Supply
+                {t("Supply")}
               </span>
             ) : null}
             <span className={`stock-storage-center-status tone-${storage.active ? 'active' : 'archived'}`}>
@@ -128,20 +129,20 @@ function StorageSummaryCard({
         </div>
         <div className="stock-storage-center-card-stats">
           <div>
-            <span className="stock-storage-stat-label">Products</span>
+            <span className="stock-storage-stat-label">{t("Products")}</span>
             <strong className="stock-storage-stat-value">{storage.productCount}</strong>
           </div>
           <div>
-            <span className="stock-storage-stat-label">Total qty</span>
+            <span className="stock-storage-stat-label">{t("Total qty")}</span>
             <strong className="stock-storage-stat-value">{formatStockQuantity(storage.totalQuantity)}</strong>
           </div>
           <div>
-            <span className="stock-storage-stat-label">Non-zero</span>
+            <span className="stock-storage-stat-label">{t("Non-zero")}</span>
             <strong className="stock-storage-stat-value">{storage.nonZeroBalanceCount}</strong>
           </div>
           {showValue ? (
             <div>
-              <span className="stock-storage-stat-label">Value</span>
+              <span className="stock-storage-stat-label">{t("Value")}</span>
               <strong className="stock-storage-stat-value">{formatStockInventoryValue(storage.inventoryValue)}</strong>
             </div>
           ) : null}
@@ -161,13 +162,13 @@ function StorageSummaryCard({
             <svg className="stock-action-icon" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9.4 3.1 12.9 6.6M2.8 13.2l.7-3.1L10.2 3.4l2.4 2.4-6.7 6.7z" />
             </svg>
-            Edit
+            {t("Edit")}
           </summary>
         <div className="stock-storage-center-card-actions">
           {canAssign ? (
           <>
           <label className="stock-storage-department-field">
-            <span>Department</span>
+            <span>{t("Department")}</span>
             <select
               className="stock-storage-department-select"
               data-action="assign-department"
@@ -176,7 +177,7 @@ function StorageSummaryCard({
               disabled={actionsDisabled}
               onChange={(event) => onAssignDepartment?.(storage, event.target.value)}
             >
-              <option value="">Unassigned</option>
+              <option value="">{t("Unassigned")}</option>
               {options.map((department) => (
                 <option key={department.id} value={department.id}>
                   {department.active === false ? `${department.name} · archived` : department.name}
@@ -193,7 +194,7 @@ function StorageSummaryCard({
               disabled={actionsDisabled}
               onClick={() => onToggleSupply?.(storage)}
             >
-              <span aria-hidden="true">{storage.isSupply ? '✓ ' : '+ '}</span>Supply
+              <span aria-hidden="true">{storage.isSupply ? '✓ ' : '+ '}</span>{t("Supply")}
             </button>
             {showBuyingToggle ? (
               <button
@@ -204,7 +205,7 @@ function StorageSummaryCard({
                 disabled={actionsDisabled}
                 onClick={() => onToggleBuying?.(storage)}
               >
-                <span aria-hidden="true">{storage.isBuying ? '✓ ' : '+ '}</span>Buying
+                <span aria-hidden="true">{storage.isBuying ? '✓ ' : '+ '}</span>{t("Buying")}
               </button>
             ) : null}
           </div>
@@ -223,7 +224,7 @@ function StorageSummaryCard({
               disabled={actionsDisabled}
               onClick={() => onRename?.(storage)}
             >
-              Rename
+              {t("Rename")}
             </button>
           ) : null}
           <button
@@ -234,7 +235,7 @@ function StorageSummaryCard({
               if (details) details.open = false
             }}
           >
-            Cancel
+            {t("Cancel")}
           </button>
           </div>
         </div>
@@ -249,7 +250,7 @@ function StorageSummaryCard({
  *   mode: 'create'|'rename',
  *   initialName?: string,
  *   onClose: () => void,
- *   onSubmit: (name: string) => Promise<void>,
+ *   onSubmit: (name: string) => {t("Promise")}<void>,
  * }} props
  */
 function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
@@ -310,7 +311,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Stock</p>
+            <p className="eyebrow">{t("Stock")}</p>
             <h3 id={titleId}>{title}</h3>
           </div>
           <button
@@ -318,14 +319,14 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isSaving}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
         </div>
         <form className="employee-form" onSubmit={handleSubmit}>
           <label htmlFor={inputId}>
-            Department name
+            {t("Department name")}
             <input
               id={inputId}
               type="text"
@@ -333,7 +334,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
               maxLength={80}
               autoFocus
               disabled={isSaving}
-              placeholder="e.g. Bar"
+              placeholder={t("e.g. Bar")}
               onChange={(event) => {
                 setName(event.target.value)
                 if (error) setError('')
@@ -348,7 +349,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
           ) : null}
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save department'}
@@ -651,12 +652,12 @@ export function StockStorageCenter({
   )
 
   return (
-    <section className="stock-storage-center-page" aria-label="Storages">
+    <section className="stock-storage-center-page" aria-label={t("Storages")}>
       <header className="stock-storage-center-header">
         <div className="stock-storage-center-header-copy">
-          <h2 className="stock-storage-center-title">Storages</h2>
+          <h2 className="stock-storage-center-title">{t("Storages")}</h2>
           <p className="stock-storage-center-subtitle">
-            Stock by physical location.
+            {t("Stock by physical location.")}
           </p>
         </div>
         {canManage && departmentsReady ? (
@@ -668,7 +669,7 @@ export function StockStorageCenter({
               disabled={departmentBusy}
               onClick={() => setNameDialog({ mode: 'create' })}
             >
-              New department group
+              {t("New department group")}
             </button>
           </div>
         ) : null}
@@ -688,7 +689,7 @@ export function StockStorageCenter({
 
       {status === 'ready' ? (
         <p className="stock-storage-par-note">
-          Numbers here are per storage. “To order” uses each product’s total across all storages.
+          {t("Numbers here are per storage. “To order” uses each product’s total across all storages.")}
         </p>
       ) : null}
 
@@ -696,22 +697,22 @@ export function StockStorageCenter({
         <div className="stock-storage-center-overview" role="status">
           <div className="stock-storage-center-overview-stat">
             <span className="stock-storage-center-overview-label">
-              <span className="stock-storage-center-overview-label-full">Active storages</span>
-              <span className="stock-storage-center-overview-label-short">Storages</span>
+              <span className="stock-storage-center-overview-label-full">{t("Active storages")}</span>
+              <span className="stock-storage-center-overview-label-short">{t("Storages")}</span>
             </span>
             <strong>{summary.activeStorageCount}</strong>
           </div>
           <div className="stock-storage-center-overview-stat">
             <span className="stock-storage-center-overview-label">
-              <span className="stock-storage-center-overview-label-full">Products with balances</span>
-              <span className="stock-storage-center-overview-label-short">Products</span>
+              <span className="stock-storage-center-overview-label-full">{t("Products with balances")}</span>
+              <span className="stock-storage-center-overview-label-short">{t("Products")}</span>
             </span>
             <strong>{summary.totalProductsWithBalances}</strong>
           </div>
           <div className="stock-storage-center-overview-stat">
             <span className="stock-storage-center-overview-label">
-              <span className="stock-storage-center-overview-label-full">Total quantity</span>
-              <span className="stock-storage-center-overview-label-short">Total qty</span>
+              <span className="stock-storage-center-overview-label-full">{t("Total quantity")}</span>
+              <span className="stock-storage-center-overview-label-short">{t("Total qty")}</span>
             </span>
             <strong>{formatStockQuantity(summary.totalQuantity)}</strong>
           </div>
@@ -719,7 +720,7 @@ export function StockStorageCenter({
       ) : null}
 
       {status === 'loading' ? (
-        <div className="stock-storage-center-state stock-storage-center-skeleton" role="status" data-testid="stock-storage-center-loading" aria-label="Loading storages">
+        <div className="stock-storage-center-state stock-storage-center-skeleton" role="status" data-testid="stock-storage-center-loading" aria-label={t("Loading storages")}>
           <span className="stock-storage-skeleton-card" />
           <span className="stock-storage-skeleton-card" />
           <span className="stock-storage-skeleton-card" />
@@ -734,16 +735,16 @@ export function StockStorageCenter({
             className="stock-storage-center-retry"
             onClick={() => setReloadToken((token) => token + 1)}
           >
-            Retry
+            {t("Retry")}
           </button>
         </div>
       ) : null}
 
       {status === 'empty' && departmentGroups.length === 0 ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-center-empty">
-          <p className="stock-storage-center-empty-title">No storages yet.</p>
+          <p className="stock-storage-center-empty-title">{t("No storages yet.")}</p>
           <p className="stock-storage-center-empty-copy">
-            Workspace storages will appear here once they are available.
+            {t("Workspace storages will appear here once they are available.")}
           </p>
         </div>
       ) : null}
@@ -781,7 +782,7 @@ export function StockStorageCenter({
                           name: group.name,
                         })}
                       >
-                        Rename department
+                        {t("Rename department")}
                       </button>
                       {group.active ? (
                         pendingArchiveId === group.id ? (
@@ -799,7 +800,7 @@ export function StockStorageCenter({
                                 )).catch(() => {})
                               }}
                             >
-                              Confirm archive
+                              {t("Confirm archive")}
                             </button>
                             <button
                               type="button"
@@ -807,7 +808,7 @@ export function StockStorageCenter({
                               disabled={departmentBusy}
                               onClick={() => setPendingArchiveId(null)}
                             >
-                              Cancel
+                              {t("Cancel")}
                             </button>
                           </>
                         ) : (
@@ -818,7 +819,7 @@ export function StockStorageCenter({
                             disabled={departmentBusy}
                             onClick={() => setPendingArchiveId(group.id)}
                           >
-                            Archive department
+                            {t("Archive department")}
                           </button>
                         )
                       ) : (
@@ -835,14 +836,14 @@ export function StockStorageCenter({
                             )).catch(() => {})
                           }}
                         >
-                          Restore department
+                          {t("Restore department")}
                         </button>
                       )}
                     </div>
                   ) : null}
                 </div>
                 {group.storages.length === 0 ? (
-                  <p className="stock-storage-center-section-empty">No storages in this department.</p>
+                  <p className="stock-storage-center-section-empty">{t("No storages in this department.")}</p>
                 ) : (
                   <div className="stock-storage-center-grid">
                     {group.storages.map((storage) => renderCard(storage))}
@@ -852,7 +853,7 @@ export function StockStorageCenter({
             ))
           ) : status === 'ready' ? (
             <>
-              <h3 className="stock-storage-center-section-title">Active</h3>
+              <h3 className="stock-storage-center-section-title">{t("Active")}</h3>
               {filteredActiveStorages.length === 0 ? (
                 <p className="stock-storage-center-section-empty">
                   {`${searchTerm ?? ''}`.trim() ? 'No active storages match this search.' : 'No active storages.'}
@@ -867,9 +868,9 @@ export function StockStorageCenter({
 
           {payload.archivedStorages.length > 0 ? (
             <div className="stock-storage-center-archived">
-              <h3 className="stock-storage-center-section-title">Archived</h3>
+              <h3 className="stock-storage-center-section-title">{t("Archived")}</h3>
               {filteredArchivedStorages.length === 0 ? (
-                <p className="stock-storage-center-section-empty">No archived storages match this search.</p>
+                <p className="stock-storage-center-section-empty">{t("No archived storages match this search.")}</p>
               ) : (
                 <div className="stock-storage-center-grid is-archived">
                   {filteredArchivedStorages.map((storage) => renderCard(storage, {

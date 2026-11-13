@@ -1,4 +1,5 @@
 import { OneFullLogo } from './brand/OneFullLogo'
+import { t } from '../i18n/i18n'
 
 export function DeploySetupError({ message }) {
   return (
@@ -6,13 +7,13 @@ export function DeploySetupError({ message }) {
       <div className="auth-card panel staff-panel">
         <header className="auth-header">
           <OneFullLogo compact />
-          <h1 className="auth-title">Deployment setup required</h1>
+          <h1 className="auth-title">{t("Deployment setup required")}</h1>
         </header>
         <div className="auth-banner auth-banner-error">
           {message}
         </div>
         <p className="auth-loading-text">
-          Configure Supabase environment variables in Vercel, redeploy, then reload this page.
+          {t("Configure Supabase environment variables in Vercel, redeploy, then reload this page.")}
         </p>
       </div>
     </div>

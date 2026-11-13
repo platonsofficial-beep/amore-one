@@ -7,6 +7,7 @@ import {
 } from '../../../lib/hostQuickCreateForm'
 import { buildSeatingAssignment, computeSeatingAssignmentTotals } from '../../../lib/seatingAssignment'
 import { unitIdsMatch } from '../../../lib/reservationTableOptions'
+import { t } from '../../../i18n/i18n'
 
 export function HostQuickCreateTableField({
   form,
@@ -91,7 +92,7 @@ export function HostQuickCreateTableField({
   return (
     <div className="mobile-host-form-field mobile-host-quick-create-table-field">
       <div className="mobile-host-quick-create-table-header">
-        <span>Table (optional)</span>
+        <span>{t("Table (optional)")}</span>
         {hasSelection ? (
           <button
             type="button"
@@ -101,7 +102,7 @@ export function HostQuickCreateTableField({
               onClearTable?.()
             }}
           >
-            Clear table
+            {t("Clear table")}
           </button>
         ) : null}
       </div>
@@ -124,7 +125,7 @@ export function HostQuickCreateTableField({
             type="button"
             className={`mobile-host-quick-create-extra-chair-toggle${extraChairs > 0 ? ' is-active' : ''}`}
             aria-pressed={extraChairs > 0}
-            aria-label="Extra chair plus one"
+            aria-label={t("Extra chair plus one")}
             data-testid="host-quick-create-extra-chair-toggle"
             onClick={handleToggleExtraChair}
           >
@@ -151,7 +152,7 @@ export function HostQuickCreateTableField({
         <div
           className="mobile-host-quick-create-table-grid"
           role="group"
-          aria-label="Available tables"
+          aria-label={t("Available tables")}
           data-testid="host-quick-create-table-grid"
         >
           {tableOptions.options.map(({ unit, isSelectable, disabledReason, label, capacityLabel }) => {

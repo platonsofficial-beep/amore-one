@@ -8,6 +8,7 @@ import {
 } from '../../lib/inventoryImportLocationAllocation'
 import { INVENTORY_LOCATION_QUANTITY_BLOCKER } from '../../lib/inventoryLocationColumnBindings'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {string} code
@@ -59,7 +60,7 @@ export function InventoryImportLocationAllocationEditor({
     >
       <div className="inventory-import-location-allocations-head">
         <h5 className="inventory-import-location-allocations-title">
-          Location Quantities
+          {t("Location Quantities")}
         </h5>
       </div>
 
@@ -125,7 +126,7 @@ export function InventoryImportLocationAllocationEditor({
                 </label>
 
                 <label className="inventory-import-location-allocation-qty">
-                  <span className="sr-only">Quantity</span>
+                  <span className="sr-only">{t("Quantity")}</span>
                   <input
                     type="text"
                     inputMode="decimal"
@@ -174,7 +175,7 @@ export function InventoryImportLocationAllocationEditor({
       </ul>
 
       <div className="inventory-import-location-allocations-total" role="status">
-        <span>Total Opening Stock</span>
+        <span>{t("Total Opening Stock")}</span>
         <strong data-testid="inventory-import-opening-stock-total">{totalLabel}</strong>
       </div>
     </div>

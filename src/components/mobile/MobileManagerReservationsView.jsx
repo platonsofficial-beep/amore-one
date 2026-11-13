@@ -25,6 +25,7 @@ import { HostQueueServiceSummary } from './reservations/HostQueueServiceSummary'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
 import { GuestDirectory, GuestsButton } from '../reservations/GuestHistory'
 import { claimGuestPreview, guestPreviewPhone } from '../../lib/guestHistoryPreview'
+import { t } from '../../i18n/i18n'
 
 function reservationOnDate(reservation, dateKey) {
   return getReservationDateKey(reservation) === dateKey
@@ -251,18 +252,18 @@ export function MobileManagerReservationsView({
         aria-hidden={showStickyDay ? undefined : 'true'}
         data-testid="portrait-sticky-day"
       >
-        <button type="button" onClick={() => shiftDate(-1)} aria-label="Previous day" tabIndex={showStickyDay ? 0 : -1}>‹</button>
+        <button type="button" onClick={() => shiftDate(-1)} aria-label={t("Previous day")} tabIndex={showStickyDay ? 0 : -1}>‹</button>
         <span className="manager-portrait-sticky-day-label">{formatPortraitStickyDay(selectedDate)}</span>
-        <button type="button" onClick={() => shiftDate(1)} aria-label="Next day" tabIndex={showStickyDay ? 0 : -1}>›</button>
+        <button type="button" onClick={() => shiftDate(1)} aria-label={t("Next day")} tabIndex={showStickyDay ? 0 : -1}>›</button>
       </div>
       <header className="manager-portrait-screen-header" ref={headerRef}>
         <div>
-          <p className="mobile-screen-eyebrow">Reservations</p>
+          <p className="mobile-screen-eyebrow">{t("Reservations")}</p>
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
           {!isLoading ? <p className="manager-portrait-day-summary">{daySummary}</p> : null}
           {!isLoading && summaryUnavailable ? (
-            <p className="manager-portrait-day-summary" role="status">Service summary unavailable until reservations load.</p>
+            <p className="manager-portrait-day-summary" role="status">{t("Service summary unavailable until reservations load.")}</p>
           ) : null}
           {!isLoading && !summaryUnavailable ? (
             <HostQueueServiceSummary {...dayMetrics} className="manager-portrait-day-metrics" />
@@ -271,10 +272,10 @@ export function MobileManagerReservationsView({
         {canManage ? (
           <div className="manager-portrait-create-actions">
             <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
-              Walk-in
+              {t("Walk-in")}
             </button>
             <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
-              Add
+              {t("Add")}
             </button>
             <GuestsButton onClick={() => setGuestsOpen(true)} />
           </div>
@@ -286,20 +287,20 @@ export function MobileManagerReservationsView({
           type="button"
           className="manager-portrait-hours"
           onClick={onOpenReservationServices}
-          aria-label="Seating hours"
+          aria-label={t("Seating hours")}
         >
-          Seating hours
+          {t("Seating hours")}
         </button>
       ) : null}
 
       <div className="manager-portrait-find">
         <label className="manager-portrait-search">
-          <span className="sr-only">Search guest</span>
+          <span className="sr-only">{t("Search guest")}</span>
           <input
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search guest"
+            placeholder={t("Search guest")}
             data-testid="portrait-reservation-search"
           />
         </label>
@@ -309,7 +310,7 @@ export function MobileManagerReservationsView({
           aria-pressed={problemsOnly}
           onClick={() => setProblemsOnly((current) => !current)}
         >
-          Problems
+          {t("Problems")}
         </button>
       </div>
 
@@ -317,7 +318,7 @@ export function MobileManagerReservationsView({
         <div
           className="manager-portrait-seatings"
           role="group"
-          aria-label="Seatings"
+          aria-label={t("Seatings")}
           data-testid="portrait-seatings"
           data-seating-filter={selectedSeatingId || 'all'}
         >
@@ -327,7 +328,7 @@ export function MobileManagerReservationsView({
             aria-pressed={!selectedSeating}
             onClick={() => setSelectedSeatingId(null)}
           >
-            All
+            {t("All")}
           </button>
           {activeSeatings.map((seating) => (
             <button
@@ -344,30 +345,30 @@ export function MobileManagerReservationsView({
         </div>
       ) : null}
 
-      <div className="manager-portrait-date-nav" aria-label="Reservation day">
-        <button type="button" onClick={() => shiftDate(-1)} aria-label="Previous day">‹</button>
+      <div className="manager-portrait-date-nav" aria-label={t("Reservation day")}>
+        <button type="button" onClick={() => shiftDate(-1)} aria-label={t("Previous day")}>‹</button>
         <button type="button" onClick={() => onDateChange?.(todayKey)} disabled={!todayKey || isToday}>
-          Today
+          {t("Today")}
         </button>
-        <button type="button" onClick={() => shiftDate(1)} aria-label="Next day">›</button>
+        <button type="button" onClick={() => shiftDate(1)} aria-label={t("Next day")}>›</button>
       </div>
 
       <HostLoadNotice message={noticeMessage} onRetry={onRetryLoad} className="manager-portrait-notice" />
 
       {seatingLeftovers.length > 0 ? (
         <div className="manager-portrait-stale" role="alert" data-testid="portrait-stale-seated">
-          <p>Still seated from yesterday — close?</p>
+          <p>{t("Still seated from yesterday — close?")}</p>
           {typeof onQuickStatusUpdate === 'function' ? (
             <button type="button" onClick={closeLeftovers} disabled={isSaving}>
-              Close
+              {t("Close")}
             </button>
           ) : null}
         </div>
       ) : null}
 
-      <section aria-label="Bookings">
-        <h2>Bookings</h2>
-        {isLoading ? <p className="manager-portrait-empty">Loading reservations…</p> : null}
+      <section aria-label={t("Bookings")}>
+        <h2>{t("Bookings")}</h2>
+        {isLoading ? <p className="manager-portrait-empty">{t("Loading reservations…")}</p> : null}
         {!isLoading && visibleReservations.length === 0 ? (
           <div className="manager-portrait-empty">
             <p>{loadFailed
@@ -375,11 +376,11 @@ export function MobileManagerReservationsView({
               : searchTerm.trim() || problemsOnly || selectedSeating
                 ? 'No bookings match.'
                 : 'No bookings for this day.'}</p>
-            {loadFailed ? <p>Retry to load the queue. An empty list is not confirmed.</p> : null}
+            {loadFailed ? <p>{t("Retry to load the queue. An empty list is not confirmed.")}</p> : null}
             {canManage && !loadFailed && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
               <div className="manager-portrait-create-actions">
                 <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
-                  Walk-in
+                  {t("Walk-in")}
                 </button>
                 <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
                   + Reservation

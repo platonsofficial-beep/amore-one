@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export function OperationsUnifiedScreen({
   sections = [],
   section = 'dashboard',
@@ -12,7 +13,7 @@ export function OperationsUnifiedScreen({
   return (
     <div className="operations-unified-screen">
       {!execution && sections.length > 1 ? (
-        <div className="operations-unified-tabs" role="tablist" aria-label="Operations">
+        <div className="operations-unified-tabs" role="tablist" aria-label={t("Operations")}>
           {sections.map((entry) => (
             <button
               key={entry.id}

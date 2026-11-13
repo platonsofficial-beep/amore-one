@@ -14,6 +14,7 @@ import {
 import {
   submitStaffShelfCount,
 } from '../../services/staffShelfCountService'
+import { t } from '../../i18n/i18n'
 
 function initialDrafts(rows) {
   const drafts = {}
@@ -117,13 +118,13 @@ export function StaffShelfCountSheet({
       >
         <header className="drawer-header">
           <div>
-            <h2 id="staff-shelf-count-title">Count shelf</h2>
+            <h2 id="staff-shelf-count-title">{t("Count shelf")}</h2>
             <p className="stock-modal-subtitle">{storageName}</p>
           </div>
           <button
             type="button"
             className="icon-btn"
-            aria-label="Close shelf count"
+            aria-label={t("Close shelf count")}
             disabled={isSubmitting}
             onClick={() => onClose?.()}
           >
@@ -132,7 +133,7 @@ export function StaffShelfCountSheet({
         </header>
 
         <p className="staff-shelf-count-note" role="note">
-          Enter what is on the shelf. A manager posts the count before stock changes.
+          {t("Enter what is on the shelf. A manager posts the count before stock changes.")}
         </p>
 
         {checked && !available ? (
@@ -157,7 +158,7 @@ export function StaffShelfCountSheet({
                   ) : null}
                 </div>
                 <label className="staff-shelf-count-field">
-                  <span>Counted</span>
+                  <span>{t("Counted")}</span>
                   <input
                     type="text"
                     inputMode="decimal"

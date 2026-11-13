@@ -23,7 +23,7 @@ describe('Stock full-screen workspace shell wiring', () => {
   })
 
   it('renders Stock content with Exit Stock control and preserved search chrome', () => {
-    expect(appSource).toContain('aria-label="Exit Stock"')
+    expect(appSource).toContain('aria-label={t("Exit Stock")}')
     expect(appSource).toContain('← Exit Stock')
     expect(appSource).toContain('handleExitStockFocusMode')
     expect(appSource).toContain('resolveSidebarWorkspaceExit(sidebarWorkspaceRef.current)')

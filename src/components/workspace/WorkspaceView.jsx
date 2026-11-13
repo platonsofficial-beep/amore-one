@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { t } from '../../i18n/i18n'
+import { LanguagePicker } from '../../i18n/LanguagePicker'
 import { LIMITED_SETTINGS_SUBTITLE } from '../../lib/settingsSections'
 import { WorkspaceBusinessProfileSection } from './WorkspaceBusinessProfileSection'
 import { WorkspacePositionsSection } from './WorkspacePositionsSection'
@@ -110,16 +112,17 @@ export function WorkspaceView({
 
   return (
     <section className="staff-page workspace-page">
+      <LanguagePicker className="mobile-profile-language" />
       {limitedAccess ? (
         <p className="workspace-limited-note">{LIMITED_SETTINGS_SUBTITLE}.</p>
       ) : null}
       <div className="workspace-layout">
-        <aside className={navClass} aria-label="Settings sections">
+        <aside className={navClass} aria-label={t("Settings sections")}>
           {chipRow && edges.start ? (
             <button
               type="button"
               className="workspace-nav-chevron is-start"
-              aria-label="Earlier settings sections"
+              aria-label={t("Earlier settings sections")}
               onClick={() => scrollNav(-1)}
             >
               ‹
@@ -137,8 +140,8 @@ export function WorkspaceView({
               >
                 <span className="workspace-nav-icon" aria-hidden="true">{section.icon}</span>
                 <span className="workspace-nav-label">
-                  <span className="workspace-nav-label-full">{section.label}</span>
-                  <span className="workspace-nav-label-short">{section.shortLabel}</span>
+                  <span className="workspace-nav-label-full">{t(section.label)}</span>
+                  <span className="workspace-nav-label-short">{t(section.shortLabel)}</span>
                 </span>
               </button>
             ))}
@@ -147,7 +150,7 @@ export function WorkspaceView({
             <button
               type="button"
               className="workspace-nav-chevron is-end"
-              aria-label="More settings sections"
+              aria-label={t("More settings sections")}
               onClick={() => scrollNav(1)}
             >
               ›

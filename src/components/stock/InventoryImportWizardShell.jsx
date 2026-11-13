@@ -66,6 +66,7 @@ import {
   subscribeWorkspaceStorageListChanged,
   WorkspaceStorageSelector,
 } from './WorkspaceStorageSelector'
+import { t } from '../../i18n/i18n'
 
 /**
  * @returns {string}
@@ -255,7 +256,7 @@ function InventoryImportContinueValidationPanel({ messages }) {
       aria-live="polite"
     >
       <p className="inventory-import-wizard-validation-title">
-        Continue is unavailable
+        {t("Continue is unavailable")}
       </p>
       <ul className="inventory-import-wizard-validation-list">
         {messages.map((message) => (
@@ -398,7 +399,7 @@ function detectAndParseDecodedTable(decoded) {
  * @param {{
  *   onClose?: () => void,
  *   workspaceId?: string,
- *   loadWorkspaceStockItems?: (workspaceId: string) => Promise<object[]>,
+ *   loadWorkspaceStockItems?: (workspaceId: string) => {t("Promise")}<object[]>,
  *   createInventoryImportSession?: typeof createInventoryImportSessionDefault,
  *   stageInventoryImportRows?: typeof stageInventoryImportRowsDefault,
  *   markInventoryImportSessionReady?: typeof markInventoryImportSessionReadyDefault,
@@ -1358,13 +1359,13 @@ export function InventoryImportWizardShell({
               id="inventory-import-wizard-title"
               className="inventory-import-wizard-title"
             >
-              Inventory Import
+              {t("Inventory Import")}
             </h2>
             <p
               id="inventory-import-wizard-subtitle"
               className="inventory-import-wizard-subtitle"
             >
-              Import inventory from CSV or Excel
+              {t("Import inventory from CSV or Excel")}
             </p>
           </div>
           <div className="inventory-import-wizard-header-actions">
@@ -1372,17 +1373,17 @@ export function InventoryImportWizardShell({
               type="button"
               className="ghost-btn inventory-import-wizard-exit-btn"
               onClick={typeof onClose === 'function' ? onClose : undefined}
-              aria-label="Close"
+              aria-label={t("Close")}
               disabled={isApplyingImport}
             >
-              Close (Exit)
+              {t("Close (Exit)")}
             </button>
           </div>
         </header>
 
         <nav
           className="inventory-import-wizard-progress"
-          aria-label="Import wizard progress"
+          aria-label={t("Import wizard progress")}
         >
           <ol className="inventory-import-wizard-steps">
             {INVENTORY_IMPORT_WIZARD_STEPS.map((step) => {
@@ -1409,7 +1410,7 @@ export function InventoryImportWizardShell({
         {stepSummary ? (
           <section
             className={`inventory-import-step-summary is-${stepSummary.stepId}`}
-            aria-label="Import step summary"
+            aria-label={t("Import step summary")}
             data-step-summary={stepSummary.stepId}
             data-workspace-stock-status={
               wizardView === 'data' ? workspaceStockCatalog.status : undefined
@@ -1440,17 +1441,17 @@ export function InventoryImportWizardShell({
               <div className="inventory-import-wizard-step-hero is-map">
                 <p className="inventory-import-wizard-step-kicker">Step 2 · Map</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Map Columns
+                  {t("Map Columns")}
                 </h3>
                 <p className="inventory-import-wizard-step-purpose">
-                  Match spreadsheet columns to ONE fields. This is not a product review.
+                  {t("Match spreadsheet columns to ONE fields. This is not a product review.")}
                 </p>
               </div>
 
               {formatDetection ? (
                 <section
                   className={`inventory-import-wizard-format-card is-${formatDetection.format}`}
-                  aria-label="Detected worksheet format"
+                  aria-label={t("Detected worksheet format")}
                   data-operational-category-count={operationalModel?.summary.categoryCount ?? ''}
                   data-operational-product-count={operationalModel?.summary.productCount ?? ''}
                 >
@@ -1460,12 +1461,12 @@ export function InventoryImportWizardShell({
                     </h4>
                     {formatDetection.matchStrength === 'strong' ? (
                       <span className="inventory-import-wizard-format-strength">
-                        Strong match
+                        {t("Strong match")}
                       </span>
                     ) : null}
                     {formatDetection.matchStrength === 'possible' ? (
                       <span className="inventory-import-wizard-format-strength">
-                        Possible match
+                        {t("Possible match")}
                       </span>
                     ) : null}
                   </div>
@@ -1481,7 +1482,7 @@ export function InventoryImportWizardShell({
                   ) : null}
                   {formatDetection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.UNKNOWN ? (
                     <p className="inventory-import-wizard-format-notice">
-                      You can still map the detected columns below.
+                      {t("You can still map the detected columns below.")}
                     </p>
                   ) : null}
                 </section>
@@ -1491,10 +1492,10 @@ export function InventoryImportWizardShell({
                 <table className="inventory-import-wizard-review-table">
                   <thead>
                     <tr>
-                      <th scope="col">Column</th>
-                      <th scope="col">Source Header</th>
-                      <th scope="col">ONE Field</th>
-                      <th scope="col">Status</th>
+                      <th scope="col">{t("Column")}</th>
+                      <th scope="col">{t("Source Header")}</th>
+                      <th scope="col">{t("ONE Field")}</th>
+                      <th scope="col">{t("Status")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1555,17 +1556,17 @@ export function InventoryImportWizardShell({
 
               <section
                 className="inventory-import-map-sample"
-                aria-label="Sample rows preview"
+                aria-label={t("Sample rows preview")}
               >
                 <div className="inventory-import-map-sample-head">
-                  <h4 className="inventory-import-map-sample-title">Sample preview</h4>
+                  <h4 className="inventory-import-map-sample-title">{t("Sample preview")}</h4>
                   <p className="inventory-import-map-sample-copy">
-                    Up to 5 rows so you can confirm mapping — not the full product list.
+                    {t("Up to 5 rows so you can confirm mapping — not the full product list.")}
                   </p>
                 </div>
                 {mapSamplePreview.rows.length === 0 ? (
                   <p className="inventory-import-map-sample-empty" role="status">
-                    No data rows to preview.
+                    {t("No data rows to preview.")}
                   </p>
                 ) : (
                   <div className="inventory-import-wizard-review-table-wrap">
@@ -1598,16 +1599,16 @@ export function InventoryImportWizardShell({
               <div className="inventory-import-wizard-step-hero is-validate">
                 <p className="inventory-import-wizard-step-kicker">Step 3 · Validate</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Validate Import
+                  {t("Validate Import")}
                 </h3>
                 <p className="inventory-import-wizard-step-purpose">
-                  Analyze import quality and fix blockers before previewing what ONE will do.
+                  {t("Analyze import quality and fix blockers before previewing what ONE will do.")}
                 </p>
               </div>
 
               {workspaceStockCatalog.status === 'loading' ? (
                 <p className="inventory-workspace-stock-loading" role="status">
-                  Loading workspace stock for validation…
+                  {t("Loading workspace stock for validation…")}
                 </p>
               ) : null}
 
@@ -1618,7 +1619,7 @@ export function InventoryImportWizardShell({
                   data-workspace-stock-status="error"
                 >
                   <p className="inventory-operational-review-empty-title">
-                    Unable to load workspace stock
+                    {t("Unable to load workspace stock")}
                   </p>
                   <p className="inventory-operational-review-empty-copy">
                     {workspaceStockCatalog.errorMessage
@@ -1630,7 +1631,7 @@ export function InventoryImportWizardShell({
               {!operationalModel && standardRowReview ? (
                 <section
                   className="inventory-import-standard-review"
-                  aria-label="Validated rows"
+                  aria-label={t("Validated rows")}
                   data-standard-import-review="true"
                 >
                   <p className="inventory-import-wizard-step-purpose">
@@ -1640,17 +1641,17 @@ export function InventoryImportWizardShell({
                   </p>
                   {standardRowReview.rows.length === 0 ? (
                     <p className="inventory-import-map-sample-empty" role="status">
-                      No data rows to validate.
+                      {t("No data rows to validate.")}
                     </p>
                   ) : (
                     <div className="inventory-import-wizard-review-table-wrap">
                       <table className="inventory-import-wizard-review-table">
                         <thead>
                           <tr>
-                            <th scope="col">Product name</th>
-                            <th scope="col">Unit</th>
-                            <th scope="col">Quantity</th>
-                            <th scope="col">Status</th>
+                            <th scope="col">{t("Product name")}</th>
+                            <th scope="col">{t("Unit")}</th>
+                            <th scope="col">{t("Quantity")}</th>
+                            <th scope="col">{t("Status")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1714,26 +1715,26 @@ export function InventoryImportWizardShell({
               <div className="inventory-import-wizard-step-hero is-preview">
                 <p className="inventory-import-wizard-step-kicker">Step 4 · Preview</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Import Preview
+                  {t("Import Preview")}
                 </h3>
                 <p className="inventory-import-wizard-step-purpose">
-                  Review exactly what ONE will create, link, or skip.
+                  {t("Review exactly what ONE will create, link, or skip.")}
                 </p>
               </div>
 
               {(operationalImportPreviewState.status === 'ready' && readyEligibility) || standardPreview ? (
                 <section
                   className="inventory-import-policy-panel"
-                  aria-label="Import policies"
+                  aria-label={t("Import policies")}
                 >
                   <div className="inventory-import-policy-section">
                     <h4 className="inventory-import-policy-title">
-                      Stock quantity policy
+                      {t("Stock quantity policy")}
                     </h4>
                     <div
                       className="inventory-import-policy-options"
                       role="radiogroup"
-                      aria-label="Stock quantity policy"
+                      aria-label={t("Stock quantity policy")}
                     >
                       <button
                         type="button"
@@ -1753,10 +1754,10 @@ export function InventoryImportWizardShell({
                         )}
                       >
                         <span className="inventory-import-policy-option-label">
-                          Do not change current stock quantities
+                          {t("Do not change current stock quantities")}
                         </span>
                         <span className="inventory-import-policy-option-copy">
-                          New products will start at 0. Existing quantities will remain unchanged. No stock movements will be created.
+                          {t("New products will start at 0. Existing quantities will remain unchanged. No stock movements will be created.")}
                         </span>
                       </button>
                       <button
@@ -1777,10 +1778,10 @@ export function InventoryImportWizardShell({
                         )}
                       >
                         <span className="inventory-import-policy-option-label">
-                          Apply spreadsheet quantities as opening stock
+                          {t("Apply spreadsheet quantities as opening stock")}
                         </span>
                         <span className="inventory-import-policy-option-copy">
-                          Quantities will replace current stock values. Values are absolute, not added. Intended for onboarding or controlled initialization.
+                          {t("Quantities will replace current stock values. Values are absolute, not added. Intended for onboarding or controlled initialization.")}
                         </span>
                       </button>
                     </div>
@@ -1811,7 +1812,7 @@ export function InventoryImportWizardShell({
                         className="inventory-import-policy-field-label"
                         htmlFor="inventory-import-location-fallback"
                       >
-                        Fallback location for unresolved new products
+                        {t("Fallback location for unresolved new products")}
                       </label>
                       <p className="inventory-import-policy-field-copy">
                         Applies only to new products without a recognized location.
@@ -1823,7 +1824,7 @@ export function InventoryImportWizardShell({
                         workspaceId={workspaceId}
                         value={importSessionPolicy.newProductLocationFallback ?? ''}
                         emptyLabel="No fallback selected"
-                        aria-label="Fallback location for unresolved new products"
+                        aria-label={t("Fallback location for unresolved new products")}
                         onChange={(locationKey) => {
                           handleLocationFallbackChange(locationKey)
                         }}
@@ -1842,7 +1843,7 @@ export function InventoryImportWizardShell({
                       data-testid="inventory-import-location-bindings"
                     >
                       <p className="inventory-import-policy-field-label">
-                        Location quantity columns
+                        {t("Location quantity columns")}
                       </p>
                       <p className="inventory-import-policy-field-copy">
                         Storage quantities use each product&apos;s selected location.
@@ -1873,7 +1874,7 @@ export function InventoryImportWizardShell({
                           === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
                         ? (
                           <p className="inventory-import-policy-affected" role="status">
-                            Non-empty BAR cells require a mapped Bar workspace storage.
+                            {t("Non-empty BAR cells require a mapped Bar workspace storage.")}
                           </p>
                         )
                         : null}
@@ -1890,7 +1891,7 @@ export function InventoryImportWizardShell({
                     {summaryEligibility?.isReady ? (
                       <>
                         <p className="inventory-import-eligibility-summary-title">
-                          Ready to continue
+                          {t("Ready to continue")}
                         </p>
                         <p className="inventory-import-eligibility-summary-meta">
                           {summaryEligibility.counts?.create ?? 0}
@@ -1922,7 +1923,7 @@ export function InventoryImportWizardShell({
                     ) : (
                       <>
                         <p className="inventory-import-eligibility-summary-title">
-                          Resolve the remaining items before continuing
+                          {t("Resolve the remaining items before continuing")}
                         </p>
                         <ul className="inventory-import-eligibility-summary-list">
                           {(readyEligibility?.blockingReasons ?? []).map((code) => (
@@ -1967,23 +1968,23 @@ export function InventoryImportWizardShell({
               {standardPreview && !operationalModel ? (
                 <section
                   className="inventory-import-standard-preview"
-                  aria-label="Standard import preview"
+                  aria-label={t("Standard import preview")}
                   data-standard-import-preview="true"
                 >
                   <p className="inventory-import-wizard-step-purpose">
-                    Cost price is sent with each new product. If the cost update is not installed yet, new products are stored with cost 0.
+                    {t("Cost price is sent with each new product. If the cost update is not installed yet, new products are stored with cost 0.")}
                   </p>
                   <p className="inventory-import-wizard-step-purpose">
-                    Supplier names are saved on each product. A matching supplier record is linked, or created, only after that update is installed.
+                    {t("Supplier names are saved on each product. A matching supplier record is linked, or created, only after that update is installed.")}
                   </p>
                   <div className="inventory-import-wizard-review-table-wrap">
                     <table className="inventory-import-wizard-review-table">
                       <thead>
                         <tr>
-                          <th scope="col">Product</th>
-                          <th scope="col">Action</th>
-                          <th scope="col">Opening stock</th>
-                          <th scope="col">Notes</th>
+                          <th scope="col">{t("Product")}</th>
+                          <th scope="col">{t("Action")}</th>
+                          <th scope="col">{t("Opening stock")}</th>
+                          <th scope="col">{t("Notes")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -2011,7 +2012,7 @@ export function InventoryImportWizardShell({
                                       }))
                                     }}
                                   >
-                                    Create
+                                    {t("Create")}
                                   </button>
                                 ) : null}
                                 {row.linkOffered ? (
@@ -2026,7 +2027,7 @@ export function InventoryImportWizardShell({
                                       }))
                                     }}
                                   >
-                                    Link
+                                    {t("Link")}
                                   </button>
                                 ) : null}
                                 {row.skipOffered ? (
@@ -2041,7 +2042,7 @@ export function InventoryImportWizardShell({
                                       }))
                                     }}
                                   >
-                                    Skip
+                                    {t("Skip")}
                                   </button>
                                 ) : null}
                               </div>
@@ -2069,15 +2070,15 @@ export function InventoryImportWizardShell({
               <div className="inventory-import-wizard-step-hero is-ready">
                 <p className="inventory-import-wizard-step-kicker">Step 5 · Import</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Ready to Import
+                  {t("Ready to Import")}
                 </h3>
                 <p className="inventory-import-wizard-step-purpose">
-                  Final confirmation. Apply creates the staging session and writes stock.
+                  {t("Final confirmation. Apply creates the staging session and writes stock.")}
                 </p>
               </div>
               <div className="inventory-operational-review-empty" role="status">
                 <p className="inventory-operational-review-empty-title">
-                  Ready to Import
+                  {t("Ready to Import")}
                 </p>
                 <p className="inventory-operational-review-empty-copy">
                   Review is complete. Apply Import will create a staging session,
@@ -2097,7 +2098,7 @@ export function InventoryImportWizardShell({
                   className="inventory-import-wizard-processing"
                   aria-live="polite"
                 >
-                  Applying import…
+                  {t("Applying import…")}
                 </p>
               ) : null}
             </div>
@@ -2107,16 +2108,16 @@ export function InventoryImportWizardShell({
             <div className="inventory-import-wizard-ready">
               <div className="inventory-import-wizard-review-summary">
                 <h3 className="inventory-import-wizard-review-title">
-                  Import Complete
+                  {t("Import Complete")}
                 </h3>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
-                  <span>Apply finished</span>
+                  <span>{t("Apply finished")}</span>
                 </p>
               </div>
               <div className="inventory-operational-review-empty" role="status">
                 <p className="inventory-operational-review-empty-title">
-                  Import Complete
+                  {t("Import Complete")}
                 </p>
                 <p className="inventory-operational-review-empty-copy">
                   Products created: {applyImportResult.createdCount ?? 0}
@@ -2134,12 +2135,12 @@ export function InventoryImportWizardShell({
                   Total processed: {applyProcessedTotal ?? 0}
                 </p>
                 <p className="inventory-operational-review-empty-copy">
-                  Done returns to Import. This import stays under Recent imports, where Undo remains available when it is still allowed.
+                  {t("Done returns to Import. This import stays under Recent imports, where Undo remains available when it is still allowed.")}
                 </p>
               </div>
               {undoCompleted ? (
                 <p className="inventory-import-wizard-step-purpose" role="status">
-                  Import undone. Created products were removed.
+                  {t("Import undone. Created products were removed.")}
                 </p>
               ) : null}
               {undoEligibility?.allowed === true && !undoCompleted ? (
@@ -2152,7 +2153,7 @@ export function InventoryImportWizardShell({
                     setUndoConfirmOpen(true)
                   }}
                 >
-                  Undo import
+                  {t("Undo import")}
                 </button>
               ) : null}
               {undoError ? (
@@ -2176,20 +2177,20 @@ export function InventoryImportWizardShell({
             <div className="inventory-import-wizard-worksheet-card">
               <div className="inventory-import-wizard-worksheet-copy">
                 <h3 className="inventory-import-wizard-worksheet-title">
-                  Choose Worksheet
+                  {t("Choose Worksheet")}
                 </h3>
                 <p className="inventory-import-wizard-worksheet-subtitle">
-                  This workbook contains multiple worksheets.
+                  {t("This workbook contains multiple worksheets.")}
                 </p>
                 <p className="inventory-import-wizard-worksheet-hint">
-                  Select the worksheet you want to import.
+                  {t("Select the worksheet you want to import.")}
                 </p>
               </div>
 
               <div
                 className="inventory-import-wizard-worksheet-list"
                 role="radiogroup"
-                aria-label="Worksheets"
+                aria-label={t("Worksheets")}
               >
                 {worksheetOptions.map((sheet) => {
                   const isSelected = selectedWorksheetName === sheet.name
@@ -2219,7 +2220,7 @@ export function InventoryImportWizardShell({
                   className="inventory-import-wizard-processing"
                   aria-live="polite"
                 >
-                  Reading file…
+                  {t("Reading file…")}
                 </p>
               ) : null}
 
@@ -2239,7 +2240,7 @@ export function InventoryImportWizardShell({
               className={`inventory-import-wizard-upload-card${hasSelectedFile ? ' is-selected' : ''}`}
             >
               <label htmlFor={INVENTORY_IMPORT_FILE_INPUT_ID} className="sr-only">
-                Choose inventory CSV or Excel file
+                {t("Choose inventory CSV or Excel file")}
               </label>
               <input
                 id={INVENTORY_IMPORT_FILE_INPUT_ID}
@@ -2260,7 +2261,7 @@ export function InventoryImportWizardShell({
                   </div>
                   <div className="inventory-import-wizard-upload-copy">
                     <h3 className="inventory-import-wizard-upload-title">
-                      File selected
+                      {t("File selected")}
                     </h3>
                     <p className="inventory-import-wizard-selected-name">
                       {selectedFile.name}
@@ -2278,7 +2279,7 @@ export function InventoryImportWizardShell({
                         className="inventory-import-wizard-processing"
                         aria-live="polite"
                       >
-                        Reading file…
+                        {t("Reading file…")}
                       </p>
                     ) : null}
                   </div>
@@ -2289,7 +2290,7 @@ export function InventoryImportWizardShell({
                     aria-controls={INVENTORY_IMPORT_FILE_INPUT_ID}
                     disabled={isProcessing}
                   >
-                    Choose Different File
+                    {t("Choose Different File")}
                   </button>
                 </>
               ) : (
@@ -2299,10 +2300,10 @@ export function InventoryImportWizardShell({
                   </div>
                   <div className="inventory-import-wizard-upload-copy">
                     <h3 className="inventory-import-wizard-upload-title">
-                      Upload Inventory File
+                      {t("Upload Inventory File")}
                     </h3>
                     <p className="inventory-import-wizard-upload-description">
-                      Choose a CSV or Excel file to begin importing your inventory.
+                      {t("Choose a CSV or Excel file to begin importing your inventory.")}
                     </p>
                   </div>
                   <button
@@ -2312,7 +2313,7 @@ export function InventoryImportWizardShell({
                     aria-controls={INVENTORY_IMPORT_FILE_INPUT_ID}
                     disabled={isProcessing}
                   >
-                    Choose File
+                    {t("Choose File")}
                   </button>
                 </>
               )}
@@ -2337,7 +2338,7 @@ export function InventoryImportWizardShell({
               onClick={clearSelectedFile}
               disabled={isProcessing}
             >
-              Back
+              {t("Back")}
             </button>
             <button
               type="button"
@@ -2345,7 +2346,7 @@ export function InventoryImportWizardShell({
               onClick={handleContinueFromUpload}
               disabled={isProcessing}
             >
-              Continue to Map Columns
+              {t("Continue to Map Columns")}
             </button>
           </footer>
         ) : null}
@@ -2358,7 +2359,7 @@ export function InventoryImportWizardShell({
               onClick={handleBackFromWorksheets}
               disabled={isProcessing}
             >
-              Back
+              {t("Back")}
             </button>
             <button
               type="button"
@@ -2366,7 +2367,7 @@ export function InventoryImportWizardShell({
               onClick={handleContinueFromWorksheetSelection}
               disabled={isProcessing || !selectedWorksheetName}
             >
-              Continue to Map Columns
+              {t("Continue to Map Columns")}
             </button>
           </footer>
         ) : null}
@@ -2380,7 +2381,7 @@ export function InventoryImportWizardShell({
                 className="ghost-btn inventory-import-wizard-nav-btn"
                 onClick={handleBackFromColumns}
               >
-                Back
+                {t("Back")}
               </button>
               <button
                 type="button"
@@ -2389,7 +2390,7 @@ export function InventoryImportWizardShell({
                 disabled={!canContinueFromColumns}
                 aria-disabled={!canContinueFromColumns ? 'true' : undefined}
               >
-                Continue
+                {t("Continue")}
               </button>
             </div>
           </footer>
@@ -2404,7 +2405,7 @@ export function InventoryImportWizardShell({
                 className="ghost-btn inventory-import-wizard-nav-btn"
                 onClick={handleBackFromData}
               >
-                Back
+                {t("Back")}
               </button>
               <button
                 type="button"
@@ -2413,7 +2414,7 @@ export function InventoryImportWizardShell({
                 disabled={!canContinueFromData}
                 aria-disabled={!canContinueFromData ? 'true' : undefined}
               >
-                Continue
+                {t("Continue")}
               </button>
             </div>
           </footer>
@@ -2428,7 +2429,7 @@ export function InventoryImportWizardShell({
                 className="ghost-btn inventory-import-wizard-nav-btn"
                 onClick={handleBackFromPreview}
               >
-                Back
+                {t("Back")}
               </button>
               <button
                 type="button"
@@ -2437,7 +2438,7 @@ export function InventoryImportWizardShell({
                 disabled={!canContinueFromPreview}
                 aria-disabled={!canContinueFromPreview ? 'true' : undefined}
               >
-                Continue
+                {t("Continue")}
               </button>
             </div>
           </footer>
@@ -2451,7 +2452,7 @@ export function InventoryImportWizardShell({
               onClick={handleBackFromReady}
               disabled={isApplyingImport}
             >
-              Back
+              {t("Back")}
             </button>
             <button
               type="button"
@@ -2474,7 +2475,7 @@ export function InventoryImportWizardShell({
                 if (typeof onClose === 'function') onClose()
               }}
             >
-              Done
+              {t("Done")}
             </button>
           </footer>
         ) : null}

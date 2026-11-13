@@ -9,6 +9,7 @@ import {
   filterMobileMenuNavItems,
 } from '../../lib/permissions'
 import { LIMITED_SETTINGS_SUBTITLE } from '../../lib/settingsSections'
+import { t } from '../../i18n/i18n'
 
 const MANAGER_WORKSPACE_ORDER = [
   'reservations',
@@ -119,17 +120,17 @@ export function MobileMenuView({
           {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
         </header>
 
-        <section className="mobile-menu-section" aria-label="Account">
-          <h2 className="mobile-menu-section-title">Account</h2>
+        <section className="mobile-menu-section" aria-label={t("Account")}>
+          <h2 className="mobile-menu-section-title">{t("Account")}</h2>
           <div className="mobile-menu-actions">
             {onOpenAvailability ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
-                My Availability
+                {t("My Availability")}
               </button>
             ) : null}
             {onOpenTasks ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
-                Operations
+                {t("Operations")}
               </button>
             ) : null}
             {onOpenClock ? (
@@ -138,10 +139,10 @@ export function MobileMenuView({
               </button>
             ) : null}
             <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
-              Profile
+              {t("Profile")}
             </button>
             <button type="button" className="mobile-menu-btn is-danger" onClick={onSignOut}>
-              Sign out
+              {t("Sign out")}
             </button>
           </div>
         </section>
@@ -160,7 +161,7 @@ export function MobileMenuView({
   if (menuVariant === 'manager') {
     return (
       <div className="mobile-screen mobile-menu mobile-manager-menu">
-        <article className="mobile-manager-menu-identity" aria-label="Account overview">
+        <article className="mobile-manager-menu-identity" aria-label={t("Account overview")}>
           <div className="mobile-manager-menu-identity-top">
             <h1 className="mobile-manager-menu-identity-name">{profileName || 'Account'}</h1>
             {roleLabel ? (
@@ -174,8 +175,8 @@ export function MobileMenuView({
         </article>
 
         {showWorkspaceSection ? (
-          <section className="mobile-manager-menu-section" aria-label="Venue">
-            <h2 className="mobile-manager-menu-section-title">Venue</h2>
+          <section className="mobile-manager-menu-section" aria-label={t("Venue")}>
+            <h2 className="mobile-manager-menu-section-title">{t("Venue")}</h2>
             <div className="mobile-manager-menu-nav-list">
               {onOpenChat ? (
                 <ManagerNavCard
@@ -188,7 +189,7 @@ export function MobileMenuView({
               {showFullSchedule ? (
                 <ManagerNavCard
                   icon="📅"
-                  title="Full team schedule"
+                  title={t("Full team schedule")}
                   subtitle="Weekly shift planning"
                   onClick={onOpenFullSchedule}
                 />
@@ -196,7 +197,7 @@ export function MobileMenuView({
               {canViewLeaveInbox ? (
                 <ManagerNavCard
                   icon="◷"
-                  title="Leave inbox"
+                  title={t("Leave inbox")}
                   subtitle="Pending leave requests"
                   onClick={onOpenLeaveInbox}
                 />
@@ -204,7 +205,7 @@ export function MobileMenuView({
               {onOpenAttendance ? (
                 <ManagerNavCard
                   icon="⏱"
-                  title="Time clock"
+                  title={t("Time clock")}
                   subtitle="Who is in, late, and hours"
                   onClick={onOpenAttendance}
                 />
@@ -222,19 +223,19 @@ export function MobileMenuView({
           </section>
         ) : null}
 
-        <section className="mobile-manager-menu-section" aria-label="Account">
-          <h2 className="mobile-manager-menu-section-title">Account</h2>
+        <section className="mobile-manager-menu-section" aria-label={t("Account")}>
+          <h2 className="mobile-manager-menu-section-title">{t("Account")}</h2>
           <div className="mobile-manager-menu-nav-list">
             <ManagerNavCard
               icon="👤"
-              title="Profile"
+              title={t("Profile")}
               subtitle="Personal details and account"
               onClick={onOpenProfile}
             />
             {onOpenNotifications ? (
               <ManagerNavCard
                 icon="🔔"
-                title="Notifications"
+                title={t("Notifications")}
                 subtitle="Device alerts, quiet hours and this phone"
                 onClick={onOpenNotifications}
               />
@@ -246,7 +247,7 @@ export function MobileMenuView({
               className="mobile-manager-menu-signout-btn"
               onClick={onSignOut}
             >
-              Sign out
+              {t("Sign out")}
             </button>
           </div>
         </section>
@@ -263,12 +264,12 @@ export function MobileMenuView({
       </header>
 
       {showWorkspaceSection ? (
-        <section className="mobile-menu-section" aria-label="Venue">
-          <h2 className="mobile-menu-section-title">Venue</h2>
+        <section className="mobile-menu-section" aria-label={t("Venue")}>
+          <h2 className="mobile-menu-section-title">{t("Venue")}</h2>
           <div className="mobile-menu-actions">
             {showFullSchedule ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenFullSchedule}>
-                Full team schedule
+                {t("Full team schedule")}
               </button>
             ) : null}
             {visibleModules.map((item) => (
@@ -284,7 +285,7 @@ export function MobileMenuView({
             ))}
             {showSettings && !allowedModuleIds.has('settings') ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenSettings}>
-                Settings
+                {t("Settings")}
               </button>
             ) : null}
             {onOpenAttendance ? (
@@ -296,8 +297,8 @@ export function MobileMenuView({
         </section>
       ) : null}
 
-      <section className="mobile-menu-section" aria-label="Account">
-        <h2 className="mobile-menu-section-title">Account</h2>
+      <section className="mobile-menu-section" aria-label={t("Account")}>
+        <h2 className="mobile-menu-section-title">{t("Account")}</h2>
         <div className="mobile-menu-actions">
           {canRequestLeave ? (
             <button
@@ -306,17 +307,17 @@ export function MobileMenuView({
               onClick={() => onOpenRequestLeave?.()}
               aria-haspopup="dialog"
             >
-              Request Leave
+              {t("Request Leave")}
             </button>
           ) : null}
           {onOpenAvailability ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenAvailability}>
-              My Availability
+              {t("My Availability")}
             </button>
           ) : null}
           {onOpenTasks ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenTasks}>
-              Operations
+              {t("Operations")}
             </button>
           ) : null}
           {onOpenClock ? (
@@ -325,16 +326,16 @@ export function MobileMenuView({
             </button>
           ) : null}
           <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
-            Profile
+            {t("Profile")}
           </button>
           {onOpenNotifications ? (
             <button type="button" className="mobile-menu-btn" onClick={onOpenNotifications}>
               <span aria-hidden="true">🔔</span>
-              Notifications
+              {t("Notifications")}
             </button>
           ) : null}
           <button type="button" className="mobile-menu-btn is-danger" onClick={onSignOut}>
-            Sign out
+            {t("Sign out")}
           </button>
         </div>
       </section>

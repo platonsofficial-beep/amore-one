@@ -46,6 +46,7 @@ function compactSourceLabel(source) {
 }
 import { loadSupplyRefillCatalog, takeRefillLines } from '../../services/stockSupplyRefillService'
 import { transferStockBetweenLocations } from '../../services/stockMutationService'
+import { t } from '../../i18n/i18n'
 
 function qtyLabel(value, unit) {
   return formatStockQuantity(value, unit)
@@ -284,7 +285,7 @@ export function StockSupplyRefillSheet({
           <div>
             <h3 id="supply-refill-title">
               <span className="stock-supply-refill-title-full">{TAKE_FROM_SUPPLY_LABEL}</span>
-              <span className="stock-supply-refill-title-short">Take from supply</span>
+              <span className="stock-supply-refill-title-short">{t("Take from supply")}</span>
             </h3>
             <p className="stock-modal-subtitle">
               Into {destinationName}
@@ -295,14 +296,14 @@ export function StockSupplyRefillSheet({
             className="icon-btn"
             onClick={() => onClose?.()}
             disabled={busy}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
         </div>
 
         {status === 'loading' ? (
-          <p className="stock-supply-refill-status" role="status">Loading supply stock…</p>
+          <p className="stock-supply-refill-status" role="status">{t("Loading supply stock…")}</p>
         ) : null}
         {status === 'error' ? (
           <p className="stock-supply-refill-status is-error" role="alert">{loadError}</p>
@@ -324,7 +325,7 @@ export function StockSupplyRefillSheet({
 
         {status === 'ready' && !supplyUnavailable && !noSupply ? (
           <>
-            <div className="stock-supply-refill-tabs" role="tablist" aria-label="Take from supply">
+            <div className="stock-supply-refill-tabs" role="tablist" aria-label={t("Take from supply")}>
               <button
                 type="button"
                 role="tab"
@@ -355,8 +356,8 @@ export function StockSupplyRefillSheet({
                   type="search"
                   className="stock-take-search"
                   data-testid="supply-take-search"
-                  placeholder="Search products"
-                  aria-label="Search products"
+                  placeholder={t("Search products")}
+                  aria-label={t("Search products")}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
@@ -465,7 +466,7 @@ export function StockSupplyRefillSheet({
                 <section className="stock-take-summary" aria-label={TAKE_LIST_LABEL} data-testid="supply-take-list">
                   <h4>{TAKE_LIST_LABEL}</h4>
                   {queued.length === 0 ? (
-                    <p>Add a quantity on one or more products, then take them together.</p>
+                    <p>{t("Add a quantity on one or more products, then take them together.")}</p>
                   ) : (
                     <ul>
                       {queued.map((row) => (
@@ -544,7 +545,7 @@ export function StockSupplyRefillSheet({
                           <div className="stock-supply-refill-source">
                             {line.sources.length > 1 ? (
                               <label>
-                                <span>Source</span>
+                                <span>{t("Source")}</span>
                                 <select
                                   value={line.sourceStorageId}
                                   disabled={busy}
@@ -567,7 +568,7 @@ export function StockSupplyRefillSheet({
                               </label>
                             ) : (
                               <p>
-                                <span>Source</span>
+                                <span>{t("Source")}</span>
                                 <strong>{formatSourceStockLabel({
                                   storageName: line.sourceStorageName,
                                   quantity: line.sourceAvailable,

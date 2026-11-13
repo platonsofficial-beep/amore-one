@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import { selectScheduleIssues } from './operationalSnapshotUtils'
 import {
   getHostStatusGroupId,
@@ -69,7 +70,7 @@ function filterShiftsForPeriod(shifts, period, todayKey, weekDateKeys) {
 export function formatReportCurrency(value) {
   const amount = Number(value)
   if (!Number.isFinite(amount)) return '—'
-  return new Intl.NumberFormat('en-IE', {
+  return new Intl.NumberFormat(uiLocale('en-IE'), {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,

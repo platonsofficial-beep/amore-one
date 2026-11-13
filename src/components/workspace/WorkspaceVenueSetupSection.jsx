@@ -1,4 +1,5 @@
 import { VenueManager } from './VenueManager'
+import { t } from '../../i18n/i18n'
 function WorkspaceVenueCard({ title, icon, items, fallbackNote }) {
   const hasItems = Array.isArray(items) && items.length > 0
 
@@ -35,13 +36,13 @@ export function WorkspaceVenueSetupSection({
       <VenueManager />
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">📍</span>
-            Venue Setup
+            {t("Venue Setup")}
           </h3>
           <p className="workspace-section-subtitle">
-            Operational structure across departments and areas. Edit in each module.
+            {t("Operational structure across departments and areas. Edit in each module.")}
           </p>
         </div>
       </div>
@@ -50,25 +51,25 @@ export function WorkspaceVenueSetupSection({
 
       <div className="workspace-venue-grid">
         <WorkspaceVenueCard
-          title="Departments"
+          title={t("Departments")}
           icon="🏷️"
           items={staffDepartments}
           fallbackNote="Add departments in Team → People when creating employees."
         />
         <WorkspaceVenueCard
-          title="Schedule Areas"
+          title={t("Schedule Areas")}
           icon="🕒"
           items={scheduleAreas}
           fallbackNote="Set schedule areas in Team → Schedule."
         />
         <WorkspaceVenueCard
-          title="Reservation Areas"
+          title={t("Reservation Areas")}
           icon="🍽️"
           items={reservationAreas}
           fallbackNote="Configure service seatings in Settings → Reservations."
         />
         <WorkspaceVenueCard
-          title="Task Boards"
+          title={t("Task Boards")}
           icon="✓"
           items={taskBoards}
           fallbackNote="Create task boards in Operations → Tasks."

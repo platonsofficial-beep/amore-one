@@ -12,6 +12,7 @@ import { MobileManagerTasksView } from './MobileManagerTasksView'
 import { OperationsUnifiedScreen } from '../operations/OperationsUnifiedScreen'
 import { MobileMenuView } from './MobileMenuView'
 import { MobileProfileView } from './MobileProfileView'
+import { t } from '../../i18n/i18n'
 
 const PORTRAIT_MODULE_TITLES = {
   team: 'Team',
@@ -58,7 +59,7 @@ export function MobileManagerApp({
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
       <p>{noticeMessage}</p>
       {onDismissNotice ? (
-        <button type="button" className="mobile-notice-dismiss" onClick={onDismissNotice} aria-label="Dismiss">
+        <button type="button" className="mobile-notice-dismiss" onClick={onDismissNotice} aria-label={t("Dismiss")}>
           ✕
         </button>
       ) : null}
@@ -103,7 +104,7 @@ export function MobileManagerApp({
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
             <button type="button" className="mobile-back-btn" onClick={onBackFromExpanded}>
-              ‹ Back
+              {t("‹ Back")}
             </button>
             <h1>{expandedTitle}</h1>
           </header>
@@ -158,9 +159,9 @@ export function MobileManagerApp({
               <div className="manager-portrait-take">
                 <header className="manager-portrait-take-header">
                   <button type="button" className="mobile-back-btn" onClick={() => setIsTakeOpen(false)}>
-                    ‹ Stock
+                    {t("‹ Stock")}
                   </button>
-                  <h1>Take from storage</h1>
+                  <h1>{t("Take from storage")}</h1>
                 </header>
                 <StockQuickTakeView {...takeProps} />
               </div>
@@ -174,8 +175,8 @@ export function MobileManagerApp({
                   >
                     <span className="manager-portrait-take-entry-icon" aria-hidden="true">📦</span>
                     <span className="manager-portrait-take-entry-text">
-                      <strong>Take from storage</strong>
-                      <small>Record what you took. Stock updates now.</small>
+                      <strong>{t("Take from storage")}</strong>
+                      <small>{t("Record what you took. Stock updates now.")}</small>
                     </span>
                     <span aria-hidden="true">›</span>
                   </button>
@@ -208,7 +209,7 @@ export function MobileManagerApp({
           ) : menuProps?.screen === 'notifications' ? (
             <div className="mobile-screen mobile-notification-settings">
               <button type="button" className="mobile-back-btn" onClick={menuProps.onBackFromNotifications}>
-                ‹ Back
+                {t("‹ Back")}
               </button>
               {menuProps.notificationSettings}
             </div>

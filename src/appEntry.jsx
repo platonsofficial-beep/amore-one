@@ -16,6 +16,12 @@ import './mobileTabBarLow.css'
 import './countLandscapePhone.css'
 import './activeCountPhonePortrait.css'
 import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
+import { useLocale } from './i18n/i18n'
+
+function LocaleRoot({ children }) {
+  useLocale()
+  return children
+}
 
 bindPhoneLandscapeClass()
 registerPwaServiceWorker()
@@ -24,6 +30,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <AvatarDirectoryProvider>
+        <LocaleRoot>
         <AuthGate>
           <ManagerLandscapeGate>
             <PwaShell>
@@ -33,6 +40,7 @@ createRoot(document.getElementById('root')).render(
           </ManagerLandscapeGate>
         </AuthGate>
         <ColdStartSplash />
+        </LocaleRoot>
       </AvatarDirectoryProvider>
     </AuthProvider>
   </StrictMode>,

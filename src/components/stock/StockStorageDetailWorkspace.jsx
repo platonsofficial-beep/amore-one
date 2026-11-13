@@ -49,6 +49,7 @@ import {
   STAFF_REFILL_BLOCKED_MESSAGE,
   TAKE_FROM_SUPPLY_LABEL,
 } from '../../lib/stockSupplyRefill'
+import { t } from '../../i18n/i18n'
 
 function escapeParItemSelector(value) {
   const text = `${value ?? ''}`
@@ -72,7 +73,7 @@ function formatStorageShort(shortQuantity, unit) {
  * @param {{
  *   row: object,
  *   disabled?: boolean,
- *   onCommit?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => Promise<void>,
+ *   onCommit?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => {t("Promise")}<void>,
  *   onFocusItem?: (stockItemId: string) => void,
  * }} props
  */
@@ -115,7 +116,7 @@ function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
 
   return (
     <div className="stock-storage-par-field">
-      <span>Par</span>
+      <span>{t("Par")}</span>
       <div className="stock-storage-par-edit">
         <input
           className="stock-storage-par-input"
@@ -125,7 +126,7 @@ function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
           aria-label={`${STORAGE_PAR_LABEL} for ${row.name || 'product'}`}
           value={draft}
           disabled={disabled}
-          placeholder="Not tracked"
+          placeholder={t("Not tracked")}
           onClick={(event) => event.stopPropagation()}
           onChange={(event) => {
             setDraft(event.target.value)
@@ -153,7 +154,7 @@ function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
             void commit('')
           }}
         >
-          Clear
+          {t("Clear")}
         </button>
       </div>
       {error ? (
@@ -173,7 +174,7 @@ function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
  *   onOpenDetails?: (row: object) => void,
  *   onToggleMenu?: (row: object, anchorEl: HTMLElement|null) => void,
  *   onMenuAction?: (actionId: string, row: object) => void,
- *   onCommitPar?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => Promise<void>,
+ *   onCommitPar?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => {t("Promise")}<void>,
  *   onFocusParItem?: (stockItemId: string) => void,
  * }} props
  */
@@ -242,7 +243,7 @@ function StorageProductRow({
             data-menu-action="view_details"
             onClick={() => onOpenDetails?.(row)}
           >
-            View Details
+            {t("View Details")}
           </button>
           {canManage ? (
             <>
@@ -253,7 +254,7 @@ function StorageProductRow({
                 data-menu-action="receive"
                 onClick={() => onMenuAction?.('receive', row)}
               >
-                Receive
+                {t("Receive")}
               </button>
               <button
                 type="button"
@@ -262,7 +263,7 @@ function StorageProductRow({
                 data-menu-action="transfer"
                 onClick={() => onMenuAction?.('transfer', row)}
               >
-                Transfer
+                {t("Transfer")}
               </button>
               <button
                 type="button"
@@ -271,7 +272,7 @@ function StorageProductRow({
                 data-menu-action="adjustment"
                 onClick={() => onMenuAction?.('adjustment', row)}
               >
-                Adjustment
+                {t("Adjustment")}
               </button>
               <button
                 type="button"
@@ -280,7 +281,7 @@ function StorageProductRow({
                 data-menu-action="waste"
                 onClick={() => onMenuAction?.('waste', row)}
               >
-                Waste
+                {t("Waste")}
               </button>
               <button
                 type="button"
@@ -289,7 +290,7 @@ function StorageProductRow({
                 data-menu-action="fast_count"
                 onClick={() => onMenuAction?.('fast_count', row)}
               >
-                Fast Count
+                {t("Fast Count")}
               </button>
             </>
           ) : null}
@@ -301,7 +302,7 @@ function StorageProductRow({
           data-testid="storage-par-line"
         >
           <div className="stock-storage-par-readout">
-            <span>On hand</span>
+            <span>{t("On hand")}</span>
             <strong>{formatStockQuantity(row.quantity, row.unit)}</strong>
           </div>
           {canManage ? (
@@ -313,12 +314,12 @@ function StorageProductRow({
             />
           ) : (
             <div className="stock-storage-par-readout">
-              <span>Par</span>
+              <span>{t("Par")}</span>
               <strong>{row.parQuantity == null ? '—' : formatStockQuantity(row.parQuantity, row.unit)}</strong>
             </div>
           )}
           <div className="stock-storage-par-readout">
-            <span>Short</span>
+            <span>{t("Short")}</span>
             <strong data-testid="storage-par-short">{formatStorageShort(row.shortQuantity, row.unit)}</strong>
           </div>
         </div>
@@ -804,7 +805,7 @@ export function StockStorageDetailWorkspace({
             type="button"
             className="stock-storage-detail-back"
             onClick={() => onBack?.()}
-            aria-label="Back to storages"
+            aria-label={t("Back to storages")}
           >
             ← Storages
           </button>
@@ -818,22 +819,22 @@ export function StockStorageDetailWorkspace({
         </div>
         <div className="stock-storage-detail-workspace-stats">
           <div>
-            <span className="stock-storage-stat-label">Products</span>
+            <span className="stock-storage-stat-label">{t("Products")}</span>
             <strong className="stock-storage-stat-value">{headerProductCount}</strong>
           </div>
           <div>
-            <span className="stock-storage-stat-label">Quantity</span>
+            <span className="stock-storage-stat-label">{t("Quantity")}</span>
             <strong className="stock-storage-stat-value">{formatStockQuantity(headerQuantity)}</strong>
           </div>
           {canManage ? (
             <div>
-              <span className="stock-storage-stat-label">Inventory value</span>
+              <span className="stock-storage-stat-label">{t("Inventory value")}</span>
               <strong className="stock-storage-stat-value">{formatStockInventoryValue(headerValue)}</strong>
             </div>
           ) : null}
           {parsAvailable ? (
             <div>
-              <span className="stock-storage-stat-label">Below par</span>
+              <span className="stock-storage-stat-label">{t("Below par")}</span>
               <strong className="stock-storage-stat-value">{belowParCount}</strong>
             </div>
           ) : null}
@@ -891,7 +892,7 @@ export function StockStorageDetailWorkspace({
             role="status"
             data-testid="stock-storage-fast-count-loading"
           >
-            Starting Inventory Count…
+            {t("Starting Inventory Count…")}
           </div>
         ) : null}
         {fastCountError ? (
@@ -907,11 +908,11 @@ export function StockStorageDetailWorkspace({
 
       <div className="stock-storage-detail-workspace-toolbar">
         <label className="stock-storage-detail-sort">
-          <span>Sort</span>
+          <span>{t("Sort")}</span>
           <select
             value={sortKey}
             onChange={(event) => setSortKey(event.target.value)}
-            aria-label="Sort storage products"
+            aria-label={t("Sort storage products")}
           >
             {STOCK_STORAGE_PRODUCT_SORT_OPTIONS.map((option) => (
               <option key={option.id} value={option.id}>{option.label}</option>
@@ -926,7 +927,7 @@ export function StockStorageDetailWorkspace({
             aria-pressed={belowParOnly}
             onClick={() => setBelowParOnly((current) => !current)}
           >
-            Below par
+            {t("Below par")}
           </button>
         ) : null}
         <p className="stock-storage-detail-result-count" role="status">
@@ -956,7 +957,7 @@ export function StockStorageDetailWorkspace({
 
       {status === 'loading' ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-loading">
-          Loading products…
+          {t("Loading products…")}
         </div>
       ) : null}
 
@@ -968,14 +969,14 @@ export function StockStorageDetailWorkspace({
             className="stock-storage-center-retry"
             onClick={() => setReloadToken((token) => token + 1)}
           >
-            Retry
+            {t("Retry")}
           </button>
         </div>
       ) : null}
 
       {status === 'empty' ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-empty">
-          <p className="stock-storage-center-empty-title">No products in this storage.</p>
+          <p className="stock-storage-center-empty-title">{t("No products in this storage.")}</p>
           <p className="stock-storage-center-empty-copy">
             {parsAvailable
               ? 'Products appear here when they have a balance or a per-shelf par in this location.'
@@ -1089,7 +1090,7 @@ export function StockStorageDetailWorkspace({
         <StockStorageReceiveProductPicker
           storage={storage}
           products={payload?.products ?? []}
-          title="Transfer stock"
+          title={t("Transfer stock")}
           subtitlePrefix="Source"
           testId="stock-storage-transfer-product-picker"
           onClose={() => setTransferPickerOpen(false)}
@@ -1114,7 +1115,7 @@ export function StockStorageDetailWorkspace({
         <StockStorageReceiveProductPicker
           storage={storage}
           products={payload?.products ?? []}
-          title="Adjust stock"
+          title={t("Adjust stock")}
           subtitlePrefix="Storage"
           testId="stock-storage-adjustment-product-picker"
           onClose={() => setAdjustmentPickerOpen(false)}
@@ -1141,7 +1142,7 @@ export function StockStorageDetailWorkspace({
         <StockStorageReceiveProductPicker
           storage={storage}
           products={payload?.products ?? []}
-          title="Waste"
+          title={t("Waste")}
           subtitlePrefix="Storage"
           testId="stock-storage-waste-product-picker"
           onClose={() => setWastePickerOpen(false)}
@@ -1176,7 +1177,7 @@ export function StockStorageDetailWorkspace({
             aria-labelledby="stock-fast-count-confirm-title"
             onClick={(event) => event.stopPropagation()}
           >
-            <h3 id="stock-fast-count-confirm-title">Fast Count</h3>
+            <h3 id="stock-fast-count-confirm-title">{t("Fast Count")}</h3>
             <p>Start a fast count for {storageTitle}?</p>
             <div className="modal-actions stock-fast-count-confirm-actions">
               <button
@@ -1184,7 +1185,7 @@ export function StockStorageDetailWorkspace({
                 className="ghost-btn"
                 onClick={() => setFastCountConfirmOpen(false)}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="button"
@@ -1192,7 +1193,7 @@ export function StockStorageDetailWorkspace({
                 data-testid="stock-fast-count-confirm-start"
                 onClick={() => { void handleConfirmFastCount() }}
               >
-                Start
+                {t("Start")}
               </button>
             </div>
           </div>

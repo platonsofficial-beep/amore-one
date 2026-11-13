@@ -3,6 +3,7 @@ import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24, formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_LABELS = {
   normal: 'Normal',
@@ -101,7 +102,7 @@ function TaskChecklist({
       </div>
 
       {allComplete && !isTaskCompleted ? (
-        <p className="task-checklist-all-complete">All checklist items complete</p>
+        <p className="task-checklist-all-complete">{t("All checklist items complete")}</p>
       ) : null}
 
       <ul className="task-checklist-items">
@@ -229,7 +230,7 @@ export default function TaskCard({
               onClick={() => onEdit?.(task)}
               disabled={isSaving}
             >
-              Edit
+              {t("Edit")}
             </button>
             <button
               type="button"
@@ -237,7 +238,7 @@ export default function TaskCard({
               onClick={() => onDelete?.(task)}
               disabled={isSaving}
             >
-              Delete
+              {t("Delete")}
             </button>
           </div>
         ) : null}
@@ -251,7 +252,7 @@ export default function TaskCard({
                 onClick={() => onReopen?.(task)}
                 disabled={isSaving}
               >
-                Reopen
+                {t("Reopen")}
               </button>
             ) : null
           ) : canInteract ? (

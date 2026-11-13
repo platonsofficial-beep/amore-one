@@ -1,4 +1,5 @@
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 export function getEmployeeDeleteConfirmName(employee) {
   const name = `${employee?.name ?? ''}`.trim()
@@ -23,10 +24,10 @@ export function EmployeeDeleteConfirmModal({
       <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Delete confirmation</p>
-            <h3>Delete employee</h3>
+            <p className="eyebrow">{t("Delete confirmation")}</p>
+            <h3>{t("Delete employee")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close">
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label={t("Close")}>
             ✕
           </button>
         </div>
@@ -49,7 +50,7 @@ export function EmployeeDeleteConfirmModal({
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={onCancel} disabled={isDeleting}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button type="button" className="primary-btn" onClick={onConfirm} disabled={isDeleting}>
             {isDeleting ? 'Deleting…' : 'Delete Employee'}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { t } from '../../i18n/i18n'
 import { ModuleSectionTabs } from './ModuleSectionTabs'
 
 export function StockSectionNav({
@@ -61,14 +62,14 @@ export function StockSectionNav({
           data-help="stock.more-sections"
           onClick={() => setIsMoreOpen((open) => !open)}
         >
-          More
+          {t('More')}
         </button>
         {isMoreOpen ? (
           <div
             id="stock-section-more-menu"
             className="stock-section-more-menu"
             role="menu"
-            aria-label="More stock sections"
+            aria-label={t("More stock sections")}
           >
             {overflow.map((section) => (
               <button
@@ -84,7 +85,7 @@ export function StockSectionNav({
                   setIsMoreOpen(false)
                 }}
               >
-                {section.label}
+                {t(section.label)}
               </button>
             ))}
           </div>

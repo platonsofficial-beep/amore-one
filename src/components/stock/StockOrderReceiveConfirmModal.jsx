@@ -8,6 +8,7 @@ import {
 import { resolveListedProductName } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { LoadingButton } from '../LoadingButton'
+import { t } from '../../i18n/i18n'
 
 export function StockOrderReceiveConfirmModal({
   order,
@@ -59,10 +60,10 @@ export function StockOrderReceiveConfirmModal({
       >
         <header className="stock-create-order-header">
           <div>
-            <p className="stock-create-order-eyebrow">Confirm receiving</p>
-            <h3 id="stock-order-receive-confirm-title">Receive stock</h3>
+            <p className="stock-create-order-eyebrow">{t("Confirm receiving")}</p>
+            <h3 id="stock-order-receive-confirm-title">{t("Receive stock")}</h3>
             <p className="stock-create-order-subtitle">
-              Review quantities before updating inventory.
+              {t("Review quantities before updating inventory.")}
             </p>
           </div>
           <button
@@ -70,7 +71,7 @@ export function StockOrderReceiveConfirmModal({
             className="icon-btn stock-create-order-close"
             onClick={handleDismiss}
             disabled={isReceivePending}
-            aria-label="Close receive confirmation"
+            aria-label={t("Close receive confirmation")}
           >
             ✕
           </button>
@@ -79,24 +80,24 @@ export function StockOrderReceiveConfirmModal({
         <div className="stock-order-receive-confirm-body">
           <dl className="stock-product-history-overview">
             <div className="stock-product-history-overview-row">
-              <dt>Supplier</dt>
+              <dt>{t("Supplier")}</dt>
               <dd>{order.supplier || '—'}</dd>
             </div>
             <div className="stock-product-history-overview-row">
-              <dt>Order</dt>
+              <dt>{t("Order")}</dt>
               <dd>{formatStockOrderNumber(order.orderNumber)}</dd>
             </div>
             {`${destinationLabel ?? ''}`.trim() ? (
               <div className="stock-product-history-overview-row">
-                <dt>Destination</dt>
+                <dt>{t("Destination")}</dt>
                 <dd>{`Into ${`${destinationLabel}`.trim()}`}</dd>
               </div>
             ) : null}
           </dl>
 
-          <section className="stock-order-receive-confirm-products" aria-label="Products being received">
+          <section className="stock-order-receive-confirm-products" aria-label={t("Products being received")}>
             <div className="stock-order-receive-confirm-products-head">
-              <h4 className="stock-order-receive-confirm-products-title">Products being received</h4>
+              <h4 className="stock-order-receive-confirm-products-title">{t("Products being received")}</h4>
               <p className="stock-order-receive-confirm-total">
                 {pendingLines.length} product{pendingLines.length === 1 ? '' : 's'} · {totalUnitsReceiving} unit{totalUnitsReceiving === 1 ? '' : 's'} total
               </p>
@@ -117,26 +118,26 @@ export function StockOrderReceiveConfirmModal({
           </section>
 
           <div className="stock-order-receive-confirm-notes panel staff-panel">
-            <p>Stock levels will update immediately for the quantities above.</p>
-            <p>Receive movements will be added to each product&apos;s history.</p>
+            <p>{t("Stock levels will update immediately for the quantities above.")}</p>
+            <p>{t("Receive movements will be added to each product's history.")}</p>
             {onAddInvoice ? (
               <p>
                 <button type="button" className="ghost-btn stock-invoice-save" onClick={onAddInvoice}>
-                  Add invoice
+                  {t("Add invoice")}
                 </button>
               </p>
             ) : null}
             {willComplete ? (
-              <p>This delivery completes the order — status will change to Received.</p>
+              <p>{t("This delivery completes the order — status will change to Received.")}</p>
             ) : (
-              <p>The order will stay open until all products are fully received.</p>
+              <p>{t("The order will stay open until all products are fully received.")}</p>
             )}
           </div>
         </div>
 
         <footer className="stock-create-order-footer">
           <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isReceivePending}>
-            Cancel
+            {t("Cancel")}
           </button>
           <LoadingButton
             type="button"
@@ -145,7 +146,7 @@ export function StockOrderReceiveConfirmModal({
             disabled={pendingLines.length === 0}
             onClick={handleConfirm}
           >
-            Confirm receive
+            {t("Confirm receive")}
           </LoadingButton>
         </footer>
       </div>

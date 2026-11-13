@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export function ScheduleWeekNav({
   isWeekUpdating = false,
   isViewingCurrentWeek = false,
@@ -6,14 +7,14 @@ export function ScheduleWeekNav({
   onNextWeek,
 }) {
   return (
-    <div className="mobile-week-nav" role="group" aria-label="Week navigation">
+    <div className="mobile-week-nav" role="group" aria-label={t("Week navigation")}>
       <button
         type="button"
         className="mobile-week-nav-btn mobile-week-nav-btn-text"
         onClick={onPreviousWeek}
         disabled={isWeekUpdating}
       >
-        ‹ Prev
+        {t("‹ Prev")}
       </button>
       <button
         type="button"
@@ -21,7 +22,7 @@ export function ScheduleWeekNav({
         onClick={onGoToCurrentWeek}
         disabled={isWeekUpdating || isViewingCurrentWeek}
       >
-        This week
+        {t("This week")}
       </button>
       <button
         type="button"
@@ -29,7 +30,7 @@ export function ScheduleWeekNav({
         onClick={onNextWeek}
         disabled={isWeekUpdating}
       >
-        Next ›
+        {t("Next ›")}
       </button>
     </div>
   )

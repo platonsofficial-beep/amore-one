@@ -4,6 +4,7 @@
 
 import { useState } from 'react'
 import { InventoryOperationalProductRow } from './InventoryOperationalProductRow'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {{
@@ -51,7 +52,7 @@ export function InventoryOperationalCategory({ category, index }) {
         <div id={panelId} className="inventory-operational-category-panel">
           {productCount === 0 ? (
             <p className="inventory-operational-category-empty">
-              No products in this category.
+              {t("No products in this category.")}
             </p>
           ) : (
             category.products.map((product, productIndex) => (

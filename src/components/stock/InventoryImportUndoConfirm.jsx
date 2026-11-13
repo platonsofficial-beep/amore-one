@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export function InventoryImportUndoConfirm({
   titleId = 'inventory-import-undo-title',
   onCancel,
@@ -11,8 +12,8 @@ export function InventoryImportUndoConfirm({
       aria-modal="true"
       aria-labelledby={titleId}
     >
-      <h4 id={titleId}>Undo this import?</h4>
-      <p>Products created by this import will be removed. This cannot be undone.</p>
+      <h4 id={titleId}>{t("Undo this import?")}</h4>
+      <p>{t("Products created by this import will be removed. This cannot be undone.")}</p>
       <div className="inventory-import-undo-dialog-actions">
         <button
           type="button"
@@ -20,7 +21,7 @@ export function InventoryImportUndoConfirm({
           onClick={onCancel}
           disabled={isUndoing}
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"

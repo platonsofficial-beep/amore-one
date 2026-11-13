@@ -5,6 +5,7 @@ import {
   getPartialSeatCount,
   getHostStatusPickerGroups,
 } from '../../lib/reservationHostStatus'
+import { t } from '../../i18n/i18n'
 
 const PICKER_MARGIN = 10
 const PARTIAL_STATUS_ID = 'Checked In (Partial)'
@@ -18,8 +19,8 @@ export function getPartialSeatCountOptions(partySize) {
 function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPickCount, onPickAll }) {
   const options = getPartialSeatCountOptions(partySize)
   return (
-    <div className="host-status-count-step" role="group" aria-label="How many guests have sat down">
-      <p className="host-status-count-title">How many have sat down?</p>
+    <div className="host-status-count-step" role="group" aria-label={t("How many guests have sat down")}>
+      <p className="host-status-count-title">{t("How many have sat down?")}</p>
       <p className="host-status-count-copy">
         {partySize > 0 ? `Party of ${partySize}. We'll show how many are still to come.` : 'Party size is not set.'}
       </p>
@@ -42,7 +43,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
       ) : null}
       <div className="host-status-count-actions">
         <button type="button" className="host-status-count-back" disabled={isSaving} onClick={onBack}>
-          ‹ Back
+          {t("‹ Back")}
         </button>
         <button type="button" className="host-status-count-all" disabled={isSaving} onClick={onPickAll}>
           {partySize > 0 ? `All ${partySize} seated → Seated` : 'Everyone seated → Seated'}
@@ -248,11 +249,11 @@ export function HostReservationStatusPicker({
         onClick={(event) => event.stopPropagation()}
       >
         <header className="host-status-picker-header">
-          <span className="host-status-picker-title">Change status</span>
+          <span className="host-status-picker-title">{t("Change status")}</span>
           <button
             type="button"
             className="host-status-picker-close"
-            aria-label="Close status picker"
+            aria-label={t("Close status picker")}
             disabled={isSaving}
             onClick={onClose}
           >
@@ -273,7 +274,7 @@ export function HostReservationStatusPicker({
         <div
           className="host-status-picker-list"
           role="listbox"
-          aria-label="Reservation statuses"
+          aria-label={t("Reservation statuses")}
           aria-activedescendant={`host-status-${currentStatus.id}`}
         >
           {statusGroups.map((group) => (

@@ -31,6 +31,7 @@ import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 import { ReservationAutoClosedBadge } from './ReservationAutoClosedBadge'
 import { isAutoClosedReservation } from '../../lib/reservationAutoClose'
+import { t } from '../../i18n/i18n'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
   return formatHostReservationListTime(reservation, todayKey)
@@ -183,7 +184,7 @@ function HostReservationListRow({
           </div>
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
-            <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">
+            <span className="host-reservation-card-warning" title={t("Needs attention")} aria-label={t("Needs attention")}>
               !
             </span>
           ) : null}
@@ -221,7 +222,7 @@ function HostReservationListRow({
         <button
           type="button"
           className="host-reservation-card-row-menu"
-          aria-label="More reservation actions"
+          aria-label={t("More reservation actions")}
           aria-haspopup="menu"
           disabled={isSavingStatus}
           onClick={handleOpenRowMenu}
@@ -233,7 +234,7 @@ function HostReservationListRow({
       </div>
 
       {quickActions.length > 0 ? (
-        <div className="host-reservation-card-quick-actions" role="group" aria-label="Quick actions">
+        <div className="host-reservation-card-quick-actions" role="group" aria-label={t("Quick actions")}>
           {quickActions.map((action) => (
             <button
               key={action.id}
@@ -388,7 +389,7 @@ export function HostReservationList({
   }
 
   if (isLoading) {
-    return <p className="host-reservation-list-empty">Loading reservations…</p>
+    return <p className="host-reservation-list-empty">{t("Loading reservations…")}</p>
   }
 
   const visibleSections = operationalSections.filter((section) => section.reservations.length > 0)
@@ -415,7 +416,7 @@ export function HostReservationList({
               className="host-queue-toolbar-clear"
               onClick={onClearQueueFilters}
             >
-              Clear filters
+              {t("Clear filters")}
             </button>
           ) : null}
         </div>
@@ -440,7 +441,7 @@ export function HostReservationList({
             className="host-queue-toolbar-clear"
             onClick={onClearQueueFilters}
           >
-            Clear filters
+            {t("Clear filters")}
           </button>
         ) : null}
       </div>
@@ -452,7 +453,7 @@ export function HostReservationList({
       <div
         ref={listRef}
         className={`host-reservation-list host-reservation-list-grouped host-reservation-list-sections${listLayoutClass}`}
-        aria-label="Reservations"
+        aria-label={t("Reservations")}
       >
         {operationalSections
           .filter((section) => section.reservations.length > 0)

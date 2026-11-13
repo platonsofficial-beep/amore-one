@@ -16,6 +16,7 @@ import {
   takeStockFromStorage,
   undoQuickTake,
 } from '../../services/stockQuickTakeService'
+import { t } from '../../i18n/i18n'
 import './stockQuickTake.css'
 
 const LAST_STORAGE_KEY = 'one.quickTake.lastStorage'
@@ -164,10 +165,10 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
 
   if (available === false) {
     return (
-      <section className="stock-quick-take" aria-label="Take from storage">
+      <section className="stock-quick-take" aria-label={t("Take from storage")}>
         <div className="stock-quick-take-empty" role="status">
-          <strong>Take from storage is not switched on yet</strong>
-          <span>Ask a manager. Counts and the rest of Stock work as usual.</span>
+          <strong>{t("Take from storage is not switched on yet")}</strong>
+          <span>{t("Ask a manager. Counts and the rest of Stock work as usual.")}</span>
         </div>
       </section>
     )
@@ -178,23 +179,23 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
   const back = () => { if (category && !search) setCategory(''); else if (storageId) { setStorageId(''); setQuery('') } }
 
   return (
-    <section className="stock-quick-take" aria-label="Take from storage">
+    <section className="stock-quick-take" aria-label={t("Take from storage")}>
       {!storageId ? (
         <>
           <header className="stock-quick-take-head">
-            <h2>Take from storage</h2>
-            <p>Where are you taking from?</p>
+            <h2>{t("Take from storage")}</h2>
+            <p>{t("Where are you taking from?")}</p>
           </header>
-          {storageState.status === 'loading' ? <p className="stock-quick-take-note" role="status">Loading storages…</p> : null}
+          {storageState.status === 'loading' ? <p className="stock-quick-take-note" role="status">{t("Loading storages…")}</p> : null}
           {storageState.status === 'error' ? (
             <div className="stock-quick-take-empty" role="alert">
-              <strong>Storages couldn&apos;t be loaded</strong>
-              <button type="button" className="stock-quick-take-ghost" onClick={() => setReload((n) => n + 1)}>Retry</button>
+              <strong>{t("Storages couldn't be loaded")}</strong>
+              <button type="button" className="stock-quick-take-ghost" onClick={() => setReload((n) => n + 1)}>{t("Retry")}</button>
             </div>
           ) : null}
           {storageState.status === 'empty' ? (
             <div className="stock-quick-take-empty" role="status">
-              <strong>No supply storages yet</strong>
+              <strong>{t("No supply storages yet")}</strong>
               <span>{canManage
                 ? 'Mark the storages staff take from: Stock → Storages → Edit → Supply.'
                 : 'A manager needs to mark which storages you take from.'}</span>
@@ -227,18 +228,18 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
             placeholder={`Search in ${category && !search ? category : storage?.name ?? 'storage'}`}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            aria-label="Search products"
+            aria-label={t("Search products")}
           />
-          {productsState.status === 'loading' ? <p className="stock-quick-take-note" role="status">Loading products…</p> : null}
+          {productsState.status === 'loading' ? <p className="stock-quick-take-note" role="status">{t("Loading products…")}</p> : null}
           {productsState.status === 'error' ? (
             <div className="stock-quick-take-empty" role="alert">
-              <strong>Products couldn&apos;t be loaded</strong>
-              <button type="button" className="stock-quick-take-ghost" onClick={() => loadProducts(storageId)}>Retry</button>
+              <strong>{t("Products couldn't be loaded")}</strong>
+              <button type="button" className="stock-quick-take-ghost" onClick={() => loadProducts(storageId)}>{t("Retry")}</button>
             </div>
           ) : null}
           {productsState.status === 'ready' && !category && !search ? (
             <ul className="stock-quick-take-list">
-              {categories.length === 0 ? <li className="stock-quick-take-note">No products in this storage yet.</li> : null}
+              {categories.length === 0 ? <li className="stock-quick-take-note">{t("No products in this storage yet.")}</li> : null}
               {categories.map(([name, count]) => (
                 <li key={name}>
                   <button type="button" className="stock-quick-take-tile" onClick={() => setCategory(name)}>
@@ -251,7 +252,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
           ) : null}
           {productsState.status === 'ready' && (category || search) ? (
             <ul className="stock-quick-take-list stock-quick-take-products">
-              {visibleRows.length === 0 ? <li className="stock-quick-take-note">Nothing matches.</li> : null}
+              {visibleRows.length === 0 ? <li className="stock-quick-take-note">{t("Nothing matches.")}</li> : null}
               {visibleRows.map((row) => {
                 const pack = packById.get(row.stockItemId) ?? resolveItemPack(row.item)
                 return (
@@ -275,17 +276,17 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
         <div className="stock-quick-take-scrim" onClick={() => !sheet.saving && setSheet(null)}>
           <div className="stock-quick-take-sheet" role="dialog" aria-modal="true" aria-label={`Take ${productName(sheet.row)}`} onClick={(event) => event.stopPropagation()}>
             <div className="stock-quick-take-grip" aria-hidden="true" />
-            <button type="button" className="stock-quick-take-close" aria-label="Close" onClick={() => setSheet(null)} disabled={sheet.saving}>×</button>
+            <button type="button" className="stock-quick-take-close" aria-label={t("Close")} onClick={() => setSheet(null)} disabled={sheet.saving}>×</button>
             <h3>{productName(sheet.row)}</h3>
             <p className="stock-quick-take-sub">{storage?.name}{sheet.pack ? ` · 1 ${sheet.pack.packUnit} = ${formatQuantityWithUnit(sheet.pack.unitsPerPack, sheet.row.unit)}` : ''}</p>
             {sheet.pack ? (
-              <div className="stock-quick-take-seg" role="group" aria-label="Unit">
+              <div className="stock-quick-take-seg" role="group" aria-label={t("Unit")}>
                 <button type="button" className={sheet.mode === 'pack' ? 'is-on' : ''} aria-pressed={sheet.mode === 'pack'} onClick={() => setSheet((s) => ({ ...s, mode: 'pack' }))}>{formatQuantityWithUnit(2, sheet.pack.packUnit).replace(/^2 /, '')}</button>
                 <button type="button" className={sheet.mode === 'unit' ? 'is-on' : ''} aria-pressed={sheet.mode === 'unit'} onClick={() => setSheet((s) => ({ ...s, mode: 'unit' }))}>{formatQuantityWithUnit(2, sheet.row.unit || 'Unit').replace(/^2 /, '')}</button>
               </div>
             ) : null}
             <div className="stock-quick-take-stepper">
-              <button type="button" aria-label="One less" disabled={sheet.quantity <= 1 || sheet.saving} onClick={() => setSheet((s) => ({ ...s, quantity: Math.max(1, s.quantity - 1) }))}>−</button>
+              <button type="button" aria-label={t("One less")} disabled={sheet.quantity <= 1 || sheet.saving} onClick={() => setSheet((s) => ({ ...s, quantity: Math.max(1, s.quantity - 1) }))}>−</button>
               <input
                 type="text"
                 inputMode="decimal"
@@ -296,7 +297,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
                   if (/^\d*\.?\d{0,3}$/.test(value)) setSheet((s) => ({ ...s, quantity: value === '' ? '' : value }))
                 }}
               />
-              <button type="button" aria-label="One more" disabled={sheet.saving} onClick={() => setSheet((s) => ({ ...s, quantity: (Number(s.quantity) || 0) + 1 }))}>+</button>
+              <button type="button" aria-label={t("One more")} disabled={sheet.saving} onClick={() => setSheet((s) => ({ ...s, quantity: (Number(s.quantity) || 0) + 1 }))}>+</button>
             </div>
             <p className="stock-quick-take-unitline">{formatQuantityWithUnit(Number(sheet.quantity) || 0, stepUnit).replace(/^[\d.]+ /, '')}</p>
             <p className="stock-quick-take-math">
@@ -320,7 +321,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
         <div className={`stock-quick-take-toast${toast.undone ? ' is-undone' : ''}`} role="status" aria-live="polite">
           <span>
             <strong>{toast.undone ? `Undone · ${toast.name}` : `✓ Took ${toast.label} · ${toast.name}`}</strong>
-            {toast.undone ? <small>Stock is back as it was.</small> : (
+            {toast.undone ? <small>{t("Stock is back as it was.")}</small> : (
               <small>{toast.negative ? '⚠ More than stock showed · ' : ''}{toast.storageName} now {formatQuantityWithUnit(toast.after, toast.unit)}</small>
             )}
             {toast.error ? <small className="stock-quick-take-error">{toast.error}</small> : null}

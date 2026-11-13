@@ -14,6 +14,7 @@ import {
   presentInsightsAttentionItem,
 } from '../../lib/reportsUtils'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { t } from '../../i18n/i18n'
 
 const EXECUTIVE_OVERVIEW_CARD_COUNT = 6
 const MODULE_FOOTER = 'Powered by live ONE data'
@@ -30,7 +31,7 @@ const EMPTY_STATE_GUIDANCE = {
 function ReportMetric({ label, value, emphasize = false }) {
   return (
     <article className={`reports-metric${emphasize ? ' reports-metric-emphasis' : ''}`}>
-      <p className="reports-metric-label">{label}</p>
+      <p className="reports-metric-label">{t(label)}</p>
       <p className="reports-metric-value">{value}</p>
     </article>
   )
@@ -41,7 +42,7 @@ function ReportsLoadingState({ variant = 'overview' }) {
 
   return (
     <div className={`reports-loading${variant === 'section' ? ' reports-loading-section' : ''}`} aria-busy="true">
-      <p className="reports-loading-text">Preparing insights…</p>
+      <p className="reports-loading-text">{t("Preparing insights…")}</p>
       <div className={`reports-loading-grid${variant === 'overview' ? ' reports-overview-grid' : ' reports-section-metrics'}`}>
         {Array.from({ length: placeholderCount }, (_, index) => (
           <div key={index} className="reports-metric reports-metric-skeleton" aria-hidden="true">
@@ -71,9 +72,9 @@ function ReportSection({
         <div>
           <h3 className="reports-section-heading">
             {icon ? <span className="reports-section-icon" aria-hidden="true">{icon}</span> : null}
-            {title}
+            {typeof title === 'string' ? t(title) : title}
           </h3>
-          {note ? <p className="reports-section-note">{note}</p> : null}
+          {note ? <p className="reports-section-note">{typeof note === 'string' ? t(note) : note}</p> : null}
         </div>
         <button type="button" className="ghost-btn reports-view-module-btn" onClick={onViewModule}>
           {viewModuleLabel}
@@ -103,8 +104,8 @@ function ReportSection({
 }
 
 function formatSectionMetric(value, { connected = true, format = 'count', loadFailed = false } = {}) {
-  if (loadFailed) return 'Unavailable'
-  if (!connected) return 'Not connected'
+  if (loadFailed) return t('Unavailable')
+  if (!connected) return t('Not connected')
   if (value === null || value === undefined) return '—'
   if (format === 'currency') return formatReportCurrency(value)
   if (format === 'percent') return formatReportPercent(value)
@@ -125,13 +126,13 @@ function InsightsAttentionPanel({
 }) {
   if (isLoading) {
     return (
-      <section className="reports-attention panel staff-panel" aria-label="Needs attention" aria-busy="true">
+      <section className="reports-attention panel staff-panel" aria-label={t("Needs attention")} aria-busy="true">
         <header className="reports-overview-header">
           <div>
-            <p className="eyebrow">Actionable insights</p>
+            <p className="eyebrow">{t("Actionable insights")}</p>
             <h3 className="reports-section-heading">
               <span className="reports-section-icon" aria-hidden="true">⚠️</span>
-              Needs attention
+              {t("Needs attention")}
             </h3>
           </div>
         </header>
@@ -141,13 +142,13 @@ function InsightsAttentionPanel({
   }
 
   return (
-    <section className="reports-attention panel staff-panel" aria-label="Needs attention">
+    <section className="reports-attention panel staff-panel" aria-label={t("Needs attention")}>
       <header className="reports-overview-header">
         <div>
-          <p className="eyebrow">Actionable insights</p>
+          <p className="eyebrow">{t("Actionable insights")}</p>
           <h3 className="reports-section-heading">
             <span className="reports-section-icon" aria-hidden="true">⚠️</span>
-            Needs attention
+            {t("Needs attention")}
           </h3>
         </div>
       </header>
@@ -155,11 +156,11 @@ function InsightsAttentionPanel({
       {attentionItems.length === 0 && stockRemainders.length === 0 ? (
         <div className="schedule-empty-state reports-section-empty">
           {sourcesFailed ? (
-            <p>Couldn&apos;t tell what needs attention until today&apos;s data loads.</p>
+            <p>{t("Couldn't tell what needs attention until today's data loads.")}</p>
           ) : (
             <>
-              <p>No urgent issues right now.</p>
-              <p className="reports-section-empty-guidance">Operational alerts from tasks, stock, schedule, and service will appear here.</p>
+              <p>{t("No urgent issues right now.")}</p>
+              <p className="reports-section-empty-guidance">{t("Operational alerts from tasks, stock, schedule, and service will appear here.")}</p>
             </>
           )}
         </div>
@@ -674,13 +675,13 @@ export default function ReportsView({
   ) : null
 
   const briefPanel = showBrief ? (
-    <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
+    <section className="reports-overview panel staff-panel" aria-label={t("Manager Brief")}>
       <header className="reports-overview-header">
         <div>
-          <p className="eyebrow">Executive summary</p>
+          <p className="eyebrow">{t("Executive summary")}</p>
           <h3 className="reports-section-heading">
             <span className="reports-section-icon" aria-hidden="true">⚡</span>
-            Manager Brief
+            {t("Manager Brief")}
           </h3>
           <p className="reports-overview-subtitle">
             {isLoading ? 'Loading operational overview…' : reports.healthSummary}
@@ -709,7 +710,7 @@ export default function ReportsView({
 
       {showOpenOrderNote ? (
         <p className="reports-overview-note">
-          Open orders include drafts to review and orders awaiting delivery.
+          {t("Open orders include drafts to review and orders awaiting delivery.")}
         </p>
       ) : null}
     </section>
@@ -717,20 +718,20 @@ export default function ReportsView({
 
   return (
     <section className="staff-page reports-page">
-      <div className="reports-period-filters" role="group" aria-label="Report period">
+      <div className="reports-period-filters" role="group" aria-label={t("Report period")}>
         <button
           type="button"
           className={`filter-chip${period === REPORT_PERIOD_TODAY ? ' active' : ''}`}
           onClick={() => setPeriod(REPORT_PERIOD_TODAY)}
         >
-          Today
+          {t("Today")}
         </button>
         <button
           type="button"
           className={`filter-chip${period === REPORT_PERIOD_WEEK ? ' active' : ''}`}
           onClick={() => setPeriod(REPORT_PERIOD_WEEK)}
         >
-          This Week
+          {t("This Week")}
         </button>
       </div>
 
@@ -740,7 +741,7 @@ export default function ReportsView({
 
       {filtering && !anyCards ? (
         <div className="schedule-empty-state reports-section-empty reports-search-empty">
-          <p>No insights match that search.</p>
+          <p>{t("No insights match that search.")}</p>
         </div>
       ) : null}
 

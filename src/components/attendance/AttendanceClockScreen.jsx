@@ -43,6 +43,7 @@ import {
   startBreak,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
+import { t } from '../../i18n/i18n'
 
 function formatForgotSince(isoValue, timeZone) {
   const date = new Date(isoValue)
@@ -82,13 +83,13 @@ function formatLocalInputPreview(value) {
 function HoursWrapper({ isManager, children }) {
   if (isManager) {
     return (
-      <details className="attendance-hours attendance-hours-compact" aria-label="My hours">
-        <summary>My hours</summary>
+      <details className="attendance-hours attendance-hours-compact" aria-label={t("My hours")}>
+        <summary>{t("My hours")}</summary>
         {children}
       </details>
     )
   }
-  return <div className="attendance-hours" aria-label="My hours">{children}</div>
+  return <div className="attendance-hours" aria-label={t("My hours")}>{children}</div>
 }
 
 export function AttendanceClockScreen({
@@ -367,7 +368,7 @@ export function AttendanceClockScreen({
   )
 
   return (
-    <section className="attendance-clock" aria-label="Clock in and out">
+    <section className="attendance-clock" aria-label={t("Clock in and out")}>
       <header className="attendance-clock-header">
         <p className="attendance-clock-kicker">⏱ Clock</p>
         <div className="attendance-clock-identity">
@@ -434,12 +435,12 @@ export function AttendanceClockScreen({
         >
           <p>{request.message}</p>
           <label className="attendance-field">
-            Note for your manager
+            {t("Note for your manager")}
             <textarea
               value={note}
               onChange={(event) => setNote(event.target.value)}
               rows={3}
-              placeholder="The GPS does not work inside"
+              placeholder={t("The GPS does not work inside")}
             />
           </label>
           <button type="submit" className="attendance-action attendance-action-send" disabled={busy}>
@@ -449,19 +450,19 @@ export function AttendanceClockScreen({
       ) : null}
 
       <HoursWrapper isManager={isManager}>
-        {isManager ? null : <h3>My hours</h3>}
-        <p>This week</p>
+        {isManager ? null : <h3>{t("My hours")}</h3>}
+        <p>{t("This week")}</p>
         <dl>
           <div>
-            <dt>Scheduled</dt>
+            <dt>{t("Scheduled")}</dt>
             <dd>{formatHoursMinutes(hours.scheduled)}</dd>
           </div>
           <div>
-            <dt>Actual</dt>
+            <dt>{t("Actual")}</dt>
             <dd>{formatHoursMinutes(hours.actual)}</dd>
           </div>
           <div>
-            <dt>Difference</dt>
+            <dt>{t("Difference")}</dt>
             <dd>{formatSignedHours(hours.difference)}</dd>
           </div>
         </dl>
@@ -480,19 +481,19 @@ export function AttendanceClockScreen({
         ) : null}
         {showEdit && canRequestChange ? (
           <form className="attendance-request" onSubmit={submitEdit}>
-            <p>Your manager will approve this note before the time changes.</p>
+            <p>{t("Your manager will approve this note before the time changes.")}</p>
             <label className="attendance-field">
-              Clock in
+              {t("Clock in")}
               <input type="datetime-local" lang="en-GB" value={editClockIn} onChange={(event) => setEditClockIn(event.target.value)} required />
               <span className="attendance-field-preview">{formatLocalInputPreview(editClockIn)}</span>
             </label>
             <label className="attendance-field">
-              Clock out
+              {t("Clock out")}
               <input type="datetime-local" lang="en-GB" value={editClockOut} onChange={(event) => setEditClockOut(event.target.value)} />
               <span className="attendance-field-preview">{formatLocalInputPreview(editClockOut)}</span>
             </label>
             <label className="attendance-field">
-              Note
+              {t("Note")}
               <textarea value={editReason} onChange={(event) => setEditReason(event.target.value)} rows={3} required />
             </label>
             <button type="submit" className="attendance-action attendance-action-send" disabled={busy}>
@@ -512,7 +513,7 @@ export function AttendanceClockScreen({
                 ✓ I agree
               </button>
               <button type="button" className="attendance-action attendance-action-break" onClick={() => setShowConsent(false)}>
-                Not now
+                {t("Not now")}
               </button>
             </div>
           </div>

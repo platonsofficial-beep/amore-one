@@ -3,6 +3,7 @@ import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { LEAVE_STATUS } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { withdrawLeaveRequest } from '../../services/leaveService'
+import { t } from '../../i18n/i18n'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -261,15 +262,15 @@ export function LeaveHistoryDetailsModal({
 
         <div className="drawer-header leave-history-details-header">
           <div>
-            <p className="eyebrow">Leave history</p>
-            <h3 id="leave-history-details-title">Leave request details</h3>
+            <p className="eyebrow">{t("Leave history")}</p>
+            <h3 id="leave-history-details-title">{t("Leave request details")}</h3>
           </div>
           <button
             type="button"
             className="icon-btn"
             onClick={handleClose}
             disabled={isWithdrawPending}
-            aria-label="Close leave request details"
+            aria-label={t("Close leave request details")}
           >
             ✕
           </button>
@@ -284,29 +285,29 @@ export function LeaveHistoryDetailsModal({
           </div>
 
           <section>
-            <h5 className="leave-history-details-section-title">Request details</h5>
+            <h5 className="leave-history-details-section-title">{t("Request details")}</h5>
             <dl className="leave-history-details-fields">
               <div className="leave-history-details-field">
-                <dt>Start date</dt>
+                <dt>{t("Start date")}</dt>
                 <dd>{entry.startDate}</dd>
               </div>
               <div className="leave-history-details-field">
-                <dt>End date</dt>
+                <dt>{t("End date")}</dt>
                 <dd>{entry.endDate}</dd>
               </div>
               <div className="leave-history-details-field">
-                <dt>Duration</dt>
+                <dt>{t("Duration")}</dt>
                 <dd>{formatDurationLabel(entry.startDate, entry.endDate)}</dd>
               </div>
               <div className="leave-history-details-field">
-                <dt>Submitted</dt>
+                <dt>{t("Submitted")}</dt>
                 <dd>{formatSubmittedDate(entry.createdAt)}</dd>
               </div>
             </dl>
           </section>
 
           <section>
-            <h5 className="leave-history-details-section-title">Employee note</h5>
+            <h5 className="leave-history-details-section-title">{t("Employee note")}</h5>
             <p className={`leave-history-details-note${noteText ? '' : ' is-empty'}`}>
               {noteText || 'No note provided.'}
             </p>
@@ -314,18 +315,18 @@ export function LeaveHistoryDetailsModal({
 
           {status === LEAVE_STATUS.PENDING ? (
             <section>
-              <h5 className="leave-history-details-section-title">Decision</h5>
-              <p className="leave-history-details-status-copy is-muted">Awaiting manager review.</p>
+              <h5 className="leave-history-details-section-title">{t("Decision")}</h5>
+              <p className="leave-history-details-status-copy is-muted">{t("Awaiting manager review.")}</p>
             </section>
           ) : null}
 
           {status === LEAVE_STATUS.APPROVED ? (
             <section>
-              <h5 className="leave-history-details-section-title">Decision</h5>
+              <h5 className="leave-history-details-section-title">{t("Decision")}</h5>
               {decisionDate ? (
                 <dl className="leave-history-details-fields">
                   <div className="leave-history-details-field">
-                    <dt>Decision date</dt>
+                    <dt>{t("Decision date")}</dt>
                     <dd>{decisionDate}</dd>
                   </div>
                 </dl>
@@ -335,16 +336,16 @@ export function LeaveHistoryDetailsModal({
 
           {status === LEAVE_STATUS.REJECTED ? (
             <section>
-              <h5 className="leave-history-details-section-title">Decision</h5>
+              <h5 className="leave-history-details-section-title">{t("Decision")}</h5>
               {decisionDate ? (
                 <dl className="leave-history-details-fields">
                   <div className="leave-history-details-field">
-                    <dt>Decision date</dt>
+                    <dt>{t("Decision date")}</dt>
                     <dd>{decisionDate}</dd>
                   </div>
                 </dl>
               ) : null}
-              <h5 className="leave-history-details-section-title">Rejection reason</h5>
+              <h5 className="leave-history-details-section-title">{t("Rejection reason")}</h5>
               <p className={`leave-history-details-note${rejectionReason ? '' : ' is-empty'}`}>
                 {rejectionReason || 'No rejection reason provided.'}
               </p>
@@ -353,11 +354,11 @@ export function LeaveHistoryDetailsModal({
 
           {status === LEAVE_STATUS.CANCELLED ? (
             <section>
-              <h5 className="leave-history-details-section-title">Decision</h5>
+              <h5 className="leave-history-details-section-title">{t("Decision")}</h5>
               {decisionDate ? (
                 <dl className="leave-history-details-fields">
                   <div className="leave-history-details-field">
-                    <dt>Decision date</dt>
+                    <dt>{t("Decision date")}</dt>
                     <dd>{decisionDate}</dd>
                   </div>
                 </dl>
@@ -377,7 +378,7 @@ export function LeaveHistoryDetailsModal({
                 onClick={handleWithdrawClick}
                 disabled={isWithdrawPending}
               >
-                Withdraw Request
+                {t("Withdraw Request")}
               </button>
             </div>
           ) : null}
@@ -397,22 +398,22 @@ export function LeaveHistoryDetailsModal({
         >
           <div className="drawer-header">
             <div>
-              <p className="eyebrow">Leave withdrawal</p>
-              <h3 id="leave-history-withdraw-confirm-title">Withdraw leave request?</h3>
+              <p className="eyebrow">{t("Leave withdrawal")}</p>
+              <h3 id="leave-history-withdraw-confirm-title">{t("Withdraw leave request?")}</h3>
             </div>
             <button
               type="button"
               className="icon-btn"
               onClick={handleConfirmCancel}
               disabled={isWithdrawPending}
-              aria-label="Close withdrawal confirmation"
+              aria-label={t("Close withdrawal confirmation")}
             >
               ✕
             </button>
           </div>
 
           <p className="leave-history-withdraw-confirm-copy">
-            This will withdraw your pending leave request and cannot be undone from this screen.
+            {t("This will withdraw your pending leave request and cannot be undone from this screen.")}
           </p>
 
           <div className="modal-actions">
@@ -422,7 +423,7 @@ export function LeaveHistoryDetailsModal({
               onClick={handleConfirmCancel}
               disabled={isWithdrawPending}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="button"

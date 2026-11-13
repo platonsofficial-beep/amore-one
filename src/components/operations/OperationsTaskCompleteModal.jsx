@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../../i18n/i18n'
 
 export function OperationsTaskCompleteModal({
   task,
@@ -31,28 +32,28 @@ export function OperationsTaskCompleteModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Complete task</p>
+            <p className="eyebrow">{t("Complete task")}</p>
             <h3 id="operations-complete-title">{task.title}</h3>
           </div>
-          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
 
         <form className="employee-form operations-form" onSubmit={handleSubmit}>
           <label className="form-field full-width">
-            <span>Completion note</span>
+            <span>{t("Completion note")}</span>
             <textarea
               rows={4}
               value={completionNote}
               onChange={(event) => setCompletionNote(event.target.value)}
-              placeholder="Optional note about what was done"
+              placeholder={t("Optional note about what was done")}
             />
           </label>
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn operations-form-action" onClick={onClose}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Mark complete'}

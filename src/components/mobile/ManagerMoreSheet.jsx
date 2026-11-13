@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { t } from '../../i18n/i18n'
 
 export function ManagerMoreSheet({
   isOpen = false,
@@ -21,11 +22,11 @@ export function ManagerMoreSheet({
 
   return (
     <div className="manager-more-sheet" role="presentation">
-      <button type="button" className="manager-more-backdrop" aria-label="Close more" onClick={onClose} />
+      <button type="button" className="manager-more-backdrop" aria-label={t("Close more")} onClick={onClose} />
       <section className="manager-more-card" role="dialog" aria-modal="true" aria-labelledby="manager-more-title">
         <header className="manager-more-header">
-          <h2 id="manager-more-title">More</h2>
-          <button type="button" className="manager-more-close" onClick={onClose} aria-label="Close">
+          <h2 id="manager-more-title">{t("More")}</h2>
+          <button type="button" className="manager-more-close" onClick={onClose} aria-label={t("Close")}>
             ×
           </button>
         </header>

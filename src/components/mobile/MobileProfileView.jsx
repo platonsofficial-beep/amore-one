@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ProfilePhotoBlock } from '../profile/ProfilePhotoBlock'
 import { VenueSwitcher } from '../workspace/VenueManager'
 import { PrivacyAccountSection } from '../privacy/PrivacySections'
+import { LanguagePicker } from '../../i18n/LanguagePicker'
+import { t } from '../../i18n/i18n'
 
 export function MobileProfileView({
   displayName = '',
@@ -56,29 +58,31 @@ export function MobileProfileView({
     <div className="mobile-screen mobile-profile">
       <header className="mobile-profile-header">
         <button type="button" className="mobile-back-btn" onClick={onBack}>
-          ‹ Back
+          {t("‹ Back")}
         </button>
-        <h1>Profile</h1>
+        <h1>{t("Profile")}</h1>
       </header>
 
       <ProfilePhotoBlock displayName={displayName} />
 
-      <section className="mobile-card mobile-profile-readonly" aria-label="Account details">
+      <LanguagePicker className="mobile-profile-language" />
+
+      <section className="mobile-card mobile-profile-readonly" aria-label={t("Account details")}>
         <dl className="mobile-profile-details">
           <div className="mobile-profile-detail-row">
-            <dt>Email</dt>
+            <dt>{t("Email")}</dt>
             <dd>{email || '—'}</dd>
           </div>
           <div className="mobile-profile-detail-row">
-            <dt>Role</dt>
+            <dt>{t("Role")}</dt>
             <dd>{roleLabel || '—'}</dd>
           </div>
           <div className="mobile-profile-detail-row">
-            <dt>Venue</dt>
+            <dt>{t("Venue")}</dt>
             <dd>{venueName || '—'}</dd>
           </div>
           <div className="mobile-profile-detail-row">
-            <dt>Linked employee</dt>
+            <dt>{t("Linked employee")}</dt>
             <dd>{linkedEmployeeName || 'Not linked'}</dd>
           </div>
         </dl>
@@ -87,11 +91,11 @@ export function MobileProfileView({
       <VenueSwitcher className="account-venue-switcher mobile-card" />
 
       <form className="mobile-profile-form" onSubmit={handleSubmit}>
-        <section className="mobile-card" aria-label="Editable profile fields">
-          <p className="mobile-card-label">Editable</p>
+        <section className="mobile-card" aria-label={t("Editable profile fields")}>
+          <p className="mobile-card-label">{t("Editable")}</p>
 
           <label className="form-field full-width">
-            <span>Display name</span>
+            <span>{t("Display name")}</span>
             <input
               type="text"
               value={nameDraft}
@@ -104,13 +108,13 @@ export function MobileProfileView({
 
           {canEditPhone ? (
             <label className="form-field full-width">
-              <span>Phone</span>
+              <span>{t("Phone")}</span>
               <input
                 type="tel"
                 value={phoneDraft}
                 onChange={(event) => setPhoneDraft(event.target.value)}
                 autoComplete="tel"
-                placeholder="Add phone number"
+                placeholder={t("Add phone number")}
                 disabled={isSaving}
               />
             </label>

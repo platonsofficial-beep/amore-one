@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export function SeatingHoursFallback({
   kind = 'empty',
   onOpenSeatingHours,
@@ -6,7 +7,7 @@ export function SeatingHoursFallback({
   if (kind === 'loading') {
     return (
       <p className="host-no-service-hours" role="status" data-testid="host-seating-hours-status">
-        Loading seating hours…
+        {t("Loading seating hours…")}
       </p>
     )
   }
@@ -14,7 +15,7 @@ export function SeatingHoursFallback({
   if (kind === 'error') {
     return (
       <p className="host-no-service-hours" role="alert" data-testid="host-seating-hours-status">
-        Couldn't load seating hours.
+        {t("Couldn't load seating hours.")}
       </p>
     )
   }
@@ -30,7 +31,7 @@ export function NoServiceHoursNotice({
 }) {
   return (
     <div className="host-no-service-hours" role="status" data-testid="host-no-service-hours">
-      <p>No service hours for this day.</p>
+      <p>{t("No service hours for this day.")}</p>
       <p>
         {afterHours
           ? 'You can still seat an after-hours walk-in. It is not tied to a service.'
@@ -38,7 +39,7 @@ export function NoServiceHoursNotice({
       </p>
       {typeof onOpenSeatingHours === 'function' ? (
         <button type="button" className="host-no-service-hours-action" onClick={onOpenSeatingHours}>
-          Open seating hours
+          {t("Open seating hours")}
         </button>
       ) : null}
     </div>

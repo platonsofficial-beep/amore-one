@@ -5,6 +5,7 @@
  * everywhere, so every action keeps working.
  */
 import { useEffect, useState } from 'react'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {{
@@ -44,7 +45,7 @@ export function StockStorageDetailActionBar({
       <div
         className="stock-storage-detail-action-bar"
         role="toolbar"
-        aria-label="Storage actions"
+        aria-label={t("Storage actions")}
         data-testid="stock-storage-detail-action-bar"
       >
         <button
@@ -55,7 +56,7 @@ export function StockStorageDetailActionBar({
           title={isArchived ? 'Unavailable for archived storage' : undefined}
           onClick={() => onCountShelf?.(storage)}
         >
-          Count shelf
+          {t("Count shelf")}
         </button>
       </div>
     )
@@ -108,7 +109,7 @@ function ManagerActionBar({
     <div
       className="stock-storage-detail-action-bar"
       role="toolbar"
-      aria-label="Storage actions"
+      aria-label={t("Storage actions")}
       data-testid="stock-storage-detail-action-bar"
     >
       <button
@@ -130,7 +131,7 @@ function ManagerActionBar({
         title={unavailableReason}
         onClick={() => onReceive?.(storage)}
       >
-        Receive
+        {t("Receive")}
       </button>
       <button
         type="button"
@@ -146,7 +147,7 @@ function ManagerActionBar({
         <button
           type="button"
           className="stock-storage-detail-more-backdrop"
-          aria-label="Close more actions"
+          aria-label={t("Close more actions")}
           tabIndex={-1}
           onClick={() => setMoreOpen(false)}
         />
@@ -154,9 +155,9 @@ function ManagerActionBar({
       <div
         className={`stock-storage-detail-more${moreOpen ? ' is-open' : ''}`}
         data-testid="stock-storage-detail-more"
-        aria-label="More storage actions"
+        aria-label={t("More storage actions")}
       >
-      <p className="stock-storage-detail-more-title" aria-hidden="true">More actions</p>
+      <p className="stock-storage-detail-more-title" aria-hidden="true">{t("More actions")}</p>
       <button
         type="button"
         className="ghost-btn stock-storage-detail-action-btn"
@@ -165,7 +166,7 @@ function ManagerActionBar({
         title={unavailableReason}
         onClick={() => runMore(onTransfer)}
       >
-        Transfer
+        {t("Transfer")}
       </button>
       <button
         type="button"
@@ -175,7 +176,7 @@ function ManagerActionBar({
         title={unavailableReason}
         onClick={() => runMore(onAdjustment)}
       >
-        Adjustment
+        {t("Adjustment")}
       </button>
       <button
         type="button"
@@ -185,7 +186,7 @@ function ManagerActionBar({
         title={unavailableReason}
         onClick={() => runMore(onWaste)}
       >
-        Waste
+        {t("Waste")}
       </button>
       {onRename ? (
         <button
@@ -194,7 +195,7 @@ function ManagerActionBar({
           data-storage-action="rename"
           onClick={() => runMore(onRename)}
         >
-          Rename
+          {t("Rename")}
         </button>
       ) : null}
       </div>

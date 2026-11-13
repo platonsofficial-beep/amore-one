@@ -18,6 +18,7 @@ import {
   toggleAssignedUnit,
   unitIdsMatch,
 } from '../../lib/reservationTableOptions'
+import { t } from '../../i18n/i18n'
 
 export function ReservationTableSelector({
   layout: layoutProp,
@@ -127,7 +128,7 @@ export function ReservationTableSelector({
   return (
     <div className="reservation-table-selector">
       <label className="host-reservation-edit-field">
-        <span>Area</span>
+        <span>{t("Area")}</span>
         <select
           value={selectedAreaId}
           onChange={(event) => onAreaChange(event.target.value)}
@@ -142,12 +143,12 @@ export function ReservationTableSelector({
 
       {selectedAreaHasNoTables ? (
         <p className="host-reservation-edit-warning">
-          This area has no tables. Choose an area that has tables before seating the party.
+          {t("This area has no tables. Choose an area that has tables before seating the party.")}
         </p>
       ) : null}
 
       {assignedUnits.length > 0 ? (
-        <div className="reservation-table-selector-chips" aria-label="Selected tables">
+        <div className="reservation-table-selector-chips" aria-label={t("Selected tables")}>
           {assignedUnits.map((unit) => (
             <button
               key={unit.id}
@@ -163,23 +164,23 @@ export function ReservationTableSelector({
       ) : null}
 
       <div className="reservation-table-selector-toolbar">
-        <p className="reservation-table-selector-toolbar-label">Available tables</p>
+        <p className="reservation-table-selector-toolbar-label">{t("Available tables")}</p>
         <label className="reservation-table-selector-toggle">
           <input
             type="checkbox"
             checked={showUnavailable}
             onChange={(event) => setShowUnavailable(event.target.checked)}
           />
-          <span>Show unavailable</span>
+          <span>{t("Show unavailable")}</span>
         </label>
       </div>
 
       {!isPickerReady ? (
-        <p className="reservation-table-selector-hint">Select date and seating/time to see available tables.</p>
+        <p className="reservation-table-selector-hint">{t("Select date and seating/time to see available tables.")}</p>
       ) : null}
 
       <div className="reservation-table-selector-grid-wrap">
-        <div className="reservation-table-selector-grid" role="group" aria-label="Available tables and sections">
+        <div className="reservation-table-selector-grid" role="group" aria-label={t("Available tables and sections")}>
           {visibleUnits.map((unit) => {
             const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
             const conflict = conflictingUnitIds.get(unit.id)
@@ -209,7 +210,7 @@ export function ReservationTableSelector({
                     {formatTableConflictReason(conflict)}
                   </span>
                 ) : (
-                  <span className="reservation-table-selector-unit-status is-available">Available</span>
+                  <span className="reservation-table-selector-unit-status is-available">{t("Available")}</span>
                 )}
               </button>
             )
@@ -219,15 +220,15 @@ export function ReservationTableSelector({
 
       <dl className="host-reservation-edit-summary reservation-table-selector-summary">
         <div>
-          <dt>Selected tables</dt>
+          <dt>{t("Selected tables")}</dt>
           <dd>{assignedUnits.map((unit) => formatHostListUnitLabel(unit.label)).join(' + ') || '—'}</dd>
         </div>
         <div>
-          <dt>Combined capacity</dt>
+          <dt>{t("Combined capacity")}</dt>
           <dd>{totals.totalGuestCapacity}</dd>
         </div>
         <div>
-          <dt>Party size</dt>
+          <dt>{t("Party size")}</dt>
           <dd>{totals.guests}</dd>
         </div>
       </dl>
@@ -240,7 +241,7 @@ export function ReservationTableSelector({
 
       <div className="host-reservation-edit-grid">
         <label className="host-reservation-edit-field">
-          <span>Extra chairs</span>
+          <span>{t("Extra chairs")}</span>
           <input
             type="number"
             min="0"
@@ -252,7 +253,7 @@ export function ReservationTableSelector({
 
         {canUseStanding || assignedUnits.length === 0 ? (
           <label className="host-reservation-edit-field">
-            <span>Standing guests</span>
+            <span>{t("Standing guests")}</span>
             <input
               type="number"
               min="0"

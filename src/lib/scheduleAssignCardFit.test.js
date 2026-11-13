@@ -23,11 +23,11 @@ describe('assign card with the missing-area prompt', () => {
     const filtersAt = app.indexOf('className="assignment-card-filters"')
     expect(filtersAt).toBeGreaterThan(areaAt)
     expect(filtersAt).toBeLessThan(bodyAt)
-    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label="Department"')
-    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label="Position"')
+    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label={t("Department")}')
+    expect(app.slice(filtersAt, bodyAt)).toContain('aria-label={t("Position")}')
     expect(app).toContain("setAssignmentDepartment(filters.department || 'All')")
     expect(app).toContain("setAssignmentPosition(filters.position || 'All')")
-    expect(app.slice(app.indexOf('<h3>Assign employees</h3>'), actionsAt)).not.toContain('Remaining')
+    expect(app.slice(app.indexOf('<h3>{t("Assign employees")}</h3>'), actionsAt)).not.toContain('Remaining')
   })
 
   it('lets the middle scroll on a short screen while the footer stays put', () => {

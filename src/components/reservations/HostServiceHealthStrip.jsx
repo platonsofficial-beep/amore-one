@@ -1,4 +1,5 @@
 import { formatTime24 } from '../../lib/timeFormatUtils'
+import { t } from '../../i18n/i18n'
 
 function formatReservationGuestName(name) {
   const trimmed = `${name ?? ''}`.trim()
@@ -16,8 +17,8 @@ export function HostServiceHealthStrip({
 }) {
   if (isLoading) {
     return (
-      <section className="host-service-health-strip is-loading" aria-label="Tonight service" aria-busy="true">
-        <p className="host-service-health-loading">Loading service status…</p>
+      <section className="host-service-health-strip is-loading" aria-label={t("Tonight service")} aria-busy="true">
+        <p className="host-service-health-loading">{t("Loading service status…")}</p>
       </section>
     )
   }
@@ -42,7 +43,7 @@ export function HostServiceHealthStrip({
   }
 
   return (
-    <section className="host-service-health-strip" aria-label="Tonight service">
+    <section className="host-service-health-strip" aria-label={t("Tonight service")}>
       <div className="host-service-health-status">
         <span className="service-health-live-dot" aria-hidden="true" />
         <strong className={`host-service-health-status-label tone-${metrics.overallTone}`}>
@@ -52,23 +53,23 @@ export function HostServiceHealthStrip({
 
       <div className="host-service-health-metrics" role="list">
         <div className="host-service-health-metric" role="listitem">
-          <span>Late</span>
+          <span>{t("Late")}</span>
           <strong className={lateCount > 0 ? 'tone-alert' : ''}>{lateCount}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>Waiting</span>
+          <span>{t("Waiting")}</span>
           <strong className={waitingCount > 0 ? 'tone-alert' : ''}>{waitingCount}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>Upcoming</span>
+          <span>{t("Upcoming")}</span>
           <strong>{expectedArrivals}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>Seated</span>
+          <span>{t("Seated")}</span>
           <strong>{guestsInHouse > 0 ? guestsInHouse : '—'}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>Done</span>
+          <span>{t("Done")}</span>
           <strong>{completedTables > 0 ? completedTables : '—'}</strong>
         </div>
       </div>
@@ -90,7 +91,7 @@ export function HostServiceHealthStrip({
       ) : null}
 
       {metrics.alerts?.length > 0 ? (
-        <div className="host-service-health-alerts" aria-label="Late guests">
+        <div className="host-service-health-alerts" aria-label={t("Late guests")}>
           {metrics.alerts.slice(0, 2).map((alert) => (
             <button
               key={alert.id}

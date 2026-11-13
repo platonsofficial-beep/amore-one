@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../../i18n/i18n'
 
 const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.0.0-core'
@@ -54,7 +55,7 @@ function BuildInfoBadge() {
         <p className="build-info-version">Version {APP_VERSION}</p>
       </div>
       <button type="button" className="ghost-btn small build-copy-btn workspace-action-btn" onClick={handleCopyBuildInfo}>
-        Copy Build Info
+        {t("Copy Build Info")}
       </button>
       {copyMessage ? <small className="build-copy-note">{copyMessage}</small> : null}
     </div>
@@ -66,13 +67,13 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">⚙️</span>
-            System
+            {t("System")}
           </h3>
           <p className="workspace-section-subtitle">
-            Application build, and whether each module has live data loaded.
+            {t("Application build, and whether each module has live data loaded.")}
           </p>
         </div>
       </div>
@@ -80,8 +81,8 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Application</p>
-            <h3>Build info</h3>
+            <p className="eyebrow">{t("Application")}</p>
+            <h3>{t("Build info")}</h3>
           </div>
         </div>
         <BuildInfoBadge />
@@ -90,12 +91,12 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Modules</p>
-            <h3>Connection status</h3>
+            <p className="eyebrow">{t("Modules")}</p>
+            <h3>{t("Connection status")}</h3>
           </div>
         </div>
         <p className="workspace-module-legend">
-          Connected means live data is loaded. Not connected means that data is not ready. No live check means the module is in ONE and this list does not probe a separate connection.
+          {t("Connected means live data is loaded. Not connected means that data is not ready. No live check means the module is in ONE and this list does not probe a separate connection.")}
         </p>
         <ul className="workspace-module-list">
           {MODULE_ROWS.map(({ key, label, detail }) => {

@@ -8,6 +8,7 @@ import {
 } from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { PanelHeader } from './PanelHeader'
+import { t } from '../../i18n/i18n'
 
 const BASIC_TABLE_SHAPES = ['round', 'square', 'rectangle']
 
@@ -105,11 +106,11 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
   ))
 
   return (
-    <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label="Floor plan builder">
+    <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label={t("Floor plan builder")}>
       <div className="fpb-toolbox-scroll">
         <PanelHeader
           eyebrow="Restaurant"
-          title="Areas"
+          title={t("Areas")}
           onClose={onClose}
           showClose={showCloseButton}
           closeLabel={closeLabel}
@@ -117,7 +118,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
 
         <div className="fpb-area-panel">
           <label className="fpb-area-field">
-            <span>Rename area</span>
+            <span>{t("Rename area")}</span>
             <input
               type="text"
               value={renameValue}
@@ -134,16 +135,16 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
             onClick={handleRenameArea}
             disabled={!isEditing || !renameValue.trim() || renameValue.trim() === activeFloor?.label}
           >
-            Rename area
+            {t("Rename area")}
           </button>
 
           <label className="fpb-area-field">
-            <span>New area</span>
+            <span>{t("New area")}</span>
             <input
               type="text"
               value={newAreaName}
               onChange={(event) => setNewAreaName(event.target.value)}
-              placeholder="e.g. Patio"
+              placeholder={t("e.g. Patio")}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') handleCreateArea()
               }}
@@ -156,7 +157,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
             onClick={handleCreateArea}
             disabled={!isEditing || !newAreaName.trim()}
           >
-            Create area
+            {t("Create area")}
           </button>
 
           <button
@@ -165,16 +166,16 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
             onClick={handleDeleteArea}
             disabled={!isEditing || floors.length <= 1}
           >
-            Delete area
+            {t("Delete area")}
           </button>
         </div>
 
         <div className="fpb-panel-header fpb-panel-header-spaced">
-          <p className="fpb-panel-eyebrow">Floor plan</p>
-          <h2 className="fpb-panel-title">Tables</h2>
+          <p className="fpb-panel-eyebrow">{t("Floor plan")}</p>
+          <h2 className="fpb-panel-title">{t("Tables")}</h2>
         </div>
 
-        <div className="fpb-toolbox-table-actions" aria-label="Add tables">
+        <div className="fpb-toolbox-table-actions" aria-label={t("Add tables")}>
           {basicTableTypes.map((tableType) => (
             <button
               key={tableType.id}
@@ -190,7 +191,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
 
         <p className="fpb-toolbox-hint">
           {isEditing
-            ? <>Adds a table to the center of <strong>{activeFloor?.label}</strong>. Drag to move, tap to edit properties.</>
+            ? <>{t("Adds a table to the center of")} <strong>{activeFloor?.label}</strong>. Drag to move, tap to edit properties.</>
             : 'Layout is locked in view mode. Click Edit layout to make changes.'}
         </p>
       </div>

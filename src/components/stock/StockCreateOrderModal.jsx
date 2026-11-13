@@ -10,6 +10,7 @@ import {
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
 import { formatInventoryUnitLabelForQuantity } from '../../lib/inventoryUnitDisplay'
+import { t } from '../../i18n/i18n'
 
 const UNDO_TOAST_MS = 6000
 
@@ -42,10 +43,10 @@ function RemoveFromOrderConfirm({ title, body, onCancel, onConfirm }) {
           </div>
           <div className="inventory-count-correction-confirm-actions">
             <button type="button" className="ghost-btn" onClick={onCancel} autoFocus>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="button" className="primary-btn stock-create-order-remove-confirm-btn" onClick={onConfirm}>
-              Remove
+              {t("Remove")}
             </button>
           </div>
         </div>
@@ -88,7 +89,7 @@ function SupplierOrderGroup({
           className="ghost-btn stock-create-order-remove-group"
           onClick={() => onRemoveGroup(groupKey, supplier, items.length)}
         >
-          Remove supplier
+          {t("Remove supplier")}
         </button>
       </header>
 
@@ -130,7 +131,7 @@ function SupplierOrderGroup({
       </ul>
 
       <label className="stock-create-order-delivery">
-        <span>Expected delivery</span>
+        <span>{t("Expected delivery")}</span>
         <input
           type="date"
           className="stock-order-date-input"
@@ -140,11 +141,11 @@ function SupplierOrderGroup({
       </label>
 
       <label className="stock-create-order-notes">
-        <span>Notes</span>
+        <span>{t("Notes")}</span>
         <textarea
           rows={2}
           value={group?.notes ?? ''}
-          placeholder="Delivery notes, reference, or instructions"
+          placeholder={t("Delivery notes, reference, or instructions")}
           onChange={(event) => onUpdateNotes(groupKey, event.target.value)}
         />
       </label>
@@ -321,10 +322,10 @@ export function StockCreateOrderModal({
       >
         <header className="stock-create-order-header">
           <div>
-            <p className="stock-create-order-eyebrow">Purchase order</p>
-            <h3 id="stock-create-order-title">Create supplier orders</h3>
+            <p className="stock-create-order-eyebrow">{t("Purchase order")}</p>
+            <h3 id="stock-create-order-title">{t("Create supplier orders")}</h3>
             <p className="stock-create-order-subtitle">
-              Products below need reordering, grouped by supplier.
+              {t("Products below need reordering, grouped by supplier.")}
             </p>
           </div>
           <button
@@ -332,7 +333,7 @@ export function StockCreateOrderModal({
             className="icon-btn stock-create-order-close"
             onClick={handleDismiss}
             disabled={isBusy}
-            aria-label="Close create order"
+            aria-label={t("Close create order")}
           >
             ✕
           </button>
@@ -343,8 +344,8 @@ export function StockCreateOrderModal({
 
           {groups.length === 0 ? (
             <div className="stock-empty-state panel staff-panel">
-              <h4>Nothing to order right now</h4>
-              <p>All products are above their minimum or target levels.</p>
+              <h4>{t("Nothing to order right now")}</h4>
+              <p>{t("All products are above their minimum or target levels.")}</p>
             </div>
           ) : (
             groups.map((group) => (
@@ -369,7 +370,7 @@ export function StockCreateOrderModal({
 
         <footer className="stock-create-order-footer">
           <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="submit"
@@ -385,7 +386,7 @@ export function StockCreateOrderModal({
       {undoState ? (
         <div className="stock-create-order-undo-toast" role="status" onClick={(event) => event.stopPropagation()}>
           <span>{undoState.message}</span>
-          <button type="button" className="ghost-btn" onClick={handleUndo}>Undo</button>
+          <button type="button" className="ghost-btn" onClick={handleUndo}>{t("Undo")}</button>
         </div>
       ) : null}
     </div>

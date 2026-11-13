@@ -1,5 +1,6 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { getAdjacentAreaId } from '../models/floorPlans'
+import { t } from '../../i18n/i18n'
 
 export function BuilderToolbar({ onBack, onViewFit }) {
   const { state, dispatch, activeFloor } = useFloorPlanBuilder()
@@ -16,7 +17,7 @@ export function BuilderToolbar({ onBack, onViewFit }) {
   }
 
   return (
-    <header className="fpb-toolbar fpb-toolbar-simple" aria-label="Floor plan builder">
+    <header className="fpb-toolbar fpb-toolbar-simple" aria-label={t("Floor plan builder")}>
       <div className="fpb-toolbar-group">
         <button type="button" className="fpb-toolbar-btn" onClick={onBack}>
           ← Back
@@ -28,13 +29,13 @@ export function BuilderToolbar({ onBack, onViewFit }) {
           type="button"
           className="fpb-area-nav-btn"
           onClick={() => switchArea('prev')}
-          aria-label="Previous area"
+          aria-label={t("Previous area")}
         >
           ‹
         </button>
 
         <label className="fpb-floor-select">
-          <span className="sr-only">Restaurant area</span>
+          <span className="sr-only">{t("Restaurant area")}</span>
           <select
             className="fpb-floor-select-input"
             value={state.activeFloorId}
@@ -54,7 +55,7 @@ export function BuilderToolbar({ onBack, onViewFit }) {
           type="button"
           className="fpb-area-nav-btn"
           onClick={() => switchArea('next')}
-          aria-label="Next area"
+          aria-label={t("Next area")}
         >
           ›
         </button>
@@ -76,43 +77,43 @@ export function BuilderToolbar({ onBack, onViewFit }) {
               })}
               aria-pressed={state.multiSelectEnabled}
             >
-              Select multiple
+              {t("Select multiple")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn"
               onClick={onViewFit}
-              aria-label="Fit to view"
+              aria-label={t("Fit to view")}
             >
-              Fit
+              {t("Fit")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn fpb-toolbar-btn-primary"
               onClick={() => dispatch({ type: 'AUTO_ARRANGE_AND_PUBLISH' })}
             >
-              Auto arrange layout
+              {t("Auto arrange layout")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'CANCEL_EDITING' })}
             >
-              Cancel changes
+              {t("Cancel changes")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'SAVE_LAYOUT' })}
             >
-              Save layout
+              {t("Save layout")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'PUBLISH_LAYOUT' })}
             >
-              Publish to reservations
+              {t("Publish to reservations")}
             </button>
           </>
         ) : (
@@ -121,23 +122,23 @@ export function BuilderToolbar({ onBack, onViewFit }) {
               type="button"
               className="fpb-toolbar-btn"
               onClick={onViewFit}
-              aria-label="Fit to view"
+              aria-label={t("Fit to view")}
             >
-              Fit
+              {t("Fit")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn fpb-toolbar-btn-primary"
               onClick={() => dispatch({ type: 'START_EDITING' })}
             >
-              Edit layout
+              {t("Edit layout")}
             </button>
             <button
               type="button"
               className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'PUBLISH_LAYOUT' })}
             >
-              Publish to reservations
+              {t("Publish to reservations")}
             </button>
           </>
         )}

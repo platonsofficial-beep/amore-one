@@ -24,6 +24,7 @@ import { getSuppliers } from '../../services/supplierService'
 import { InventoryImportLocationAllocationEditor } from './InventoryImportLocationAllocationEditor'
 import { formatOperationalImportPreviewValue } from './InventoryOperationalImportPreview'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
+import { t } from '../../i18n/i18n'
 
 /**
  * @typedef {{
@@ -307,7 +308,7 @@ export function InventoryNewProductReview({
 
   /**
    * @param {string[]} keys
-   * @param {(merged: NewProductDraftValue) => Partial<NewProductDraftValue>} patcher
+   * @param {(merged: NewProductDraftValue) => {t("Partial")}<NewProductDraftValue>} patcher
    * @param {string} message
    */
   function applyBulk(keys, patcher, message) {
@@ -402,7 +403,7 @@ export function InventoryNewProductReview({
   return (
     <section
       className="inventory-new-product-review"
-      aria-label="New products"
+      aria-label={t("New products")}
       data-new-product-count={createRows.length}
       data-units-suggested={cards.unitsSuggested}
       data-need-unit-selection={cards.needUnitSelection}
@@ -414,13 +415,13 @@ export function InventoryNewProductReview({
       <header className="inventory-new-product-review-header">
         <div>
           <h3 className="inventory-operational-review-title">
-            New Products
+            {t("New Products")}
           </h3>
           <p className="inventory-new-product-review-subtext">
-            Review every new product before import.
+            {t("Review every new product before import.")}
           </p>
           <p className="inventory-new-product-review-guidance">
-            ONE has suggested units where possible. Confirm Product Name, Category, Unit, and location quantities.
+            {t("ONE has suggested units where possible. Confirm Product Name, Category, Unit, and location quantities.")}
           </p>
         </div>
       </header>
@@ -428,10 +429,10 @@ export function InventoryNewProductReview({
       {createRows.length === 0 ? (
         <div className="inventory-operational-review-empty" role="status">
           <p className="inventory-operational-review-empty-title">
-            No new products
+            {t("No new products")}
           </p>
           <p className="inventory-operational-review-empty-copy">
-            All rows will link to existing ONE products or be skipped.
+            {t("All rows will link to existing ONE products or be skipped.")}
           </p>
         </div>
       ) : (
@@ -449,8 +450,8 @@ export function InventoryNewProductReview({
             </span>
           </p>
 
-          <div className="inventory-new-product-filter-bar" aria-label="Product filters">
-            <div className="inventory-new-product-filter-chips" role="tablist" aria-label="Filter products">
+          <div className="inventory-new-product-filter-bar" aria-label={t("Product filters")}>
+            <div className="inventory-new-product-filter-chips" role="tablist" aria-label={t("Filter products")}>
               {INVENTORY_NEW_PRODUCT_FILTERS.map((filter) => (
                 <button
                   key={filter.id}
@@ -470,14 +471,14 @@ export function InventoryNewProductReview({
             </p>
             <div className="inventory-new-product-filter-actions">
               <button type="button" className="inventory-new-product-smart-btn" onClick={selectVisible}>
-                Select Visible
+                {t("Select Visible")}
               </button>
               <button type="button" className="inventory-new-product-smart-btn" onClick={clearSelection}>
-                Clear Selection
+                {t("Clear Selection")}
               </button>
               {activeFilter !== 'all' ? (
                 <button type="button" className="inventory-new-product-smart-btn" onClick={showAll}>
-                  Show All
+                  {t("Show All")}
                 </button>
               ) : null}
             </div>
@@ -488,17 +489,17 @@ export function InventoryNewProductReview({
               <input
                 type="checkbox"
                 checked={allVisibleSelected}
-                aria-label="Select visible new products"
+                aria-label={t("Select visible new products")}
                 onChange={() => {
                   if (allVisibleSelected) clearSelection()
                   else selectVisible()
                 }}
               />
-              <span>Select Visible</span>
+              <span>{t("Select Visible")}</span>
             </label>
             {selectedVisibleCount > 0 ? (
               <button type="button" className="inventory-new-product-clear-selection" onClick={clearSelection}>
-                Clear Selection
+                {t("Clear Selection")}
               </button>
             ) : null}
           </div>
@@ -507,7 +508,7 @@ export function InventoryNewProductReview({
             <div className="inventory-new-product-undo-banner" role="status">
               <span>{undoState.message}</span>
               <button type="button" onClick={handleUndo}>
-                Undo
+                {t("Undo")}
               </button>
             </div>
           ) : null}
@@ -515,10 +516,10 @@ export function InventoryNewProductReview({
           {visibleCards.length === 0 ? (
             <div className="inventory-operational-review-empty" role="status">
               <p className="inventory-operational-review-empty-title">
-                No products match this filter
+                {t("No products match this filter")}
               </p>
               <p className="inventory-operational-review-empty-copy">
-                Show All to return to the full new-product list.
+                {t("Show All to return to the full new-product list.")}
               </p>
             </div>
           ) : (
@@ -574,7 +575,7 @@ export function InventoryNewProductReview({
 
                     <div className="inventory-new-product-review-fields">
                       <label className="inventory-new-product-review-field">
-                        <span>Product Name</span>
+                        <span>{t("Product Name")}</span>
                         <input
                           type="text"
                           value={merged.productName}
@@ -592,7 +593,7 @@ export function InventoryNewProductReview({
                       </label>
 
                       <label className="inventory-new-product-review-field">
-                        <span>Category</span>
+                        <span>{t("Category")}</span>
                         <select
                           value={merged.category}
                           disabled={merged.skipped}
@@ -602,7 +603,7 @@ export function InventoryNewProductReview({
                           }}
                         >
                           {categories.length === 0 ? (
-                            <option value="">Select category</option>
+                            <option value="">{t("Select category")}</option>
                           ) : null}
                           {categories.map((category) => (
                             <option key={category} value={category}>
@@ -618,7 +619,7 @@ export function InventoryNewProductReview({
                       </label>
 
                       <label className="inventory-new-product-review-field">
-                        <span>Unit</span>
+                        <span>{t("Unit")}</span>
                         <select
                           value={merged.unit ?? ''}
                           disabled={merged.skipped}
@@ -629,7 +630,7 @@ export function InventoryNewProductReview({
                             })
                           }}
                         >
-                          <option value="">Select unit</option>
+                          <option value="">{t("Select unit")}</option>
                           {INVENTORY_NEW_PRODUCT_UNITS.map((unit) => (
                             <option key={unit} value={unit}>
                               {unit}
@@ -638,7 +639,7 @@ export function InventoryNewProductReview({
                         </select>
                         {showingSuggested ? (
                           <span className="inventory-new-product-review-hint">
-                            Suggested from product name
+                            {t("Suggested from product name")}
                           </span>
                         ) : null}
                         {validation.errors.unit ? (
@@ -649,11 +650,11 @@ export function InventoryNewProductReview({
                       </label>
 
                       <label className="inventory-new-product-review-field">
-                        <span>Supplier</span>
+                        <span>{t("Supplier")}</span>
                         <select
                           value={merged.supplier ?? ''}
                           disabled={merged.skipped}
-                          aria-label="Supplier"
+                          aria-label={t("Supplier")}
                           onChange={(event) => {
                             const nextName = normalizeSupplierName(event.target.value)
                             const matched = suppliers.find(
@@ -700,23 +701,23 @@ export function InventoryNewProductReview({
           )}
 
           {bulkTargetCount > 0 ? (
-            <div className="inventory-new-product-bulk-bar" role="toolbar" aria-label="Bulk actions">
+            <div className="inventory-new-product-bulk-bar" role="toolbar" aria-label={t("Bulk actions")}>
               <span className="inventory-new-product-bulk-count">
                 {bulkTargetCount}
                 {' '}
                 selected
               </span>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'storage' ? null : 'storage')}>
-                Assign Storage Destination
+                {t("Assign Storage Destination")}
               </button>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'unit' ? null : 'unit')}>
-                Assign Unit
+                {t("Assign Unit")}
               </button>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'category' ? null : 'category')}>
-                Assign Category
+                {t("Assign Category")}
               </button>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'supplier' ? null : 'supplier')}>
-                Assign Supplier
+                {t("Assign Supplier")}
               </button>
               <button
                 type="button"
@@ -729,10 +730,10 @@ export function InventoryNewProductReview({
                   clearSelection()
                 }}
               >
-                Skip Selected
+                {t("Skip Selected")}
               </button>
               <button type="button" onClick={clearSelection}>
-                Clear Selection
+                {t("Clear Selection")}
               </button>
 
               {bulkPanel === 'storage' ? (
@@ -742,7 +743,7 @@ export function InventoryNewProductReview({
                     value=""
                     variant="select"
                     emptyLabel="Choose storage destination"
-                    aria-label="Bulk assign storage destination"
+                    aria-label={t("Bulk assign storage destination")}
                     onChange={(locationKey) => {
                       if (!locationKey) return
                       applyBulk(
@@ -793,7 +794,7 @@ export function InventoryNewProductReview({
               {bulkPanel === 'unit' ? (
                 <div className="inventory-new-product-bulk-panel">
                   <select
-                    aria-label="Bulk assign unit"
+                    aria-label={t("Bulk assign unit")}
                     defaultValue=""
                     onChange={(event) => {
                       const unit = event.target.value === '' ? null : event.target.value
@@ -805,7 +806,7 @@ export function InventoryNewProductReview({
                       )
                     }}
                   >
-                    <option value="">Choose unit</option>
+                    <option value="">{t("Choose unit")}</option>
                     {INVENTORY_NEW_PRODUCT_UNITS.map((unit) => (
                       <option key={unit} value={unit}>{unit}</option>
                     ))}
@@ -816,7 +817,7 @@ export function InventoryNewProductReview({
               {bulkPanel === 'category' ? (
                 <div className="inventory-new-product-bulk-panel">
                   <select
-                    aria-label="Bulk assign category"
+                    aria-label={t("Bulk assign category")}
                     defaultValue=""
                     onChange={(event) => {
                       const category = event.target.value
@@ -828,7 +829,7 @@ export function InventoryNewProductReview({
                       )
                     }}
                   >
-                    <option value="">Choose category</option>
+                    <option value="">{t("Choose category")}</option>
                     {sharedCategories.map((category) => (
                       <option key={category} value={category}>{category}</option>
                     ))}
@@ -839,7 +840,7 @@ export function InventoryNewProductReview({
               {bulkPanel === 'supplier' ? (
                 <div className="inventory-new-product-bulk-panel">
                   <select
-                    aria-label="Bulk assign supplier"
+                    aria-label={t("Bulk assign supplier")}
                     defaultValue=""
                     onChange={(event) => {
                       const nextName = normalizeSupplierName(event.target.value)
@@ -858,7 +859,7 @@ export function InventoryNewProductReview({
                       )
                     }}
                   >
-                    <option value="">Choose supplier</option>
+                    <option value="">{t("Choose supplier")}</option>
                     {supplierOptions
                       .filter((option) => option.value && !option.disabled)
                       .map((option) => (

@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import { selectItemsToOrder } from './stockCatalog'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
@@ -202,7 +203,7 @@ export function planSupplyOrderDraftWrites(groups, existingOrders) {
 function formatEuroAmount(value) {
   const amount = Number(value)
   const safe = Number.isFinite(amount) ? amount : 0
-  return `€${safe.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`
+  return `€${safe.toLocaleString(uiLocale('en-GB'), { maximumFractionDigits: 2 })}`
 }
 
 function orderTotalAmount(order) {

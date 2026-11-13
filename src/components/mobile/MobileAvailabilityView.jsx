@@ -16,6 +16,7 @@ import {
   saveEmployeeAvailabilityWeek,
 } from '../../services/availabilityService'
 import { HourMinuteField } from '../HourMinuteField'
+import { t } from '../../i18n/i18n'
 
 function AvailabilityTimeField({
   label,
@@ -140,11 +141,11 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My week</p>
-          <h1 className="mobile-screen-title">Weekly availability</h1>
+          <p className="mobile-screen-eyebrow">{t("My week")}</p>
+          <h1 className="mobile-screen-title">{t("Weekly availability")}</h1>
         </header>
         <section className="mobile-card tone-neutral">
-          <p className="mobile-card-detail">Link your employee profile to submit availability.</p>
+          <p className="mobile-card-detail">{t("Link your employee profile to submit availability.")}</p>
         </section>
       </div>
     )
@@ -154,11 +155,11 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My week</p>
-          <h1 className="mobile-screen-title">Weekly availability</h1>
+          <p className="mobile-screen-eyebrow">{t("My week")}</p>
+          <h1 className="mobile-screen-title">{t("Weekly availability")}</h1>
         </header>
         <section className="mobile-card tone-neutral" aria-live="polite">
-          <p className="mobile-card-detail">Loading availability…</p>
+          <p className="mobile-card-detail">{t("Loading availability…")}</p>
         </section>
       </div>
     )
@@ -168,14 +169,14 @@ export function MobileAvailabilityView({
     return (
       <div className="mobile-screen mobile-availability">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My week</p>
-          <h1 className="mobile-screen-title">Weekly availability</h1>
+          <p className="mobile-screen-eyebrow">{t("My week")}</p>
+          <h1 className="mobile-screen-title">{t("Weekly availability")}</h1>
         </header>
         <section className="mobile-availability-banner mobile-availability-banner-error" role="alert">
           <p>{getFriendlyAvailabilityError(new Error(contextError))}</p>
           {onRetryContext ? (
             <button type="button" className="mobile-secondary-btn" onClick={onRetryContext}>
-              Retry
+              {t("Retry")}
             </button>
           ) : null}
         </section>
@@ -186,14 +187,14 @@ export function MobileAvailabilityView({
   return (
     <div className="mobile-screen mobile-availability">
       <header className="mobile-screen-header">
-        <p className="mobile-screen-eyebrow">My week</p>
-        <h1 className="mobile-screen-title">Weekly availability</h1>
+        <p className="mobile-screen-eyebrow">{t("My week")}</p>
+        <h1 className="mobile-screen-title">{t("Weekly availability")}</h1>
         {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
       </header>
 
       {isLoading ? (
         <section className="mobile-card tone-neutral" aria-live="polite">
-          <p className="mobile-card-detail">Loading availability…</p>
+          <p className="mobile-card-detail">{t("Loading availability…")}</p>
         </section>
       ) : null}
 
@@ -201,7 +202,7 @@ export function MobileAvailabilityView({
         <section className="mobile-availability-banner mobile-availability-banner-error" role="alert">
           <p>{loadError}</p>
           <button type="button" className="mobile-secondary-btn" onClick={loadWeek}>
-            Retry
+            {t("Retry")}
           </button>
         </section>
       ) : null}
@@ -216,7 +217,7 @@ export function MobileAvailabilityView({
         <section className="mobile-availability-banner mobile-availability-banner-error" role="alert">
           <p>{saveError}</p>
           <button type="button" className="mobile-secondary-btn" onClick={handleSave} disabled={isSaving}>
-            Retry
+            {t("Retry")}
           </button>
         </section>
       ) : null}
@@ -230,7 +231,7 @@ export function MobileAvailabilityView({
               </div>
 
               <label className="mobile-availability-field">
-                <span className="mobile-availability-field-label">Availability status</span>
+                <span className="mobile-availability-field-label">{t("Availability status")}</span>
                 <select
                   className="mobile-availability-select"
                   value={entry.status}
@@ -265,12 +266,12 @@ export function MobileAvailabilityView({
               </div>
 
               <label className="mobile-availability-field">
-                <span className="mobile-availability-field-label">Note (optional)</span>
+                <span className="mobile-availability-field-label">{t("Note (optional)")}</span>
                 <textarea
                   className="mobile-availability-textarea"
                   rows={2}
                   value={entry.note ?? ''}
-                  placeholder="Add a note for this day"
+                  placeholder={t("Add a note for this day")}
                   onChange={(event) => handleDayFieldChange(entry.dayOfWeek, {
                     note: `${event.target.value ?? ''}`.trim() || null,
                   })}
@@ -279,7 +280,7 @@ export function MobileAvailabilityView({
               </label>
 
               {entry.status === EMPLOYEE_AVAILABILITY_STATUS.UNAVAILABLE.key ? (
-                <p className="mobile-availability-day-hint">Marked unavailable for scheduling reference.</p>
+                <p className="mobile-availability-day-hint">{t("Marked unavailable for scheduling reference.")}</p>
               ) : null}
             </article>
           ))}

@@ -6,6 +6,7 @@ import {
   normalizeWorkspaceStorageDisplayName,
   workspaceStorageNameKey,
 } from '../../services/workspaceStorageService'
+import { t } from '../../i18n/i18n'
 
 /**
  * Owner/manager rename of a storage display name.
@@ -15,7 +16,7 @@ import {
  *   storage: { id?: string, name?: string, locationKey?: string },
  *   takenNames?: string[],
  *   onClose: () => void,
- *   onSubmit: (name: string) => Promise<void>,
+ *   onSubmit: (name: string) => {t("Promise")}<void>,
  * }} props
  */
 export function RenameWorkspaceStorageDialog({
@@ -98,8 +99,8 @@ export function RenameWorkspaceStorageDialog({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Stock</p>
-            <h3 id={titleId}>Rename</h3>
+            <p className="eyebrow">{t("Stock")}</p>
+            <h3 id={titleId}>{t("Rename")}</h3>
             {locationKey ? (
               <p className="stock-modal-subtitle">Key stays {locationKey}</p>
             ) : null}
@@ -109,14 +110,14 @@ export function RenameWorkspaceStorageDialog({
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isSaving}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
         </div>
         <form className="employee-form" onSubmit={handleSubmit}>
           <label htmlFor={inputId}>
-            Name
+            {t("Name")}
             <input
               id={inputId}
               type="text"
@@ -138,7 +139,7 @@ export function RenameWorkspaceStorageDialog({
           ) : null}
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save'}

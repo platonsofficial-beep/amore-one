@@ -1,4 +1,5 @@
 import { LoadingLines } from '../common/DataPending'
+import { t } from '../../i18n/i18n'
 import { UserMenu } from '../auth/UserMenu'
 import { HelpModeToggle } from '../../help/HelpMode'
 
@@ -24,7 +25,7 @@ export function TodayCommandHeader({
   const availableQuickActions = (quickActions ?? []).filter((action) => action.available)
 
   return (
-    <header className="topbar topbar-command today-command-header" aria-label="Today command header">
+    <header className="topbar topbar-command today-command-header" aria-label={t("Today command header")}>
       <div className="today-command-header-shell">
         <div className="today-command-header-body">
           <div className="today-command-row today-command-row-identity">
@@ -41,7 +42,7 @@ export function TodayCommandHeader({
               ) : null}
               <div className="today-command-venue-row">
                 {workspaceBadge ? (
-                  <span className="today-command-workspace-badge" aria-label="Venue">
+                  <span className="today-command-workspace-badge" aria-label={t("Venue")}>
                     {workspaceBadge}
                   </span>
                 ) : businessName ? (
@@ -69,7 +70,7 @@ export function TodayCommandHeader({
 
           {chips.length > 0 ? (
             <div className="today-command-row today-command-row-chips">
-              <div className="today-command-chip-strip" role="list" aria-label="Operational status">
+              <div className="today-command-chip-strip" role="list" aria-label={t("Operational status")}>
                 {chips.map((chip) => {
                   const status = chip.loadStatus ?? 'ready'
                   const isReady = status === 'ready'
@@ -84,9 +85,9 @@ export function TodayCommandHeader({
                   >
                     <span className="today-command-chip-icon" aria-hidden="true">{chip.icon}</span>
                     <span className="today-command-chip-copy">
-                      <span className="today-command-chip-label">{chip.label}</span>
+                      <span className="today-command-chip-label">{t(chip.label)}</span>
                       <strong className="today-command-chip-value">
-                        {isReady ? chip.value : status === 'error' ? "Couldn't load" : <LoadingLines label={`Loading ${chip.label}`} className="is-chip" />}
+                        {isReady ? chip.value : status === 'error' ? t("Couldn't load") : <LoadingLines label={t('Loading {{name}}', { name: t(chip.label) })} className="is-chip" />}
                       </strong>
                       {isReady && chip.detail ? (
                         <span className="today-command-chip-detail">{chip.detail}</span>
@@ -100,7 +101,7 @@ export function TodayCommandHeader({
           ) : null}
 
           {availableQuickActions.length > 0 ? (
-            <div className="today-command-row today-command-row-actions" aria-label="Quick actions">
+            <div className="today-command-row today-command-row-actions" aria-label={t("Quick actions")}>
               {availableQuickActions.map((action) => (
                 <button
                   key={action.id}

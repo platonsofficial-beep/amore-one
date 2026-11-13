@@ -7,6 +7,7 @@ import {
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
 import { buildHostFloorSelectionMetaLine } from '../../../lib/hostFloorSelectionBar'
+import { t } from '../../../i18n/i18n'
 
 export function MobileReservationsHostRightPane({
   hasLayout = false,
@@ -42,11 +43,11 @@ export function MobileReservationsHostRightPane({
       <div className="mobile-host-reservations-right-pane">
         <div className="host-station-error-boundary" role="alert">
           <h3>{layoutMessage || "Couldn't load"}</h3>
-          <p>The floor plan did not load. This is not an empty layout.</p>
+          <p>{t("The floor plan did not load. This is not an empty layout.")}</p>
           {typeof onRetryLayout === 'function' ? (
             <div className="host-station-error-actions">
               <button type="button" className="host-station-error-retry" onClick={onRetryLayout}>
-                Retry
+                {t("Retry")}
               </button>
             </div>
           ) : null}
@@ -59,20 +60,20 @@ export function MobileReservationsHostRightPane({
     return (
       <div className="mobile-host-reservations-right-pane">
         <div className="mobile-host-floor-empty" role="status">
-          <p className="mobile-host-floor-empty-eyebrow">Floor plan</p>
-          <h2>No published layout</h2>
-          <p>Publish a floor plan to seat guests and view table status here.</p>
+          <p className="mobile-host-floor-empty-eyebrow">{t("Floor plan")}</p>
+          <h2>{t("No published layout")}</h2>
+          <p>{t("Publish a floor plan to seat guests and view table status here.")}</p>
           {canEditFloorPlan ? (
             <button
               type="button"
               className="mobile-host-layout-btn mobile-host-floor-empty-action"
               onClick={onOpenFloorPlanLayout}
             >
-              Open layout editor
+              {t("Open layout editor")}
             </button>
           ) : (
             <p className="mobile-host-floor-empty-hint">
-              Ask a manager to publish the floor plan before seating guests.
+              {t("Ask a manager to publish the floor plan before seating guests.")}
             </p>
           )}
         </div>
@@ -93,7 +94,7 @@ export function MobileReservationsHostRightPane({
       data-assignment-mode={isAssignmentMode ? 'true' : 'false'}
       data-table-inspector-open={inspectorOpen ? 'true' : 'false'}
     >
-      <div className="mobile-host-floor-stage" aria-label="Floor plan">
+      <div className="mobile-host-floor-stage" aria-label={t("Floor plan")}>
         {floorPlanContent}
       </div>
 
@@ -151,7 +152,7 @@ function MobileHostFloorSelectionCompactStrip({
       <article className="mobile-host-floor-selection-card is-compact-context">
         <div className="mobile-host-floor-selection-left">
           <h3 className="mobile-host-floor-selection-guest">{guestName}</h3>
-          <p className="mobile-host-floor-selection-meta">Viewing in table inspector</p>
+          <p className="mobile-host-floor-selection-meta">{t("Viewing in table inspector")}</p>
         </div>
         <div className="mobile-host-floor-selection-center">
           <span
@@ -173,13 +174,13 @@ function MobileHostFloorSelectionCompactStrip({
             onClick={() => onEdit?.(reservation)}
           >
             <span className="mobile-host-floor-selection-action-icon" aria-hidden="true">✏️</span>
-            <span>Edit</span>
+            <span>{t("Edit")}</span>
           </button>
           {onOpenRowMenu ? (
             <button
               type="button"
               className="mobile-host-floor-selection-menu-btn"
-              aria-label="More reservation actions"
+              aria-label={t("More reservation actions")}
               aria-haspopup="menu"
               onClick={(event) => onOpenRowMenu(reservation, event)}
             >
@@ -190,7 +191,7 @@ function MobileHostFloorSelectionCompactStrip({
             <button
               type="button"
               className="mobile-host-floor-selection-close-btn"
-              aria-label="Close reservation card"
+              aria-label={t("Close reservation card")}
               onClick={() => onClose()}
             >
               ✕
@@ -262,13 +263,13 @@ export function MobileHostFloorSelectionCard({
             onClick={() => onEdit?.(reservation)}
           >
             <span className="mobile-host-floor-selection-action-icon" aria-hidden="true">✏️</span>
-            <span>Edit</span>
+            <span>{t("Edit")}</span>
           </button>
           {onOpenRowMenu ? (
             <button
               type="button"
               className="mobile-host-floor-selection-menu-btn"
-              aria-label="More reservation actions"
+              aria-label={t("More reservation actions")}
               aria-haspopup="menu"
               onClick={(event) => onOpenRowMenu(reservation, event)}
             >
@@ -279,7 +280,7 @@ export function MobileHostFloorSelectionCard({
             <button
               type="button"
               className="mobile-host-floor-selection-close-btn"
-              aria-label="Close reservation card"
+              aria-label={t("Close reservation card")}
               onClick={() => onClose()}
             >
               ✕

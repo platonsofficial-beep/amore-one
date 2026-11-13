@@ -11,6 +11,7 @@ import {
   cleanupPurchaseOrderDocuments,
   previewPurchaseOrderCleanup,
 } from '../../services/stockOrderCleanupService'
+import { t } from '../../i18n/i18n'
 
 export const PURCHASE_ORDER_CLEANUP_CONFIRM_PHRASE = 'DELETE PURCHASE ORDERS'
 
@@ -232,7 +233,7 @@ export function StockOrderCleanupDialog({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Administrative cleanup</p>
+            <p className="eyebrow">{t("Administrative cleanup")}</p>
             <h3 id="stock-order-cleanup-title">
               {phase === 'success' ? 'Cleanup complete' : 'Delete orders'}
             </h3>
@@ -242,7 +243,7 @@ export function StockOrderCleanupDialog({
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isBusy || phase === 'executing'}
-            aria-label="Close purchase order cleanup"
+            aria-label={t("Close purchase order cleanup")}
           >
             ✕
           </button>
@@ -253,24 +254,24 @@ export function StockOrderCleanupDialog({
             <div className="stock-order-cleanup-body">
               <div className="stock-order-cleanup-success" role="status">
                 <p className="stock-order-cleanup-copy">
-                  <strong>Purchase Order cleanup completed.</strong>
+                  <strong>{t("Purchase Order cleanup completed.")}</strong>
                 </p>
-                <p className="stock-order-cleanup-copy">Deleted:</p>
+                <p className="stock-order-cleanup-copy">{t("Deleted:")}</p>
                 <ul className="stock-order-cleanup-success-list">
                   <li>{result.deletedOrders} order{result.deletedOrders === 1 ? '' : 's'}</li>
                   <li>{result.deletedOrderItems} order line{result.deletedOrderItems === 1 ? '' : 's'}</li>
                 </ul>
                 <p className="stock-order-cleanup-copy">
-                  Inventory quantities were not modified.
+                  {t("Inventory quantities were not modified.")}
                 </p>
                 <p className="stock-order-cleanup-copy">
-                  Stock movement history remains intact.
+                  {t("Stock movement history remains intact.")}
                 </p>
               </div>
             </div>
             <div className="modal-actions stock-order-cleanup-actions">
               <button type="button" className="primary-btn" onClick={handleDismiss}>
-                Done
+                {t("Done")}
               </button>
             </div>
           </>
@@ -278,13 +279,13 @@ export function StockOrderCleanupDialog({
           <form className="stock-order-cleanup-form" onSubmit={handleSubmit}>
             <div className="stock-order-cleanup-body">
               {phase === 'loading' ? (
-                <p className="stock-order-cleanup-copy" role="status">Loading purchase order preview…</p>
+                <p className="stock-order-cleanup-copy" role="status">{t("Loading purchase order preview…")}</p>
               ) : null}
 
               {phase === 'empty' ? (
                 <div className="stock-order-cleanup-empty" role="status">
-                  <h4>No purchase orders to delete</h4>
-                  <p>This workspace has no purchase order documents right now.</p>
+                  <h4>{t("No purchase orders to delete")}</h4>
+                  <p>{t("This workspace has no purchase order documents right now.")}</p>
                 </div>
               ) : null}
 
@@ -295,7 +296,7 @@ export function StockOrderCleanupDialog({
                     It does not reverse inventory quantities.
                   </p>
 
-                  <dl className="stock-order-cleanup-stats" aria-label="Purchase order cleanup preview">
+                  <dl className="stock-order-cleanup-stats" aria-label={t("Purchase order cleanup preview")}>
                     <PreviewStat label="Total orders" value={preview.totalOrders} />
                     <PreviewStat label="Draft" value={preview.draftOrders} />
                     <PreviewStat label="Sent" value={preview.sentOrders} />
@@ -307,7 +308,7 @@ export function StockOrderCleanupDialog({
 
                   {showReceiveWarning ? (
                     <div className="stock-order-cleanup-warning" role="alert">
-                      <strong>These purchase orders have already updated inventory.</strong>
+                      <strong>{t("These purchase orders have already updated inventory.")}</strong>
                       <p>
                         Deleting them removes only the purchase order documents.
                         Current stock quantities remain unchanged.
@@ -335,12 +336,12 @@ export function StockOrderCleanupDialog({
                         syncPasswordFromDom()
                       }}
                       disabled={isBusy}
-                      aria-label="Typed confirmation phrase"
+                      aria-label={t("Typed confirmation phrase")}
                     />
                   </label>
 
                   <label className="form-field stock-order-cleanup-password-field">
-                    <span>Confirm with your account password</span>
+                    <span>{t("Confirm with your account password")}</span>
                     <input
                       ref={passwordRef}
                       type="password"
@@ -353,7 +354,7 @@ export function StockOrderCleanupDialog({
                         syncPasswordFromDom()
                       }}
                       disabled={isBusy}
-                      aria-label="Account password"
+                      aria-label={t("Account password")}
                     />
                   </label>
                 </>
@@ -373,7 +374,7 @@ export function StockOrderCleanupDialog({
                 onClick={handleDismiss}
                 disabled={isBusy || phase === 'executing'}
               >
-                Cancel
+                {t("Cancel")}
               </button>
               <button
                 type="submit"

@@ -4,6 +4,7 @@ import {
   normalizeReservationTimeValue,
   snapTimeToQuarter,
 } from '../../../lib/timeFormatUtils'
+import { t } from '../../../i18n/i18n'
 
 const TIME_TABS = [
   { id: 'morning', label: 'Morning', start: '07:00', end: '13:45', spansMidnight: false },
@@ -141,11 +142,11 @@ export function HostQuickCreateTimePicker({
       >
         <header className="host-quick-create-time-picker-header">
           <h3 id={`${fieldId}-picker-title`} className="host-quick-create-time-picker-title">
-            Select time
+            {t("Select time")}
           </h3>
         </header>
 
-        <div className="host-quick-create-time-picker-tabs" role="tablist" aria-label="Time of day">
+        <div className="host-quick-create-time-picker-tabs" role="tablist" aria-label={t("Time of day")}>
           {TIME_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -189,7 +190,7 @@ export function HostQuickCreateTimePicker({
             data-testid="host-quick-create-time-cancel"
             onClick={closePicker}
           >
-            Cancel
+            {t("Cancel")}
           </button>
         </footer>
       </div>

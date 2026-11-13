@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { buildTaskTemplateForm } from '../../lib/taskFormUtils'
 import { TimeSelect } from '../TimeSelect'
 import TaskDepartmentFields from './TaskDepartmentFields'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
@@ -106,12 +107,12 @@ export default function TaskTemplateModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Template</p>
+            <p className="eyebrow">{t("Template")}</p>
             <h3 id="task-template-form-title">
               {editingTemplate ? 'Edit template' : 'New template'}
             </h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close template form">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close template form")}>
             ✕
           </button>
         </div>
@@ -121,12 +122,12 @@ export default function TaskTemplateModal({
         <form className="employee-form task-form" onSubmit={handleSubmit}>
           <div className="form-grid task-form-grid">
             <label className="form-field task-form-field-full">
-              <span>Template title</span>
+              <span>{t("Template title")}</span>
               <input
                 type="text"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="e.g. Bar closing"
+                placeholder={t("e.g. Bar closing")}
                 required
               />
             </label>
@@ -144,16 +145,16 @@ export default function TaskTemplateModal({
             />
 
             <label className="form-field">
-              <span>Default time (optional)</span>
+              <span>{t("Default time (optional)")}</span>
               <TimeSelect
                 value={form.defaultTime}
                 onChange={(time) => setForm((current) => ({ ...current, defaultTime: time }))}
-                placeholder="Optional"
+                placeholder={t("Optional")}
               />
             </label>
 
             <label className="form-field">
-              <span>Priority</span>
+              <span>{t("Priority")}</span>
               <select
                 value={form.priority}
                 onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
@@ -165,7 +166,7 @@ export default function TaskTemplateModal({
             </label>
 
             <label className="form-field">
-              <span>Recurrence</span>
+              <span>{t("Recurrence")}</span>
               <select
                 value={form.recurrence}
                 onChange={(event) => setForm((current) => ({ ...current, recurrence: event.target.value }))}
@@ -177,19 +178,19 @@ export default function TaskTemplateModal({
             </label>
 
             <label className="form-field task-form-field-full">
-              <span>Notes</span>
+              <span>{t("Notes")}</span>
               <textarea
                 rows={3}
                 value={form.notes}
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Optional context for the team"
+                placeholder={t("Optional context for the team")}
               />
             </label>
           </div>
 
           <div className="task-checklist-builder task-form-field-full">
             <div className="task-checklist-builder-header">
-              <span className="task-checklist-builder-label">Checklist items</span>
+              <span className="task-checklist-builder-label">{t("Checklist items")}</span>
               <button
                 type="button"
                 className="ghost-btn task-checklist-add-btn"
@@ -201,7 +202,7 @@ export default function TaskTemplateModal({
             </div>
 
             {checklistItems.length === 0 ? (
-              <p className="task-checklist-builder-empty">No checklist items yet.</p>
+              <p className="task-checklist-builder-empty">{t("No checklist items yet.")}</p>
             ) : (
               <div className="task-checklist-builder-list">
                 {checklistItems.map((item, index) => (
@@ -220,7 +221,7 @@ export default function TaskTemplateModal({
                         className="ghost-btn task-checklist-move-btn"
                         onClick={() => handleMoveChecklistItem(item.clientKey, 'up')}
                         disabled={isSaving || index === 0}
-                        aria-label="Move item up"
+                        aria-label={t("Move item up")}
                       >
                         ↑
                       </button>
@@ -229,7 +230,7 @@ export default function TaskTemplateModal({
                         className="ghost-btn task-checklist-move-btn"
                         onClick={() => handleMoveChecklistItem(item.clientKey, 'down')}
                         disabled={isSaving || index === checklistItems.length - 1}
-                        aria-label="Move item down"
+                        aria-label={t("Move item down")}
                       >
                         ↓
                       </button>
@@ -238,9 +239,9 @@ export default function TaskTemplateModal({
                         className="ghost-btn task-checklist-delete-btn"
                         onClick={() => handleDeleteChecklistItem(item.clientKey)}
                         disabled={isSaving}
-                        aria-label="Delete checklist item"
+                        aria-label={t("Delete checklist item")}
                       >
-                        Delete
+                        {t("Delete")}
                       </button>
                     </div>
                   </div>
@@ -251,7 +252,7 @@ export default function TaskTemplateModal({
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save'}

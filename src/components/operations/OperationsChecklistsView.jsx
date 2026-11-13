@@ -4,6 +4,7 @@ import {
   sortChecklistItems,
 } from '../../lib/operationsChecklistUtils'
 import { OperationsChecklistTemplateEditor } from './OperationsChecklistTemplateEditor'
+import { t } from '../../i18n/i18n'
 
 function ChecklistTemplateCard({
   template,
@@ -41,12 +42,12 @@ function ChecklistTemplateCard({
           ) : null}
         </ul>
       ) : (
-        <p className="operations-checklist-card-empty">No tasks added yet.</p>
+        <p className="operations-checklist-card-empty">{t("No tasks added yet.")}</p>
       )}
 
       <div className="operations-checklist-card-actions">
         <button type="button" className="ghost-btn operations-checklist-card-action" onClick={() => onEdit(template)} disabled={isSaving}>
-          Edit
+          {t("Edit")}
         </button>
         <button
           type="button"
@@ -62,7 +63,7 @@ function ChecklistTemplateCard({
           onClick={() => onDelete(template)}
           disabled={isSaving}
         >
-          Delete
+          {t("Delete")}
         </button>
       </div>
     </article>
@@ -150,19 +151,19 @@ export function OperationsChecklistsView({
   }
 
   return (
-    <section className="operations-checklists-page" aria-label="Checklist templates">
+    <section className="operations-checklists-page" aria-label={t("Checklist templates")}>
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">Loading checklists…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading checklists…")}</div> : null}
 
       <div className="operations-dashboard-toolbar">
         <div>
-          <p className="operations-dashboard-eyebrow">Procedures</p>
-          <h3 className="operations-dashboard-heading">Checklist templates</h3>
+          <p className="operations-dashboard-eyebrow">{t("Procedures")}</p>
+          <h3 className="operations-dashboard-heading">{t("Checklist templates")}</h3>
           <p className="operations-dashboard-copy">
-            Build once. ONE generates daily operational tasks for your team.
+            {t("Build once. ONE generates daily operational tasks for your team.")}
           </p>
         </div>
         <button
@@ -171,14 +172,14 @@ export function OperationsChecklistsView({
           onClick={() => setIsCreating(true)}
           disabled={!isWorkspaceReady || isSaving}
         >
-          Create checklist
+          {t("Create checklist")}
         </button>
       </div>
 
       {visibleTemplates.length === 0 && !isLoading ? (
         <div className="operations-empty-state">
-          <h4>No checklist templates yet</h4>
-          <p>Create opening, closing, and prep procedures for daily execution.</p>
+          <h4>{t("No checklist templates yet")}</h4>
+          <p>{t("Create opening, closing, and prep procedures for daily execution.")}</p>
         </div>
       ) : (
         <div className="operations-checklist-grid">

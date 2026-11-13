@@ -11,6 +11,7 @@ import {
   readQuietHours,
   visibleNotificationGroups,
 } from '../../lib/pushNotifications'
+import { t } from '../../i18n/i18n'
 
 export function NotificationBell({
   items = [],
@@ -46,26 +47,26 @@ export function NotificationBell({
       <button
         type="button"
         className="notification-drawer-backdrop"
-        aria-label="Close notifications"
+        aria-label={t("Close notifications")}
         onClick={() => setOpen(false)}
       />
       <section className="notification-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header className="notification-drawer-header">
-          <h2 id={titleId}>Notifications</h2>
+          <h2 id={titleId}>{t("Notifications")}</h2>
           <button
             type="button"
             className="notification-text-btn"
             onClick={() => onMarkAll?.()}
             disabled={unreadCount === 0}
           >
-            Mark all read
+            {t("Mark all read")}
           </button>
           <button type="button" className="notification-text-btn" onClick={() => setOpen(false)}>
-            Close
+            {t("Close")}
           </button>
         </header>
         {items.length === 0 ? (
-          <p className="notification-drawer-empty">You're all caught up.</p>
+          <p className="notification-drawer-empty">{t("You're all caught up.")}</p>
         ) : (
           <ul className="notification-list">
             {items.map((item) => (
@@ -175,13 +176,13 @@ export function NotificationSettingsPanel({
     <div className="notification-settings">
       <header className="workspace-section-header">
         <div>
-          <p className="eyebrow">Account</p>
+          <p className="eyebrow">{t("Account")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">🔔</span>
-            Notifications
+            {t("Notifications")}
           </h3>
           <p className="workspace-section-subtitle">
-            Device alerts for your account. Quiet hours apply on every signed-in device. The bell always keeps a copy.
+            {t("Device alerts for your account. Quiet hours apply on every signed-in device. The bell always keeps a copy.")}
           </p>
         </div>
       </header>
@@ -189,7 +190,7 @@ export function NotificationSettingsPanel({
       {blocked ? <p className="notification-blocked-note">{deniedNotificationHelp()}</p> : null}
       {message ? <p className="notification-settings-message" role="status">{message}</p> : null}
 
-      <section className="panel staff-panel notification-settings-panel" aria-label="Push and quiet hours">
+      <section className="panel staff-panel notification-settings-panel" aria-label={t("Push and quiet hours")}>
         <ToggleRow
           icon="🔔"
           label="Push notifications"
@@ -222,7 +223,7 @@ export function NotificationSettingsPanel({
         </div>
       </section>
 
-      <section className="panel staff-panel notification-settings-panel" aria-label="Notification types">
+      <section className="panel staff-panel notification-settings-panel" aria-label={t("Notification types")}>
         {groups.map((group) => (
           <ToggleRow
             key={group.id}
@@ -236,7 +237,7 @@ export function NotificationSettingsPanel({
         ))}
       </section>
 
-      <section className="panel staff-panel notification-settings-panel" aria-label="This device">
+      <section className="panel staff-panel notification-settings-panel" aria-label={t("This device")}>
         <ToggleRow
           icon="📱"
           label="This device"
@@ -256,7 +257,7 @@ export function NotificationSettingsPanel({
                   disabled={busy}
                   onClick={() => onDisableDevice?.(device.endpoint)}
                 >
-                  Turn off
+                  {t("Turn off")}
                 </button>
               </li>
             ))}

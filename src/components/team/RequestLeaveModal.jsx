@@ -4,6 +4,7 @@ import { LEAVE_TYPES } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { requestLeave } from '../../services/leaveService'
 import { LeaveHistoryPanel } from './LeaveHistoryPanel'
+import { t } from '../../i18n/i18n'
 
 const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({
   value: type,
@@ -58,7 +59,7 @@ export function RequestLeaveActionButton({
       onClick={() => onOpen?.()}
       aria-haspopup="dialog"
     >
-      Request Leave
+      {t("Request Leave")}
     </button>
   )
 }
@@ -160,14 +161,14 @@ export function RequestLeaveModal({
 
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Team</p>
-            <h3 id="request-leave-title">Request Leave</h3>
+            <p className="eyebrow">{t("Team")}</p>
+            <h3 id="request-leave-title">{t("Request Leave")}</h3>
           </div>
           <button
             type="button"
             className="icon-btn"
             onClick={handleClose}
-            aria-label="Close request leave dialog"
+            aria-label={t("Close request leave dialog")}
             disabled={isSubmitting}
           >
             ✕
@@ -185,14 +186,14 @@ export function RequestLeaveModal({
             ) : null}
 
             <label className="form-field full-width">
-              <span>Leave Type</span>
+              <span>{t("Leave Type")}</span>
               <select
                 value={leaveType}
                 onChange={(event) => setLeaveType(event.target.value)}
                 disabled={isSubmitting || Boolean(successMessage)}
                 aria-invalid={fieldErrors.leaveType ? 'true' : 'false'}
               >
-                <option value="">Select leave type</option>
+                <option value="">{t("Select leave type")}</option>
                 {LEAVE_TYPE_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -206,7 +207,7 @@ export function RequestLeaveModal({
 
             <div className="request-leave-date-grid">
               <label className="form-field">
-                <span>Start Date</span>
+                <span>{t("Start Date")}</span>
                 <input
                   type="date"
                   value={startDate}
@@ -220,7 +221,7 @@ export function RequestLeaveModal({
               </label>
 
               <label className="form-field">
-                <span>End Date</span>
+                <span>{t("End Date")}</span>
                 <input
                   type="date"
                   value={endDate}
@@ -239,12 +240,12 @@ export function RequestLeaveModal({
             ) : null}
 
             <label className="form-field full-width">
-              <span>Note (optional)</span>
+              <span>{t("Note (optional)")}</span>
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 rows={3}
-                placeholder="Add context for your manager"
+                placeholder={t("Add context for your manager")}
                 disabled={isSubmitting || Boolean(successMessage)}
               />
             </label>
@@ -257,7 +258,7 @@ export function RequestLeaveModal({
               onClick={handleClose}
               disabled={isSubmitting}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="submit"

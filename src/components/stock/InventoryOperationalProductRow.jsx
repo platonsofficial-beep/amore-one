@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 /**
  * P8.16.6 — Read-only operational weekly stock product row.
  */
@@ -36,19 +37,19 @@ export function InventoryOperationalProductRow({ product }) {
       <p className="inventory-operational-product-name">{product.name}</p>
       <dl className="inventory-operational-product-metrics">
         <div>
-          <dt>Storage</dt>
+          <dt>{t("Storage")}</dt>
           <dd>{formatOperationalReviewValue(product.storage)}</dd>
         </div>
         <div>
-          <dt>BAR</dt>
+          <dt>{t("BAR")}</dt>
           <dd>{formatOperationalReviewValue(product.bar)}</dd>
         </div>
         <div>
-          <dt>Order</dt>
+          <dt>{t("Order")}</dt>
           <dd>{formatOperationalReviewValue(product.order)}</dd>
         </div>
         <div>
-          <dt>Stock Control</dt>
+          <dt>{t("Stock Control")}</dt>
           <dd>{formatOperationalReviewValue(product.stockControl)}</dd>
         </div>
       </dl>

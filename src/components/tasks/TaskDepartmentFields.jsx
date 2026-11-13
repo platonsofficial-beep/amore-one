@@ -10,6 +10,7 @@ import {
   resolveDepartmentFormSelectValue,
 } from '../../lib/taskDepartments'
 import { getOperationsCategoryLabel } from '../../lib/operationsUtils'
+import { t } from '../../i18n/i18n'
 
 export default function TaskDepartmentFields({
   department,
@@ -61,7 +62,7 @@ export default function TaskDepartmentFields({
   return (
     <>
       <label className="form-field">
-        <span>Department</span>
+        <span>{t("Department")}</span>
         <select value={selectValue} onChange={handleDepartmentChange}>
           {TASK_PRESET_DEPARTMENTS.map((preset) => (
             <option key={preset.key} value={preset.key}>
@@ -92,7 +93,7 @@ export default function TaskDepartmentFields({
 
       {showCustomNameInput ? (
         <label className="form-field">
-          <span>Custom department name</span>
+          <span>{t("Custom department name")}</span>
           <input
             type="text"
             value={departmentCustom}
@@ -100,7 +101,7 @@ export default function TaskDepartmentFields({
               department: CUSTOM_DEPARTMENT_TYPE,
               departmentCustom: event.target.value,
             })}
-            placeholder="Kitchen, Cleaning, Delivery…"
+            placeholder={t("Kitchen, Cleaning, Delivery…")}
             required
           />
         </label>

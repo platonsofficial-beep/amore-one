@@ -11,6 +11,7 @@ import {
 } from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { CanvasWorld } from './CanvasWorld'
+import { t } from '../../i18n/i18n'
 
 export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutKey = 0 }) {
   const {
@@ -293,7 +294,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     <section
       className={`fpb-canvas-shell fpb-canvas-shell-simple${isEditing ? ' is-editing' : ''}${isEditing ? '' : ' is-view-mode'}`}
       data-grid-enabled={state.settings.gridEnabled ? 'true' : 'false'}
-      aria-label="Floor plan canvas"
+      aria-label={t("Floor plan canvas")}
     >
       <div
         ref={containerRef}
@@ -308,9 +309,9 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
       >
         {isEditing && visibleObjects.length === 0 ? (
           <div className="fpb-canvas-empty-guide" role="status">
-            <p className="fpb-canvas-empty-guide-eyebrow">Start your layout</p>
-            <h3>Add your first table</h3>
-            <p>Choose a table shape in Tools, then tap the floor to place it.</p>
+            <p className="fpb-canvas-empty-guide-eyebrow">{t("Start your layout")}</p>
+            <h3>{t("Add your first table")}</h3>
+            <p>{t("Choose a table shape in Tools, then tap the floor to place it.")}</p>
           </div>
         ) : null}
         <div

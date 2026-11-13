@@ -4,6 +4,7 @@ import {
   formatHostLoadError,
   isHostLoadFailureMessage,
 } from '../../lib/hostLoadNotice'
+import { t } from '../../i18n/i18n'
 
 export function HostLoadNotice({
   message = '',
@@ -25,7 +26,7 @@ export function HostLoadNotice({
       <p>{text}</p>
       {failed && typeof onRetry === 'function' ? (
         <button type="button" className="host-load-notice-retry" onClick={onRetry}>
-          {HOST_LOAD_RETRY_LABEL}
+          {t(HOST_LOAD_RETRY_LABEL)}
         </button>
       ) : null}
     </div>

@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "i18n:check": "node scripts/i18n-check.mjs",
     "test:viewports": "node scripts/phone-viewport-matrix.mjs && node scripts/assign-card-right-edge.mjs",
     "test:service-worker": "node scripts/supabase-service-worker-check.mjs"
   },

@@ -1,3 +1,5 @@
+import { uiLocale } from '../i18n/i18n'
+
 export function normalizeTimeValue(value) {
   if (!value) return ''
 
@@ -288,11 +290,11 @@ function coerceDate(value) {
  */
 export function formatInVenueZone(date, options, timeZone = '') {
   const tz = `${timeZone ?? ''}`.trim()
-  if (!tz) return new Intl.DateTimeFormat('en-GB', options).format(date)
+  if (!tz) return new Intl.DateTimeFormat(uiLocale('en-GB'), options).format(date)
   try {
-    return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: tz }).format(date)
+    return new Intl.DateTimeFormat(uiLocale('en-GB'), { ...options, timeZone: tz }).format(date)
   } catch {
-    return new Intl.DateTimeFormat('en-GB', options).format(date)
+    return new Intl.DateTimeFormat(uiLocale('en-GB'), options).format(date)
   }
 }
 

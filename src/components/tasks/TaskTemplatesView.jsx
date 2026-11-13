@@ -1,6 +1,7 @@
 import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { getTaskDepartmentLabel, groupTaskTemplatesByDepartment } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_LABELS = {
   normal: 'Normal',
@@ -44,7 +45,7 @@ function TemplateCard({
     <article className={`task-template-card${isInactive ? ' is-inactive' : ''}`}>
       <div className="task-template-card-top">
         <h4 className="task-template-card-title">{template.title}</h4>
-        {isInactive ? <span className="task-template-inactive-badge">Inactive</span> : null}
+        {isInactive ? <span className="task-template-inactive-badge">{t("Inactive")}</span> : null}
       </div>
 
       <div className="task-template-card-meta">
@@ -82,7 +83,7 @@ function TemplateCard({
           onClick={() => onEdit?.(template)}
           disabled={isSaving}
         >
-          Edit
+          {t("Edit")}
         </button>
         <button
           type="button"
@@ -90,7 +91,7 @@ function TemplateCard({
           onClick={() => onDelete?.(template)}
           disabled={isSaving}
         >
-          Delete
+          {t("Delete")}
         </button>
       </div>
     </article>
@@ -133,10 +134,10 @@ export default function TaskTemplatesView({
             ← Department Boards
           </button>
           <div>
-            <p className="eyebrow">Daily operations</p>
-            <h3>Daily Operation Templates</h3>
+            <p className="eyebrow">{t("Daily operations")}</p>
+            <h3>{t("Daily Operation Templates")}</h3>
             <p className="staff-subtitle">
-              Reusable checklists for opening, closing, and department routines.
+              {t("Reusable checklists for opening, closing, and department routines.")}
             </p>
           </div>
         </div>
@@ -170,11 +171,11 @@ export default function TaskTemplatesView({
       {noticeMessage ? <div className="staff-status-banner tasks-status-notice">{noticeMessage}</div> : null}
 
       {isLoading ? (
-        <div className="tasks-templates-loading">Loading templates…</div>
+        <div className="tasks-templates-loading">{t("Loading templates…")}</div>
       ) : !hasTemplates ? (
         <div className="tasks-templates-empty">
-          <p className="tasks-templates-empty-line">No templates yet.</p>
-          <p className="tasks-templates-empty-subline">Create your first daily operation template.</p>
+          <p className="tasks-templates-empty-line">{t("No templates yet.")}</p>
+          <p className="tasks-templates-empty-subline">{t("Create your first daily operation template.")}</p>
         </div>
       ) : (
         <div className="tasks-templates-groups">

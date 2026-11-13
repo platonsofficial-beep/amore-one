@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
+import { setLocale, t, useLocale } from '../i18n/i18n'
 import { helpAiEnabled, helpArticlesForModel } from './helpAi'
 import { helpText } from './helpKnowledge'
 import {
@@ -13,11 +14,6 @@ function useHelpOpen() {
   return useSyncExternalStore(subscribeHelpAssistant, isHelpAssistantOpen, () => false)
 }
 
-function localeFromNavigator() {
-  if (typeof navigator === 'undefined') return 'en'
-  return `${navigator.language ?? ''}`.toLowerCase().startsWith('el') ? 'el' : 'en'
-}
-
 export function HelpAssistant({
   open,
   onClose,
@@ -28,7 +24,7 @@ export function HelpAssistant({
   aiEnabled = false,
   ask,
 }) {
-  const [locale, setLocale] = useState(localeFromNavigator)
+  const locale = useLocale()
   const [query, setQuery] = useState('')
   const [sectionId, setSectionId] = useState('')
   const [articleId, setArticleId] = useState('')
@@ -37,33 +33,21 @@ export function HelpAssistant({
   const [aiAnswer, setAiAnswer] = useState('')
   const [aiError, setAiError] = useState('')
   const [aiBusy, setAiBusy] = useState(false)
-  const copy = locale === 'el'
-    ? {
-      title: 'Πώς μπορώ να βοηθήσω;',
-      placeholder: 'Πώς κάνω κάτι στο ONE;',
-      still: 'Χρειάζομαι κι άλλη βοήθεια',
-      empty: 'Δεν βρήκαμε βήματα για αυτό.',
-      emailLead: 'Στείλε email στο info@onehospitality.app και η ομάδα θα επικοινωνήσει μαζί σου.',
-      email: 'Email στην υποστήριξη',
-      back: 'Πίσω',
-      close: 'Κλείσιμο',
-      open: 'Άνοιγμα οθόνης',
-      ask: 'Ρώτα',
-      managers: 'Τα πλάνα και η χρέωση είναι για ιδιοκτήτη ή manager.',
-    }
-    : {
-      title: 'How can we help?',
-      placeholder: 'How do I do something in ONE?',
-      still: 'Still need help',
-      empty: 'We couldn’t find steps for that.',
-      emailLead: 'Email info@onehospitality.app and the team will contact you.',
-      email: 'Email support',
-      back: 'Back',
-      close: 'Close',
-      open: 'Open screen',
-      ask: 'Ask',
-      managers: 'Plans and billing are for an owner or manager.',
-    }
+  const copy = {
+    title: t('How can we help?'),
+    placeholder: t('How do I do something in ONE?'),
+    still: t('Still need help'),
+    empty: t('We couldn’t find steps for that.'),
+    emailLead: t('Email info@onehospitality.app and the team will contact you.'),
+    email: t('Email support'),
+    back: t('Back'),
+    close: t('Close'),
+    open: t('Open screen'),
+    ask: t('Ask'),
+    managers: t('Plans and billing are for an owner or manager.'),
+    topics: t('Topics'),
+    help: t('Help'),
+  }
 
   const result = useMemo(
     () => searchHelp(query, { role, locale }),
@@ -157,16 +141,16 @@ export function HelpAssistant({
               <button type="button" className="mobile-sheet-close-btn" aria-label={copy.back} onClick={() => setArticleId('')}>‹</button>
             ) : null}
             <div>
-              <p className="mobile-screen-eyebrow">Help</p>
+              <p className="mobile-screen-eyebrow">{copy.help}</p>
               <h2 id="help-assistant-title" className="mobile-screen-title">
                 {article ? helpText(article.title, locale) : copy.title}
               </h2>
             </div>
           </div>
           <div className="help-assistant-header-actions">
-            <div className="help-assistant-lang" role="group" aria-label="Language">
-              <button type="button" className={locale === 'en' ? 'is-selected' : ''} aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>EN</button>
-              <button type="button" className={locale === 'el' ? 'is-selected' : ''} aria-pressed={locale === 'el'} onClick={() => setLocale('el')}>EL</button>
+            <div className="help-assistant-lang" role="group" aria-label={t("Language")}>
+              <button type="button" className={locale === 'en' ? 'is-selected' : ''} aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>{t("EN")}</button>
+              <button type="button" className={locale === 'el' ? 'is-selected' : ''} aria-pressed={locale === 'el'} onClick={() => setLocale('el')}>{t("EL")}</button>
             </div>
             <button type="button" className="mobile-sheet-close-btn" aria-label={copy.close} onClick={onClose}>✕</button>
           </div>
@@ -229,7 +213,7 @@ export function HelpAssistant({
           ) : null}
           {!article && !query.trim() ? (
             <>
-              <div className="help-assistant-topics" role="group" aria-label={locale === 'el' ? 'Θέματα' : 'Topics'}>
+              <div className="help-assistant-topics" role="group" aria-label={copy.topics}>
                 {sections.map((section) => (
                   <button
                     key={section.id}

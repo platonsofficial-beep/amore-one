@@ -1,4 +1,5 @@
 import { formatCameraZoomPercent } from '../lib/camera'
+import { t } from '../../i18n/i18n'
 
 export function EditorZoomControls({
   zoom,
@@ -8,12 +9,12 @@ export function EditorZoomControls({
   className = '',
 }) {
   return (
-    <div className={`fpb-editor-zoom-controls${className ? ` ${className}` : ''}`} aria-label="Canvas zoom">
+    <div className={`fpb-editor-zoom-controls${className ? ` ${className}` : ''}`} aria-label={t("Canvas zoom")}>
       <button
         type="button"
         className="fpb-editor-zoom-btn"
         onClick={onZoomOut}
-        aria-label="Zoom out"
+        aria-label={t("Zoom out")}
       >
         −
       </button>
@@ -24,7 +25,7 @@ export function EditorZoomControls({
         type="button"
         className="fpb-editor-zoom-btn"
         onClick={onZoomIn}
-        aria-label="Zoom in"
+        aria-label={t("Zoom in")}
       >
         +
       </button>
@@ -32,9 +33,9 @@ export function EditorZoomControls({
         type="button"
         className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-editor-zoom-fit-btn"
         onClick={onViewFit}
-        aria-label="Fit to view"
+        aria-label={t("Fit to view")}
       >
-        Fit
+        {t("Fit")}
       </button>
     </div>
   )

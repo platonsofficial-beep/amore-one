@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../i18n/i18n'
 import { formatLocalDateKey } from './weekUtils'
 
 function resolveTimeZone(timeZone) {
@@ -49,7 +50,7 @@ export function getCurrentDateKey(date = getLocalNow(), timeZone = '') {
 export function formatCurrentDateLabel(date = getLocalNow(), timeZone = '') {
   const resolvedTimeZone = resolveTimeZone(timeZone)
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(uiLocale('en-US'), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -60,7 +61,7 @@ export function formatCurrentDateLabel(date = getLocalNow(), timeZone = '') {
 export function getTimeGreeting(date = getLocalNow(), timeZone = '') {
   const hour = getHourInTimeZone(date, timeZone)
 
-  if (hour < 12) return 'Good Morning'
-  if (hour < 18) return 'Good Afternoon'
-  return 'Good Evening'
+  if (hour < 12) return t('Good Morning')
+  if (hour < 18) return t('Good Afternoon')
+  return t('Good Evening')
 }

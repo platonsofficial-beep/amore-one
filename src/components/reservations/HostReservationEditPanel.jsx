@@ -35,6 +35,7 @@ import { buildSeatingsById } from '../../lib/reservationSeatings'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
 import { GuestPhoneInsight } from './GuestHistory'
+import { t } from '../../i18n/i18n'
 
 const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
@@ -115,14 +116,14 @@ export function HostReservationEditPanel({
 
   if (!reservation) {
     return (
-      <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label="Edit reservation">
+      <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label={t("Edit reservation")}>
         <div className="host-reservation-edit-header">
           <div>
-            <p className="host-reservation-edit-eyebrow">Edit reservation</p>
-            <h4>Reservation data unavailable</h4>
+            <p className="host-reservation-edit-eyebrow">{t("Edit reservation")}</p>
+            <h4>{t("Reservation data unavailable")}</h4>
           </div>
           <div className="host-reservation-edit-header-actions">
-            <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close edit panel">
+            <button type="button" className="icon-btn" onClick={onCancel} aria-label={t("Close edit panel")}>
               ✕
             </button>
           </div>
@@ -133,20 +134,20 @@ export function HostReservationEditPanel({
 
   if (!form) {
     return (
-      <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label="Edit reservation">
+      <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label={t("Edit reservation")}>
         <div className="host-reservation-edit-header">
           <div>
-            <p className="host-reservation-edit-eyebrow">Edit reservation</p>
-            <h4>Reservation data unavailable</h4>
+            <p className="host-reservation-edit-eyebrow">{t("Edit reservation")}</p>
+            <h4>{t("Reservation data unavailable")}</h4>
           </div>
           <div className="host-reservation-edit-header-actions">
-            <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close edit panel">
+            <button type="button" className="icon-btn" onClick={onCancel} aria-label={t("Close edit panel")}>
               ✕
             </button>
           </div>
         </div>
         <div className="host-reservation-edit-scroll">
-          <p className="host-reservation-edit-unavailable">Reservation data unavailable</p>
+          <p className="host-reservation-edit-unavailable">{t("Reservation data unavailable")}</p>
         </div>
       </aside>
     )
@@ -203,10 +204,10 @@ export function HostReservationEditPanel({
   }
 
   return (
-    <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label="Edit reservation">
+    <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label={t("Edit reservation")}>
       <div className="host-reservation-edit-header">
         <div>
-          <p className="host-reservation-edit-eyebrow">Edit reservation</p>
+          <p className="host-reservation-edit-eyebrow">{t("Edit reservation")}</p>
           <h4>{guestLabel}</h4>
         </div>
         <div className="host-reservation-edit-header-actions">
@@ -227,10 +228,10 @@ export function HostReservationEditPanel({
               onClick={handleDelete}
               disabled={isSaving}
             >
-              Delete
+              {t("Delete")}
             </button>
           ) : null}
-          <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close edit panel" disabled={isSaving}>
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label={t("Close edit panel")} disabled={isSaving}>
             ✕
           </button>
         </div>
@@ -244,7 +245,7 @@ export function HostReservationEditPanel({
           onKeyDownCapture={handleReservationFormEnterKey}
         >
           <label className="host-reservation-edit-field">
-            <span>Guest name</span>
+            <span>{t("Guest name")}</span>
             <input
               value={form.guestName}
               onChange={(event) => updateField({ guestName: event.target.value })}
@@ -253,7 +254,7 @@ export function HostReservationEditPanel({
           </label>
 
           <label className="host-reservation-edit-field">
-            <span>Phone</span>
+            <span>{t("Phone")}</span>
             <ReservationPhoneField
               value={form.phone}
               onChange={(phone) => updateField({ phone })}
@@ -270,7 +271,7 @@ export function HostReservationEditPanel({
           />
 
           <label className="host-reservation-edit-field">
-            <span>Guests</span>
+            <span>{t("Guests")}</span>
             <input
               type="number"
               min="1"
@@ -282,7 +283,7 @@ export function HostReservationEditPanel({
 
           <div className="host-reservation-edit-grid">
             <label className="host-reservation-edit-field">
-              <span>Date</span>
+              <span>{t("Date")}</span>
               <ReservationDateField
                 value={form.date}
                 onChange={(date) => updateField({ date })}
@@ -301,7 +302,7 @@ export function HostReservationEditPanel({
             />
 
             <label className="host-reservation-edit-field">
-              <span>Time</span>
+              <span>{t("Time")}</span>
               <ReservationTimeSelect
                 value={form.time}
                 onChange={(time) => updateField({ time })}
@@ -312,7 +313,7 @@ export function HostReservationEditPanel({
           </div>
 
           <label className="host-reservation-edit-field">
-            <span>Reservation Type</span>
+            <span>{t("Reservation Type")}</span>
             <select
               value={form.reservationPurpose ?? 'dinner'}
               onChange={(event) => updateField({ reservationPurpose: event.target.value })}
@@ -325,7 +326,7 @@ export function HostReservationEditPanel({
           </label>
 
           <label className="host-reservation-edit-field">
-            <span>Guest Type</span>
+            <span>{t("Guest Type")}</span>
             <select
               value={form.customerType}
               onChange={(event) => updateField({ customerType: event.target.value })}
@@ -337,7 +338,7 @@ export function HostReservationEditPanel({
           </label>
 
           <label className="host-reservation-edit-field">
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <select
               value={form.status}
               onChange={(event) => updateField({ status: event.target.value })}
@@ -350,7 +351,7 @@ export function HostReservationEditPanel({
 
           <div className="host-reservation-edit-seating">
             <div className="host-reservation-edit-seating-header">
-              <span className="host-reservation-edit-seating-title">Tables / sections</span>
+              <span className="host-reservation-edit-seating-title">{t("Tables / sections")}</span>
               <div className="host-reservation-edit-seating-actions">
                 <button
                   type="button"
@@ -362,7 +363,7 @@ export function HostReservationEditPanel({
                   {isFloorPickActive ? 'Picking…' : 'Pick from floor'}
                 </button>
                 <button type="button" className="host-reservation-edit-link" onClick={handleClearSeating}>
-                  Clear
+                  {t("Clear")}
                 </button>
               </div>
             </div>
@@ -402,16 +403,16 @@ export function HostReservationEditPanel({
                   onClick={() => setNotesExpanded(false)}
                   aria-expanded={notesExpanded}
                 >
-                  Hide notes
+                  {t("Hide notes")}
                 </button>
                 <label className="host-reservation-edit-field host-reservation-edit-notes-field">
-                  <span>Notes</span>
+                  <span>{t("Notes")}</span>
                   <textarea
                     rows="2"
                     value={form.notes}
                     onChange={(event) => updateField({ notes: event.target.value })}
                   />
-                  <small className="sensitive-field-hint">Don't write health details. Allergies only if needed for the booking — this is sensitive data.</small>
+                  <small className="sensitive-field-hint">{t("Don't write health details. Allergies only if needed for the booking — this is sensitive data.")}</small>
                 </label>
               </>
             ) : (
@@ -442,7 +443,7 @@ export function HostReservationEditPanel({
             onClick={handleDelete}
             disabled={isSaving}
           >
-            Delete reservation
+            {t("Delete reservation")}
           </button>
         </div>
       ) : null}

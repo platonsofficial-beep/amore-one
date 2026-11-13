@@ -53,7 +53,7 @@ describe('resolveEmployeeShiftAdjust', () => {
 
   it('does not render a Remaining row on the assign card', () => {
     const source = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8')
-    const start = source.indexOf('<h3>Assign employees</h3>')
+    const start = source.indexOf('<h3>{t("Assign employees")}</h3>')
     const slice = source.slice(start, start + 4500)
     expect(slice).not.toContain('Remaining')
     expect(slice).toContain('Required')
@@ -66,7 +66,7 @@ describe('resolveEmployeeShiftAdjust', () => {
     const header = source.slice(headerAt, headerAt + 420)
     expect(header).not.toContain('handleAssignFocusedEmployeeToShift')
     expect(header).not.toContain('handleOpenAssignmentModal')
-    const plusAt = source.indexOf('aria-label="Add employee"')
+    const plusAt = source.indexOf('aria-label={t("Add employee")}')
     const plus = source.slice(plusAt - 700, plusAt)
     expect(plus).toContain('focusedEmployeeId')
     expect(plus).toContain('handleAssignFocusedEmployeeToShift')

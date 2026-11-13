@@ -6,6 +6,7 @@ import { StockLiveCard } from '../stock/StockLiveCard'
 import { OnShiftSheet } from '../today/OnShiftSheet'
 import { PendingValue } from '../common/DataPending'
 import { areaStatus } from '../../lib/loadStatus'
+import { t } from '../../i18n/i18n'
 
 const ATTENTION_PREVIEW_LIMIT = 3
 
@@ -70,28 +71,28 @@ function MobileManagerQuickActions({
           className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
           onClick={onReceiveDeliveries}
         >
-          Receive delivery
+          {t("Receive delivery")}
         </button>
       ) : null}
       <div className="mobile-manager-actions-grid">
         {canOpenReservations ? (
           <button type="button" className="mobile-manager-action-btn" onClick={onOpenReservations}>
-            Reservations
+            {t("Reservations")}
           </button>
         ) : null}
         {canOpenTasks ? (
           <button type="button" className="mobile-manager-action-btn" onClick={onOpenTasks}>
-            Operations
+            {t("Operations")}
           </button>
         ) : null}
         {canOpenStock ? (
           <button type="button" className="mobile-manager-action-btn" onClick={onOpenStock}>
-            Stock
+            {t("Stock")}
           </button>
         ) : null}
         {canOpenTeam ? (
           <button type="button" className="mobile-manager-action-btn" onClick={onOpenTeamToday}>
-            Team today
+            {t("Team today")}
           </button>
         ) : null}
       </div>
@@ -185,9 +186,9 @@ export function MobileManagerHomeView({
 
       {clockCard}
 
-      <section className="mobile-manager-command-primary" aria-label="Today overview and quick actions">
+      <section className="mobile-manager-command-primary" aria-label={t("Today overview and quick actions")}>
         <div className="mobile-manager-command-block">
-          <h2 className="mobile-manager-block-title">Today overview</h2>
+          <h2 className="mobile-manager-block-title">{t("Today overview")}</h2>
           <div className="mobile-manager-status-grid">
             <MobileManagerStatusCard
               label="On shift"
@@ -262,7 +263,7 @@ export function MobileManagerHomeView({
           <>
             <div className="mobile-manager-command-divider" aria-hidden="true" />
             <div className="mobile-manager-command-block mobile-manager-command-actions-block">
-              <h2 className="mobile-manager-block-title">Quick actions</h2>
+              <h2 className="mobile-manager-block-title">{t("Quick actions")}</h2>
               <MobileManagerQuickActions
                 canOpenReservations={canOpenReservations}
                 canOpenTasks={canOpenTasks}
@@ -281,7 +282,7 @@ export function MobileManagerHomeView({
         ) : null}
       </section>
 
-      <section className="mobile-manager-command-secondary mobile-manager-priority-panel" aria-label="Attention">
+      <section className="mobile-manager-command-secondary mobile-manager-priority-panel" aria-label={t("Attention")}>
         <div className="mobile-manager-command-block">
           <h2 className="mobile-manager-block-title">
             Attention
@@ -294,10 +295,10 @@ export function MobileManagerHomeView({
               <PendingValue status={statusOf('attention')} lines={2} onRetry={retry('all')} />
             </div>
           ) : mergedAttentionItems.length === 0 ? (
-            <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
+            <p className="mobile-manager-attention-empty">{t("Everything looks under control today.")}</p>
           ) : (
             <>
-              <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed" aria-label="Attention items">
+              <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed" aria-label={t("Attention items")}>
                 {visibleAttentionItems.map((item) => (
                   <TodayAttentionListItem
                     key={item.key}
@@ -325,7 +326,7 @@ export function MobileManagerHomeView({
         </div>
       </section>
 
-      <section className="mobile-manager-command-announcements" aria-label="Announcements">
+      <section className="mobile-manager-command-announcements" aria-label={t("Announcements")}>
         <TodayAnnouncementsPanel
           announcements={announcements}
           role={announcementRole}

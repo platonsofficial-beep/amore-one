@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 const POSITION_DEPARTMENTS = ['Bar', 'Service', 'Kitchen', 'Management', 'Other']
 
 export function WorkspacePositionsSection({
@@ -19,24 +20,24 @@ export function WorkspacePositionsSection({
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">👔</span>
-            Positions
+            {t("Positions")}
           </h3>
           <p className="workspace-section-subtitle">
-            Create and organize custom positions for any hospitality business.
+            {t("Create and organize custom positions for any hospitality business.")}
           </p>
         </div>
       </div>
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading positions…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Manage positions</p>
+            <p className="eyebrow">{t("Manage positions")}</p>
             <h3>{editingPositionId ? 'Edit position' : 'Add position'}</h3>
           </div>
         </div>
@@ -44,11 +45,11 @@ export function WorkspacePositionsSection({
         <form className="employee-form" onSubmit={onSubmit}>
           <div className="form-grid">
             <label className="form-field">
-              <span>Position Name</span>
-              <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder="e.g. Mixologist" required />
+              <span>{t("Position Name")}</span>
+              <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder={t("e.g. Mixologist")} required />
             </label>
             <label className="form-field">
-              <span>Department</span>
+              <span>{t("Department")}</span>
               <select value={form.department} onChange={(event) => onFormChange({ ...form, department: event.target.value })}>
                 {POSITION_DEPARTMENTS.map((department) => (
                   <option key={department} value={department}>{department}</option>
@@ -58,7 +59,7 @@ export function WorkspacePositionsSection({
           </div>
 
           <div className="modal-actions">
-            {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>Cancel edit</button> : null}
+            {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
               {isSaving ? 'Saving…' : editingPositionId ? 'Update Position' : 'Add Position'}
             </button>
@@ -69,15 +70,15 @@ export function WorkspacePositionsSection({
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Position list</p>
+            <p className="eyebrow">{t("Position list")}</p>
             <h3>{positions.length} positions</h3>
           </div>
         </div>
 
         {positions.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
-            <h4>No positions found.</h4>
-            <p>Add your first custom position.</p>
+            <h4>{t("No positions found.")}</h4>
+            <p>{t("Add your first custom position.")}</p>
           </div>
         ) : (
           <div className="positions-list">
@@ -94,8 +95,8 @@ export function WorkspacePositionsSection({
                   <div className="action-group">
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onMovePosition(position, 'up')} disabled={index === 0}>↑</button>
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onMovePosition(position, 'down')} disabled={index === positions.length - 1}>↓</button>
-                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onStartEdit(position)}>Rename</button>
-                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onRequestDelete(position)}>Delete</button>
+                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onStartEdit(position)}>{t("Rename")}</button>
+                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onRequestDelete(position)}>{t("Delete")}</button>
                   </div>
                 </article>
               )

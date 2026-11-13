@@ -50,7 +50,7 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
 
     expect(DASHBOARD_SOURCE).toContain('className="sr-only" id="stock-layout-label"')
     expect(DASHBOARD_SOURCE).not.toMatch(/stock-browse-control-label" id="stock-layout-label">View</)
-    expect(DASHBOARD_SOURCE).toContain('aria-label="Count"')
+    expect(DASHBOARD_SOURCE).toContain('aria-label={t("Count")}')
   })
 
   it('preserves P8.24.5 visual hierarchy presentation hooks without layout redesign', () => {

@@ -13,6 +13,7 @@ import {
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
+import { t } from '../../i18n/i18n'
 
 const LOCATION_STATE_LABEL = {
   completed: 'Completed',
@@ -1524,30 +1525,30 @@ export function InventoryCountSessionWorkspace({
     <section
       ref={sessionRootRef}
       className={sessionClassName}
-      aria-label="Inventory Count Session Workspace"
+      aria-label={t("Inventory Count Session Workspace")}
       data-inventory-count-session="true"
       data-inventory-count-scroll-shell="locked"
     >
       <header className="inventory-count-session-header">
         <div className="inventory-count-session-header-copy">
-          <p className="inventory-count-session-eyebrow">Inventory Count Session</p>
+          <p className="inventory-count-session-eyebrow">{t("Inventory Count Session")}</p>
           <div className="inventory-count-session-meta">
             <span className="inventory-count-session-pill is-status">{sessionStatusLabel}</span>
             <span className="inventory-count-session-meta-item">
-              <span className="inventory-count-session-meta-label">Count Type</span>
-              <span className="inventory-count-session-meta-value">New count</span>
+              <span className="inventory-count-session-meta-label">{t("Count Type")}</span>
+              <span className="inventory-count-session-meta-value">{t("New count")}</span>
             </span>
             <span className="inventory-count-session-meta-item">
-              <span className="inventory-count-session-meta-label">Mode</span>
+              <span className="inventory-count-session-meta-label">{t("Mode")}</span>
               <span className="inventory-count-session-meta-value">{inventoryCountModeLabel(sessionVisibility)}</span>
             </span>
             <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
-              <span className="inventory-count-session-meta-label">Started</span>
-              <span className="inventory-count-session-meta-value">Just now</span>
+              <span className="inventory-count-session-meta-label">{t("Started")}</span>
+              <span className="inventory-count-session-meta-value">{t("Just now")}</span>
             </span>
             <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
-              <span className="inventory-count-session-meta-label">Operator</span>
-              <span className="inventory-count-session-meta-value">Current signed-in operator</span>
+              <span className="inventory-count-session-meta-label">{t("Operator")}</span>
+              <span className="inventory-count-session-meta-value">{t("Current signed-in operator")}</span>
             </span>
           </div>
         </div>
@@ -1582,14 +1583,14 @@ export function InventoryCountSessionWorkspace({
             className="ghost-btn inventory-count-session-action-btn"
             onClick={onExit}
           >
-            Exit
+            {t("Exit")}
           </button>
         </div>
       </header>
 
       {showFinishCountDisabledBanner ? (
         <p className="inventory-count-finish-disabled-reason" role="status">
-          <strong>Finish Count</strong>
+          <strong>{t("Finish Count")}</strong>
           {' '}
           {finishCountDisabledReason}
         </p>
@@ -1597,7 +1598,7 @@ export function InventoryCountSessionWorkspace({
 
       {isLoading ? (
         <div className="staff-status-banner" role="status">
-          Loading inventory count…
+          {t("Loading inventory count…")}
         </div>
       ) : null}
 
@@ -1609,21 +1610,21 @@ export function InventoryCountSessionWorkspace({
 
       {showPausedBanner ? (
         <div className="staff-status-banner" role="status">
-          This inventory count is paused. Resume to continue counting.
+          {t("This inventory count is paused. Resume to continue counting.")}
         </div>
       ) : null}
 
       {!isLoading && !loadError && locations.length === 0 ? (
         <div className="stock-empty-state">
-          <h4>No items in this session</h4>
-          <p>This inventory count has no snapshot items yet.</p>
+          <h4>{t("No items in this session")}</h4>
+          <p>{t("This inventory count has no snapshot items yet.")}</p>
         </div>
       ) : null}
 
       {!isLoading && !loadError && locations.length > 0 ? (
         <>
           <div className="inventory-count-session-body">
-            <aside className="inventory-count-session-rail" aria-label="Locations">
+            <aside className="inventory-count-session-rail" aria-label={t("Locations")}>
               {locations.map((location) => {
                 const isSelected = location.id === selectedLocation?.id
                 const readinessLabel = getLocationReadinessLabel(location)
@@ -1643,7 +1644,7 @@ export function InventoryCountSessionWorkspace({
                       <span className="inventory-count-session-rail-title-row">
                         <span className="inventory-count-session-rail-title">{getLocationLabel(location)}</span>
                         {location.status === 'current' ? (
-                          <span className="inventory-count-session-rail-current-badge">Current</span>
+                          <span className="inventory-count-session-rail-current-badge">{t("Current")}</span>
                         ) : null}
                       </span>
                       <span className="inventory-count-session-rail-state">
@@ -1662,7 +1663,7 @@ export function InventoryCountSessionWorkspace({
               <div className="inventory-count-session-toolbar">
                 <div className="inventory-count-session-toolbar-left">
                   <label className="inventory-count-session-search">
-                    <span className="sr-only">Search items</span>
+                    <span className="sr-only">{t("Search items")}</span>
                     <input
                       type="search"
                       className="inventory-count-session-search-input"
@@ -1678,11 +1679,11 @@ export function InventoryCountSessionWorkspace({
                     disabled
                     aria-disabled="true"
                   >
-                    Filter
+                    {t("Filter")}
                   </button>
                 </div>
 
-                <article className="inventory-count-session-progress-card" aria-label="Session progress">
+                <article className="inventory-count-session-progress-card" aria-label={t("Session progress")}>
                   <p className="inventory-count-session-progress-percent">{progress.percentage}%</p>
                   <p className="inventory-count-session-progress-primary">
                     {progress.totalCounted} / {progress.totalIncluded} counted
@@ -1700,7 +1701,7 @@ export function InventoryCountSessionWorkspace({
                 <p
                   className="inventory-count-session-location-readiness"
                   role="status"
-                  aria-label="Selected location readiness"
+                  aria-label={t("Selected location readiness")}
                 >
                   {getLocationReadinessLabel(selectedLocation)}
                 </p>
@@ -1710,16 +1711,16 @@ export function InventoryCountSessionWorkspace({
                 <div
                   className="inventory-count-inactive-location-guidance"
                   role="status"
-                  aria-label="Location not active yet"
+                  aria-label={t("Location not active yet")}
                 >
                   <div className="inventory-count-inactive-location-guidance-copy">
-                    <strong>Location not active yet</strong>
+                    <strong>{t("Location not active yet")}</strong>
                     <p>
                       You may review or count items here, but this location cannot be completed
                       until the current location is finished.
                     </p>
                     <p>
-                      <span className="inventory-count-inactive-location-guidance-label">Current location:</span>
+                      <span className="inventory-count-inactive-location-guidance-label">{t("Current location:")}</span>
                       {' '}
                       {(currentLocation && getLocationLabel(currentLocation)) || '—'}
                     </p>
@@ -1729,7 +1730,7 @@ export function InventoryCountSessionWorkspace({
                     className="primary-btn inventory-count-session-action-btn"
                     onClick={handleGoToCurrentLocation}
                   >
-                    Go to Current Location
+                    {t("Go to Current Location")}
                   </button>
                 </div>
               ) : null}
@@ -1741,12 +1742,12 @@ export function InventoryCountSessionWorkspace({
               >
                 {selectedLocation?.items.length === 0 ? (
                   <div className="stock-empty-state inventory-count-session-table-wrap">
-                    <h4>No items in this location</h4>
+                    <h4>{t("No items in this location")}</h4>
                     <p>No snapshot items were found for {selectedLocationName}.</p>
                   </div>
                 ) : displayedLocationItems.length === 0 ? (
                   <div className="stock-empty-state inventory-count-session-table-wrap">
-                    <h4>No matching items</h4>
+                    <h4>{t("No matching items")}</h4>
                     <p>No items match the current search in {selectedLocationName}.</p>
                   </div>
                 ) : (
@@ -1757,21 +1758,21 @@ export function InventoryCountSessionWorkspace({
                       data-inventory-count-frozen-header="true"
                     >
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                        Item
+                        {t("Item")}
                       </div>
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                        Unit
+                        {t("Unit")}
                       </div>
                       {hideExpected ? null : (
                         <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                          Expected
+                          {t("Expected")}
                         </div>
                       )}
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                        Counted
+                        {t("Counted")}
                       </div>
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                        Status
+                        {t("Status")}
                       </div>
                     </div>
                     <div
@@ -1835,7 +1836,7 @@ export function InventoryCountSessionWorkspace({
             data-inventory-count-footer="true"
           >
             <div className="inventory-count-session-footer-middle">
-              <span className="inventory-count-session-footer-label">Unsaved changes</span>
+              <span className="inventory-count-session-footer-label">{t("Unsaved changes")}</span>
               <span className="inventory-count-session-footer-value">{unsavedLabel}</span>
             </div>
             <div className="inventory-count-session-footer-right">
@@ -1846,7 +1847,7 @@ export function InventoryCountSessionWorkspace({
                 aria-disabled={!canGoPrevious}
                 onClick={handlePrevious}
               >
-                Previous
+                {t("Previous")}
               </button>
               <button
                 type="button"
@@ -1855,7 +1856,7 @@ export function InventoryCountSessionWorkspace({
                 aria-disabled={!canGoNext}
                 onClick={handleNext}
               >
-                Next
+                {t("Next")}
               </button>
               <button
                 type="button"
@@ -1873,7 +1874,7 @@ export function InventoryCountSessionWorkspace({
           </footer>
           {completeLocationDisabledReason && !isRoutinePendingCountReason(completeLocationDisabledReason) ? (
             <p className="inventory-count-complete-disabled-reason" role="status">
-              <strong>Complete Location</strong>
+              <strong>{t("Complete Location")}</strong>
               {' '}
               {completeLocationDisabledReason}
             </p>
@@ -1883,7 +1884,7 @@ export function InventoryCountSessionWorkspace({
 
       {showCountingCompleteBanner ? (
         <p className="inventory-count-session-completion-message" role="status">
-          All locations are complete. Review variances with Finish Count.
+          {t("All locations are complete. Review variances with Finish Count.")}
         </p>
       ) : null}
 
@@ -1895,26 +1896,26 @@ export function InventoryCountSessionWorkspace({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Finish Count Preview"
+            aria-label={t("Finish Count Preview")}
             className="inventory-count-finish-preview"
           >
             <header className="inventory-count-wizard-header inventory-count-finish-preview-header">
               <div className="inventory-count-wizard-header-copy">
-                <p className="inventory-count-wizard-step-label">Session</p>
-                <h2 className="inventory-count-wizard-title">Finish Count Preview</h2>
+                <p className="inventory-count-wizard-step-label">{t("Session")}</p>
+                <h2 className="inventory-count-wizard-title">{t("Finish Count Preview")}</h2>
                 <p className="inventory-count-wizard-subtitle">
-                  Counting Complete · Review variances before posting. No stock changes yet.
+                  {t('Counting Complete · Review variances before posting. No stock changes yet.')}
                 </p>
               </div>
               <div className="inventory-count-wizard-header-actions">
-                <span className="inventory-count-session-pill is-status">Counting Complete</span>
+                <span className="inventory-count-session-pill is-status">{t("Counting Complete")}</span>
               </div>
             </header>
 
             {!postingHero ? null : (
               <section
                 className={`inventory-count-finish-preview-hero is-${postingHero.state}`}
-                aria-label="Posting readiness"
+                aria-label={t("Posting readiness")}
                 role="status"
               >
                 <p className="inventory-count-finish-preview-hero-title">
@@ -1929,7 +1930,7 @@ export function InventoryCountSessionWorkspace({
             {finishPreview?.summary ? (
               <div
                 className="inventory-count-finish-preview-summary"
-                aria-label="Finish count summary"
+                aria-label={t("Finish count summary")}
               >
                 {[
                   ['Total lines', finishPreview.summary.totalLines, ''],
@@ -1957,7 +1958,7 @@ export function InventoryCountSessionWorkspace({
             <div className="inventory-count-finish-preview-body">
               {isLoadingFinishPreview ? (
                 <div className="staff-status-banner inventory-count-finish-preview-banner" role="status">
-                  Loading finish preview…
+                  {t("Loading finish preview…")}
                 </div>
               ) : null}
 
@@ -1975,7 +1976,7 @@ export function InventoryCountSessionWorkspace({
                         className="ghost-btn inventory-count-finish-preview-retry"
                         onClick={handleOpenFinishPreview}
                       >
-                        Retry
+                        {t("Retry")}
                       </button>
                     </>
                   ) : null}
@@ -1986,21 +1987,21 @@ export function InventoryCountSessionWorkspace({
                 <>
                   <div className="inventory-count-finish-preview-intro">
                     <p className="inventory-count-wizard-subtitle">
-                      Expected at Count includes stock activity recorded after the snapshot and before this item was counted.
+                      {t("Expected at Count includes stock activity recorded after the snapshot and before this item was counted.")}
                     </p>
-                    <ol className="inventory-count-finish-preview-flow" aria-label="Reconciliation column flow">
-                      <li>Snapshot</li>
-                      <li>Activity</li>
-                      <li>Expected at Count</li>
-                      <li>Counted</li>
-                      <li>Variance</li>
-                      <li>Current Live</li>
-                      <li>Result After Post</li>
+                    <ol className="inventory-count-finish-preview-flow" aria-label={t("Reconciliation column flow")}>
+                      <li>{t("Snapshot")}</li>
+                      <li>{t("Activity")}</li>
+                      <li>{t("Expected at Count")}</li>
+                      <li>{t("Counted")}</li>
+                      <li>{t("Variance")}</li>
+                      <li>{t("Current Live")}</li>
+                      <li>{t("Result After Post")}</li>
                     </ol>
                   </div>
 
                   {(finishPreview.blockingIssues ?? []).length > 0 ? (
-                    <div className="inventory-count-finish-preview-alerts" aria-label="Blocking issues">
+                    <div className="inventory-count-finish-preview-alerts" aria-label={t("Blocking issues")}>
                       {(finishPreview.blockingIssues ?? []).map((issue) => (
                         <div
                           key={`${issue.code}-${issue.sessionItemId || issue.message}`}
@@ -2014,7 +2015,7 @@ export function InventoryCountSessionWorkspace({
                   ) : null}
 
                   {(finishPreview.skipped ?? []).length > 0 ? (
-                    <div className="inventory-count-finish-preview-alerts" aria-label="Skipped lines">
+                    <div className="inventory-count-finish-preview-alerts" aria-label={t("Skipped lines")}>
                       {(finishPreview.skipped ?? []).map((line) => (
                         <div
                           key={`skipped-${line.sessionItemId}`}
@@ -2031,23 +2032,23 @@ export function InventoryCountSessionWorkspace({
 
                   {finishPreview.lines.length === 0 ? (
                     <div className="stock-empty-state inventory-count-finish-preview-empty">
-                      <h4>No counted items</h4>
-                      <p>There are no counted lines to preview for this session.</p>
+                      <h4>{t("No counted items")}</h4>
+                      <p>{t("There are no counted lines to preview for this session.")}</p>
                     </div>
                   ) : (
                     <div className="inventory-count-finish-preview-table-wrap">
                       <table className="inventory-count-session-table inventory-count-finish-preview-table">
                         <thead>
                           <tr>
-                            <th scope="col">Item</th>
-                            <th scope="col">Location</th>
-                            <th scope="col" className="is-numeric" title="Snapshot quantity">Snapshot</th>
-                            <th scope="col" className="is-numeric" title="Activity since snapshot">Activity</th>
-                            <th scope="col" className="is-numeric" title="Expected at count">Expected at Count</th>
-                            <th scope="col" className="is-numeric">Counted</th>
-                            <th scope="col" className="is-numeric">Variance</th>
-                            <th scope="col" className="is-numeric" title="Current live quantity">Current Live</th>
-                            <th scope="col" className="is-numeric" title="Result after post">Result After Post</th>
+                            <th scope="col">{t("Item")}</th>
+                            <th scope="col">{t("Location")}</th>
+                            <th scope="col" className="is-numeric" title={t("Snapshot quantity")}>{t("Snapshot")}</th>
+                            <th scope="col" className="is-numeric" title={t("Activity since snapshot")}>{t("Activity")}</th>
+                            <th scope="col" className="is-numeric" title={t("Expected at count")}>{t("Expected at Count")}</th>
+                            <th scope="col" className="is-numeric">{t("Counted")}</th>
+                            <th scope="col" className="is-numeric">{t("Variance")}</th>
+                            <th scope="col" className="is-numeric" title={t("Current live quantity")}>{t("Current Live")}</th>
+                            <th scope="col" className="is-numeric" title={t("Result after post")}>{t("Result After Post")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2123,7 +2124,7 @@ export function InventoryCountSessionWorkspace({
                   aria-disabled={isLoadingFinishPreview || isPostingFinish}
                   onClick={handleCloseFinishPreview}
                 >
-                  Cancel
+                  {t("Cancel")}
                 </button>
                 <button
                   type="button"

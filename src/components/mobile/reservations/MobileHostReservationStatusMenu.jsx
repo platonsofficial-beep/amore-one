@@ -5,6 +5,7 @@ import {
   getHostStationStatusMenuOptions,
   normalizeReservationStatus,
 } from '../../../lib/reservationHostStatus'
+import { t } from '../../../i18n/i18n'
 
 const MENU_MARGIN = 8
 const MENU_Z_INDEX = 12000
@@ -104,7 +105,7 @@ export function MobileHostReservationStatusMenu({
         aria-busy={isSaving}
         onClick={(event) => event.stopPropagation()}
       >
-        <ul className="mobile-host-status-menu-list" role="listbox" aria-label="Reservation status">
+        <ul className="mobile-host-status-menu-list" role="listbox" aria-label={t("Reservation status")}>
           {options.map((option) => {
             const isActive = normalizeReservationStatus(option.status) === normalizedCurrent
             return (
@@ -199,7 +200,7 @@ export function MobileHostReservationRowMenu({
           zIndex: MENU_Z_INDEX,
         }}
         role="menu"
-        aria-label="Reservation actions"
+        aria-label={t("Reservation actions")}
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -212,7 +213,7 @@ export function MobileHostReservationRowMenu({
             onClose()
           }}
         >
-          Edit reservation
+          {t("Edit reservation")}
         </button>
       </div>
     </>,

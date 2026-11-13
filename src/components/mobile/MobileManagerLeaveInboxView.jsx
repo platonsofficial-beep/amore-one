@@ -1,4 +1,5 @@
 import { ManagerLeaveInbox } from '../team/ManagerLeaveInbox'
+import { t } from '../../i18n/i18n'
 
 /**
  * Presentational mobile shell around the shared ManagerLeaveInbox.
@@ -13,9 +14,9 @@ export function MobileManagerLeaveInboxView({
     <div className="mobile-screen mobile-manager-leave-inbox">
       <header className="mobile-profile-header">
         <button type="button" className="mobile-back-btn" onClick={onBack}>
-          ‹ Back
+          {t("‹ Back")}
         </button>
-        <h1>Leave inbox</h1>
+        <h1>{t("Leave inbox")}</h1>
       </header>
 
       <ManagerLeaveInbox workspaceId={workspaceId} employees={employees} />

@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { clampOverlayLeft, readCssPx } from '../../../lib/safeInline'
 import { HOST_QUEUE_FILTER_MENU_SECTIONS } from '../../../lib/hostQueuePipeline'
+import { t } from '../../../i18n/i18n'
 
 const MENU_MARGIN = 8
 const MENU_Z_INDEX = 11990
@@ -202,7 +203,7 @@ export function HostQueueToolbar({
   const selectedSort = sortOptions.find((entry) => entry.id === sortId)
 
   return (
-    <div className="host-queue-toolbar" role="toolbar" aria-label="Host queue filters">
+    <div className="host-queue-toolbar" role="toolbar" aria-label={t("Host queue filters")}>
       <HostQueueToolbarMenu
         label={`Area · ${selectedArea?.label ?? 'All areas'}`}
         compactLabel="Area"
@@ -234,7 +235,7 @@ export function HostQueueToolbar({
           className="host-queue-toolbar-clear"
           onClick={onClearFilters}
         >
-          Clear filters
+          {t("Clear filters")}
         </button>
       ) : null}
     </div>

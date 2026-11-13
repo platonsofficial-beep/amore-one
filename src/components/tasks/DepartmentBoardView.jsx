@@ -2,6 +2,7 @@ import { resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { groupTasksBySection, isTaskOverdue, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
 import { canStaffCompleteTask, getTaskAssigneeId } from '../../lib/operationsUtils'
 import TaskCard from './TaskCard'
+import { t } from '../../i18n/i18n'
 
 function TaskSection({
   title,
@@ -113,12 +114,12 @@ export default function DepartmentBoardView({
         </div>
       </header>
 
-      {isLoading ? <div className="staff-status-banner">Loading tasks…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading tasks…")}</div> : null}
 
       <div className="tasks-board-sections">
         {sections.overdue.length > 0 ? (
           <TaskSection
-            title="Overdue"
+            title={t("Overdue")}
             tasks={sections.overdue}
             checklistItemsByTaskId={checklistItemsByTaskId}
             emptyMessage=""
@@ -135,7 +136,7 @@ export default function DepartmentBoardView({
           />
         ) : null}
         <TaskSection
-          title="Today"
+          title={t("Today")}
           tasks={sections.today}
           checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No tasks due today for this department."
@@ -151,7 +152,7 @@ export default function DepartmentBoardView({
           currentEmployeeId={currentEmployeeId}
         />
         <TaskSection
-          title="Upcoming"
+          title={t("Upcoming")}
           tasks={sections.upcoming}
           checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No upcoming tasks scheduled for this department."
@@ -167,7 +168,7 @@ export default function DepartmentBoardView({
           currentEmployeeId={currentEmployeeId}
         />
         <TaskSection
-          title="Completed"
+          title={t("Completed")}
           tasks={sections.completed}
           checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No completed tasks yet for this department."

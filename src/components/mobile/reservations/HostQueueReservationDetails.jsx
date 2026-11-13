@@ -11,6 +11,7 @@ import {
   formatHostQueueTableSegment,
   getReservationExplicitAreaLabel,
 } from '../../../lib/hostQueuePipeline'
+import { t } from '../../../i18n/i18n'
 
 const HOST_QUEUE_META_SEPARATOR = '  •  '
 const HOST_LIST_META_SEPARATOR = ' • '
@@ -161,7 +162,7 @@ export function HostQueueReservationDetails({
         <span className="host-queue-row-remaining">{formatPartialSeatRemaining(reservation)}</span>
       ) : null}
       {presentation.chips.length > 0 || presentation.overflowCount > 0 ? (
-        <div className="host-queue-row-chips" aria-label="Operational requirements">
+        <div className="host-queue-row-chips" aria-label={t("Operational requirements")}>
           {presentation.chips.map((chip) => (
             <span
               key={chip.id}

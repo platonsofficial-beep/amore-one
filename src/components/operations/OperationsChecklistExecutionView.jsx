@@ -5,6 +5,7 @@ import {
   getChecklistTasksForTemplate,
 } from '../../lib/operationsChecklistUtils'
 import { normalizeOperationsStatus } from '../../lib/operationsUtils'
+import { t } from '../../i18n/i18n'
 
 function ChecklistExecutionItem({
   task,
@@ -89,8 +90,8 @@ export function OperationsChecklistExecutionView({
 
       {checklistTasks.length === 0 ? (
         <div className="operations-empty-state">
-          <h4>Checklist not started</h4>
-          <p>Start this checklist from the dashboard.</p>
+          <h4>{t("Checklist not started")}</h4>
+          <p>{t("Start this checklist from the dashboard.")}</p>
         </div>
       ) : (
         <ul className="operations-checklist-exec-list">
