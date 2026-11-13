@@ -32,7 +32,6 @@ export function StockSupplierDetailDrawer({
   supplier,
   stockItems = [],
   stockOrders = [],
-  inventoryItems = [],
   canManage = false,
   isSaving = false,
   onClose,
@@ -46,8 +45,8 @@ export function StockSupplierDetailDrawer({
   )
 
   const hasHistory = useMemo(
-    () => supplierHasHistory(supplier, { stockItems, stockOrders, inventoryItems }),
-    [supplier, stockItems, stockOrders, inventoryItems],
+    () => supplierHasHistory(supplier, { stockItems, stockOrders }),
+    [supplier, stockItems, stockOrders],
   )
 
   const productLines = useMemo(

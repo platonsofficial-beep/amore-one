@@ -73,13 +73,6 @@ export function formatInventoryCategoryPath(item) {
   return `${category} • ${subcategory}`
 }
 
-export function formatInventoryBarRefillOptionLabel(item) {
-  const itemName = `${item?.itemName ?? ''}`.trim() || 'Unnamed item'
-  const category = `${item?.category ?? ''}`.trim() || 'Uncategorized'
-  const subcategory = getInventorySubcategoryLabel(item)
-  return `${itemName} — ${category} / ${subcategory}`
-}
-
 export function serializeInventorySubcategoryForSave(subcategory) {
   const trimmed = `${subcategory ?? ''}`.trim()
   if (!trimmed || trimmed === INVENTORY_UNCATEGORIZED_SUBCATEGORY) {
@@ -282,35 +275,3 @@ export function groupInventoryItemsByCategoryAndSubcategory(items = []) {
   })
 }
 
-export function filterInventoryItemsForBarRefill(items = [], category = '', subcategory = '') {
-  const trimmedCategory = `${category ?? ''}`.trim()
-  const trimmedSubcategory = `${subcategory ?? ''}`.trim()
-
-  if (!trimmedCategory || !trimmedSubcategory) return []
-
-  return sortItemsByName(
-    items.filter((item) => (
-      item.category === trimmedCategory
-      && getInventorySubcategoryLabel(item) === trimmedSubcategory
-    )),
-  )
-}
-
-export function sortInventoryItemsForBarRefill(items = []) {
-  return [...items].sort((left, right) => {
-    const categoryCompare = compareLabels(left?.category, right?.category)
-    if (categoryCompare !== 0) return categoryCompare
-
-    const subcategoryCompare = compareLabels(
-      getInventorySubcategoryLabel(left),
-      getInventorySubcategoryLabel(right),
-    )
-    if (subcategoryCompare !== 0) return subcategoryCompare
-
-    return compareLabels(left?.itemName, right?.itemName)
-  })
-}
-
-export function getInventoryBarRefillCategoryOptions(items = []) {
-  return getInventoryCategoryFilters(items)
-}

@@ -5,7 +5,7 @@ import {
   isReservationInHouseStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
-import { getStockItemsForSupplier, countInventoryItemsForSupplier } from './stockSupplierUtils'
+import { getStockItemsForSupplier } from './stockSupplierUtils'
 import { buildStockDashboardSummary } from './stockUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { buildTaskAlerts } from './taskUtils'
@@ -320,7 +320,7 @@ export function buildScheduleReport(
 
 export function buildSuppliersReport(
   suppliers = [],
-  inventoryItems = [],
+  _legacyInventoryItems = [],
   {
     suppliersConnected = true,
     inventoryConnected = true,
@@ -342,8 +342,7 @@ export function buildSuppliersReport(
   const totalSuppliers = suppliers.length
   let linkedToStock = 0
 
-  const hasStockModuleData = (stockItems ?? []).length > 0
-  const canLinkStock = inventoryConnected || hasStockModuleData
+  const canLinkStock = Boolean(inventoryConnected) || (stockItems ?? []).length > 0
 
   if (canLinkStock) {
     suppliers.forEach((supplier) => {
@@ -355,10 +354,7 @@ export function buildSuppliersReport(
           && `${supplierIdRaw}`.trim() !== '')
       if (!hasIdentity) return
 
-      // FK-first for stock_items; inventory_items remain text-linked (no supplier_id).
-      const hasLinkedItem = hasStockModuleData
-        ? getStockItemsForSupplier(stockItems, supplier).length > 0
-        : countInventoryItemsForSupplier(inventoryItems, supplier) > 0
+      const hasLinkedItem = getStockItemsForSupplier(stockItems, supplier).length > 0
       if (hasLinkedItem) linkedToStock += 1
     })
   }

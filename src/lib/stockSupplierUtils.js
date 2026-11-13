@@ -165,20 +165,6 @@ export function getStockOrdersForSupplier(stockOrders = [], supplierOrCompanyNam
   return (stockOrders ?? []).filter((order) => stockRecordMatchesSupplier(order, supplierOrCompanyName))
 }
 
-/**
- * Legacy inventory_items are text-linked only (no supplier_id yet).
- * Accepts supplier object or company name string.
- */
-export function countInventoryItemsForSupplier(inventoryItems = [], supplierOrCompanyName = '') {
-  const companyName = typeof supplierOrCompanyName === 'string' || supplierOrCompanyName == null
-    ? supplierOrCompanyName
-    : (supplierOrCompanyName.companyName ?? supplierOrCompanyName.company_name ?? '')
-
-  return (inventoryItems ?? []).filter((item) => (
-    supplierNameMatches(companyName, item.supplier)
-  )).length
-}
-
 export function isOpenStockOrder(order) {
   const status = normalizeStockOrderStatus(order?.status)
   return status === 'draft' || status === 'sent'
@@ -274,12 +260,9 @@ export function buildSuppliersDashboardSummary(suppliers = [], stockItems = [], 
 export function supplierHasHistory(supplier, {
   stockItems = [],
   stockOrders = [],
-  inventoryItems = [],
 } = {}) {
   const metrics = buildSupplierMetrics(supplier, stockItems, stockOrders)
-  const inventoryCount = countInventoryItemsForSupplier(inventoryItems, supplier)
-
-  return metrics.productsCount > 0 || metrics.totalOrders > 0 || inventoryCount > 0
+  return metrics.productsCount > 0 || metrics.totalOrders > 0
 }
 
 export function formatSupplierStatusLabel(supplier) {

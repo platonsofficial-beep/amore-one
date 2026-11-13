@@ -96,12 +96,12 @@ describe('FK history / metrics / delete guard', () => {
     })).toBe(true)
   })
 
-  it('delete guard: legacy text-linked supplier still protected', () => {
+  it('does not treat an old inventory row as supplier history', () => {
     expect(supplierHasHistory(supplierA, {
       stockItems: [],
       stockOrders: [],
       inventoryItems: [{ id: 'inv1', supplier: 'Malakakos AE' }],
-    })).toBe(true)
+    })).toBe(false)
   })
 
   it('string overload stays text-only (reports compatibility)', () => {

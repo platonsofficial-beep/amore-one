@@ -271,7 +271,6 @@ import {
   validateReservationSeatingForm,
 } from './lib/reservationSeatings'
 import { getConflictingUnitIds } from './lib/reservationTableOptions'
-import { getInventoryItems } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
@@ -732,7 +731,6 @@ import {
   buildTodayCommandTimeline,
   buildTodayReservationsSummary,
   getTodayReservations,
-  getLowStockAlertItems,
   isModuleUnavailableMessage,
   resolveLiveDraftShiftsForWeek,
   resolveLiveDraftCapacitiesForWeek,
@@ -15366,7 +15364,6 @@ function App() {
   const [operationsLoadNonce, setOperationsLoadNonce] = useState(0)
   const [insightsLoadNonce, setInsightsLoadNonce] = useState(0)
   const [tasksLoadFailed, setTasksLoadFailed] = useState(false)
-  const [inventoryLoadFailed, setInventoryLoadFailed] = useState(false)
   const [suppliersLoadFailed, setSuppliersLoadFailed] = useState(false)
   const [scheduleLegacyTemplateSchema, setScheduleLegacyTemplateSchema] = useState(false)
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
@@ -15513,7 +15510,6 @@ function App() {
   })
   const [isSavingReservation, setIsSavingReservation] = useState(false)
   const isSavingReservationRef = useRef(false)
-  const [inventoryItems, setInventoryItems] = useState([])
   const [stockItems, setStockItems] = useState([])
   const stockItemsCountRef = useRef(0)
   useEffect(() => {
@@ -15630,7 +15626,6 @@ function App() {
   })
   const [isTodayWeekLoading, setIsTodayWeekLoading] = useState(true)
   const [isReservationsModuleConnected, setIsReservationsModuleConnected] = useState(false)
-  const [isInventoryModuleConnected, setIsInventoryModuleConnected] = useState(false)
   const [isTasksModuleConnected, setIsTasksModuleConnected] = useState(false)
   const [workspaceProfile, setWorkspaceProfile] = useState(EMPTY_WORKSPACE_PROFILE)
   const [workspaceProfileDraft, setWorkspaceProfileDraft] = useState(EMPTY_WORKSPACE_PROFILE)
@@ -16529,12 +16524,10 @@ function App() {
     [operationalSnapshot],
   )
 
-  const dashboardStockAlerts = useMemo(() => (
-    resolveDashboardStockAlerts(
-      stockItems,
-      getLowStockAlertItems(inventoryItems),
-    )
-  ), [stockItems, inventoryItems])
+  const dashboardStockAlerts = useMemo(
+    () => resolveDashboardStockAlerts(stockItems),
+    [stockItems],
+  )
 
   const todayActionableTasks = useMemo(
     () => filterTasksExcludingAnnouncementDuplicates(tasks, operationsAnnouncements),
@@ -16999,7 +16992,7 @@ function App() {
 
   const todayAttentionItems = useMemo(() => buildTodayCommandCenterAttentionItems({
     stockAlerts: dashboardStockAlerts,
-    inventoryConnected: isInventoryModuleConnected,
+    inventoryConnected: stockItems.length > 0,
     operationsTasks: todayAttentionOperationsTasks,
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
@@ -17019,7 +17012,6 @@ function App() {
     announcementEmployeeDepartment: currentEmployeeDepartment,
   }), [
     dashboardStockAlerts,
-    isInventoryModuleConnected,
     todayAttentionOperationsTasks,
     currentDateKey,
     dashboardIssuesSummary,
@@ -17387,22 +17379,6 @@ function App() {
     await refreshReservations()
   }, [refreshReservations])
 
-  const refreshInventory = useCallback(async () => {
-    try {
-      const remoteInventory = await getInventoryItems()
-      setInventoryItems(remoteInventory)
-      setIsInventoryModuleConnected(true)
-      setInventoryLoadFailed(false)
-      return remoteInventory
-    } catch (error) {
-      setInventoryItems([])
-      setIsInventoryModuleConnected(false)
-      setInventoryLoadFailed(true)
-      console.error('[load] Couldn\'t load inventory', error)
-      throw error
-    }
-  }, [])
-
   const refreshStockItems = useCallback(async (options) => {
     if (!activeWorkspaceId) {
       setStockItems([])
@@ -17651,10 +17627,9 @@ function App() {
   const refreshDashboardModuleData = useCallback(async () => {
     await Promise.allSettled([
       refreshReservations(),
-      refreshInventory(),
       refreshTasks(),
     ])
-  }, [refreshInventory, refreshReservations, refreshTasks])
+  }, [refreshReservations, refreshTasks])
 
   const retryTodayData = useCallback((area) => {
     if (area === 'stock') {
@@ -17683,7 +17658,6 @@ function App() {
   const refreshReportsData = useCallback(async () => {
     const results = await Promise.allSettled([
       refreshReservations(),
-      refreshInventory(),
       refreshTasks(),
       refreshStockItems(),
       refreshStockOrders(),
@@ -17697,7 +17671,6 @@ function App() {
       message: rejected[0]?.reason?.message || '',
     }
   }, [
-    refreshInventory,
     refreshReservations,
     refreshStockItems,
     refreshStockOrders,
@@ -17727,7 +17700,7 @@ function App() {
     reservationsLoadFailed,
     tasksConnected: isTasksModuleConnected && !tasksLoadFailed,
     tasksLoadFailed,
-    inventoryConnected: isInventoryModuleConnected && !inventoryLoadFailed,
+    inventoryConnected: canAccessStockModule && !stockCatalogLoadFailed,
     stockModuleConnected: canAccessStockModule && !stockCatalogLoadFailed,
     stockLoadFailed: stockCatalogLoadFailed,
     scheduleConnected: !scheduleLoadFailed,
@@ -17739,8 +17712,6 @@ function App() {
     reservationsLoadFailed,
     isTasksModuleConnected,
     tasksLoadFailed,
-    isInventoryModuleConnected,
-    inventoryLoadFailed,
     canAccessStockModule,
     stockCatalogLoadFailed,
     scheduleLoadFailed,
@@ -17752,12 +17723,13 @@ function App() {
     schedule: !scheduleLoadFailed,
     tasks: isTasksModuleConnected && !tasksLoadFailed,
     suppliers: !suppliersLoadFailed,
-    stock: isInventoryModuleConnected,
+    stock: canAccessStockModule && !stockCatalogLoadFailed,
     reports: null,
   }), [
     isReservationsModuleConnected,
     isTasksModuleConnected,
-    isInventoryModuleConnected,
+    canAccessStockModule,
+    stockCatalogLoadFailed,
     scheduleLoadFailed,
     tasksLoadFailed,
     suppliersLoadFailed,
@@ -18404,19 +18376,6 @@ function App() {
     refreshTaskTemplates,
     refreshOperationsTasks,
   ])
-
-  useEffect(() => {
-    let isMounted = true
-
-    refreshInventory().catch((error) => {
-      if (!isMounted) return
-      console.warn('[App] refreshInventory error:', error)
-    })
-
-    return () => {
-      isMounted = false
-    }
-  }, [refreshInventory])
 
   const dashboardNeedsStockSnapshot = shouldLoadOperationalStockSnapshot({
     canAccessStock: canAccessStockModule,
@@ -24114,7 +24073,6 @@ function App() {
     const hasHistory = supplierHasHistory(supplierPendingDelete, {
       stockItems,
       stockOrders,
-      inventoryItems,
     })
     if (hasHistory) return
 
@@ -24200,7 +24158,6 @@ function App() {
     const hasHistory = supplierHasHistory(supplier, {
       stockItems,
       stockOrders,
-      inventoryItems,
     })
     if (hasHistory) return
 
@@ -24606,7 +24563,6 @@ function App() {
     || tasksLoadFailed
     || scheduleLoadFailed
     || stockCatalogLoadFailed
-    || inventoryLoadFailed
     || suppliersLoadFailed
   const moduleSubtitle = activeView === 'insights' && insightsFiguresUnavailable
     ? "Today's numbers aren't available yet."
@@ -24629,7 +24585,7 @@ function App() {
   }, [mobileExpandedView, moduleTitle])
 
   const supplierDeleteHasHistory = supplierPendingDelete
-    ? supplierHasHistory(supplierPendingDelete, { stockItems, stockOrders, inventoryItems })
+    ? supplierHasHistory(supplierPendingDelete, { stockItems, stockOrders })
     : false
 
   const handleOpenWorkspaceProfile = () => {
@@ -26115,7 +26071,6 @@ function App() {
             suppliers={suppliers}
             stockItems={stockItems}
             stockOrders={stockOrders}
-            inventoryItems={inventoryItems}
             isLoading={isSuppliersLoading || isStockItemsLoading || isStockOrdersLoading}
             noticeMessage={suppliersNotice}
             searchTerm={searchTerm}
@@ -26153,7 +26108,6 @@ function App() {
             weekStartDate={todayWeekStart}
             reservations={reservations}
             tasks={todayActionableTasks}
-            inventoryItems={inventoryItems}
             stockItems={stockItems}
             stockOrders={stockOrders}
             suppliers={suppliers}
