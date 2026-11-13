@@ -489,7 +489,7 @@ export function HostReservationList({
                 >
                   {isCollapsed ? '▶' : '▼'}
                 </span>
-                <span className="host-reservation-group-label">{section.label}</span>
+                <span className="host-reservation-group-label">{t(section.label)}</span>
                 <span className="host-reservation-group-count">({section.reservations.length})</span>
               </button>
 

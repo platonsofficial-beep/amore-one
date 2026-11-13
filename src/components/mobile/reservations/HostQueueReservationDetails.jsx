@@ -67,7 +67,7 @@ export function buildHostQueueMetaGroups(reservation, layout = null) {
   const groups = [{
     id: 'guests',
     icon: '👤',
-    text: `${partySize} guest${partySize === 1 ? '' : 's'}`,
+    text: t('{{count}} guest', { count: partySize }),
   }]
 
   if (areaLabel && !hasAssignedTables) {

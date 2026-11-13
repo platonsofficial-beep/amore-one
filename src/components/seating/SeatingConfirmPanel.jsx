@@ -55,7 +55,7 @@ export function SeatingConfirmPanel({
   const seatingName = normalizedSeating?.name ?? ''
   const advisory = getHostSeatingAssignmentAdvisory({ hasSelection, totals })
   const reservationMeta = [timeLabel, seatingName].filter(Boolean).join(' · ')
-  const partyLabel = `${totals.guests} ${totals.guests === 1 ? 'guest' : 'guests'}`
+  const partyLabel = t('{{count}} guest', { count: totals.guests })
   const headerMeta = [reservationMeta, partyLabel].filter(Boolean).join(' · ')
   const { scrollRef, needsScroll } = useHostAssignmentScrollPolicy([
     hasSelection,

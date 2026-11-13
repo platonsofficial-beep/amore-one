@@ -117,7 +117,7 @@ function buildInspectorDetailItems(
     items.push({
       id: 'guests',
       icon: '👤',
-      label: `${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}`,
+      label: t('{{count}} guest', { count: guestCount }),
     })
   }
   if (tableChip) {
@@ -333,14 +333,14 @@ function TableDayViewAssignmentRow({
                 {' · '}
                 {guestCount}
                 {' '}
-                {guestCount === 1 ? 'guest' : 'guests'}
+                {t('guest', { count: guestCount })}
               </span>
             </>
           ) : (
             <span className="floor-table-day-guest-count">
               {guestCount}
               {' '}
-              {guestCount === 1 ? 'guest' : 'guests'}
+              {t('guest', { count: guestCount })}
             </span>
           )}
         </p>

@@ -239,7 +239,7 @@ export function dismissStockSearchKeyboardOnEnter(event) {
  * and at or under the minimum. It is not the shelf below-par count.
  */
 export function getStockStatusFilterLabel(statusFilter = 'all') {
-  if (statusFilter === 'low') return 'Low'
+  if (statusFilter === 'low') return t('Low')
   if (statusFilter === 'out') return t("Out of stock")
   if (statusFilter === 'order') return t("To order")
   return t("All products")

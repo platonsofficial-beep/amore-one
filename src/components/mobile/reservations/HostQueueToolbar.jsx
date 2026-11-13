@@ -90,7 +90,7 @@ function HostQueueToolbarMenu({
             setIsOpen(false)
           }}
         >
-          <span>{option.label}</span>
+          <span>{t(option.label)}</span>
           {isSelected ? <span aria-hidden="true">✓</span> : null}
         </button>
       </li>

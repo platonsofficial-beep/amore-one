@@ -172,7 +172,7 @@ export function buildHostFloorCompactAriaLabel(content) {
     const parts = [content.tableLabel]
     if (content.bookingStale) parts.push('last loaded')
     if (content.timeLabel) parts.push(content.timeLabel)
-    if (guestCount !== null) parts.push(`${guestCount} guests`)
+    if (guestCount !== null) parts.push(t('{{count}} guest', { count: guestCount }))
     return parts.join(', ')
   }
 

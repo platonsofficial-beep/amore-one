@@ -1,5 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { t, uiLocale } from './i18n/i18n'
+import { t, uiLocale, upper } from './i18n/i18n'
 import { startVisibleInterval } from './lib/visibleInterval'
 import { combineLoadStatus, loadAreaForCard, stockLiveLoadStatus, useLoadStatuses } from './lib/loadStatus'
 import { LoadFailed, PendingValue } from './components/common/DataPending'
@@ -9756,7 +9756,7 @@ function FloorTableNode({
   const capacityLabel = table.maxGuestCapacity && table.maxGuestCapacity !== table.seats
     ? `${table.seats} stools · max ${table.maxGuestCapacity}`
     : isHostFloor
-      ? `${seatCapacity} guests`
+      ? t('{{count}} guest', { count: seatCapacity })
       : `${table.seats} seats`
   const isLargeCapacity = !guestName && seatCapacity > 20
   const seatedDurationLabel = displayReservation && isHostFloor
@@ -9767,8 +9767,8 @@ function FloorTableNode({
     ? formatHostFloorReservationTooltipMeta(reservation, { guestType })
     : null
   const reservationTooltipSchedule = arrivalTime
-    ? `${arrivalTime} · ${guestCount} guests`
-    : `${guestCount} guests`
+    ? `${arrivalTime} · ${t('{{count}} guest', { count: guestCount })}`
+    : t('{{count}} guest', { count: guestCount })
   const showCompactLinkedLabel = Boolean(
     guestName && isHostFloor && linkMeta?.isMultiLinked && !linkMeta?.isLinkPrimary,
   )
@@ -12792,7 +12792,7 @@ function isReservationArrived(reservation) {
 
 function getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey) {
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-  const statusLabel = getHostListStatusLabel(displayStatus).toUpperCase()
+  const statusLabel = upper(getHostListStatusLabel(displayStatus))
   const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
   const arrivalMinutes = parseTimeToMinutes(reservation.time)
 
@@ -13492,7 +13492,7 @@ function HostServicePressureBar({ slots, nowMinutes, selectedHour = null, onHour
         >
           <span className="host-service-pressure-time">{slot.timeLabel}</span>
           <span className="host-service-pressure-count">
-            {slot.count} booking{slot.count === 1 ? '' : 's'}
+            {t('{{count}} booking', { count: slot.count })}
           </span>
         </button>
       ))}
@@ -14194,7 +14194,7 @@ function ReservationArrivalCard({
             <span className="reservation-card-table-icon" aria-hidden="true">🍽</span>
             {tableLabel}
           </span>
-          <span className="reservation-card-party-size" aria-label={`${guestCount} guests`}>
+          <span className="reservation-card-party-size" aria-label={t('{{count}} guest', { count: guestCount })}>
             <span aria-hidden="true">👥</span>
             {guestCount}
           </span>

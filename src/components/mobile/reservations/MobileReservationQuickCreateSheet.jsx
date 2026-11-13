@@ -349,7 +349,7 @@ function HostReservationQuickCreateFields({
             data-testid="host-quick-create-purpose"
           >
             {RESERVATION_PURPOSE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>{t(option.label)}</option>
             ))}
           </select>
         </label>
@@ -362,7 +362,7 @@ function HostReservationQuickCreateFields({
             data-testid="host-quick-create-customer-type"
           >
             {GUEST_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>{t(option.label)}</option>
             ))}
           </select>
         </label>

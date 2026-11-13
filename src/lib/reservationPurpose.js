@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 export const PURPOSE_MARKER = '\n@@PURPOSE@@'
 
 export const RESERVATION_PURPOSES = ['dinner', 'drinks']
@@ -55,7 +57,7 @@ export function encodePurposeInNotes(notes, reservationPurpose) {
 export function getReservationPurposeLabel(reservationPurpose) {
   const normalized = normalizeStoredReservationPurpose(reservationPurpose)
   const option = RESERVATION_PURPOSE_OPTIONS.find((entry) => entry.value === normalized)
-  return option?.label ?? RESERVATION_PURPOSE_OPTIONS[0].label
+  return t(option?.label ?? RESERVATION_PURPOSE_OPTIONS[0].label)
 }
 
 export function getReservationPurpose(reservation) {

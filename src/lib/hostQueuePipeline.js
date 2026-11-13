@@ -689,7 +689,7 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   const extraChairs = assignment?.extraChairs ?? 0
   const standingGuests = assignment?.standingGuests ?? 0
 
-  const guestLabel = `${partySize} guest${partySize === 1 ? '' : 's'}`
+  const guestLabel = t('{{count}} guest', { count: partySize })
   const metaParts = [`👤 ${guestLabel}`]
   if (areaLabel && !hasAssignedTables) {
     metaParts.push(`📍 ${areaLabel}`)
@@ -725,7 +725,7 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   return {
     metaLine: metaParts.join(HOST_QUEUE_META_SEPARATOR),
     metaAriaLabel: [
-      `${partySize} guest${partySize === 1 ? '' : 's'}`,
+      t('{{count}} guest', { count: partySize }),
       formatHostQueueTableAriaLabel(tableSegment),
       extraChairs > 0 ? `${extraChairs} extra chair${extraChairs === 1 ? '' : 's'}` : '',
       standingGuests > 0 ? `${standingGuests} standing guest${standingGuests === 1 ? '' : 's'}` : '',

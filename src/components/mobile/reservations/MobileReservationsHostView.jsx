@@ -509,7 +509,7 @@ export function MobileReservationsHostView({
             data-testid="host-standard-create-btn"
             data-help="reservations.add"
           >
-            + Reservation
+            {t('+ Reservation')}
           </button>
           <GuestsButton onClick={() => setGuestsOpen(true)} />
         </div>
@@ -578,7 +578,7 @@ export function MobileReservationsHostView({
                 {t("Walk-in")}
               </button>
               <button type="button" className="mobile-host-reservations-add-btn" onClick={handleOpenStandardCreate}>
-                + Reservation
+                {t('+ Reservation')}
               </button>
             </div>
           ) : null}

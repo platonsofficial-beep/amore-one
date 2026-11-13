@@ -111,7 +111,7 @@ function MobileHostReservationCompactRow({
             />
           ) : (
             <p className="mobile-host-reservation-row-meta">
-              {partySize} {partySize === 1 ? 'guest' : 'guests'} · {tableSection}
+              {t('{{count}} guest', { count: partySize })} · {tableSection}
             </p>
           )}
         </button>
@@ -247,7 +247,7 @@ export function MobileReservationHostCard({
               isSaving={isSaving}
             />
             <p className="mobile-host-reservation-meta">
-              {partySize} {partySize === 1 ? 'guest' : 'guests'}
+              {t('{{count}} guest', { count: partySize })}
               {phone ? ` · ${phone}` : ''}
             </p>
             <p className="mobile-host-reservation-table">{tableSection}</p>

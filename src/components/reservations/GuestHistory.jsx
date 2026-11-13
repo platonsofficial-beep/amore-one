@@ -320,7 +320,7 @@ export function GuestDirectory({
             <ul className="guest-booking-list">
               {selected.bookings.map((booking) => (
                 <li key={booking.id} className="guest-booking-row">
-                  <span className="guest-date">{formatGuestDate(booking.date)} · {booking.guests} guests · {booking.tableNumber || t("No table")}</span>
+                  <span className="guest-date">{formatGuestDate(booking.date)} · {t('{{count}} guest', { count: booking.guests })} · {booking.tableNumber || t("No table")}</span>
                   <StatusChip status={booking.status} />
                 </li>
               ))}

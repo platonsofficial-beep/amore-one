@@ -18,7 +18,7 @@ export function HostQueueServiceSummary({
       <span className="host-queue-metric">
         <span className="host-queue-metric-icon" aria-hidden="true">👥</span>
         <strong>{expectedGuests}</strong>
-        <span className="host-queue-metric-label">{expectedGuests === 1 ? 'guest' : 'guests'}</span>
+        <span className="host-queue-metric-label">{t('guest', { count: expectedGuests })}</span>
       </span>
       <span className="host-queue-metric" title={tablesTitle}>
         <span className="host-queue-metric-icon" aria-hidden="true">🍽</span>

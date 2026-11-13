@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { translate, detectLocale, ACTIVE_LOCALE_IDS, LOCALES } from './i18n'
+import { translate, detectLocale, ACTIVE_LOCALE_IDS, LOCALES, upper } from './i18n'
 
 const en = JSON.parse(readFileSync(new URL('./locales/en.json', import.meta.url), 'utf8'))
 const el = JSON.parse(readFileSync(new URL('./locales/el.json', import.meta.url), 'utf8'))
@@ -21,5 +21,13 @@ describe('i18n', () => {
 
   it('defaults to English when nothing is stored', () => {
     expect(['en', 'el']).toContain(detectLocale())
+  })
+
+  it('uses i18next-style plural forms and drops the tonos in Greek capitals', () => {
+    expect(translate('{{count}} guest', { count: 1 }, 'el')).toBe('1 άτομο')
+    expect(translate('{{count}} guest', { count: 17 }, 'el')).toBe('17 άτομα')
+    expect(translate('{{count}} booking', { count: 5 }, 'el')).toBe('5 κρατήσεις')
+    expect(translate('{{count}} guest', { count: 2 }, 'en')).toBe('2 guests')
+    expect(upper('Παρασκευή')).toBe('ΠΑΡΑΣΚΕΥΗ')
   })
 })

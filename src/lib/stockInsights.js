@@ -120,8 +120,12 @@ export function formatToOrderBreakdown(items = [], summary = null) {
   const breakdown = summarizeToOrderBreakdown(items)
   const out = summary && summary.outOfStock != null ? summary.outOfStock : breakdown.out
   const low = summary && summary.lowStock != null ? summary.lowStock : breakdown.low
-  const orderLabel = breakdown.total === 1 ? '1 to order' : `${breakdown.total} to order`
-  return `${orderLabel}: ${out} out, ${low} low, ${breakdown.underTarget} below target`
+  return t('{{count}} to order: {{out}} out, {{low}} low, {{under}} below target', {
+    count: breakdown.total,
+    out,
+    low,
+    under: breakdown.underTarget,
+  })
 }
 
 export function buildToOrderSupplierGroups(items = [], suppliers = []) {

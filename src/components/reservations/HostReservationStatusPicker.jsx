@@ -278,8 +278,8 @@ export function HostReservationStatusPicker({
           aria-activedescendant={`host-status-${currentStatus.id}`}
         >
           {statusGroups.map((group) => (
-            <section key={group.id} className="host-status-picker-group" aria-label={group.label}>
-              <p className="host-status-picker-group-label">{group.label}</p>
+            <section key={group.id} className="host-status-picker-group" aria-label={t(group.label)}>
+              <p className="host-status-picker-group-label">{t(group.label)}</p>
               <div className="host-status-picker-group-items">
                 {group.statuses.map((status) => {
                   const isActive = status.id === currentStatus.id

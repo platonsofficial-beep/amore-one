@@ -236,11 +236,11 @@ export function buildTodayStatusSummary({
     const guests = Number(serviceSnapshot?.totalCovers ?? reservationsSummary.guests) || 0
     if (bookings > 0) {
       const coverLabel = guests > 0
-        ? `${guests} cover${guests === 1 ? '' : 's'}`
+        ? t('{{count}} cover', { count: guests })
         : ''
       reservationsSummaryLine = coverLabel
-        ? `${bookings} booking${bookings === 1 ? '' : 's'} · ${coverLabel}`
-        : `${bookings} booking${bookings === 1 ? '' : 's'} today`
+        ? `${t('{{count}} booking', { count: bookings })} · ${coverLabel}`
+        : t('{{count}} booking today', { count: bookings })
     }
     if (reservationsFooter?.type === 'next' && reservationsFooter.time) {
       reservationsSummaryLine = `${reservationsSummaryLine} · Next ${reservationsFooter.time}`

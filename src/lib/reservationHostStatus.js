@@ -18,7 +18,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: t("Not Confirmed"),
+    id: 'Not Confirmed',
     label: 'Unconfirmed',
     icon: '🕐',
     tone: 'not-confirmed',
@@ -36,7 +36,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'upcoming',
   },
   {
-    id: t("Late Booking"),
+    id: 'Late Booking',
     label: 'Late',
     icon: '☾',
     tone: 'late-booking',
@@ -44,16 +44,16 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'upcoming',
   },
   {
-    id: t("Checked In (Partial)"),
+    id: 'Checked In (Partial)',
     // No seated-guest count is stored, so the partial seat gets a short hint.
-    label: t("Seated · partly"),
+    label: 'Seated · partly',
     icon: '✓',
     tone: 'checked-in-partial',
     groupId: 'in-house',
     pickerGroupId: 'arrived',
   },
   {
-    id: t("Checked In"),
+    id: 'Checked In',
     label: 'Seated',
     icon: '🍽',
     tone: 'checked-in',
@@ -61,7 +61,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: t("Walk In"),
+    id: 'Walk In',
     label: 'Walk-in',
     icon: '→',
     tone: 'walk-in',
@@ -69,7 +69,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: t("Checked Out"),
+    id: 'Checked Out',
     label: 'Finished',
     icon: '✓',
     tone: 'checked-out',
@@ -85,7 +85,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'problems',
   },
   {
-    id: t("Not Shown"),
+    id: 'Not Shown',
     label: 'No-show',
     icon: '◌',
     tone: 'not-shown',
@@ -151,17 +151,17 @@ export const HOST_LIST_GROUP_DEFS = [
 const LEGACY_STATUS_ALIASES = {
   Booked: 'Pending',
   Arrived: 'Waiting',
-  Seated: t("Checked In"),
-  seated: t("Checked In"),
-  in_house: t("Checked In"),
-  checked_in: t("Checked In"),
-  Dining: t("Checked In"),
-  Completed: t("Checked Out"),
-  completed: t("Checked Out"),
-  finished: t("Checked Out"),
-  departed: t("Checked Out"),
-  closed: t("Checked Out"),
-  'No Show': t("Not Shown"),
+  Seated: 'Checked In',
+  seated: 'Checked In',
+  in_house: 'Checked In',
+  checked_in: 'Checked In',
+  Dining: 'Checked In',
+  Completed: 'Checked Out',
+  completed: 'Checked Out',
+  finished: 'Checked Out',
+  departed: 'Checked Out',
+  closed: 'Checked Out',
+  'No Show': 'Not Shown',
   pending: 'Pending',
   confirmed: 'Confirmed',
   cancelled: 'Cancelled',
@@ -275,7 +275,7 @@ export function getReservationDisplayStatusTone(status) {
 }
 
 export function getHostListStatusLabel(status) {
-  return getHostStatusMeta(status).label
+  return t(getHostStatusMeta(status).label)
 }
 
 const HOST_LIST_COMPACT_STATUS_LABELS = {
@@ -284,7 +284,7 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   'Not Confirmed': 'Unconfirmed',
   Confirmed: 'Confirmed',
   'Late Booking': 'Late',
-  'Checked In (Partial)': t("Seated · partly"),
+  'Checked In (Partial)': 'Seated · partly',
   'Checked In': 'Seated',
   'Walk In': 'Walk-in',
   'Checked Out': 'Finished',
@@ -321,7 +321,7 @@ export function formatPartialSeatRemaining(reservation) {
 
 export function getHostListCompactStatusLabel(status) {
   const normalized = normalizeReservationStatus(status)
-  return HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label
+  return t(HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label)
 }
 
 export function getReservationLateDelayMinutes(reservation, nowMinutes, todayKey) {
@@ -366,7 +366,7 @@ export function getHostListCompactStatusPresentation(
 
 const HOST_FLOOR_SELECTION_STATUS_LABELS = {
   'Checked In': 'Seated',
-  'Checked In (Partial)': t("Seated · partly"),
+  'Checked In (Partial)': 'Seated · partly',
   'Walk In': 'Walk-in',
   'Not Shown': 'No-show',
   'Checked Out': 'Finished',
@@ -397,8 +397,8 @@ export function getHostFloorSelectionStatusPresentation(
   const tone = getHostStatusMeta(displayStatus).tone
   const icon = HOST_FLOOR_SELECTION_STATUS_ICONS[displayStatus] ?? '•'
 
-  let label = HOST_FLOOR_SELECTION_STATUS_LABELS[displayStatus]
-    ?? getHostListCompactStatusLabel(displayStatus)
+  let label = t(HOST_FLOOR_SELECTION_STATUS_LABELS[displayStatus]
+    ?? getHostListCompactStatusLabel(displayStatus))
 
   if (displayStatus === 'Late Booking') {
     label = compact.label

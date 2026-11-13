@@ -52,10 +52,10 @@ export function summarizePortraitDay(dayReservations = []) {
     guests += Math.max(0, Number(reservation?.guests) || 0)
   })
   const parts = [
-    `${bookings} booking${bookings === 1 ? '' : 's'}`,
-    `${guests} guest${guests === 1 ? '' : 's'}`,
+    t('{{count}} booking', { count: bookings }),
+    t('{{count}} guest', { count: guests }),
   ]
-  if (cancelled) parts.push(`${cancelled} cancelled`)
+  if (cancelled) parts.push(t('{{count}} cancelled', { count: cancelled }))
   return parts.join(' · ')
 }
 

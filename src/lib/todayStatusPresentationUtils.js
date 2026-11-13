@@ -75,7 +75,7 @@ function buildReservationsCard(reservationsSummaryLine = '') {
       id: 'reservations',
       icon: '🍽',
       title: 'Reservations',
-      primary: '0 bookings',
+      primary: t('{{count}} booking', { count: 0 }),
       secondary: line || t("No reservations today"),
       tone: 'muted',
     }
@@ -91,7 +91,7 @@ function buildReservationsCard(reservationsSummaryLine = '') {
     icon: '🍽',
     title: 'Reservations',
     primary: bookingCount
-      ? `${bookingCount} booking${bookingCount === '1' ? '' : 's'}`
+      ? t('{{count}} booking', { count: Number(bookingCount) })
       : bookingPart,
     secondary: [coverPart, nextPart].filter(Boolean).join(' · '),
     tone: 'default',

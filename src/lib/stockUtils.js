@@ -54,16 +54,16 @@ export function resolveStockItemStatus(item) {
 
 export function getStockStatusLabel(status) {
   if (status === 'out') return t("Out of stock")
-  if (status === 'low') return 'Low'
-  if (status === 'inactive') return 'Inactive'
+  if (status === 'low') return t('Low')
+  if (status === 'inactive') return t('Inactive')
   return t("In stock")
 }
 
 export function getStockStatusShortLabel(status) {
-  if (status === 'out') return 'Out'
-  if (status === 'low') return 'Low'
-  if (status === 'inactive') return 'Inactive'
-  return 'OK'
+  if (status === 'out') return t('Out')
+  if (status === 'low') return t('Low')
+  if (status === 'inactive') return t('Inactive')
+  return t('OK')
 }
 
 function normalizeStockAlertDateKey(value) {

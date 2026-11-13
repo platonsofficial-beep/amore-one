@@ -135,7 +135,7 @@ export function FloorTableScheduleCard({
                   </div>
                   <strong className="floor-table-schedule-card-guest">{entry.guestName}</strong>
                   <div className="floor-table-schedule-card-details">
-                    <span className="floor-table-schedule-card-guests">{entry.guests} guests</span>
+                    <span className="floor-table-schedule-card-guests">{t('{{count}} guest', { count: entry.guests })}</span>
                     <span className="floor-table-schedule-card-sep" aria-hidden="true">·</span>
                     <span className="floor-table-schedule-card-tables">{entry.tablesLabel || '—'}</span>
                   </div>

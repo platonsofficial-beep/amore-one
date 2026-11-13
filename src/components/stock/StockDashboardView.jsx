@@ -1782,7 +1782,7 @@ export function StockDashboardView({
           <p className="stock-calm-kicker">{t("Inventory")}</p>
           <h2 className="stock-calm-title">
             {isLoading || catalogLoadFailed ? '—' : summary.totalItems}
-            <span>{isLoading || catalogLoadFailed ? ' items' : ` ${formatStockActiveCountWord(summary.totalItems)}`}</span>
+            <span>{isLoading || catalogLoadFailed ? ` ${t('items')}` : ` ${t('active item', { count: summary.totalItems })}`}</span>
           </h2>
           {!isLoading && !catalogLoadFailed && inactiveNote ? (
             <p className="stock-calm-inactive-note">{inactiveNote}</p>
@@ -1800,7 +1800,7 @@ export function StockDashboardView({
         <section className="stock-today-board" aria-label={t("What to do today")} data-stock-widget-density="dense">
           <div className="stock-today-kpis">
             <StockSummaryCard
-              label="Low"
+              label={t("Low")}
               value={summary.lowStock}
               tone={summary.lowStock > 0 ? 'warning' : 'default'}
               isInteractive
@@ -1828,7 +1828,7 @@ export function StockDashboardView({
             <header className="stock-today-card-header">
               <h3>{t("To order")}</h3>
               <StockMetaSegments
-                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${canManage && toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
+                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${canManage && toOrderEstimate > 0 ? ` · ${t('Est.')} ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
               />
             </header>
             {visibleOrderGroups.length > 0 ? (
@@ -1871,7 +1871,7 @@ export function StockDashboardView({
               <StockMetaSegments
                 text={toCountTotal === 0
                   ? t("Nothing waiting")
-                  : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
+                  : t('{{count}} item to count', { count: toCountTotal })}
               />
             </header>
             {visibleCountGroups.length > 0 ? (
