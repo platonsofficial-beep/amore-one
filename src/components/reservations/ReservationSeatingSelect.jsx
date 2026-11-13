@@ -5,6 +5,7 @@ import {
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
 } from '../../lib/reservationSeatings'
+import { t } from '../../i18n/i18n'
 
 export function ReservationSeatingSelect({
   seatings = [],
@@ -40,20 +41,20 @@ export function ReservationSeatingSelect({
 
   return (
     <label className={className}>
-      <span>Seating</span>
+      <span>{t("Seating")}</span>
       <select value={selectedValue} onChange={handleChange} required={required}>
-        <option value="" disabled={required}>Select seating</option>
+        <option value="" disabled={required}>{t("Select seating")}</option>
         {activeSeatings.map((seating) => (
           <option key={seating.id} value={seating.id}>
             {formatSeatingChipLabel(seating)}
           </option>
         ))}
-        <option value={CUSTOM_SEATING_VALUE}>Custom time</option>
+        <option value={CUSTOM_SEATING_VALUE}>{t("Custom time")}</option>
       </select>
       {selectedValue === CUSTOM_SEATING_VALUE ? (
-        <small className="reservation-seating-select-hint">Choose a custom exact time below.</small>
+        <small className="reservation-seating-select-hint">{t("Choose a custom exact time below.")}</small>
       ) : (
-        <small className="reservation-seating-select-hint">Exact reservation time is set separately below.</small>
+        <small className="reservation-seating-select-hint">{t("Exact reservation time is set separately below.")}</small>
       )}
     </label>
   )

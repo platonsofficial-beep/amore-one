@@ -14,6 +14,7 @@ import {
 } from '../../lib/stockInvoicePreview'
 import { formatStockPurchasePrice } from '../../lib/stockUtils'
 import { loadOrderInvoice, saveOrderInvoice, scanInvoiceFile } from '../../services/stockInvoiceService'
+import { t } from '../../i18n/i18n'
 import './stockInvoice.css'
 
 function money(value) {
@@ -39,25 +40,25 @@ function InvoiceReview({
   return (
     <div className="stock-invoice-sheet" role="dialog" aria-modal="true" aria-labelledby="stock-invoice-review-title" data-testid="stock-invoice-review">
       <div className="stock-invoice-sheet-card">
-        <p className="stock-order-detail-eyebrow">Invoice</p>
-        <h3 id="stock-invoice-review-title">Review invoice</h3>
+        <p className="stock-order-detail-eyebrow">{t("Invoice")}</p>
+        <h3 id="stock-invoice-review-title">{t("Review invoice")}</h3>
         <p className="stock-invoice-note">
           {draft.scanned
-            ? 'Check these fields before saving. Highlighted lines differ from the order.'
+            ? t("Check these fields before saving. Highlighted lines differ from the order.")
             : 'Scan isn\'t connected. The file will be saved, and you can type the invoice yourself.'}
         </p>
         <p>{files.length} file{files.length === 1 ? '' : 's'} attached.</p>
         <div className="stock-invoice-fields">
           <label>
-            Supplier
+            {t("Supplier")}
             <input value={draft.supplierName} onChange={(event) => onChange({ supplierName: event.target.value })} />
           </label>
           <label>
-            Invoice number
+            {t("Invoice number")}
             <input value={draft.invoiceNumber} onChange={(event) => onChange({ invoiceNumber: event.target.value })} />
           </label>
           <label>
-            Invoice date
+            {t("Invoice date")}
             <input type="date" value={draft.invoiceDate} onChange={(event) => onChange({ invoiceDate: event.target.value })} />
           </label>
         </div>
@@ -66,14 +67,14 @@ function InvoiceReview({
           return (
             <div key={`${line.name}-${index}`} className={`stock-invoice-line${different ? ' is-different' : ''}`}>
               <label>
-                Item
+                {t("Item")}
                 <input
                   value={line.name}
                   onChange={(event) => onChange({ lineIndex: index, name: event.target.value })}
                 />
               </label>
               <label>
-                Qty
+                {t("Qty")}
                 <input
                   inputMode="decimal"
                   value={line.quantity}
@@ -81,7 +82,7 @@ function InvoiceReview({
                 />
               </label>
               <label>
-                Unit price
+                {t("Unit price")}
                 <input
                   inputMode="decimal"
                   value={line.unitPrice}
@@ -100,27 +101,27 @@ function InvoiceReview({
         })}
         <div className="stock-invoice-fields">
           <label>
-            Subtotal
+            {t("Subtotal")}
             <input inputMode="decimal" value={draft.subtotal} onChange={(event) => onChange({ subtotal: event.target.value })} />
           </label>
           <label>
-            VAT
+            {t("VAT")}
             <input inputMode="decimal" value={draft.vat} onChange={(event) => onChange({ vat: event.target.value })} />
           </label>
           <label>
-            Total
+            {t("Total")}
             <input inputMode="decimal" value={draft.total} onChange={(event) => onChange({ total: event.target.value })} />
           </label>
         </div>
         {notice ? <p className="staff-status-banner" role="status">{notice}</p> : null}
         <div className="stock-invoice-sheet-actions">
-          <button type="button" className="ghost-btn" onClick={onAddLine}>Add line</button>
-          <button type="button" className="ghost-btn" onClick={() => document.getElementById(cameraId)?.click()}>Add photo</button>
-          <button type="button" className="ghost-btn" onClick={() => document.getElementById(fileId)?.click()}>Add file</button>
+          <button type="button" className="ghost-btn" onClick={onAddLine}>{t("Add line")}</button>
+          <button type="button" className="ghost-btn" onClick={() => document.getElementById(cameraId)?.click()}>{t("Add photo")}</button>
+          <button type="button" className="ghost-btn" onClick={() => document.getElementById(fileId)?.click()}>{t("Add file")}</button>
           <button type="button" className="primary-btn stock-invoice-save" onClick={onSave} disabled={isSaving}>
-            {isSaving ? 'Saving…' : 'Save invoice'}
+            {isSaving ? 'Saving…' : t("Save invoice")}
           </button>
-          <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+          <button type="button" className="ghost-btn" onClick={onClose}>{t("Close")}</button>
         </div>
         <input id={cameraId} className="stock-invoice-file-input" type="file" accept="image/*" capture="environment" onChange={onAddPages} />
         <input id={fileId} className="stock-invoice-file-input" type="file" accept="image/*,application/pdf" multiple onChange={onAddPages} />
@@ -211,7 +212,7 @@ export function StockInvoiceSection({
       }
       setOpen(true)
     } catch (error) {
-      setNotice(error?.message || 'Could not read that file.')
+      setNotice(error?.message || t("Could not read that file."))
     }
   }
 
@@ -245,22 +246,22 @@ export function StockInvoiceSection({
       setOpen(false)
       onSaved?.()
     } catch (error) {
-      setNotice(error?.message || 'Could not save the invoice.')
+      setNotice(error?.message || t("Could not save the invoice."))
     } finally {
       setIsSaving(false)
     }
   }
 
   return (
-    <section className="stock-invoice-section panel staff-panel" aria-label="Invoice" data-testid="stock-invoice-section">
-      <h4>Invoice</h4>
+    <section className="stock-invoice-section panel staff-panel" aria-label={t("Invoice")} data-testid="stock-invoice-section">
+      <h4>{t("Invoice")}</h4>
       {invoice ? (
         <>
-          <p>{invoice.supplierName || 'Supplier invoice'}{invoice.invoiceNumber ? ` · ${invoice.invoiceNumber}` : ''}</p>
+          <p>{invoice.supplierName || t("Supplier invoice")}{invoice.invoiceNumber ? ` · ${invoice.invoiceNumber}` : ''}</p>
           <dl className="stock-invoice-totals">
-            <div><dt>Subtotal</dt><dd>{money(invoice.subtotal)}</dd></div>
-            <div><dt>VAT</dt><dd>{money(invoice.vat)}</dd></div>
-            <div><dt>Total</dt><dd>{money(invoice.total)}</dd></div>
+            <div><dt>{t("Subtotal")}</dt><dd>{money(invoice.subtotal)}</dd></div>
+            <div><dt>{t("VAT")}</dt><dd>{money(invoice.vat)}</dd></div>
+            <div><dt>{t("Total")}</dt><dd>{money(invoice.total)}</dd></div>
           </dl>
           <div className="stock-invoice-thumbs">
             {(invoice.files ?? []).map((file) => (
@@ -274,21 +275,21 @@ export function StockInvoiceSection({
                 {file.previewUrl && file.contentType !== 'application/pdf' ? (
                   <img src={file.previewUrl} alt="" />
                 ) : (
-                  <span>PDF</span>
+                  <span>{t("PDF")}</span>
                 )}
               </button>
             ))}
           </div>
         </>
       ) : (
-        <p className="stock-invoice-note">Attach the supplier invoice when the delivery arrives.</p>
+        <p className="stock-invoice-note">{t("Attach the supplier invoice when the delivery arrives.")}</p>
       )}
       <div className="stock-invoice-actions">
         <button type="button" className="primary-btn" onClick={() => document.getElementById(cameraId)?.click()}>
-          Add invoice
+          {t("Add invoice")}
         </button>
         <button type="button" className="ghost-btn" onClick={() => document.getElementById(fileId)?.click()}>
-          Choose file
+          {t("Choose file")}
         </button>
       </div>
       <input id={cameraId} className="stock-invoice-file-input" data-testid="stock-invoice-camera" type="file" accept="image/*" capture="environment" onChange={addFiles} />
@@ -310,13 +311,13 @@ export function StockInvoiceSection({
         document.body,
       ) : null}
       {viewer ? createPortal(
-        <div className="stock-invoice-viewer" role="dialog" aria-modal="true" aria-label="Invoice file">
+        <div className="stock-invoice-viewer" role="dialog" aria-modal="true" aria-label={t("Invoice file")}>
           {viewer.contentType === 'application/pdf' ? (
-            <iframe title={viewer.fileName || 'Invoice PDF'} src={viewer.previewUrl} />
+            <iframe title={viewer.fileName || t("Invoice PDF")} src={viewer.previewUrl} />
           ) : (
             <img src={viewer.previewUrl} alt={viewer.fileName || 'Invoice'} />
           )}
-          <button type="button" className="ghost-btn" onClick={() => setViewer(null)}>Close</button>
+          <button type="button" className="ghost-btn" onClick={() => setViewer(null)}>{t("Close")}</button>
         </div>,
         document.body,
       ) : null}

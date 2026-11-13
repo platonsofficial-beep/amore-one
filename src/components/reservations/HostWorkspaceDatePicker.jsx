@@ -7,6 +7,7 @@ import {
   getHostWorkspaceMonthKey,
   shiftHostWorkspaceMonthKey,
 } from './hostReservationListUtils'
+import { t } from '../../i18n/i18n'
 
 export function HostWorkspaceDatePicker({
   selectedDateKey,
@@ -44,13 +45,13 @@ export function HostWorkspaceDatePicker({
   }
 
   return (
-    <div className="host-workspace-date-picker" role="dialog" aria-label="Choose reservation date">
+    <div className="host-workspace-date-picker" role="dialog" aria-label={t("Choose reservation date")}>
       <div className="host-workspace-date-picker-header">
         <button
           type="button"
           className="host-workspace-date-picker-month-btn"
           onClick={() => setViewMonthKey((current) => shiftHostWorkspaceMonthKey(current, -1))}
-          aria-label="Previous month"
+          aria-label={t("Previous month")}
         >
           ‹
         </button>
@@ -61,7 +62,7 @@ export function HostWorkspaceDatePicker({
           type="button"
           className="host-workspace-date-picker-month-btn"
           onClick={() => setViewMonthKey((current) => shiftHostWorkspaceMonthKey(current, 1))}
-          aria-label="Next month"
+          aria-label={t("Next month")}
         >
           ›
         </button>
@@ -106,7 +107,7 @@ export function HostWorkspaceDatePicker({
           onClick={onClose}
           data-testid="host-workspace-date-picker-cancel"
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -115,7 +116,7 @@ export function HostWorkspaceDatePicker({
           disabled={!normalizedTodayKey}
           data-testid="host-workspace-date-picker-today"
         >
-          Today
+          {t("Today")}
         </button>
       </footer>
     </div>

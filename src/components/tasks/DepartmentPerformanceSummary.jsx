@@ -1,17 +1,18 @@
+import { t } from '../../i18n/i18n'
 export default function DepartmentPerformanceSummary({
   summaries = [],
   compact = false,
-  title = 'Department performance',
+  title = t("Department performance"),
 }) {
   if (summaries.length === 0) {
     return (
       <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label={title}>
         <header className="tasks-dept-performance-header">
-          {!compact ? <p className="eyebrow">Manager view</p> : null}
+          {!compact ? <p className="eyebrow">{t("Manager view")}</p> : null}
           <h3>{title}</h3>
         </header>
         <div className="tasks-dept-performance-empty">
-          No department workload scheduled for today yet.
+          {t("No department workload scheduled for today yet.")}
         </div>
       </section>
     )
@@ -20,10 +21,10 @@ export default function DepartmentPerformanceSummary({
   return (
     <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label={title}>
       <header className="tasks-dept-performance-header">
-        {!compact ? <p className="eyebrow">Manager view</p> : null}
+        {!compact ? <p className="eyebrow">{t("Manager view")}</p> : null}
         <h3>{title}</h3>
         {!compact ? (
-          <p className="staff-subtitle">Today&apos;s completion by department.</p>
+          <p className="staff-subtitle">{t("Today's completion by department.")}</p>
         ) : null}
       </header>
 
@@ -39,7 +40,7 @@ export default function DepartmentPerformanceSummary({
             </div>
 
             <p className="tasks-dept-performance-ratio">
-              {summary.completedToday}/{summary.totalToday} completed
+              {t('{{done}}/{{total}} completed', { done: summary.completedToday, total: summary.totalToday })}
             </p>
 
             <div className="tasks-dept-performance-progress" aria-hidden="true">

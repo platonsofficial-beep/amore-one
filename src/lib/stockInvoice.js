@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const INVOICE_IMAGE_MAX_EDGE = 1600
 export const INVOICE_JPEG_QUALITY = 0.72
 export const INVOICE_PDF_MAX_BYTES = 8 * 1024 * 1024
@@ -65,7 +66,7 @@ export function compareInvoiceLines(lines = [], orderItems = []) {
 
 export function receivedWithInvoiceBadge(order) {
   const status = `${order?.status ?? ''}`.trim().toLowerCase()
-  if (status === 'received' && order?.hasInvoice) return 'Received with invoice'
+  if (status === 'received' && order?.hasInvoice) return t("Received with invoice")
   return ''
 }
 

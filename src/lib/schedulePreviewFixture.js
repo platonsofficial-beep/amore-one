@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /** Preview-only week grid. Never used when auth is on, and only when the URL asks for it. */
 
 export function shouldUseSchedulePreviewFixture(search = '') {
@@ -21,20 +22,20 @@ function previewEmployee({ id, name, position, department }) {
 
 export function buildSchedulePreviewEmployees() {
   return [
-    previewEmployee({ id: 'preview-ana', name: 'Ana Ribeiro', position: 'Line Cook', department: 'Kitchen' }),
-    previewEmployee({ id: 'preview-andreas', name: 'Andreas Georgiou', position: 'Head Bartender', department: 'Bar' }),
-    previewEmployee({ id: 'preview-elena', name: 'Elena Christodoulou', position: 'Bartender', department: 'Bar' }),
-    previewEmployee({ id: 'preview-evie', name: 'Evie S.', position: 'Waiter / Server', department: 'Service' }),
+    previewEmployee({ id: 'preview-ana', name: t("Ana Ribeiro"), position: t("Line Cook"), department: 'Kitchen' }),
+    previewEmployee({ id: 'preview-andreas', name: t("Andreas Georgiou"), position: t("Head Bartender"), department: 'Bar' }),
+    previewEmployee({ id: 'preview-elena', name: t("Elena Christodoulou"), position: 'Bartender', department: 'Bar' }),
+    previewEmployee({ id: 'preview-evie', name: t("Evie S."), position: t("Waiter / Server"), department: 'Service' }),
   ]
 }
 
 export function buildSchedulePreviewPositions() {
   return [
-    { id: 'preview-pos-line-cook', name: 'Line Cook' },
-    { id: 'preview-pos-head-bartender', name: 'Head Bartender' },
+    { id: 'preview-pos-line-cook', name: t("Line Cook") },
+    { id: 'preview-pos-head-bartender', name: t("Head Bartender") },
     { id: 'preview-pos-bartender', name: 'Bartender' },
-    { id: 'preview-pos-waiter', name: 'Waiter / Server' },
-    { id: 'preview-pos-gm', name: 'General Manager' },
+    { id: 'preview-pos-waiter', name: t("Waiter / Server") },
+    { id: 'preview-pos-gm', name: t("General Manager") },
   ]
 }
 

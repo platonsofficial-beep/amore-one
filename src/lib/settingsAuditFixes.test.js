@@ -29,7 +29,7 @@ describe('Settings audit fixes', () => {
   it('SET-02 shortens phone chips and shows a scroll cue', () => {
     expect(view).toMatch(/shortLabel: 'Profile'/)
     expect(view).toMatch(/shortLabel: 'Privacy'/)
-    expect(view).toMatch(/aria-label="More settings sections"/)
+    expect(view).toMatch(/aria-label=\{t\("More settings sections"\)\}/)
     expect(appCss).toMatch(/@media \(max-width: 640px\) and \(orientation: portrait\)/)
     expect(appCss).toMatch(/\.workspace-nav-label-short/)
     expect(appCss).toMatch(/mask-image:\s*linear-gradient/)

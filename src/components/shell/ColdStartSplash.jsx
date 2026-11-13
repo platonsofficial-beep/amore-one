@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { t } from '../../i18n/i18n'
 import './coldStartSplash.css'
 
 const MIN_MS = 2600
@@ -96,7 +97,7 @@ export function ColdStartSplash() {
       className={`cold-start-splash${reduced ? ' is-reduced' : ''}${noBlur ? ' is-no-blur' : ''}${phase === 'fading' ? ' is-fading' : ''}`}
       role="button"
       tabIndex={0}
-      aria-label="Skip intro"
+      aria-label={t("Skip intro")}
       data-testid="cold-start-splash"
     >
       <div className="cold-start-stage">
@@ -143,7 +144,7 @@ export function ColdStartSplash() {
         </svg>
         <svg className="cold-start-layer cold-start-tagline" viewBox="-30 0 660 800" aria-hidden="true">
           <text x="300" y="770" textAnchor="middle" fontFamily="Montserrat, Poppins, sans-serif" fontWeight="500" fontSize="24" letterSpacing="6" fill="#D4AF37">
-            HOSPITALITY OPERATING SYSTEM
+            {t("HOSPITALITY OPERATING SYSTEM")}
           </text>
         </svg>
         <svg className="cold-start-layer cold-start-shimmer" viewBox="-30 0 660 800" aria-hidden="true">
@@ -161,7 +162,7 @@ export function ColdStartSplash() {
                 <rect x="438" y="686" width="124" height="16" fill="white" />
               </g>
               <text x="300" y="770" textAnchor="middle" fontFamily="Montserrat, Poppins, sans-serif" fontWeight="500" fontSize="24" letterSpacing="6" fill="white">
-                HOSPITALITY OPERATING SYSTEM
+                {t("HOSPITALITY OPERATING SYSTEM")}
               </text>
             </mask>
             <linearGradient id="splash-shine" x1="0" y1="0" x2="1" y2="1">

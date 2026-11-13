@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { readCssPx } from '../lib/safeInline'
 import { openHelpAssistant } from './helpAssistantStore'
 import { resolveHelpCopy } from './helpTexts'
+import { t } from '../i18n/i18n'
 import './helpMode.css'
 
 const STORAGE_KEY = 'one.help.mode'
@@ -78,7 +79,7 @@ export function HelpModeToggle({ className = '' }) {
       data-help-chrome=""
       data-help="header.help"
       data-testid="help-assistant-open"
-      aria-label="Help"
+      aria-label={t("Help")}
       onClick={() => {
         setEnabled(false)
         openHelpAssistant()
@@ -260,9 +261,9 @@ export function HelpModeChrome() {
       </div>
       {on ? (
         <div className="help-mode-banner" data-help-chrome="" role="status">
-          <p>Help mode — tap anything to see what it does</p>
+          <p>{t("Help mode — tap anything to see what it does")}</p>
           <button type="button" className="help-mode-done" onClick={() => setEnabled(false)}>
-            Done
+            {t("Done")}
           </button>
         </div>
       ) : null}

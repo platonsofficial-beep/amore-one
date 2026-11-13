@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { clampOverlayLeft } from '../../lib/safeInline'
+import { t } from '../../i18n/i18n'
 
 const MENU_Z_INDEX = 12000
 const MENU_MARGIN = 8
@@ -8,7 +9,7 @@ const MOBILE_SHEET_QUERY = '(max-width: 900px), (max-height: 520px)'
 
 const MENU_ITEMS = [
   { id: 'label-stock', type: 'label', label: 'Stock' },
-  { id: 'receive', label: 'Receive delivery', group: 'operations' },
+  { id: 'receive', label: t("Receive delivery"), group: 'operations' },
   { id: 'count', label: 'Count', group: 'operations' },
   { id: 'usage', label: 'Usage', group: 'operations' },
   { id: 'waste', label: 'Waste', group: 'operations' },
@@ -16,11 +17,11 @@ const MENU_ITEMS = [
   { id: 'label-product', type: 'label', label: 'Product' },
   { id: 'edit', label: 'Edit', group: 'management' },
   { id: 'duplicate', label: 'Duplicate', group: 'management' },
-  { id: 'history', label: 'History & details', group: 'management' },
+  { id: 'history', label: t("History & details"), group: 'management' },
   { id: 'label-status', type: 'label', label: 'Status' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
   { id: 'sep-delete', type: 'separator' },
-  { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
+  { id: 'permanently_delete', label: t("Delete product"), danger: true, group: 'destructive' },
 ]
 
 function groupMenuSections(items) {
@@ -297,7 +298,7 @@ export function StockItemMoreMenu({
         {isMobileSheet ? (
           <header className="stock-item-more-menu-sheet-header">
             <span className="stock-item-more-menu-sheet-title">{itemName}</span>
-            <button type="button" className="icon-btn" onClick={onClose} aria-label="Close menu">✕</button>
+            <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close menu")}>✕</button>
           </header>
         ) : null}
 

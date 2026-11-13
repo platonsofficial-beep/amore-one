@@ -8,6 +8,7 @@
 
 import { normalizeInventoryOperationalProductName } from './inventoryOperationalProductMatcher.js'
 import { INVENTORY_IMPORT_QUANTITY_POLICY } from './inventoryImportEligibility.js'
+import { t } from '../i18n/i18n'
 
 export const STANDARD_IMPORT_PREVIEW_VERSION = 'standard_import_preview_v1'
 
@@ -357,8 +358,8 @@ export function listStandardImportContinueMessages(preview, policy = {}) {
     if (row.action !== STANDARD_IMPORT_ACTION.BLOCKED) continue
     const detail = Array.isArray(row.messages) && row.messages.length > 0
       ? row.messages[0]
-      : 'This row needs attention.'
-    messages.push(`${row.name || 'A row'}: ${detail}`)
+      : t("This row needs attention.")
+    messages.push(`${row.name || t("A row")}: ${detail}`)
   }
   if (
     policy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK

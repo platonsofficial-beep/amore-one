@@ -7,6 +7,7 @@ import {
   formatHostSeatingTableAvailabilityAccessible,
   formatHostSeatingTableAvailabilityDisplay,
 } from '../../lib/tableAvailability'
+import { t } from '../../i18n/i18n'
 
 const COMPACT_LEGEND_QUERY = '(orientation: landscape) and (max-height: 520px)'
 
@@ -53,10 +54,10 @@ export function FloorSeatingSelector({
   if (!seatings.length) return null
 
   return (
-    <section className="floor-seating-selector-shell" aria-label="Today's seatings">
-      <p className="floor-seating-selector-label">Today&apos;s seatings</p>
+    <section className="floor-seating-selector-shell" aria-label={t("Today's seatings")}>
+      <p className="floor-seating-selector-label">{t("Today's seatings")}</p>
       <div className="floor-seating-selector-toolbar">
-        <div className="floor-seating-selector-scroll" role="group" aria-label="Service seating" ref={scrollRef}>
+        <div className="floor-seating-selector-scroll" role="group" aria-label={t("Service seating")} ref={scrollRef}>
           <button
             type="button"
             className={`floor-seating-selector-chip${!selectedSeatingId ? ' is-active' : ''}`}
@@ -64,7 +65,7 @@ export function FloorSeatingSelector({
             data-testid="floor-seating-all"
             onClick={() => onSelect?.(null)}
           >
-            <span className="floor-seating-selector-chip-name">All</span>
+            <span className="floor-seating-selector-chip-name">{t("All")}</span>
           </button>
           {seatings.map((seating) => {
             const summary = summaries[seating.id]
@@ -72,16 +73,16 @@ export function FloorSeatingSelector({
             const summaryCount = bookingCertainty === 'unknown'
               ? 'Unverified'
               : bookingCertainty === 'stale'
-                ? 'Last loaded'
+                ? t("Last loaded")
                 : tableAvailability
                   ? formatHostSeatingTableAvailabilityDisplay(tableAvailability)
                   : summary?.bookedCovers != null && summary?.totalCapacity != null
                     ? `${summary.bookedCovers}/${summary.totalCapacity}`
                     : ''
             const summaryAccessibleLabel = bookingCertainty === 'unknown'
-              ? 'Availability unverified'
+              ? t("Availability unverified")
               : bookingCertainty === 'stale'
-                ? 'Last loaded, not rechecked'
+                ? t("Last loaded, not rechecked")
                 : tableAvailability
                   ? formatHostSeatingTableAvailabilityAccessible(tableAvailability)
                   : ''
@@ -125,7 +126,7 @@ export function FloorSeatingSelector({
                   <summary
                     ref={legendButtonRef}
                     className="floor-seating-legend-disclosure-btn"
-                    aria-label="Table colors"
+                    aria-label={t("Table colors")}
                     data-help="reservations.legend"
                   >
                     i

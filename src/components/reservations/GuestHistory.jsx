@@ -18,6 +18,7 @@ import {
   readGuestPreview,
 } from '../../lib/guestHistoryPreview'
 import { loadGuestProfiles, saveGuestProfile, setGuestBlacklist } from '../../services/guestProfileService'
+import { t } from '../../i18n/i18n'
 import './guestHistory.css'
 
 function useDebounced(value, delay = 400) {
@@ -85,9 +86,9 @@ function GuestStats({ guest }) {
       <div><dt>{guest.visits === 1 ? 'Visit' : 'Visits'}</dt><dd>{guest.visits}</dd></div>
       <div><dt>{guest.noShows === 1 ? 'No-show' : 'No-shows'}</dt><dd>{guest.noShows}</dd></div>
       <div><dt>{guest.cancellations === 1 ? 'Cancellation' : 'Cancellations'}</dt><dd>{guest.cancellations}</dd></div>
-      <div><dt>Last visit</dt><dd className="guest-date">{formatGuestDate(guest.lastVisit)}</dd></div>
-      <div><dt>Usual party</dt><dd>{guest.usualPartySize || '—'}</dd></div>
-      <div><dt>Favourite</dt><dd>{formatGuestFavourite(guest)}</dd></div>
+      <div><dt>{t("Last visit")}</dt><dd className="guest-date">{formatGuestDate(guest.lastVisit)}</dd></div>
+      <div><dt>{t("Usual party")}</dt><dd>{guest.usualPartySize || '—'}</dd></div>
+      <div><dt>{t("Favourite")}</dt><dd>{formatGuestFavourite(guest)}</dd></div>
     </dl>
   )
 }
@@ -156,15 +157,15 @@ export function GuestPhoneInsight({
       directoryState.remember(saved)
       setNotice('Notes saved.')
     } catch (error) {
-      setNotice(error?.message || 'Could not save the guest notes.')
+      setNotice(error?.message || t("Could not save the guest notes."))
     }
   }
 
   const noShowLabel = countLabel(guest.noShows, 'no-show', 'no-shows')
   return (
-    <section className="guest-card" data-testid="guest-card" aria-label="Guest history">
+    <section className="guest-card" data-testid="guest-card" aria-label={t("Guest history")}>
       {confirm.warning ? <p className="guest-blacklist-warning" role="alert">{confirm.warning}</p> : null}
-      {confirm.blocked ? <p>Ask a manager before booking this guest.</p> : null}
+      {confirm.blocked ? <p>{t("Ask a manager before booking this guest.")}</p> : null}
       <button
         type="button"
         className="guest-card-summary"
@@ -175,26 +176,26 @@ export function GuestPhoneInsight({
         <strong>{guest.guestName || guest.phone}</strong>
         <span>{countLabel(guest.visits, 'visit', 'visits')}</span>
         <span>{noShowLabel}</span>
-        {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
+        {guest.blacklisted ? <span className="guest-blacklist-badge">{t("Blacklisted")}</span> : null}
       </button>
       {expanded ? (
         <>
           <GuestStats guest={guest} />
           {guest.notes && !(canEditGuestNotes(role) && directoryState.available) ? (
-            <p><span className="guest-notes-label">Notes</span> {guest.notes}</p>
+            <p><span className="guest-notes-label">{t("Notes")}</span> {guest.notes}</p>
           ) : null}
           {canEditGuestNotes(role) && directoryState.available ? (
             <label className="guest-notes-field">
-              <span className="guest-notes-label">Notes</span>
+              <span className="guest-notes-label">{t("Notes")}</span>
               <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} />
             </label>
           ) : null}
           <div className="guest-actions">
             {canEditGuestNotes(role) && directoryState.available ? (
-              <button type="button" className="secondary-btn" onClick={saveNotes}>Save notes</button>
+              <button type="button" className="secondary-btn" onClick={saveNotes}>{t("Save notes")}</button>
             ) : null}
             {canBlacklistGuest(role) && directoryState.available && !guest.blacklisted ? (
-              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>Blacklist</button>
+              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>{t("Blacklist")}</button>
             ) : null}
             {canBlacklistGuest(role) && directoryState.available && guest.blacklisted ? (
               <button
@@ -207,12 +208,12 @@ export function GuestPhoneInsight({
                   directoryState.remember(saved)
                 }}
               >
-                Remove blacklist
+                {t("Remove blacklist")}
               </button>
             ) : null}
           </div>
           {notice ? <p role="status">{notice}</p> : null}
-          {!directoryState.available ? <p>Notes and blacklist turn on when guest profiles are saved.</p> : null}
+          {!directoryState.available ? <p>{t("Notes and blacklist turn on when guest profiles are saved.")}</p> : null}
         </>
       ) : null}
       {dialogOpen ? (
@@ -246,12 +247,12 @@ export function BlacklistDialog({ guestName, reason, onReason, onClose, onSave }
       <div className="guest-blacklist-dialog" role="dialog" aria-modal="true" aria-labelledby="guest-blacklist-title" data-testid="guest-blacklist-dialog">
         <h3 id="guest-blacklist-title">Blacklist {guestName || 'guest'}</h3>
         <label>
-          Reason
+          {t("Reason")}
           <textarea value={reason} onChange={(event) => onReason(event.target.value)} rows={3} />
         </label>
         <div className="guest-actions">
-          <button type="button" className="primary-btn" onClick={onSave}>Save blacklist</button>
-          <button type="button" className="secondary-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="primary-btn" onClick={onSave}>{t("Save blacklist")}</button>
+          <button type="button" className="secondary-btn" onClick={onClose}>{t("Cancel")}</button>
         </div>
       </div>
     </div>
@@ -278,7 +279,7 @@ export function GuestDirectory({
   const selected = directoryState.directory.find((guest) => guest.phone === selectedPhone) || null
 
   const sheet = (
-    <div className="guest-directory" role="dialog" aria-modal="true" aria-label="Guests" data-testid="guest-directory">
+    <div className="guest-directory" role="dialog" aria-modal="true" aria-label={t("Guests")} data-testid="guest-directory">
       <div className="guest-directory-sheet">
         <header className="mobile-host-reservation-panel-header">
           <div className="guest-directory-heading">
@@ -286,46 +287,46 @@ export function GuestDirectory({
               <button
                 type="button"
                 className="mobile-sheet-close-btn"
-                aria-label="Back to guest list"
+                aria-label={t("Back to guest list")}
                 onClick={() => setSelectedPhone('')}
               >
                 ‹
               </button>
             ) : null}
             <div className="mobile-host-reservation-panel-header-copy">
-              <p className="mobile-screen-eyebrow">Reservations</p>
+              <p className="mobile-screen-eyebrow">{t("Reservations")}</p>
               <h2 className="mobile-host-reservation-panel-title">{selected ? (selected.guestName || 'Guest') : 'Guests'}</h2>
             </div>
           </div>
-          <button type="button" className="mobile-sheet-close-btn" aria-label="Close" onClick={onClose}>✕</button>
+          <button type="button" className="mobile-sheet-close-btn" aria-label={t("Close")} onClick={onClose}>✕</button>
         </header>
         <div className="guest-directory-body">
         {selected ? null : (
           <label className="guest-notes-field">
-            <span className="guest-notes-label">Search name or phone</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or phone" />
+            <span className="guest-notes-label">{t("Search name or phone")}</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("Name or phone")} />
           </label>
         )}
         {selected ? (
           <article className="guest-history-detail">
             <p>{selected.phone}</p>
-            {selected.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
+            {selected.blacklisted ? <span className="guest-blacklist-badge">{t("Blacklisted")}</span> : null}
             {selected.blacklistReason ? <p className="guest-blacklist-warning">{`Blacklisted guest — ${selected.blacklistReason}`}</p> : null}
             <GuestStats guest={selected} />
             {selected.notes ? (
-              <p><span className="guest-notes-label">Notes</span> {selected.notes}</p>
+              <p><span className="guest-notes-label">{t("Notes")}</span> {selected.notes}</p>
             ) : null}
-            <h3>Bookings</h3>
+            <h3>{t("Bookings")}</h3>
             <ul className="guest-booking-list">
               {selected.bookings.map((booking) => (
                 <li key={booking.id} className="guest-booking-row">
-                  <span className="guest-date">{formatGuestDate(booking.date)} · {booking.guests} guests · {booking.tableNumber || 'No table'}</span>
+                  <span className="guest-date">{formatGuestDate(booking.date)} · {t('{{count}} guest', { count: booking.guests })} · {booking.tableNumber || t("No table")}</span>
                   <StatusChip status={booking.status} />
                 </li>
               ))}
             </ul>
             {canBlacklistGuest(role) && !selected.blacklisted ? (
-              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>Blacklist</button>
+              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>{t("Blacklist")}</button>
             ) : null}
           </article>
         ) : (
@@ -337,7 +338,7 @@ export function GuestDirectory({
                   <br />
                   {guest.phone} · {countLabel(guest.visits, 'visit', 'visits')}
                 </span>
-                {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
+                {guest.blacklisted ? <span className="guest-blacklist-badge">{t("Blacklisted")}</span> : null}
               </button>
             ))}
           </div>
@@ -355,7 +356,7 @@ export function GuestDirectory({
               ...selected,
               displayName: selected.guestName,
               blacklisted: true,
-              blacklistReason: reason || 'No reason given',
+              blacklistReason: reason || t("No reason given"),
             })
             setDialogOpen(false)
           }}
@@ -369,7 +370,7 @@ export function GuestDirectory({
 export function GuestsButton({ onClick }) {
   return (
     <button type="button" className="ghost-btn guest-history-open" onClick={onClick} data-testid="guests-open">
-      Guests
+      {t("Guests")}
     </button>
   )
 }

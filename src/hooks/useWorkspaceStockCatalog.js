@@ -7,6 +7,7 @@ import {
   WorkspaceStockCatalogError,
   getWorkspaceStockCatalogItems,
 } from '../services/stockItemService'
+import { t } from '../i18n/i18n'
 
 /**
  * @param {unknown} error
@@ -15,7 +16,7 @@ import {
 function getCatalogErrorMessage(error) {
   if (error instanceof WorkspaceStockCatalogError) return error.message
   if (error instanceof Error && error.message) return error.message
-  return 'Unable to load workspace stock items.'
+  return t("Unable to load workspace stock items.")
 }
 
 /**

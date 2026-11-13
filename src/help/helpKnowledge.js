@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * How-to articles for the in-app assistant. Steps describe what ONE actually
  * does. Owner-only billing stays on audience "managers".
@@ -8,9 +9,9 @@ export const HELP_ARTICLES = [
     id: 'today',
     audience: 'everyone',
     screen: { view: 'today' },
-    title: { en: 'Use Today', el: 'Η οθόνη Σήμερα' },
+    title: { en: t("Use Today"), el: 'Η οθόνη Σήμερα' },
     summary: {
-      en: 'Today is the home screen: who is on shift, what is booked, and what needs attention.',
+      en: t("Today is the home screen: who is on shift, what is booked, and what needs attention."),
       el: 'Η Σήμερα είναι η αρχική οθόνη: βάρδιες, κρατήσεις και ό,τι θέλει προσοχή.',
     },
     keywords: ['today', 'home', 'dashboard', 'on shift', 'σημερα', 'αρχικη'],
@@ -37,9 +38,9 @@ export const HELP_ARTICLES = [
     id: 'reservation-new',
     audience: 'everyone',
     screen: { view: 'reservations' },
-    title: { en: 'Make a reservation', el: 'Νέα κράτηση' },
+    title: { en: t("Make a reservation"), el: 'Νέα κράτηση' },
     summary: {
-      en: 'Add a booking with a name, party size, time, and phone.',
+      en: t("Add a booking with a name, party size, time, and phone."),
       el: 'Νέα κράτηση με όνομα, άτομα, ώρα και τηλέφωνο.',
     },
     keywords: ['reservation', 'booking', 'book a table', 'new reservation', 'κρατηση'],
@@ -68,9 +69,9 @@ export const HELP_ARTICLES = [
     id: 'walk-in',
     audience: 'everyone',
     screen: { view: 'reservations' },
-    title: { en: 'Add a walk-in', el: 'Walk-in' },
+    title: { en: t("Add a walk-in"), el: 'Walk-in' },
     summary: {
-      en: 'Seat a guest who arrived without a booking.',
+      en: t("Seat a guest who arrived without a booking."),
       el: 'Για επισκέπτη που ήρθε χωρίς κράτηση.',
     },
     keywords: ['walk-in', 'walk in', 'walkin', 'no reservation', 'χωρις κρατηση'],
@@ -99,9 +100,9 @@ export const HELP_ARTICLES = [
     id: 'floor-plan',
     audience: 'everyone',
     screen: { view: 'reservations' },
-    title: { en: 'Use the floor plan', el: 'Κάτοψη' },
+    title: { en: t("Use the floor plan"), el: 'Κάτοψη' },
     summary: {
-      en: 'See tables for the day and open a table’s bookings.',
+      en: t("See tables for the day and open a table’s bookings."),
       el: 'Δες τα τραπέζια της ημέρας και τις κρατήσεις τους.',
     },
     keywords: ['floor', 'table', 'tables', 'κατοψη', 'τραπεζι'],
@@ -128,9 +129,9 @@ export const HELP_ARTICLES = [
     id: 'guest-history',
     audience: 'everyone',
     screen: { view: 'reservations' },
-    title: { en: 'Guest history and blacklist', el: 'Ιστορικό επισκέπτη' },
+    title: { en: t("Guest history and blacklist"), el: 'Ιστορικό επισκέπτη' },
     summary: {
-      en: 'ONE remembers a guest by phone number, including visits and a blacklist.',
+      en: t("ONE remembers a guest by phone number, including visits and a blacklist."),
       el: 'Το ONE θυμάται τον επισκέπτη από το τηλέφωνο, με επισκέψεις και blacklist.',
     },
     keywords: ['guest', 'guest history', 'blacklist', 'phone', 'visits', 'επισκεπτης', 'τηλεφωνο'],
@@ -157,9 +158,9 @@ export const HELP_ARTICLES = [
     id: 'seatings',
     audience: 'managers',
     screen: { view: 'settings', settingsSection: 'reservations' },
-    title: { en: 'Edit seatings', el: 'Seatings' },
+    title: { en: t("Edit seatings"), el: 'Seatings' },
     summary: {
-      en: 'Seatings are the service periods for a day, such as lunch and dinner.',
+      en: t("Seatings are the service periods for a day, such as lunch and dinner."),
       el: 'Τα seatings είναι οι περίοδοι της ημέρας, όπως μεσημέρι και βράδυ.',
     },
     keywords: ['seating', 'seatings', 'service period', 'lunch', 'dinner', 'hours'],
@@ -186,9 +187,9 @@ export const HELP_ARTICLES = [
     id: 'schedule-assign',
     audience: 'managers',
     screen: { view: 'team', teamSection: 'schedule' },
-    title: { en: 'Assign a shift', el: 'Ανάθεση βάρδιας' },
+    title: { en: t("Assign a shift"), el: 'Ανάθεση βάρδιας' },
     summary: {
-      en: 'Put an employee on the weekly schedule.',
+      en: t("Put an employee on the weekly schedule."),
       el: 'Βάλε έναν υπάλληλο στο εβδομαδιαίο πρόγραμμα.',
     },
     keywords: ['schedule', 'shift', 'assign', 'roster', 'employee', 'προγραμμα', 'βαρδια'],
@@ -217,9 +218,9 @@ export const HELP_ARTICLES = [
     id: 'availability',
     audience: 'everyone',
     screen: { view: 'team', teamSection: 'schedule' },
-    title: { en: 'Staff availability', el: 'Διαθεσιμότητα' },
+    title: { en: t("Staff availability"), el: 'Διαθεσιμότητα' },
     summary: {
-      en: 'Availability shows which days a person can work. Managers use it when assigning shifts.',
+      en: t("Availability shows which days a person can work. Managers use it when assigning shifts."),
       el: 'Η διαθεσιμότητα δείχνει ποιες μέρες μπορεί να δουλέψει κάποιος.',
     },
     keywords: ['availability', 'available', 'day off', 'cannot work', 'διαθεσιμοτητα'],
@@ -246,10 +247,10 @@ export const HELP_ARTICLES = [
     id: 'clock',
     audience: 'everyone',
     screen: { view: 'today' },
-    title: { en: 'Clock in and out', el: 'Clock in και out' },
+    title: { en: t("Clock in and out"), el: t("Clock in και out") },
     summary: {
-      en: 'Clock in when you start and clock out when you finish. The card is on Today.',
-      el: 'Clock in στην αρχή και clock out στο τέλος. Η κάρτα είναι στη Σήμερα.',
+      en: t("Clock in when you start and clock out when you finish. The card is on Today."),
+      el: t("Clock in στην αρχή και clock out στο τέλος. Η κάρτα είναι στη Σήμερα."),
     },
     keywords: ['clock', 'clock in', 'clock out', 'clock-in', 'time clock', 'ρολοι'],
     questions: {
@@ -279,7 +280,7 @@ export const HELP_ARTICLES = [
     screen: { view: 'operations' },
     title: { en: 'Tasks', el: 'Εργασίες' },
     summary: {
-      en: 'Tasks and checklists live in Operations.',
+      en: t("Tasks and checklists live in Operations."),
       el: 'Οι εργασίες και οι λίστες είναι στις Λειτουργίες.',
     },
     keywords: ['task', 'tasks', 'checklist', 'operations', 'to do', 'εργασιες'],
@@ -306,9 +307,9 @@ export const HELP_ARTICLES = [
     id: 'stock-orders',
     audience: 'managers',
     screen: { view: 'stock', stockSection: 'orders' },
-    title: { en: 'Order from a supplier', el: 'Παραγγελία προμηθευτή' },
+    title: { en: t("Order from a supplier"), el: 'Παραγγελία προμηθευτή' },
     summary: {
-      en: 'Supplier orders are created in Stock and marked received when the delivery arrives.',
+      en: t("Supplier orders are created in Stock and marked received when the delivery arrives."),
       el: 'Οι παραγγελίες προμηθευτών γίνονται στο Stock και κλείνουν όταν έρθει η παράδοση.',
     },
     keywords: ['stock', 'order', 'supplier', 'purchase', 'delivery', 'προμηθευτης', 'παραγγελια'],
@@ -335,9 +336,9 @@ export const HELP_ARTICLES = [
     id: 'stock-invoice',
     audience: 'managers',
     screen: { view: 'stock', stockSection: 'orders' },
-    title: { en: 'Add a supplier invoice', el: 'Τιμολόγιο προμηθευτή' },
+    title: { en: t("Add a supplier invoice"), el: 'Τιμολόγιο προμηθευτή' },
     summary: {
-      en: 'Attach a photo or file of the invoice to the supplier order.',
+      en: t("Attach a photo or file of the invoice to the supplier order."),
       el: 'Βάλε φωτογραφία ή αρχείο του τιμολογίου στην παραγγελία.',
     },
     keywords: ['invoice', 'bill', 'receipt', 'scan', 'camera', 'τιμολογιο'],
@@ -366,9 +367,9 @@ export const HELP_ARTICLES = [
     id: 'chat',
     audience: 'everyone',
     screen: { view: 'chat' },
-    title: { en: 'Chat with the team', el: 'Συνομιλίες' },
+    title: { en: t("Chat with the team"), el: 'Συνομιλίες' },
     summary: {
-      en: 'Chat is for direct messages and channels. Unread chats show a badge.',
+      en: t("Chat is for direct messages and channels. Unread chats show a badge."),
       el: 'Το Chat είναι για προσωπικά μηνύματα και κανάλια. Τα αδιάβαστα έχουν σήμα.',
     },
     keywords: ['chat', 'message', 'channel', 'unread', 'μηνυμα', 'συνομιλια'],
@@ -395,9 +396,9 @@ export const HELP_ARTICLES = [
     id: 'insights',
     audience: 'managers',
     screen: { view: 'insights' },
-    title: { en: 'Read Insights', el: 'Αναφορές' },
+    title: { en: t("Read Insights"), el: 'Αναφορές' },
     summary: {
-      en: 'Insights shows reports for reservations, labour, and stock.',
+      en: t("Insights shows reports for reservations, labour, and stock."),
       el: 'Οι Αναφορές δείχνουν κρατήσεις, εργασία και stock.',
     },
     keywords: ['insights', 'reports', 'analytics', 'labour', 'αναφορες'],
@@ -424,9 +425,9 @@ export const HELP_ARTICLES = [
     id: 'settings',
     audience: 'managers',
     screen: { view: 'settings', settingsSection: 'profile' },
-    title: { en: 'Change venue settings', el: 'Ρυθμίσεις' },
+    title: { en: t("Change venue settings"), el: 'Ρυθμίσεις' },
     summary: {
-      en: 'Settings holds the venue profile, positions, seatings, and notifications.',
+      en: t("Settings holds the venue profile, positions, seatings, and notifications."),
       el: 'Οι Ρυθμίσεις έχουν προφίλ, θέσεις, seatings και ειδοποιήσεις.',
     },
     keywords: ['settings', 'venue name', 'notifications', 'positions', 'ρυθμισεις'],
@@ -454,9 +455,9 @@ export const HELP_ARTICLES = [
   {
     id: 'roles',
     audience: 'everyone',
-    title: { en: 'Roles in ONE', el: 'Ρόλοι' },
+    title: { en: t("Roles in ONE"), el: 'Ρόλοι' },
     summary: {
-      en: 'Owner, general manager, and manager run the venue. Hosts and staff use the service screens.',
+      en: t("Owner, general manager, and manager run the venue. Hosts and staff use the service screens."),
       el: 'Ιδιοκτήτης και managers τρέχουν το κατάστημα. Host και staff δουλεύουν στη βάρδια.',
     },
     keywords: ['role', 'roles', 'owner', 'manager', 'host', 'staff', 'permission', 'ρολος'],
@@ -483,10 +484,10 @@ export const HELP_ARTICLES = [
     id: 'billing-plans',
     audience: 'managers',
     screen: { view: 'settings', settingsSection: 'billing' },
-    title: { en: 'Choose a plan', el: 'Επιλογή πλάνου' },
+    title: { en: t("Choose a plan"), el: 'Επιλογή πλάνου' },
     summary: {
-      en: 'Start, Pro, and Group are billed per venue. A new Start or Pro venue can have one free month.',
-      el: 'Start, Pro και Group χρεώνονται ανά κατάστημα. Νέο Start ή Pro μπορεί να έχει έναν δωρεάν μήνα.',
+      en: t("Start, Pro, and Group are billed per venue. A new Start or Pro venue can have one free month."),
+      el: t("Start, Pro και Group χρεώνονται ανά κατάστημα. Νέο Start ή Pro μπορεί να έχει έναν δωρεάν μήνα."),
     },
     keywords: ['plan', 'plans', 'billing', 'subscription', 'price', 'free month', 'start', 'pro', 'group', 'πλανο', 'χρεωση'],
     questions: {
@@ -514,9 +515,9 @@ export const HELP_ARTICLES = [
     id: 'billing-grace',
     audience: 'managers',
     screen: { view: 'settings', settingsSection: 'billing' },
-    title: { en: 'Grace period', el: 'Περίοδος χάριτος' },
+    title: { en: t("Grace period"), el: 'Περίοδος χάριτος' },
     summary: {
-      en: 'After the free month or a failed payment, the venue keeps working for 7 days.',
+      en: t("After the free month or a failed payment, the venue keeps working for 7 days."),
       el: 'Μετά τον δωρεάν μήνα ή μια αποτυχημένη πληρωμή, το κατάστημα δουλεύει για 7 μέρες.',
     },
     keywords: ['grace', 'grace period', 'payment failed', '7 days', 'banner', 'χαρητος'],
@@ -544,9 +545,9 @@ export const HELP_ARTICLES = [
     id: 'billing-lock',
     audience: 'managers',
     screen: { view: 'settings', settingsSection: 'billing' },
-    title: { en: 'When ONE is paused', el: 'Όταν το ONE σταματά' },
+    title: { en: t("When ONE is paused"), el: 'Όταν το ONE σταματά' },
     summary: {
-      en: 'After the 7-day grace, managers must choose a plan. Data is kept.',
+      en: t("After the 7-day grace, managers must choose a plan. Data is kept."),
       el: 'Μετά τις 7 μέρες, οι managers διαλέγουν πλάνο. Τα δεδομένα μένουν.',
     },
     keywords: ['paused', 'locked', 'lock', 'paywall', 'subscription ended'],
@@ -574,10 +575,10 @@ export const HELP_ARTICLES = [
   {
     id: 'billing-staff',
     audience: 'everyone',
-    title: { en: 'If the app asks you to wait', el: 'Αν η εφαρμογή ζητά αναμονή' },
+    title: { en: t("If the app asks you to wait"), el: 'Αν η εφαρμογή ζητά αναμονή' },
     summary: {
-      en: 'Hosts and staff do not manage the plan. If ONE is paused, ask a manager.',
-      el: 'Host και staff δεν διαχειρίζονται το πλάνο. Αν σταματήσει, ρώτα έναν manager.',
+      en: t("Hosts and staff do not manage the plan. If ONE is paused, ask a manager."),
+      el: t("Host και staff δεν διαχειρίζονται το πλάνο. Αν σταματήσει, ρώτα έναν manager."),
     },
     keywords: ['paused', 'locked', 'ask your manager', 'subscription', 'plan', 'billing'],
     questions: {

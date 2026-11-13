@@ -1,18 +1,19 @@
 import { formatStockOrderNumber, normalizeStockOrderStatus } from './stockOrderUtils'
+import { t } from '../i18n/i18n'
 
 export const STOCK_ORDER_STATUS_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'draft', label: 'To send' },
+  { id: 'draft', label: t("To send") },
   { id: 'sent', label: 'Sent' },
   { id: 'received', label: 'Received' },
   { id: 'cancelled', label: 'Cancelled' },
 ]
 
 export const STOCK_ORDER_SORT_OPTIONS = [
-  { id: 'newest', label: 'Newest first' },
-  { id: 'oldest', label: 'Oldest first' },
-  { id: 'supplier-az', label: 'Supplier A–Z' },
-  { id: 'highest-value', label: 'Highest value' },
+  { id: 'newest', label: t("Newest first") },
+  { id: 'oldest', label: t("Oldest first") },
+  { id: 'supplier-az', label: t("Supplier A–Z") },
+  { id: 'highest-value', label: t("Highest value") },
   { id: 'status', label: 'Status' },
 ]
 
@@ -87,47 +88,47 @@ export function sortStockOrders(orders = [], sortKey = 'newest') {
 export function getStockOrdersEmptyState(statusFilter = 'all', hasAnyOrders = false) {
   if (!hasAnyOrders) {
     return {
-      title: 'No orders yet',
-      description: 'Create your first supplier order from low-stock products.',
+      title: t("No orders yet"),
+      description: t("Create your first supplier order from low-stock products."),
       showCreate: true,
     }
   }
 
   if (statusFilter === 'draft') {
     return {
-      title: 'No orders to send',
-      description: 'Orders you are still preparing will appear here.',
+      title: t("No orders to send"),
+      description: t("Orders you are still preparing will appear here."),
       showCreate: true,
     }
   }
 
   if (statusFilter === 'sent') {
     return {
-      title: 'No sent orders waiting',
-      description: 'Orders sent to suppliers and awaiting delivery will appear here.',
+      title: t("No sent orders waiting"),
+      description: t("Orders sent to suppliers and awaiting delivery will appear here."),
       showCreate: false,
     }
   }
 
   if (statusFilter === 'received') {
     return {
-      title: 'No received orders history',
-      description: 'Completed deliveries and receiving history will appear here.',
+      title: t("No received orders history"),
+      description: t("Completed deliveries and receiving history will appear here."),
       showCreate: false,
     }
   }
 
   if (statusFilter === 'cancelled') {
     return {
-      title: 'No cancelled orders',
-      description: 'Cancelled purchase orders will appear here.',
+      title: t("No cancelled orders"),
+      description: t("Cancelled purchase orders will appear here."),
       showCreate: false,
     }
   }
 
   return {
-    title: 'No matching orders',
-    description: 'Try adjusting your search or status filters.',
+    title: t("No matching orders"),
+    description: t("Try adjusting your search or status filters."),
     showCreate: false,
   }
 }

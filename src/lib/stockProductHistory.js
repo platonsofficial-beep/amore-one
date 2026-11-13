@@ -1,6 +1,7 @@
 import { formatTimestampDayAndTime24 } from './timeFormatUtils'
 import { isWasteNote } from './stockWaste'
 import { applyStockMovementQuantity } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 export function buildStockMovementTimeline(movements = [], currentQuantity = 0) {
   const chronological = [...(movements ?? [])].sort((left, right) => {
@@ -175,7 +176,7 @@ export function formatStockMovementTypeLabel(type, note = '') {
   if (type === 'receive') return 'Receive'
   if (type === 'usage') return 'Usage'
   if (type === 'adjustment') return 'Adjustment'
-  if (type === 'stock_count') return 'Stock count'
+  if (type === 'stock_count') return t("Stock count")
   return 'Update'
 }
 
@@ -196,9 +197,9 @@ export function formatMonthlyMovementStat(type, value, unit = '') {
   const quantity = Number(value)
   const isZero = !Number.isFinite(quantity) || quantity === 0
 
-  if (type === 'received' && isZero) return 'No receives'
-  if (type === 'used' && isZero) return 'No usage'
-  if (type === 'adjustments' && isZero) return 'No adjustments'
+  if (type === 'received' && isZero) return t("No receives")
+  if (type === 'used' && isZero) return t("No usage")
+  if (type === 'adjustments' && isZero) return t("No adjustments")
 
   return formatQuantityWithUnit(quantity, unit)
 }

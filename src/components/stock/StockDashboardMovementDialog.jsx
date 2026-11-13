@@ -3,6 +3,7 @@ import { readLastUsedStockMovementStorage } from '../../lib/stockMovementStorage
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { StockMovementModal } from './StockMovementModal'
+import { t } from '../../i18n/i18n'
 
 function loadMovementBalances(workspaceId, itemId) {
   return getStockItemLocationBalances(workspaceId, itemId, { includeZeroBalances: true })
@@ -46,7 +47,7 @@ export function StockDashboardMovementDialog({
       if (cancelled) return
       setStorages([])
       setBalances([])
-      setLoadError(error?.message || 'Unable to load storages.')
+      setLoadError(error?.message || t("Unable to load storages."))
       setLoading(false)
     })
     return () => {

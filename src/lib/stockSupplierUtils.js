@@ -7,6 +7,7 @@ import {
   resolveDisplayedOrderTotal,
 } from './stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 export function normalizeSupplierName(name) {
   return `${name ?? ''}`.trim()
@@ -279,7 +280,7 @@ export function formatSupplierMetricDate(value) {
 
 export function describeReceivedValue(amount, receivedCount) {
   if (!(Number(receivedCount) > 0)) return { value: '—', caption: '' }
-  if (!(Number(amount) > 0)) return { value: '—', caption: 'No costs yet' }
+  if (!(Number(amount) > 0)) return { value: '—', caption: t("No costs yet") }
   return { value: formatStockPurchasePrice(amount), caption: '' }
 }
 
@@ -291,10 +292,10 @@ export function formatSupplierProductLine(item) {
   const cost = Number(item?.costPrice ?? item?.cost_price)
   return {
     id: item.id,
-    name: resolveListedProductName(item, item) || 'Unnamed product',
+    name: resolveListedProductName(item, item) || t("Unnamed product"),
     categoryType: formatStockCategoryTypeLine(item.category, item.itemType),
     currentStock: formatStockQuantity(item.currentQuantity, item.unit),
-    lastPurchasePrice: cost > 0 ? formatStockPurchasePrice(cost) : 'No cost',
+    lastPurchasePrice: cost > 0 ? formatStockPurchasePrice(cost) : t("No cost"),
   }
 }
 
@@ -331,7 +332,7 @@ export function buildStockItemSupplierOptions(suppliers = [], selectedSupplier =
     }
   })
 
-  const options = [{ value: '', label: 'No supplier', disabled: false }]
+  const options = [{ value: '', label: t("No supplier"), disabled: false }]
 
   const matchedSupplier = resolveSupplierForRead({
     supplierId: selectedSupplierId,

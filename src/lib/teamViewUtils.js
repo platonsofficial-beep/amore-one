@@ -1,6 +1,7 @@
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
+import { t } from '../i18n/i18n'
 
 function normalizeDate(value) {
   if (!value) return ''
@@ -28,7 +29,7 @@ export function resolveTeamMemberShiftState({
   isOnShift = false,
 } = {}) {
   if (isOnShift) {
-    return { shiftState: 'working', shiftStateLabel: 'Working now' }
+    return { shiftState: 'working', shiftStateLabel: t("Working now") }
   }
 
   if (startMinutes === null || endMinutes === null) {
@@ -36,7 +37,7 @@ export function resolveTeamMemberShiftState({
   }
 
   if (isTimeWithinShift(nowMinutes, startMinutes, endMinutes)) {
-    return { shiftState: 'working', shiftStateLabel: 'Working now' }
+    return { shiftState: 'working', shiftStateLabel: t("Working now") }
   }
 
   if (endMinutes > startMinutes) {
@@ -120,12 +121,12 @@ export function buildTeamTodayStatus({
 } = {}) {
   if (liveFloor.state === 'unpublished') {
     return {
-      scheduleLabel: 'Working now',
-      scheduleValue: 'Schedule not published',
-      nextShiftLabel: 'Next shift',
-      nextShiftValue: 'No published shifts',
+      scheduleLabel: t("Working now"),
+      scheduleValue: t("Schedule not published"),
+      nextShiftLabel: t("Next shift"),
+      nextShiftValue: t("No published shifts"),
       coverageLabel: 'Coverage',
-      coverageValue: 'Waiting for schedule',
+      coverageValue: t("Waiting for schedule"),
       coverageTone: 'neutral',
       coverageDetail: '',
     }
@@ -151,14 +152,14 @@ export function buildTeamTodayStatus({
   let coverageTone = 'ok'
 
   if (gapCount > 0) {
-    coverageValue = coverageDetail || (gapCount === 1 ? '1 uncovered shift' : `${gapCount} uncovered shifts`)
+    coverageValue = coverageDetail || (gapCount === 1 ? t('1 uncovered shift') : t('{{count}} uncovered shifts', { count: gapCount }))
     coverageTone = 'warn'
   }
 
   return {
-    scheduleLabel: 'Working now',
+    scheduleLabel: t("Working now"),
     scheduleValue: workingNow,
-    nextShiftLabel: 'Next shift',
+    nextShiftLabel: t("Next shift"),
     nextShiftValue: nextShift,
     coverageLabel: 'Coverage',
     coverageValue,

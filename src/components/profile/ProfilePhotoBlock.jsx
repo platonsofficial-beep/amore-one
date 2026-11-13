@@ -5,6 +5,7 @@ import { prepareAvatarImage } from '../../lib/avatarImage'
 import { resolveEmployeePhotoUrl } from '../../lib/identity/employeeIdentityResolve'
 import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import { removeMyAvatar, uploadMyAvatar } from '../../services/avatarService'
+import { t } from '../../i18n/i18n'
 
 const ACCEPT_LIBRARY = 'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif'
 
@@ -57,7 +58,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       })
       setChooserOpen(false)
     } catch (prepareError) {
-      setError(prepareError?.message || 'Could not prepare that photo.')
+      setError(prepareError?.message || t("Could not prepare that photo."))
     } finally {
       setBusy(false)
       setPhase('')
@@ -103,7 +104,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       setNotice('Photo updated')
     } catch (saveError) {
       directory.setOptimistic(authUserId, null)
-      setError(saveError?.message || 'Could not update your photo. Try again.')
+      setError(saveError?.message || t("Could not update your photo. Try again."))
       return
     } finally {
       setBusy(false)
@@ -131,7 +132,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       setNotice('Photo removed')
     } catch (removeError) {
       directory.setOptimistic(authUserId, null)
-      setError(removeError?.message || 'Could not update your photo. Try again.')
+      setError(removeError?.message || t("Could not update your photo. Try again."))
       return
     } finally {
       setBusy(false)
@@ -141,12 +142,12 @@ export function ProfilePhotoBlock({ displayName = '' }) {
   }
 
   return (
-    <section className="mobile-card profile-photo-block" aria-label="Profile photo">
-      <p className="mobile-card-label">Profile photo</p>
-      <div className="profile-photo-circle" role="img" aria-label={hasPhoto || draft ? 'Profile photo' : 'Profile initials'}>
+    <section className="mobile-card profile-photo-block" aria-label={t("Profile photo")}>
+      <p className="mobile-card-label">{t("Profile photo")}</p>
+      <div className="profile-photo-circle" role="img" aria-label={hasPhoto || draft ? t("Profile photo") : t("Profile initials")}>
         {circleUrl ? <img src={circleUrl} alt="" /> : <span>{initials}</span>}
       </div>
-      {draft ? <p className="profile-photo-caption">This is how your photo will look.</p> : null}
+      {draft ? <p className="profile-photo-caption">{t("This is how your photo will look.")}</p> : null}
 
       {draft ? (
         <div className="profile-photo-actions">
@@ -154,23 +155,23 @@ export function ProfilePhotoBlock({ displayName = '' }) {
             {busy ? 'Saving…' : 'Save'}
           </button>
           <button type="button" className="mobile-secondary-btn" onClick={cancelDraft} disabled={busy}>
-            Cancel
+            {t("Cancel")}
           </button>
         </div>
       ) : (
         <div className="profile-photo-actions">
           {hasPhoto ? (
             <button type="button" className="mobile-primary-btn" onClick={() => setChooserOpen((open) => !open)} disabled={busy}>
-              Change photo
+              {t("Change photo")}
             </button>
           ) : (
             <button type="button" className="mobile-primary-btn" onClick={() => setChooserOpen((open) => !open)} disabled={busy}>
-              Add photo
+              {t("Add photo")}
             </button>
           )}
           {hasPhoto ? (
             <button type="button" className="profile-photo-remove" onClick={removePhoto} disabled={busy}>
-              Remove photo
+              {t("Remove photo")}
             </button>
           ) : null}
         </div>
@@ -179,10 +180,10 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       {chooserOpen && !draft ? (
         <div className="profile-photo-picker">
           <button type="button" className="mobile-secondary-btn" onClick={() => takeRef.current?.click()} disabled={busy}>
-            Take photo
+            {t("Take photo")}
           </button>
           <button type="button" className="mobile-secondary-btn" onClick={() => chooseRef.current?.click()} disabled={busy}>
-            Choose photo
+            {t("Choose photo")}
           </button>
         </div>
       ) : null}
@@ -207,7 +208,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
         onChange={onFile}
       />
 
-      {phase === 'preparing' ? <p className="profile-photo-caption">Preparing photo…</p> : null}
+      {phase === 'preparing' ? <p className="profile-photo-caption">{t("Preparing photo…")}</p> : null}
       {error ? <p className="mobile-profile-error" role="alert">{error}</p> : null}
       {notice ? <p className="profile-photo-toast" role="status">{notice}</p> : null}
     </section>

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export default function DeleteDepartmentModal({
   isOpen,
   departmentName = '',
@@ -18,17 +19,17 @@ export default function DeleteDepartmentModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Department</p>
-            <h3 id="delete-department-title">Delete department?</h3>
+            <p className="eyebrow">{t("Department")}</p>
+            <h3 id="delete-department-title">{t("Delete department?")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close delete department dialog">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close delete department dialog")}>
             ✕
           </button>
         </div>
 
         <div className="task-delete-department-body">
           <p>
-            This will remove the department from the board. Existing tasks and templates in this department will be moved to Custom / Unassigned Department.
+            {t("This will remove the department from the board. Existing tasks and templates in this department will be moved to Custom / Unassigned Department.")}
           </p>
           {departmentName ? (
             <p className="task-delete-department-name">
@@ -39,10 +40,10 @@ export default function DeleteDepartmentModal({
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={onClose} disabled={isDeleting}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button type="button" className="primary-btn task-delete-department-confirm-btn" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting…' : 'Delete Department'}
+            {isDeleting ? 'Deleting…' : t("Delete Department")}
           </button>
         </div>
       </div>

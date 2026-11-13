@@ -1,4 +1,5 @@
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
+import { t } from '../../i18n/i18n'
 
 export function MobileHomeView({
   venueName = '',
@@ -47,16 +48,16 @@ export function MobileHomeView({
 
       {clockCard}
 
-      <section className={`mobile-card mobile-shift-card tone-${shiftSummary.tone ?? 'neutral'}`} aria-label="Today shift status">
-        <p className="mobile-card-label">Today shift</p>
+      <section className={`mobile-card mobile-shift-card tone-${shiftSummary.tone ?? 'neutral'}`} aria-label={t("Today shift status")}>
+        <p className="mobile-card-label">{t("Today shift")}</p>
         {shiftNeedsLink ? (
           <>
-            <h2 className="mobile-card-headline">Employee profile required</h2>
-            <p className="mobile-card-detail">Link your employee profile to view your shift.</p>
+            <h2 className="mobile-card-headline">{t("Employee profile required")}</h2>
+            <p className="mobile-card-detail">{t("Link your employee profile to view your shift.")}</p>
           </>
         ) : (
           <>
-            <h2 className="mobile-card-headline">{shiftSummary.headline ?? 'Checking schedule…'}</h2>
+            <h2 className="mobile-card-headline">{shiftSummary.headline ?? t("Checking schedule…")}</h2>
             <p className="mobile-card-detail">{shiftSummary.detail ?? ''}</p>
           </>
         )}
@@ -66,54 +67,54 @@ export function MobileHomeView({
         <button type="button" className="mobile-card mobile-home-tasks-link" onClick={onOpenTasks} aria-label={`Operations, ${active} active`}>
           <p className="mobile-card-label">Operations · {tasksNeedsLink ? '—' : active}</p>
           {tasksNeedsLink ? (
-            <p className="mobile-card-detail">Link your employee profile to view your tasks.</p>
+            <p className="mobile-card-detail">{t("Link your employee profile to view your tasks.")}</p>
           ) : showEmptyToday ? (
-            <p className="mobile-card-detail">No tasks due today.</p>
+            <p className="mobile-card-detail">{t("No tasks due today.")}</p>
           ) : (
             <div className="mobile-task-summary-grid">
               <div className="mobile-task-summary-item">
                 <strong>{active}</strong>
-                <span>Active</span>
+                <span>{t("Active")}</span>
               </div>
               <div className={`mobile-task-summary-item${overdue > 0 ? ' is-alert' : ''}`}>
                 <strong>{overdue}</strong>
-                <span>Overdue</span>
+                <span>{t("Overdue")}</span>
               </div>
               <div className="mobile-task-summary-item">
                 <strong>{completedToday}</strong>
-                <span>Done</span>
+                <span>{t("Done")}</span>
               </div>
               <div className="mobile-task-summary-item">
                 <strong>{completionPercent}%</strong>
-                <span>Complete</span>
+                <span>{t("Complete")}</span>
               </div>
             </div>
           )}
         </button>
       ) : (
-      <section className="mobile-card" aria-label="Today tasks summary">
-        <p className="mobile-card-label">Tasks today</p>
+      <section className="mobile-card" aria-label={t("Today tasks summary")}>
+        <p className="mobile-card-label">{t("Tasks today")}</p>
         {tasksNeedsLink ? (
-          <p className="mobile-card-detail">Link your employee profile to view your tasks.</p>
+          <p className="mobile-card-detail">{t("Link your employee profile to view your tasks.")}</p>
         ) : showEmptyToday ? (
-          <p className="mobile-card-detail">No tasks due today.</p>
+          <p className="mobile-card-detail">{t("No tasks due today.")}</p>
         ) : (
           <div className="mobile-task-summary-grid">
             <div className="mobile-task-summary-item">
               <strong>{active}</strong>
-              <span>Active</span>
+              <span>{t("Active")}</span>
             </div>
             <div className={`mobile-task-summary-item${overdue > 0 ? ' is-alert' : ''}`}>
               <strong>{overdue}</strong>
-              <span>Overdue</span>
+              <span>{t("Overdue")}</span>
             </div>
             <div className="mobile-task-summary-item">
               <strong>{completedToday}</strong>
-              <span>Done</span>
+              <span>{t("Done")}</span>
             </div>
             <div className="mobile-task-summary-item">
               <strong>{completionPercent}%</strong>
-              <span>Complete</span>
+              <span>{t("Complete")}</span>
             </div>
           </div>
         )}

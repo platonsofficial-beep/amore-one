@@ -1,6 +1,7 @@
 import { getHostListGroupId } from './reservationHostStatus'
 import { normalizeReservationTimeValue } from './timeFormatUtils'
 import { readLiveViewportBox } from './viewportUtils'
+import { t } from '../i18n/i18n'
 
 function readHostViewportWidth() {
   if (typeof window === 'undefined') return 0
@@ -9,7 +10,7 @@ function readHostViewportWidth() {
 
 export const MOBILE_HOST_TABS = [
   { id: 'upcoming', label: 'Upcoming' },
-  { id: 'in-house', label: 'Arrived/In house' },
+  { id: 'in-house', label: t("Arrived/In house") },
   { id: 'completed', label: 'Completed' },
   { id: 'problems', label: 'Problems' },
 ]

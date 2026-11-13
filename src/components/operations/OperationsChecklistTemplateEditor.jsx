@@ -10,6 +10,7 @@ import {
   validateChecklistItemForm,
   validateChecklistTemplateForm,
 } from '../../lib/operationsChecklistUtils'
+import { t } from '../../i18n/i18n'
 
 function ChecklistItemEditorRow({
   item,
@@ -51,7 +52,7 @@ function ChecklistItemEditorRow({
           rows={2}
           value={item.description}
           onChange={(event) => onChange(item.id, { description: event.target.value })}
-          placeholder="Optional details"
+          placeholder={t("Optional details")}
           disabled={isSaving}
         />
       </div>
@@ -62,7 +63,7 @@ function ChecklistItemEditorRow({
           className="ghost-btn operations-checklist-item-action"
           onClick={() => onMove(item.id, 'up')}
           disabled={isSaving || index === 0}
-          aria-label="Move up"
+          aria-label={t("Move up")}
         >
           ↑
         </button>
@@ -71,7 +72,7 @@ function ChecklistItemEditorRow({
           className="ghost-btn operations-checklist-item-action"
           onClick={() => onMove(item.id, 'down')}
           disabled={isSaving || index >= totalCount - 1}
-          aria-label="Move down"
+          aria-label={t("Move down")}
         >
           ↓
         </button>
@@ -81,7 +82,7 @@ function ChecklistItemEditorRow({
           onClick={() => onDelete(item)}
           disabled={isSaving}
         >
-          Delete
+          {t("Delete")}
         </button>
       </div>
     </li>
@@ -149,7 +150,7 @@ export function OperationsChecklistTemplateEditor({
         }
       }
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save checklist right now.')
+      setError(submitError?.message || t("Unable to save checklist right now."))
     }
   }
 
@@ -187,7 +188,7 @@ export function OperationsChecklistTemplateEditor({
       setItems((current) => sortChecklistItems([...current, created]))
       setNewItemForm(buildEmptyChecklistItemForm(items.length + 1))
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to add checklist item right now.')
+      setError(submitError?.message || t("Unable to add checklist item right now."))
     }
   }
 
@@ -225,7 +226,7 @@ export function OperationsChecklistTemplateEditor({
     try {
       await onSaveItemOrder?.(nextItems)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to reorder checklist items right now.')
+      setError(submitError?.message || t("Unable to reorder checklist items right now."))
     }
   }
 
@@ -247,7 +248,7 @@ export function OperationsChecklistTemplateEditor({
         .filter((entry) => `${entry.id}` !== `${item.id}`)
         .map((entry, index) => ({ ...entry, orderIndex: index })))
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to delete checklist item right now.')
+      setError(submitError?.message || t("Unable to delete checklist item right now."))
     }
   }
 
@@ -271,11 +272,11 @@ export function OperationsChecklistTemplateEditor({
   const previewItems = useMemo(() => sortChecklistItems(items), [items])
 
   return (
-    <section className="operations-checklist-editor-page panel staff-panel" aria-label="Checklist template editor">
+    <section className="operations-checklist-editor-page panel staff-panel" aria-label={t("Checklist template editor")}>
       <header className="operations-checklist-editor-header">
         <div>
-          <p className="eyebrow">Checklist template</p>
-          <h3>{isEditing ? 'Edit checklist' : 'Create checklist'}</h3>
+          <p className="eyebrow">{t("Checklist template")}</p>
+          <h3>{isEditing ? t("Edit checklist") : t("Create checklist")}</h3>
         </div>
         <button type="button" className="ghost-btn operations-checklist-editor-back" onClick={onClose}>
           ← Back
@@ -284,11 +285,11 @@ export function OperationsChecklistTemplateEditor({
 
       <form className="operations-checklist-editor-form" onSubmit={handleSaveTemplate}>
         <label className="form-field full-width">
-          <span>Name</span>
+          <span>{t("Name")}</span>
           <input
             value={form.name}
             onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-            placeholder="e.g. Bar Closing"
+            placeholder={t("e.g. Bar Closing")}
             required
             disabled={isSaving}
           />
@@ -296,7 +297,7 @@ export function OperationsChecklistTemplateEditor({
 
         <div className="form-grid">
           <label className="form-field">
-            <span>Department</span>
+            <span>{t("Department")}</span>
             <select
               value={form.department}
               onChange={(event) => setForm((current) => ({ ...current, department: event.target.value }))}
@@ -309,7 +310,7 @@ export function OperationsChecklistTemplateEditor({
           </label>
 
           <label className="form-field operations-checklist-active-toggle">
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <button
               type="button"
               className={`operations-checklist-active-btn${form.active ? ' is-active' : ''}`}
@@ -324,16 +325,16 @@ export function OperationsChecklistTemplateEditor({
         <div className="operations-checklist-items-section">
           <div className="operations-section-header">
             <div>
-              <p className="eyebrow">Tasks</p>
-              <h4>Checklist items</h4>
+              <p className="eyebrow">{t("Tasks")}</p>
+              <h4>{t("Checklist items")}</h4>
             </div>
             <p className="operations-section-count">{previewItems.length} item{previewItems.length === 1 ? '' : 's'}</p>
           </div>
 
           {previewItems.length === 0 ? (
             <div className="operations-empty-state">
-              <h4>No tasks yet</h4>
-              <p>Add the steps your team should complete every shift.</p>
+              <h4>{t("No tasks yet")}</h4>
+              <p>{t("Add the steps your team should complete every shift.")}</p>
             </div>
           ) : (
             <ul className="operations-checklist-item-list">
@@ -359,7 +360,7 @@ export function OperationsChecklistTemplateEditor({
             <input
               value={newItemForm.title}
               onChange={(event) => setNewItemForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="Add checklist task"
+              placeholder={t("Add checklist task")}
               disabled={isSaving}
             />
             <button
@@ -368,7 +369,7 @@ export function OperationsChecklistTemplateEditor({
               onClick={handleAddItem}
               disabled={isSaving}
             >
-              Add task
+              {t("Add task")}
             </button>
           </div>
         </div>
@@ -377,10 +378,10 @@ export function OperationsChecklistTemplateEditor({
 
         <div className="modal-actions">
           <button type="button" className="ghost-btn operations-form-action" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-            {isSaving ? 'Saving…' : isEditing ? 'Save checklist' : 'Create checklist'}
+            {isSaving ? 'Saving…' : isEditing ? t("Save checklist") : t("Create checklist")}
           </button>
         </div>
       </form>

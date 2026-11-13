@@ -14,6 +14,8 @@ import {
 } from '../../lib/inviteTokenStorage'
 import { getInvitePreview } from '../../services/inviteService'
 import { PASSWORD_MISMATCH_MESSAGE, passwordsMatch } from '../../lib/passwordConfirm'
+import { LanguagePicker } from '../../i18n/LanguagePicker'
+import { t } from '../../i18n/i18n'
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -131,10 +133,10 @@ export function LoginView() {
   )
 
   const title = mode === MODES.SIGN_UP
-    ? 'Create account'
+    ? t('Create account')
     : mode === MODES.RESET
-      ? 'Reset password'
-      : 'Sign in'
+      ? t('Reset password')
+      : t('Sign in')
 
   return (
     <div className="auth-page">
@@ -142,17 +144,17 @@ export function LoginView() {
         <header className="auth-header">
           <OneFullLogo />
           <h1 className="auth-title">{title}</h1>
-          <p className="auth-subtitle">Operations platform for hospitality teams.</p>
+          <p className="auth-subtitle">{t("Operations platform for hospitality teams.")}</p>
         </header>
 
         {sessionEndedNotice ? (
           <div className="auth-banner auth-banner-info" role="status">
-            Your session ended. Sign in again to continue.
+            {t("Your session ended. Sign in again to continue.")}
           </div>
         ) : null}
 
         {isInvitePreviewLoading ? (
-          <div className="auth-banner auth-banner-info" role="status">Checking invite…</div>
+          <div className="auth-banner auth-banner-info" role="status">{t("Checking invite…")}</div>
         ) : null}
 
         {!isInvitePreviewLoading && inviteBanner ? (
@@ -170,7 +172,7 @@ export function LoginView() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="form-field auth-field">
-            <span>Email</span>
+            <span>{t("Email")}</span>
             <input
               type="email"
               autoComplete="email"
@@ -184,13 +186,13 @@ export function LoginView() {
 
           {mode !== MODES.RESET ? (
             <label className="form-field auth-field">
-              <span>Password</span>
+              <span>{t("Password")}</span>
               <input
                 type="password"
                 autoComplete={mode === MODES.SIGN_UP ? 'new-password' : 'current-password'}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter password"
+                placeholder={t("Enter password")}
                 disabled={isSubmitting}
                 required
               />
@@ -199,7 +201,7 @@ export function LoginView() {
 
           {mode === MODES.SIGN_UP ? (
             <label className="form-field auth-field">
-              <span>Confirm password</span>
+              <span>{t("Confirm password")}</span>
               <input
                 type="password"
                 autoComplete="new-password"
@@ -208,7 +210,7 @@ export function LoginView() {
                   setConfirmPassword(event.target.value)
                   if (errorMessage === PASSWORD_MISMATCH_MESSAGE) setErrorMessage('')
                 }}
-                placeholder="Enter password again"
+                placeholder={t("Enter password again")}
                 disabled={isSubmitting}
                 aria-invalid={showMismatch || undefined}
                 aria-describedby={showMismatch ? 'auth-confirm-password-error' : undefined}
@@ -224,12 +226,12 @@ export function LoginView() {
 
           <button type="submit" className="primary-btn auth-submit-btn" disabled={isSubmitting}>
             {isSubmitting
-              ? 'Please wait…'
+              ? t('Please wait…')
               : mode === MODES.SIGN_UP
-                ? 'Create account'
+                ? t('Create account')
                 : mode === MODES.RESET
-                  ? 'Send reset link'
-                  : 'Sign in'}
+                  ? t('Send reset link')
+                  : t('Sign in')}
           </button>
         </form>
 
@@ -246,7 +248,7 @@ export function LoginView() {
                 }}
                 disabled={isSubmitting}
               >
-                Create account
+                {t("Create account")}
               </button>
               <button
                 type="button"
@@ -258,7 +260,7 @@ export function LoginView() {
                 }}
                 disabled={isSubmitting}
               >
-                Reset password
+                {t("Reset password")}
               </button>
             </>
           ) : (
@@ -273,10 +275,11 @@ export function LoginView() {
               }}
               disabled={isSubmitting}
             >
-              Back to sign in
+              {t("Back to sign in")}
             </button>
           )}
         </div>
+        <LanguagePicker className="auth-language" />
         <LegalLinks className="auth-legal-links" />
       </div>
     </div>

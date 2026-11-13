@@ -3,6 +3,7 @@ import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24, formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_LABELS = {
   normal: 'Normal',
@@ -26,7 +27,7 @@ function getTomorrowKey(todayKey = getTodayKey()) {
 
 function formatTaskDueDateLabel(dueDate, todayKey = getTodayKey()) {
   const normalized = normalizeTaskDateKey(dueDate)
-  if (!normalized) return 'No due date'
+  if (!normalized) return t("No due date")
 
   if (normalized === todayKey) return 'Today'
   if (normalized === getTomorrowKey(todayKey)) return 'Tomorrow'
@@ -94,14 +95,14 @@ function TaskChecklist({
   return (
     <div className="task-card-checklist">
       <div className="task-card-checklist-summary">
-        <span className="task-card-checklist-count">{completedCount}/{totalCount} completed</span>
+        <span className="task-card-checklist-count">{t('{{done}}/{{total}} completed', { done: completedCount, total: totalCount })}</span>
         <div className="task-checklist-progress" aria-hidden="true">
           <span className="task-checklist-progress-fill" style={{ width: `${progressPercent}%` }} />
         </div>
       </div>
 
       {allComplete && !isTaskCompleted ? (
-        <p className="task-checklist-all-complete">All checklist items complete</p>
+        <p className="task-checklist-all-complete">{t("All checklist items complete")}</p>
       ) : null}
 
       <ul className="task-checklist-items">
@@ -179,7 +180,7 @@ export default function TaskCard({
       </div>
 
       <div className="task-card-body">
-        <h4 className="task-card-title">{task?.title || 'Untitled task'}</h4>
+        <h4 className="task-card-title">{task?.title || t("Untitled task")}</h4>
 
         {isCompleted && completedLabel ? (
           <p className="task-card-completed-at">Completed {completedLabel}</p>
@@ -229,7 +230,7 @@ export default function TaskCard({
               onClick={() => onEdit?.(task)}
               disabled={isSaving}
             >
-              Edit
+              {t("Edit")}
             </button>
             <button
               type="button"
@@ -237,7 +238,7 @@ export default function TaskCard({
               onClick={() => onDelete?.(task)}
               disabled={isSaving}
             >
-              Delete
+              {t("Delete")}
             </button>
           </div>
         ) : null}
@@ -251,7 +252,7 @@ export default function TaskCard({
                 onClick={() => onReopen?.(task)}
                 disabled={isSaving}
               >
-                Reopen
+                {t("Reopen")}
               </button>
             ) : null
           ) : canInteract ? (

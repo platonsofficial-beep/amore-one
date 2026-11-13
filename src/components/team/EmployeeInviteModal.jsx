@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { buildInviteUrl, createEmployeeInvite } from '../../services/inviteService'
+import { t } from '../../i18n/i18n'
 
 const INVITE_ROLE_OPTIONS = [
   { value: 'staff', label: 'Staff' },
@@ -87,7 +88,7 @@ export function EmployeeInviteModal({
 
     try {
       const copied = await copyTextToClipboard(inviteLink)
-      setCopyNotice(copied ? 'Link copied.' : 'Unable to copy link.')
+      setCopyNotice(copied ? t("Link copied.") : t("Unable to copy link."))
     } catch {
       setCopyNotice('Unable to copy link.')
     }
@@ -117,7 +118,7 @@ export function EmployeeInviteModal({
       setCreatedInvite(invite)
       onInviteCreated?.(invite)
     } catch (error) {
-      setErrorMessage(error?.message || 'Unable to create invite right now.')
+      setErrorMessage(error?.message || t("Unable to create invite right now."))
     } finally {
       setIsSaving(false)
     }
@@ -134,12 +135,12 @@ export function EmployeeInviteModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Team invite</p>
+            <p className="eyebrow">{t("Team invite")}</p>
             <h3 id="employee-invite-title">
-              {createdInvite ? 'Invite created' : `Invite ${employee.name}`}
+              {createdInvite ? t("Invite created") : `Invite ${employee.name}`}
             </h3>
           </div>
-          <button type="button" className="icon-btn" onClick={handleClose} aria-label="Close invite modal">
+          <button type="button" className="icon-btn" onClick={handleClose} aria-label={t("Close invite modal")}>
             ✕
           </button>
         </div>
@@ -149,12 +150,12 @@ export function EmployeeInviteModal({
         {createdInvite ? (
           <div className="employee-invite-success">
             <p className="employee-invite-success-copy">
-              Share this link with <strong>{createdInvite.email || email}</strong> so they can sign in and connect as{' '}
+              {t("Share this link with")} <strong>{createdInvite.email || email}</strong> so they can sign in and connect as{' '}
               <strong>{getWorkspaceRoleLabel(createdInvite.role)}</strong>.
             </p>
 
             <label className="form-field full-width">
-              <span>Invite link</span>
+              <span>{t("Invite link")}</span>
               <input type="text" readOnly value={inviteLink} onFocus={(event) => event.target.select()} />
             </label>
 
@@ -162,17 +163,17 @@ export function EmployeeInviteModal({
 
             <div className="modal-actions employee-invite-actions">
               <button type="button" className="ghost-btn" onClick={handleClose}>
-                Done
+                {t("Done")}
               </button>
               <button type="button" className="primary-btn" onClick={handleCopyLink}>
-                Copy link
+                {t("Copy link")}
               </button>
             </div>
           </div>
         ) : (
           <form className="employee-form employee-invite-form" onSubmit={handleSubmit}>
             <label className="form-field full-width">
-              <span>Email</span>
+              <span>{t("Email")}</span>
               <input
                 type="email"
                 value={email}
@@ -184,7 +185,7 @@ export function EmployeeInviteModal({
             </label>
 
             <label className="form-field full-width">
-              <span>Role</span>
+              <span>{t("Role")}</span>
               <select value={role} onChange={(event) => setRole(event.target.value)} disabled={isSaving}>
                 {roleOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -193,16 +194,16 @@ export function EmployeeInviteModal({
                 ))}
               </select>
               <small className="employee-invite-role-hint">
-                Staff can access assigned modules. Managers can invite staff but cannot open workspace settings.
+                {t("Staff can access assigned modules. Managers can invite staff but cannot open workspace settings.")}
               </small>
             </label>
 
             <div className="modal-actions employee-invite-actions">
               <button type="button" className="ghost-btn" onClick={handleClose} disabled={isSaving}>
-                Cancel
+                {t("Cancel")}
               </button>
               <button type="submit" className="primary-btn" disabled={isSaving}>
-                {isSaving ? 'Creating…' : 'Create invite'}
+                {isSaving ? 'Creating…' : t("Create invite")}
               </button>
             </div>
           </form>

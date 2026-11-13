@@ -14,6 +14,7 @@ import {
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatUserFacingLoadError, isTechnicalErrorText } from '../../lib/userFacingLoadError'
+import { t } from '../../i18n/i18n'
 
 function HostDiningTimerSettings() {
   const [policy, setPolicy] = useState(() => readHostDiningTimerDurationPolicy())
@@ -26,16 +27,16 @@ function HostDiningTimerSettings() {
     <div className="panel staff-panel workspace-panel" data-testid="host-dining-timer-settings">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Service pace</p>
-          <h3>Table timers</h3>
+          <p className="eyebrow">{t("Service pace")}</p>
+          <h3>{t("Table timers")}</h3>
         </div>
       </div>
       <p className="workspace-section-subtitle">
-        Minutes before a seated dinner or drinks party is expected to free the table. Saved on this device. A venue-wide save needs a database change and owner approval.
+        {t("Minutes before a seated dinner or drinks party is expected to free the table. Saved on this device. A venue-wide save needs a database change and owner approval.")}
       </p>
       <div className="employee-form">
         <label className="form-field">
-          <span>Dinner minutes</span>
+          <span>{t("Dinner minutes")}</span>
           <input
             type="number"
             min="15"
@@ -46,7 +47,7 @@ function HostDiningTimerSettings() {
           />
         </label>
         <label className="form-field">
-          <span>Drinks minutes</span>
+          <span>{t("Drinks minutes")}</span>
           <input
             type="number"
             min="15"
@@ -63,7 +64,7 @@ function HostDiningTimerSettings() {
 
 function SeatingDaysToggle({ daysOfWeek, onChange }) {
   return (
-    <div className="workspace-seating-days" role="group" aria-label="Days of week">
+    <div className="workspace-seating-days" role="group" aria-label={t("Days of week")}>
       {DAY_OF_WEEK_OPTIONS.map((day) => {
         const isActive = daysOfWeek.includes(day.value)
         return (
@@ -132,8 +133,8 @@ export function WorkspaceReservationSeatingsSection({
     <div className="panel staff-panel workspace-panel">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Manage seatings</p>
-          <h3 id={hoursOnly ? 'seating-hours-editor-title' : undefined}>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+          <p className="eyebrow">{t("Manage seatings")}</p>
+          <h3 id={hoursOnly ? 'seating-hours-editor-title' : undefined}>{editingSeatingId ? t("Edit seating") : t("Add seating")}</h3>
         </div>
       </div>
 
@@ -141,16 +142,16 @@ export function WorkspaceReservationSeatingsSection({
         <div className="seating-hours-editor-fields">
         <div className="form-grid">
           <label className="form-field">
-            <span>Name</span>
+            <span>{t("Name")}</span>
             <input
               value={form.name}
               onChange={(event) => onFormChange({ ...form, name: event.target.value })}
-              placeholder="e.g. Dinner 1"
+              placeholder={t("e.g. Dinner 1")}
               required
             />
           </label>
           <label className="form-field">
-            <span>Start time</span>
+            <span>{t("Start time")}</span>
             <ReservationTimeSelect
               value={form.startTime}
               onChange={(startTime) => onFormChange({ ...form, startTime })}
@@ -158,7 +159,7 @@ export function WorkspaceReservationSeatingsSection({
             />
           </label>
           <label className="form-field">
-            <span>Duration (minutes)</span>
+            <span>{t("Duration (minutes)")}</span>
             <input
               type="number"
               min="15"
@@ -173,7 +174,7 @@ export function WorkspaceReservationSeatingsSection({
             />
           </label>
           <label className="form-field">
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <select
               value={form.isActive ? 'active' : 'inactive'}
               onChange={(event) => onFormChange({
@@ -181,15 +182,15 @@ export function WorkspaceReservationSeatingsSection({
                 isActive: event.target.value === 'active',
               })}
             >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">{t("Active")}</option>
+              <option value="inactive">{t("Inactive")}</option>
             </select>
           </label>
         </div>
         </div>
 
         <div className="form-field full-width seating-hours-editor-days">
-          <span>Days of week</span>
+          <span>{t("Days of week")}</span>
           <SeatingDaysToggle
             daysOfWeek={form.daysOfWeek}
             onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
@@ -199,11 +200,11 @@ export function WorkspaceReservationSeatingsSection({
         <div className="modal-actions">
           {editingSeatingId ? (
             <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>
-              Cancel edit
+              {t("Cancel edit")}
             </button>
           ) : null}
           <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-            {isSaving ? 'Saving…' : editingSeatingId ? 'Update seating' : 'Add seating'}
+            {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
           </button>
         </div>
       </form>
@@ -214,15 +215,15 @@ export function WorkspaceReservationSeatingsSection({
     <div className="panel staff-panel workspace-panel" data-testid="seating-hours-list">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">{hoursOnly ? 'Seating hours' : 'Seating list'}</p>
+          <p className="eyebrow">{hoursOnly ? t("Seating hours") : t("Seating list")}</p>
           <h3>{seatings.length} seating{seatings.length === 1 ? '' : 's'}</h3>
         </div>
       </div>
 
       {seatings.length === 0 && !isLoading ? (
         <div className="schedule-empty-state">
-          <h4>No seatings configured.</h4>
-          <p>Add your first service seating to power table availability.</p>
+          <h4>{t("No seatings configured.")}</h4>
+          <p>{t("Add your first service seating to power table availability.")}</p>
         </div>
       ) : (
         <div className="positions-list workspace-seatings-list">
@@ -244,7 +245,7 @@ export function WorkspaceReservationSeatingsSection({
                     {' · '}
                     {formatSeatingDaysLabel(normalized.daysOfWeek)}
                   </p>
-                  {!normalized.isActive ? <small>Inactive</small> : null}
+                  {!normalized.isActive ? <small>{t("Inactive")}</small> : null}
                 </div>
                 {showEditActions ? (
                   <div className="action-group">
@@ -271,7 +272,7 @@ export function WorkspaceReservationSeatingsSection({
                       className="ghost-btn small workspace-action-btn"
                       onClick={() => onStartEdit(normalized)}
                     >
-                      Edit
+                      {t("Edit")}
                     </button>
                     <button
                       type="button"
@@ -285,7 +286,7 @@ export function WorkspaceReservationSeatingsSection({
                       className="ghost-btn small workspace-action-btn"
                       onClick={() => onRequestDelete(normalized)}
                     >
-                      Delete
+                      {t("Delete")}
                     </button>
                   </div>
                 ) : null}
@@ -303,13 +304,13 @@ export function WorkspaceReservationSeatingsSection({
       {hoursOnly ? null : (
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">🍽️</span>
-            Reservation Seatings
+            {t("Reservation Seatings")}
           </h3>
           <p className="workspace-section-subtitle">
-            Configure service slots used for reservations, table availability, and host station.
+            {t("Configure service slots used for reservations, table availability, and host station.")}
           </p>
         </div>
       </div>
@@ -319,8 +320,8 @@ export function WorkspaceReservationSeatingsSection({
         <div className="panel staff-panel workspace-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">End of day</p>
-              <h3>Auto-close seated tables</h3>
+              <p className="eyebrow">{t("End of day")}</p>
+              <h3>{t("Auto-close seated tables")}</h3>
             </div>
           </div>
           <form
@@ -331,7 +332,7 @@ export function WorkspaceReservationSeatingsSection({
             }}
           >
             <p className="workspace-section-subtitle">
-              At this Europe/Nicosia time, reservations still seated from a previous business day are checked out and marked auto-closed. Default 05:00.
+              {t("At this Europe/Nicosia time, reservations still seated from a previous business day are checked out and marked auto-closed. Default 05:00.")}
             </p>
             {autoCloseNotice ? (
               <div
@@ -342,7 +343,7 @@ export function WorkspaceReservationSeatingsSection({
               </div>
             ) : null}
             <label className="form-field">
-              <span>Cutoff time</span>
+              <span>{t("Cutoff time")}</span>
               <input
                 type="time"
                 className="reservation-auto-close-time"
@@ -360,7 +361,7 @@ export function WorkspaceReservationSeatingsSection({
                 className="primary-btn workspace-action-btn reservation-auto-close-save"
                 disabled={isSavingAutoClose}
               >
-                {isSavingAutoClose ? 'Saving…' : 'Save cutoff'}
+                {isSavingAutoClose ? 'Saving…' : t("Save cutoff")}
               </button>
             </div>
           </form>
@@ -370,7 +371,7 @@ export function WorkspaceReservationSeatingsSection({
       {hoursOnly ? null : <HostDiningTimerSettings />}
 
       {visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading seatings…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading seatings…")}</div> : null}
 
       {hoursOnly && editingSeatingId && typeof document !== 'undefined'
         ? createPortal(
@@ -395,24 +396,24 @@ export function WorkspaceReservationSeatingsSection({
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Manage seatings</p>
-            <h3>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+            <p className="eyebrow">{t("Manage seatings")}</p>
+            <h3>{editingSeatingId ? t("Edit seating") : t("Add seating")}</h3>
           </div>
         </div>
 
         <form className="employee-form" onSubmit={onSubmit}>
           <div className="form-grid">
             <label className="form-field">
-              <span>Name</span>
+              <span>{t("Name")}</span>
               <input
                 value={form.name}
                 onChange={(event) => onFormChange({ ...form, name: event.target.value })}
-                placeholder="e.g. Dinner 1"
+                placeholder={t("e.g. Dinner 1")}
                 required
               />
             </label>
             <label className="form-field">
-              <span>Start time</span>
+              <span>{t("Start time")}</span>
               <ReservationTimeSelect
                 value={form.startTime}
                 onChange={(startTime) => onFormChange({ ...form, startTime })}
@@ -420,7 +421,7 @@ export function WorkspaceReservationSeatingsSection({
               />
             </label>
             <label className="form-field">
-              <span>Duration (minutes)</span>
+              <span>{t("Duration (minutes)")}</span>
               <input
                 type="number"
                 min="15"
@@ -435,7 +436,7 @@ export function WorkspaceReservationSeatingsSection({
               />
             </label>
             <label className="form-field">
-              <span>Status</span>
+              <span>{t("Status")}</span>
               <select
                 value={form.isActive ? 'active' : 'inactive'}
                 onChange={(event) => onFormChange({
@@ -443,14 +444,14 @@ export function WorkspaceReservationSeatingsSection({
                   isActive: event.target.value === 'active',
                 })}
               >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">{t("Active")}</option>
+                <option value="inactive">{t("Inactive")}</option>
               </select>
             </label>
           </div>
 
           <div className="form-field full-width">
-            <span>Days of week</span>
+            <span>{t("Days of week")}</span>
             <SeatingDaysToggle
               daysOfWeek={form.daysOfWeek}
               onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
@@ -460,11 +461,11 @@ export function WorkspaceReservationSeatingsSection({
           <div className="modal-actions">
             {editingSeatingId ? (
               <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>
-                Cancel edit
+                {t("Cancel edit")}
               </button>
             ) : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : editingSeatingId ? 'Update seating' : 'Add seating'}
+              {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
             </button>
           </div>
         </form>

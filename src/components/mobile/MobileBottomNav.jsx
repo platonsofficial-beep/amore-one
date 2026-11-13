@@ -2,6 +2,7 @@ import {
   MOBILE_MANAGER_BOTTOM_TABS,
   MOBILE_STAFF_BOTTOM_TABS,
 } from '../../lib/permissions'
+import { t } from '../../i18n/i18n'
 
 export function MobileBottomNav({
   activeTab,
@@ -13,7 +14,7 @@ export function MobileBottomNav({
   const resolvedTabs = tabs ?? (variant === 'manager' ? MOBILE_MANAGER_BOTTOM_TABS : MOBILE_STAFF_BOTTOM_TABS)
 
   return (
-    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
+    <nav className="mobile-bottom-nav" aria-label={t("Mobile navigation")}>
       {resolvedTabs.map((tab) => (
         <button
           key={tab.id}
@@ -24,11 +25,11 @@ export function MobileBottomNav({
           aria-expanded={tab.id === 'more' ? moreExpanded : undefined}
           data-help={`nav.${tab.id}`}
           data-help-nav=""
-          aria-label={tab.badge ? `${tab.ariaLabel || tab.label}, ${tab.badge} unread` : (tab.ariaLabel || tab.label)}
+          aria-label={tab.badge ? `${t(tab.ariaLabel || tab.label)}, ${tab.badge} ${t('unread')}` : t(tab.ariaLabel || tab.label)}
         >
           <span className="mobile-bottom-nav-icon" aria-hidden="true">{tab.icon}</span>
           {tab.badge ? <span className="mobile-bottom-nav-badge">{Number(tab.badge) > 9 ? '9+' : tab.badge}</span> : null}
-          <span className="mobile-bottom-nav-label">{tab.label}</span>
+          <span className="mobile-bottom-nav-label">{t(tab.label)}</span>
         </button>
       ))}
     </nav>

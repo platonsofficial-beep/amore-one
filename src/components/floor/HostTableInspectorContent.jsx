@@ -17,6 +17,7 @@ import { getActiveSeatingsForDate } from '../../lib/reservationSeatings'
 import { seatingHoursPanelKind } from '../../lib/hostLoadRecovery'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { SeatingHoursFallback } from '../reservations/NoServiceHoursNotice'
+import { t } from '../../i18n/i18n'
 
 function TableDayViewRowDivider() {
   return <div className="floor-table-day-row-divider" aria-hidden="true" />
@@ -116,7 +117,7 @@ function buildInspectorDetailItems(
     items.push({
       id: 'guests',
       icon: '👤',
-      label: `${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}`,
+      label: t('{{count}} guest', { count: guestCount }),
     })
   }
   if (tableChip) {
@@ -189,7 +190,7 @@ function OccupiedReservationActions({
           onClick={() => onOpenReservation?.(reservation)}
           data-testid="floor-table-day-open-reservation"
         >
-          Open reservation
+          {t("Open reservation")}
         </button>
         {onEditReservation ? (
           <button
@@ -241,7 +242,7 @@ function OccupiedReservationActions({
         onClick={() => onOpenReservation?.(reservation)}
         data-testid="floor-table-day-open-reservation"
       >
-        Open reservation
+        {t("Open reservation")}
       </button>
       {(onEditReservation || secondaryActions.length > 0) ? (
         <div className="floor-table-day-row-actions-secondary">
@@ -332,20 +333,20 @@ function TableDayViewAssignmentRow({
                 {' · '}
                 {guestCount}
                 {' '}
-                {guestCount === 1 ? 'guest' : 'guests'}
+                {t('guest', { count: guestCount })}
               </span>
             </>
           ) : (
             <span className="floor-table-day-guest-count">
               {guestCount}
               {' '}
-              {guestCount === 1 ? 'guest' : 'guests'}
+              {t('guest', { count: guestCount })}
             </span>
           )}
         </p>
         {draftTableLabels ? (
           <div className="host-table-inspector-assignment-tables">
-            <p className="host-table-inspector-assignment-label">Selected tables</p>
+            <p className="host-table-inspector-assignment-label">{t("Selected tables")}</p>
             <p className="host-table-inspector-assignment-value">{draftTableLabels}</p>
             {tableCapacityLabel ? (
               <p className="host-table-inspector-assignment-capacity">{tableCapacityLabel}</p>
@@ -354,7 +355,7 @@ function TableDayViewAssignmentRow({
         ) : null}
         {!canAssign ? (
           <p className="floor-table-day-assignment-blocked" role="status">
-            This seating is not available for assignment on this table.
+            {t("This seating is not available for assignment on this table.")}
           </p>
         ) : null}
         <div className="floor-table-day-row-actions">
@@ -375,7 +376,7 @@ function TableDayViewAssignmentRow({
               onClick={onCancelAssignment}
               data-testid="floor-table-day-cancel-assignment"
             >
-              Cancel selection
+              {t("Cancel selection")}
             </button>
           ) : null}
         </div>
@@ -465,9 +466,9 @@ function TableInspectorAvailableRow({
         <time dateTime={timeWindowLabel}>{timeWindowLabel}</time>
       </div>
       <div className="table-inspector-seating-body">
-        <span className="availability-state" aria-label="Available">
+        <span className="availability-state" aria-label={t("Available")}>
           <span className="availability-dot" aria-hidden="true" />
-          Available
+          {t("Available")}
         </span>
         {!isAssignmentMode ? (
           <button
@@ -483,7 +484,7 @@ function TableInspectorAvailableRow({
             [ + New reservation ]
           </button>
         ) : (
-          <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
+          <p className="floor-table-day-seating-select-hint">{t("Tap to seat here")}</p>
         )}
       </div>
     </div>
@@ -511,7 +512,7 @@ function TableDayViewRow({
   const { seating, reservation, conflicts, hasConflict, isAvailable, timeWindowLabel, state } = row
   const isAssignmentMode = Boolean(assignmentContext?.reservation)
   const isAssignmentSelected = assignmentContext?.seatingId === seating.id
-  const releaseLabel = tableLabel ? `Release ${tableLabel}` : 'Release table'
+  const releaseLabel = tableLabel ? `Release ${tableLabel}` : t("Release table")
   const guestName = reservation?.guestName || 'Guest'
   const infoItems = buildInspectorDetailItems(reservation, row.assignedTablesLabel, {
     reservationSeatings,
@@ -576,7 +577,7 @@ function TableDayViewRow({
         <TableDayViewRowDivider />
         <div className="floor-table-day-row-body">
           <TableDayViewStatusPill presentation={statusPresentation} />
-          <p className="floor-table-day-row-lead">Overlapping reservations</p>
+          <p className="floor-table-day-row-lead">{t("Overlapping reservations")}</p>
           <ul className="floor-table-day-conflict-list">
             {conflicts.map((conflictReservation) => (
               <li key={conflictReservation.id}>
@@ -615,8 +616,8 @@ function TableDayViewRow({
         </div>
         <TableDayViewRowDivider />
         <div className="floor-table-day-row-body">
-          <span className="availability-state is-unverified" aria-label="Availability unverified">
-            Availability unverified
+          <span className="availability-state is-unverified" aria-label={t("Availability unverified")}>
+            {t("Availability unverified")}
           </span>
         </div>
       </li>
@@ -654,7 +655,7 @@ function TableDayViewRow({
               + New reservation
             </button>
           ) : (
-            <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
+            <p className="floor-table-day-seating-select-hint">{t("Tap to seat here")}</p>
           )}
         </div>
       </li>
@@ -680,7 +681,7 @@ function TableDayViewRow({
       <TableDayViewRowDivider />
       <div className="floor-table-day-row-body">
         {row.availabilityCertainty === 'stale' ? (
-          <p className="floor-table-day-row-notes" role="status">Last loaded. Not rechecked.</p>
+          <p className="floor-table-day-row-notes" role="status">{t("Last loaded. Not rechecked.")}</p>
         ) : null}
         <div className="floor-table-day-guest-headline">
           <h4 className="floor-table-day-guest-name">{guestName}</h4>
@@ -697,7 +698,7 @@ function TableDayViewRow({
         <TableDayViewInfoList items={infoItems} />
 
         {row.hasNotes ? (
-          <p className="floor-table-day-row-notes" aria-label="Reservation has notes">Notes</p>
+          <p className="floor-table-day-row-notes" aria-label={t("Reservation has notes")}>{t("Notes")}</p>
         ) : null}
 
         {!isAssignmentMode ? (
@@ -715,7 +716,7 @@ function TableDayViewRow({
             useHierarchy={useDrawerHierarchy && isHeroPrimary}
           />
         ) : (
-          <p className="floor-table-day-seating-select-hint">Tap to review assignment</p>
+          <p className="floor-table-day-seating-select-hint">{t("Tap to review assignment")}</p>
         )}
       </div>
     </li>
@@ -730,7 +731,7 @@ export function formatTableDayViewCapacity(table) {
   )
 
   if (maxGuests > 0) return `Capacity ${maxGuests}`
-  return 'Capacity varies'
+  return t("Capacity varies")
 }
 
 export function HostTableInspectorContent({
@@ -789,7 +790,7 @@ export function HostTableInspectorContent({
 
   const accessibleTitle = tableLabel
     ? `Table ${tableLabel.replace(/^TABLE\s*/i, '')} details`
-    : 'Table details'
+    : t("Table details")
 
   return (
     <>
@@ -836,7 +837,7 @@ export function HostTableInspectorContent({
           )}
           {needsSeatingChoice ? (
             <p className="floor-table-day-assignment-hint" data-testid="floor-table-day-choose-seating">
-              Choose a seating
+              {t("Choose a seating")}
             </p>
           ) : null}
         </div>
@@ -844,7 +845,7 @@ export function HostTableInspectorContent({
           type="button"
           className="floor-table-seating-dialog-close"
           onClick={onClose}
-          aria-label="Close table inspector"
+          aria-label={t("Close table inspector")}
           data-testid="floor-table-day-close"
         >
           <span aria-hidden="true">✕</span>
@@ -856,7 +857,7 @@ export function HostTableInspectorContent({
       {displayRows.length > 0 ? (
         <ul
           className={`floor-table-seating-dialog-list floor-table-day-list host-table-inspector-list${animateEntrance ? ' is-initial' : ''}`}
-          aria-label="Table day seatings"
+          aria-label={t("Table day seatings")}
         >
           {groupInspectorRowsForRender(displayRows, useDrawerHierarchy).map((group) => {
             if (group.type === 'available-timeline') {

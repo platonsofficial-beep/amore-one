@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 const SESSION_ENDED_STORAGE_KEY = 'one:session-ended'
 
 export function markSessionEnded() {
@@ -18,23 +19,23 @@ export function clearSessionEndedNotice() {
 export function formatAuthErrorMessage(message = '') {
   const normalized = `${message ?? ''}`.trim()
   if (!normalized) {
-    return 'Unable to complete this request right now.'
+    return t("Unable to complete this request right now.")
   }
 
   if (/invalid login credentials/i.test(normalized)) {
-    return 'Email or password is incorrect. Try again or reset your password.'
+    return t("Email or password is incorrect. Try again or reset your password.")
   }
 
   if (/jwt expired|refresh token|session.*expired|token.*expired/i.test(normalized)) {
-    return 'Your session expired. Sign in again to continue.'
+    return t("Your session expired. Sign in again to continue.")
   }
 
   if (/email not confirmed/i.test(normalized)) {
-    return 'Confirm your email address before signing in.'
+    return t("Confirm your email address before signing in.")
   }
 
   if (/too many requests|rate limit/i.test(normalized)) {
-    return 'Too many attempts. Wait a moment and try again.'
+    return t("Too many attempts. Wait a moment and try again.")
   }
 
   return normalized

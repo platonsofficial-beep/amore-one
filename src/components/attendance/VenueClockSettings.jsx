@@ -8,6 +8,7 @@ import {
 } from '../../lib/attendance'
 import { readCurrentPositionWithNotice } from '../../lib/attendanceLocation'
 import { loadAttendanceSettings, setAttendanceSettings } from '../../services/attendanceService'
+import { t } from '../../i18n/i18n'
 
 export function VenueClockSettings({
   workspaceId = '',
@@ -58,7 +59,7 @@ export function VenueClockSettings({
     } catch (locationError) {
       setError(locationError?.code === 'no_location'
         ? 'Location is off. Turn it on in Settings > Safari/Chrome > Location, or type the latitude and longitude.'
-        : 'We could not read this device’s location. Type the latitude and longitude.')
+        : t("We could not read this device’s location. Type the latitude and longitude."))
     } finally {
       setBusy(false)
     }
@@ -90,8 +91,8 @@ export function VenueClockSettings({
         timezone: timeZone || null,
       })
       setMessage(validation.lat == null
-        ? 'Saved. Venue location is still not set.'
-        : 'Venue location saved.')
+        ? t("Saved. Venue location is still not set.")
+        : t("Venue location saved."))
     } catch (saveError) {
       setError(attendanceErrorMessage(saveError))
     } finally {
@@ -100,13 +101,13 @@ export function VenueClockSettings({
   }
 
   return (
-    <form className="attendance-venue" onSubmit={save} aria-label="Venue location">
+    <form className="attendance-venue" onSubmit={save} aria-label={t("Venue location")}>
       <h4 className="workspace-venue-card-title">
         <span className="workspace-section-icon" aria-hidden="true">📍</span>
-        Venue location
+        {t("Venue location")}
       </h4>
       <p className="workspace-section-subtitle">
-        Used only when someone clocks in or out. The phone’s exact location is not saved.
+        {t("Used only when someone clocks in or out. The phone’s exact location is not saved.")}
       </p>
       <div className="attendance-venue-actions">
         <button type="button" className="attendance-action attendance-action-in" onClick={useMyLocation} disabled={busy}>
@@ -115,16 +116,16 @@ export function VenueClockSettings({
       </div>
       <div className="attendance-venue-grid">
         <label className="attendance-field">
-          Latitude
+          {t("Latitude")}
           <input inputMode="decimal" value={lat} onChange={(event) => setLat(event.target.value)} placeholder="35.1856" />
         </label>
         <label className="attendance-field">
-          Longitude
+          {t("Longitude")}
           <input inputMode="decimal" value={lng} onChange={(event) => setLng(event.target.value)} placeholder="33.3823" />
         </label>
       </div>
       <fieldset className="attendance-radius">
-        <legend>Radius</legend>
+        <legend>{t("Radius")}</legend>
         <div className="attendance-person-row">
           {RADIUS_CHOICES_M.map((choice) => (
             <button
@@ -138,7 +139,7 @@ export function VenueClockSettings({
           ))}
         </div>
         <label className="attendance-field">
-          Metres (25–1000)
+          {t("Metres (25–1000)")}
           <input
             inputMode="numeric"
             value={radiusM}
@@ -147,7 +148,7 @@ export function VenueClockSettings({
         </label>
       </fieldset>
       <label className="attendance-field">
-        Late grace (minutes)
+        {t("Late grace (minutes)")}
         <input
           inputMode="numeric"
           value={lateGraceMinutes}
@@ -160,12 +161,12 @@ export function VenueClockSettings({
           checked={requireLocation}
           onChange={(event) => setRequireLocation(event.target.checked)}
         />
-        Require location for clock in
+        {t("Require location for clock in")}
       </label>
       {message ? <p className="attendance-clock-message" role="status">{message}</p> : null}
       {error ? <p className="attendance-clock-banner is-alert" role="alert">{error}</p> : null}
       <button type="submit" className="attendance-action attendance-action-in" disabled={busy}>
-        Save venue location
+        {t("Save venue location")}
       </button>
     </form>
   )

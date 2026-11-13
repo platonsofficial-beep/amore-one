@@ -6,6 +6,7 @@ import { formatHostWorkspaceCompactDateNavLabel, formatHostWorkspaceDateNavLabel
 import { formatReservationDayMonth } from '../../../lib/timeFormatUtils'
 import { useMediaQuery } from '../../../lib/useMediaQuery'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
+import { t } from '../../../i18n/i18n'
 
 export function MobileHostReservationDateNav({
   selectedDateKey = '',
@@ -66,7 +67,7 @@ export function MobileHostReservationDateNav({
         className="mobile-host-date-picker-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="Choose reservation date"
+        aria-label={t("Choose reservation date")}
         onClick={(event) => event.stopPropagation()}
       >
         <HostWorkspaceDatePicker
@@ -87,7 +88,7 @@ export function MobileHostReservationDateNav({
           type="button"
           className="mobile-host-sticky-date-step-btn"
           onClick={() => handleShiftDay(-1)}
-          aria-label="Previous day"
+          aria-label={t("Previous day")}
           data-testid="mobile-host-date-previous"
           disabled={!onSelectDate || !normalizedSelectedDateKey}
         >
@@ -109,7 +110,7 @@ export function MobileHostReservationDateNav({
           type="button"
           className="mobile-host-sticky-date-step-btn"
           onClick={() => handleShiftDay(1)}
-          aria-label="Next day"
+          aria-label={t("Next day")}
           data-testid="mobile-host-date-next"
           disabled={!onSelectDate || !normalizedSelectedDateKey}
         >
@@ -121,7 +122,7 @@ export function MobileHostReservationDateNav({
           onClick={openPicker}
           aria-haspopup="dialog"
           aria-expanded={isPickerOpen}
-          aria-label="Open calendar"
+          aria-label={t("Open calendar")}
           data-testid="mobile-host-date-calendar"
           disabled={!onSelectDate}
         >
@@ -135,7 +136,7 @@ export function MobileHostReservationDateNav({
           aria-current={isViewingToday ? 'date' : undefined}
           data-testid="mobile-host-date-today"
         >
-          Today
+          {t("Today")}
         </button>
       </div>
       {picker}

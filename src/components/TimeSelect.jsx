@@ -5,6 +5,7 @@ import {
   normalizeTimeValue,
   snapTimeToQuarter,
 } from '../lib/timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 const SCROLL_GESTURE_THRESHOLD_PX = 8
 
@@ -15,7 +16,7 @@ export function TimeSelect({
   required = false,
   className = 'time-select',
   id,
-  placeholder = 'Select time',
+  placeholder = t("Select time"),
   disabled = false,
 }) {
   const generatedId = useId()

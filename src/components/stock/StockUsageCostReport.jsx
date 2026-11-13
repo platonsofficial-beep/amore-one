@@ -13,6 +13,7 @@ import {
   listInventoryCountHomeSessions,
 } from '../../services/inventoryCountService'
 import { getStockMovementsInPeriod } from '../../services/stockMovementService'
+import { t } from '../../i18n/i18n'
 
 function countLabel(session, timeZone) {
   const when = formatTimestampDayAndTime24(session.postedAt, 'Posted', timeZone)
@@ -22,7 +23,7 @@ function countLabel(session, timeZone) {
 
 function moneyLabel(value, quantityMissing) {
   if (quantityMissing) return '—'
-  if (value == null) return 'No cost'
+  if (value == null) return t("No cost")
   return formatStockPurchasePrice(value)
 }
 
@@ -75,7 +76,7 @@ export function StockUsageCostReport({
     }).catch((error) => {
       if (cancelled) return
       setSessions([])
-      setSessionsError(error?.message || 'Unable to load posted counts.')
+      setSessionsError(error?.message || t("Unable to load posted counts."))
       setSessionsLoading(false)
     })
     return () => {
@@ -117,7 +118,7 @@ export function StockUsageCostReport({
     }).catch((error) => {
       if (cancelled) return
       setReport(null)
-      setReportError(error?.message || 'Unable to build this usage report.')
+      setReportError(error?.message || t("Unable to build this usage report."))
       setReportLoading(false)
     })
     return () => {
@@ -142,24 +143,24 @@ export function StockUsageCostReport({
       >
         <div className="drawer-header">
           <div>
-            <h3 id="stock-usage-report-title">Usage report</h3>
+            <h3 id="stock-usage-report-title">{t("Usage report")}</h3>
             <p className="stock-modal-subtitle">
               Opening + Received − Waste − Logged use ± Transfers ± Adjustments − Closing = Used
             </p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
         </div>
 
-        {sessionsLoading ? <p className="stock-usage-report-status">Loading posted counts…</p> : null}
+        {sessionsLoading ? <p className="stock-usage-report-status">{t("Loading posted counts…")}</p> : null}
         {sessionsError ? <p className="stock-usage-report-status is-error" role="alert">{sessionsError}</p> : null}
         {!sessionsLoading && !sessionsError && sessions.length < 2 ? (
-          <p className="stock-usage-report-status">Post two inventory counts to compare a period.</p>
+          <p className="stock-usage-report-status">{t("Post two inventory counts to compare a period.")}</p>
         ) : null}
 
         {sessions.length >= 2 ? (
           <div className="stock-usage-report-controls">
             <label>
-              Opening count
+              {t("Opening count")}
               <select
                 value={openingId}
                 onChange={(event) => setOpeningId(event.target.value)}
@@ -171,7 +172,7 @@ export function StockUsageCostReport({
               </select>
             </label>
             <label>
-              Closing count
+              {t("Closing count")}
               <select
                 value={closingId}
                 onChange={(event) => setClosingId(event.target.value)}
@@ -185,17 +186,17 @@ export function StockUsageCostReport({
           </div>
         ) : null}
 
-        {reportLoading ? <p className="stock-usage-report-status">Building the period…</p> : null}
+        {reportLoading ? <p className="stock-usage-report-status">{t("Building the period…")}</p> : null}
         {reportError ? <p className="stock-usage-report-status is-error" role="alert">{reportError}</p> : null}
 
         {summary ? (
           <div className="stock-usage-report-summary" data-testid="stock-usage-report-summary">
             <span>{summary.productCount} product{summary.productCount === 1 ? '' : 's'}</span>
             <span>
-              Usage cost {summary.hasUsageCost ? formatStockPurchasePrice(summary.usageCost) : 'No cost'}
+              Usage cost {summary.hasUsageCost ? formatStockPurchasePrice(summary.usageCost) : t("No cost")}
             </span>
             <span>
-              Waste cost {summary.hasWasteCost ? formatStockPurchasePrice(summary.wasteCost) : 'No cost'}
+              Waste cost {summary.hasWasteCost ? formatStockPurchasePrice(summary.wasteCost) : t("No cost")}
             </span>
             {summary.missingCountCount > 0 ? (
               <span>{summary.missingCountCount} missing a count</span>
@@ -204,7 +205,7 @@ export function StockUsageCostReport({
               <span>{summary.missingCostCount} with no cost</span>
             ) : null}
             {summary.movementHistoryTruncated ? (
-              <span>Movement history was cut off. Used is hidden.</span>
+              <span>{t("Movement history was cut off. Used is hidden.")}</span>
             ) : null}
           </div>
         ) : null}
@@ -215,9 +216,9 @@ export function StockUsageCostReport({
               <header>
                 <h4>{category.category}</h4>
                 <p>
-                  {category.hasUsageCost ? `Usage ${formatStockPurchasePrice(category.usageCost)}` : 'No usage cost'}
+                  {category.hasUsageCost ? `Usage ${formatStockPurchasePrice(category.usageCost)}` : t("No usage cost")}
                   {' · '}
-                  {category.hasWasteCost ? `Waste ${formatStockPurchasePrice(category.wasteCost)}` : 'No waste cost'}
+                  {category.hasWasteCost ? `Waste ${formatStockPurchasePrice(category.wasteCost)}` : t("No waste cost")}
                   {category.missingCostCount > 0 ? ` · ${category.missingCostCount} with no cost` : ''}
                   {category.missingCountCount > 0 ? ` · ${category.missingCountCount} missing a count` : ''}
                 </p>
@@ -227,16 +228,16 @@ export function StockUsageCostReport({
                   <strong>{product.name}</strong>
                   {product.gap ? <p className="stock-usage-report-gap">{product.gap}</p> : null}
                   <dl>
-                    <div><dt>Opening</dt><dd>{qtyLabel(product.opening, product.unit)}</dd></div>
-                    <div><dt>Received</dt><dd>{qtyLabel(product.received, product.unit)}</dd></div>
-                    <div><dt>Waste</dt><dd>{qtyLabel(product.waste, product.unit)}</dd></div>
-                    <div><dt>Logged use</dt><dd>{qtyLabel(product.loggedUse, product.unit)}</dd></div>
-                    <div><dt>Transfers</dt><dd>{qtyLabel(product.transfer, product.unit)}</dd></div>
-                    <div><dt>Adjustments</dt><dd>{qtyLabel(product.adjustment, product.unit)}</dd></div>
-                    <div><dt>Closing</dt><dd>{qtyLabel(product.closing, product.unit)}</dd></div>
-                    <div><dt>Used</dt><dd>{product.used == null ? '—' : qtyLabel(product.used, product.unit)}</dd></div>
-                    <div><dt>Usage cost</dt><dd>{moneyLabel(product.usageCost, product.used == null)}</dd></div>
-                    <div><dt>Waste cost</dt><dd>{moneyLabel(product.wasteCost, false)}</dd></div>
+                    <div><dt>{t("Opening")}</dt><dd>{qtyLabel(product.opening, product.unit)}</dd></div>
+                    <div><dt>{t("Received")}</dt><dd>{qtyLabel(product.received, product.unit)}</dd></div>
+                    <div><dt>{t("Waste")}</dt><dd>{qtyLabel(product.waste, product.unit)}</dd></div>
+                    <div><dt>{t("Logged use")}</dt><dd>{qtyLabel(product.loggedUse, product.unit)}</dd></div>
+                    <div><dt>{t("Transfers")}</dt><dd>{qtyLabel(product.transfer, product.unit)}</dd></div>
+                    <div><dt>{t("Adjustments")}</dt><dd>{qtyLabel(product.adjustment, product.unit)}</dd></div>
+                    <div><dt>{t("Closing")}</dt><dd>{qtyLabel(product.closing, product.unit)}</dd></div>
+                    <div><dt>{t("Used")}</dt><dd>{product.used == null ? '—' : qtyLabel(product.used, product.unit)}</dd></div>
+                    <div><dt>{t("Usage cost")}</dt><dd>{moneyLabel(product.usageCost, product.used == null)}</dd></div>
+                    <div><dt>{t("Waste cost")}</dt><dd>{moneyLabel(product.wasteCost, false)}</dd></div>
                   </dl>
                 </article>
               ))}

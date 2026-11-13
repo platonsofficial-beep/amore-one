@@ -4,36 +4,37 @@ import {
   createInventoryCountSessionWithSnapshot,
   listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
+import { t } from '../../i18n/i18n'
 
 const COUNT_TYPES = [
   {
     id: 'new',
-    title: 'New count',
-    description: 'Complete inventory count for selected locations.',
+    title: t("New count"),
+    description: t("Complete inventory count for selected locations."),
     icon: '▣',
   },
   {
     id: 'quick',
-    title: 'Quick count',
-    description: 'Count only selected inventory items.',
+    title: t("Quick count"),
+    description: t("Count only selected inventory items."),
     icon: '✦',
   },
   {
     id: 'partial',
-    title: 'Partial count',
-    description: 'Count one department or storage location.',
+    title: t("Partial count"),
+    description: t("Count one department or storage location."),
     icon: '◫',
   },
   {
     id: 'scheduled',
-    title: 'Scheduled count',
-    description: 'Create a planned inventory session.',
+    title: t("Scheduled count"),
+    description: t("Create a planned inventory session."),
     icon: '◷',
   },
   {
     id: 'emergency',
-    title: 'Emergency count',
-    description: 'Immediate stock verification.',
+    title: t("Emergency count"),
+    description: t("Immediate stock verification."),
     icon: '◉',
   },
 ]
@@ -43,17 +44,17 @@ const LOCATION_CARD_ICON = '▦'
 const COUNT_VISIBILITY_OPTIONS = [
   {
     id: 'blind',
-    title: 'Blind count',
-    description: 'Hide expected quantities while counting.',
-    helper: 'Recommended for accurate stock counts.',
+    title: t("Blind count"),
+    description: t("Hide expected quantities while counting."),
+    helper: t("Recommended for accurate stock counts."),
     icon: '◌',
     recommended: true,
   },
   {
     id: 'open',
-    title: 'Open count',
-    description: 'Show expected quantities while counting.',
-    helper: 'Useful for training or quick verification.',
+    title: t("Open count"),
+    description: t("Show expected quantities while counting."),
+    helper: t("Useful for training or quick verification."),
     icon: '◎',
     recommended: false,
   },
@@ -63,24 +64,24 @@ const SESSION_NOTE_MAX_LENGTH = 250
 
 const STEP_COPY = {
   1: {
-    label: 'Step 1 of 4',
-    name: 'Count type',
-    subtitle: 'Create a new inventory counting session.',
+    label: t("Step 1 of 4"),
+    name: t("Count type"),
+    subtitle: t("Create a new inventory counting session."),
   },
   2: {
-    label: 'Step 2 of 4',
+    label: t("Step 2 of 4"),
     name: 'Storages',
-    subtitle: 'Select the locations that will be included in this inventory count.',
+    subtitle: t("Select the locations that will be included in this inventory count."),
   },
   3: {
-    label: 'Step 3 of 4',
-    name: 'Count settings',
-    subtitle: 'Configure how this inventory session will be performed.',
+    label: t("Step 3 of 4"),
+    name: t("Count settings"),
+    subtitle: t("Configure how this inventory session will be performed."),
   },
   4: {
-    label: 'Step 4 of 4',
-    name: 'Review & start',
-    subtitle: 'Review the session details before starting.',
+    label: t("Step 4 of 4"),
+    name: t("Review & start"),
+    subtitle: t("Review the session details before starting."),
   },
 }
 
@@ -176,7 +177,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         setAvailableLocations([])
         setSelectedLocations([])
         setLocationsStatus('error')
-        setLocationsError(error?.message || 'Unable to load storage locations right now.')
+        setLocationsError(error?.message || t("Unable to load storage locations right now."))
       })
 
     return undefined
@@ -206,7 +207,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         : isStep4Valid
 
   const primaryActionLabel = step === 4
-    ? (isStartingSession ? 'Starting…' : 'Start count')
+    ? (isStartingSession ? 'Starting…' : t("Start count"))
     : 'Continue'
   const isPrimaryDisabled = !canContinue || isStartingSession
 
@@ -295,7 +296,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
       })
     } catch (error) {
       if (startRequestIdRef.current !== requestId) return
-      setStartError(error?.message || 'Unable to start inventory count session right now.')
+      setStartError(error?.message || t("Unable to start inventory count session right now."))
     } finally {
       if (startRequestIdRef.current === requestId) {
         startInFlightRef.current = false
@@ -324,7 +325,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         <header className="inventory-count-wizard-header">
           <div className="inventory-count-wizard-header-copy">
             <h2 id="inventory-count-wizard-title" className="inventory-count-wizard-title">
-              New count
+              {t("New count")}
             </h2>
             <p id="inventory-count-wizard-subtitle" className="inventory-count-wizard-subtitle">
               {stepCopy.subtitle}
@@ -335,7 +336,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               type="button"
               className="icon-btn inventory-count-wizard-close-btn"
               onClick={handleClose}
-              aria-label="Close"
+              aria-label={t("Close")}
               disabled={isStartingSession}
               aria-disabled={isStartingSession}
             >
@@ -344,7 +345,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
           </div>
         </header>
 
-        <div className="inventory-count-wizard-step" aria-label="Wizard progress">
+        <div className="inventory-count-wizard-step" aria-label={t("Wizard progress")}>
           <p className="inventory-count-wizard-step-label">{stepCopy.label}</p>
           <p className="inventory-count-wizard-step-name">{stepCopy.name}</p>
         </div>
@@ -372,21 +373,21 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                     </span>
                     <span className="inventory-count-type-card-description">
                       {countType.id === 'new'
-                        ? 'Count every storage.'
-                        : 'Count one storage.'}
+                        ? t("Count every storage.")
+                        : t("Count one storage.")}
                     </span>
                     <span className="inventory-count-door-effort">
-                      {countType.id === 'new' ? 'Takes longer' : 'Usually faster'}
+                      {countType.id === 'new' ? t("Takes longer") : t("Usually faster")}
                     </span>
                   </span>
                 </button>
               ))}
             </div>
             <details className="inventory-count-more-types">
-              <summary>More options</summary>
+              <summary>{t("More options")}</summary>
           <div
             role="radiogroup"
-            aria-label="Count type"
+            aria-label={t("Count type")}
           >
             {COUNT_TYPES.map((countType) => {
               const isSelected = selectedType === countType.id
@@ -425,22 +426,21 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
           <div className="inventory-count-wizard-step2">
             {locationsStatus === 'loading' ? (
               <div className="staff-status-banner" role="status">
-                Loading storage locations…
+                {t("Loading storage locations…")}
               </div>
             ) : null}
 
             {locationsStatus === 'error' ? (
               <div className="staff-status-banner" role="alert">
-                {locationsError || 'Unable to load storage locations right now.'}
+                {locationsError || t("Unable to load storage locations right now.")}
               </div>
             ) : null}
 
             {locationsStatus === 'ready' && availableLocations.length === 0 ? (
               <div className="stock-empty-state inventory-count-wizard-locations-empty" role="status">
-                <h4>No storage locations available</h4>
+                <h4>{t("No storage locations available")}</h4>
                 <p>
-                  Stock items need a storage location before a count can begin.
-                  Add storage locations to your stock items, then start a new count.
+                  {t('Stock items need a storage location before a count can begin. Add storage locations to your stock items, then start a new count.')}
                 </p>
               </div>
             ) : null}
@@ -449,10 +449,10 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               <div
                 className="inventory-count-wizard-body inventory-count-wizard-body-locations"
                 role="group"
-                aria-label="Storages"
+                aria-label={t("Storages")}
               >
                 <p className="inventory-count-wizard-location-note">
-                  Only storages that already have products are listed. Empty storages are not part of a count.
+                  {t("Only storages that already have products are listed. Empty storages are not part of a count.")}
                 </p>
                 {availableLocations.map((location) => {
                   const isSelected = selectedLocations.includes(location)
@@ -478,7 +478,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       <span className="inventory-count-type-card-copy">
                         <span className="inventory-count-type-card-title">{location}</span>
                         <span className="inventory-count-type-card-description">
-                          Venue stock location
+                          {t("Venue stock location")}
                         </span>
                       </span>
                     </button>
@@ -494,7 +494,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
             <div
               className="inventory-count-wizard-body inventory-count-wizard-body-visibility"
               role="radiogroup"
-              aria-label="Count Visibility"
+              aria-label={t("Count Visibility")}
             >
               {COUNT_VISIBILITY_OPTIONS.map((option) => {
                 const isSelected = countVisibility === option.id
@@ -519,7 +519,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       <span className="inventory-count-visibility-title-row">
                         <span className="inventory-count-type-card-title">{option.title}</span>
                         {option.recommended ? (
-                          <span className="inventory-count-recommended-pill">Recommended</span>
+                          <span className="inventory-count-recommended-pill">{t("Recommended")}</span>
                         ) : null}
                       </span>
                       <span className="inventory-count-type-card-description">
@@ -534,7 +534,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               })}
             </div>
 
-            <div className="inventory-count-wizard-options" aria-label="Inventory options">
+            <div className="inventory-count-wizard-options" aria-label={t("Inventory options")}>
               <button
                 type="button"
                 role="switch"
@@ -543,9 +543,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 onClick={() => setIncludeZeroStock((current) => !current)}
               >
                 <span className="inventory-count-option-toggle-copy">
-                  <span className="inventory-count-option-toggle-title">Include zero-stock items</span>
+                  <span className="inventory-count-option-toggle-title">{t("Include zero-stock items")}</span>
                   <span className="inventory-count-option-toggle-description">
-                    Include items currently expected to be zero.
+                    {t("Include items currently expected to be zero.")}
                   </span>
                 </span>
                 <span className="inventory-count-option-switch" aria-hidden="true">
@@ -561,9 +561,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 onClick={() => setIncludeInactive((current) => !current)}
               >
                 <span className="inventory-count-option-toggle-copy">
-                  <span className="inventory-count-option-toggle-title">Include inactive items</span>
+                  <span className="inventory-count-option-toggle-title">{t("Include inactive items")}</span>
                   <span className="inventory-count-option-toggle-description">
-                    Include archived or inactive inventory items.
+                    {t("Include archived or inactive inventory items.")}
                   </span>
                 </span>
                 <span className="inventory-count-option-switch" aria-hidden="true">
@@ -573,14 +573,14 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
             </div>
 
             <label className="inventory-count-session-note">
-              <span className="inventory-count-session-note-label">Session note</span>
+              <span className="inventory-count-session-note-label">{t("Session note")}</span>
               <textarea
                 className="inventory-count-session-note-input"
                 value={sessionNote}
                 onChange={handleSessionNoteChange}
                 maxLength={SESSION_NOTE_MAX_LENGTH}
                 rows={3}
-                placeholder="Add an optional note for this inventory session..."
+                placeholder={t("Add an optional note for this inventory session...")}
               />
               <span className="inventory-count-session-note-count">
                 {sessionNote.length}/{SESSION_NOTE_MAX_LENGTH}
@@ -592,9 +592,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         {step === 4 ? (
           <div className="inventory-count-wizard-step4">
             <div className="inventory-count-review-grid">
-              <section className="inventory-count-review-card" aria-label="Count type summary">
+              <section className="inventory-count-review-card" aria-label={t("Count type summary")}>
                 <div className="inventory-count-review-card-header">
-                  <h3 className="inventory-count-review-card-title">Count type</h3>
+                  <h3 className="inventory-count-review-card-title">{t("Count type")}</h3>
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
@@ -606,7 +606,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       setStep(1)
                     }}
                   >
-                    Change
+                    {t("Change")}
                   </button>
                 </div>
                 {selectedCountType ? (
@@ -624,9 +624,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 ) : null}
               </section>
 
-              <section className="inventory-count-review-card" aria-label="Locations summary">
+              <section className="inventory-count-review-card" aria-label={t("Locations summary")}>
                 <div className="inventory-count-review-card-header">
-                  <h3 className="inventory-count-review-card-title">Locations</h3>
+                  <h3 className="inventory-count-review-card-title">{t("Locations")}</h3>
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
@@ -638,7 +638,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       setStep(2)
                     }}
                   >
-                    Change
+                    {t("Change")}
                   </button>
                 </div>
                 <p className="inventory-count-review-meta">
@@ -653,9 +653,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 </div>
               </section>
 
-              <section className="inventory-count-review-card" aria-label="Count settings summary">
+              <section className="inventory-count-review-card" aria-label={t("Count settings summary")}>
                 <div className="inventory-count-review-card-header">
-                  <h3 className="inventory-count-review-card-title">Count settings</h3>
+                  <h3 className="inventory-count-review-card-title">{t("Count settings")}</h3>
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
@@ -667,81 +667,81 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       setStep(3)
                     }}
                   >
-                    Change
+                    {t("Change")}
                   </button>
                 </div>
                 <dl className="inventory-count-review-dl">
                   <div>
-                    <dt>Visibility</dt>
+                    <dt>{t("Visibility")}</dt>
                     <dd>
                       {selectedVisibility.title}
                       <span className="inventory-count-review-plain">
                         {selectedVisibility.id === 'blind'
                           ? "Counters don't see expected quantities."
-                          : 'Counters see expected quantities.'}
+                          : t("Counters see expected quantities.")}
                       </span>
                     </dd>
                   </div>
                   <div>
-                    <dt>Include zero-stock items</dt>
+                    <dt>{t("Include zero-stock items")}</dt>
                     <dd>{includeZeroStock ? 'Yes' : 'No'}</dd>
                   </div>
                   <div>
-                    <dt>Include inactive items</dt>
+                    <dt>{t("Include inactive items")}</dt>
                     <dd>{includeInactive ? 'Yes' : 'No'}</dd>
                   </div>
                   {trimmedNote ? (
                     <div className="inventory-count-review-note-row">
-                      <dt>Session note</dt>
+                      <dt>{t("Session note")}</dt>
                       <dd>{trimmedNote}</dd>
                     </div>
                   ) : null}
                 </dl>
               </section>
 
-              <section className="inventory-count-review-card inventory-count-review-card-meta" aria-label="Session meta">
+              <section className="inventory-count-review-card inventory-count-review-card-meta" aria-label={t("Session meta")}>
                 <div className="inventory-count-review-meta-grid">
                   <div>
-                    <p className="inventory-count-review-meta-label">Estimated items</p>
+                    <p className="inventory-count-review-meta-label">{t("Estimated items")}</p>
                     <p className="inventory-count-review-meta-value">—</p>
                     <p className="inventory-count-review-meta-hint">
-                      The exact item total will be calculated when the session starts.
+                      {t("The exact item total will be calculated when the session starts.")}
                     </p>
                   </div>
                   <div>
-                    <p className="inventory-count-review-meta-label">Operator</p>
-                    <p className="inventory-count-review-meta-value">Current signed-in operator</p>
+                    <p className="inventory-count-review-meta-label">{t("Operator")}</p>
+                    <p className="inventory-count-review-meta-value">{t("Current signed-in operator")}</p>
                   </div>
                   <div>
-                    <p className="inventory-count-review-meta-label">Start time</p>
-                    <p className="inventory-count-review-meta-value">Starts when confirmed</p>
+                    <p className="inventory-count-review-meta-label">{t("Start time")}</p>
+                    <p className="inventory-count-review-meta-value">{t("Starts when confirmed")}</p>
                   </div>
                 </div>
               </section>
             </div>
 
-            <aside className="inventory-count-review-info" aria-label="Snapshot explanation">
+            <aside className="inventory-count-review-info" aria-label={t("Snapshot explanation")}>
               <span className="inventory-count-review-info-icon" aria-hidden="true">ℹ</span>
               <div className="inventory-count-review-info-copy">
                 <p>
-                  ONE will freeze the expected stock quantities when this session starts.
+                  {t("ONE will freeze the expected stock quantities when this session starts.")}
                 </p>
                 <p>
-                  Stock received or used while counting will be reconciled against the time each item is counted, so posting will not double-count or overwrite later movements.
+                  {t("Stock received or used while counting will be reconciled against the time each item is counted, so posting will not double-count or overwrite later movements.")}
                 </p>
               </div>
             </aside>
 
             {countVisibility === 'open' || includeInactive ? (
-              <div className="inventory-count-review-warnings" aria-label="Session warnings">
+              <div className="inventory-count-review-warnings" aria-label={t("Session warnings")}>
                 {countVisibility === 'open' ? (
                   <p className="inventory-count-review-warning">
-                    Expected quantities will be visible while counting.
+                    {t("Expected quantities will be visible while counting.")}
                   </p>
                 ) : null}
                 {includeInactive ? (
                   <p className="inventory-count-review-warning">
-                    Inactive inventory items will be included.
+                    {t("Inactive inventory items will be included.")}
                   </p>
                 ) : null}
               </div>
@@ -758,7 +758,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               aria-disabled={isStartingSession}
               onClick={handleBack}
             >
-              Back
+              {t("Back")}
             </button>
           ) : null}
           <div className="inventory-count-wizard-footer-end">
@@ -769,7 +769,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
               disabled={isStartingSession}
               aria-disabled={isStartingSession}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="button"

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { inboxUnreadTotal } from '../../lib/chat'
 import { fetchChatInbox, subscribeToChatInbox } from '../../services/chatService'
 import { createCoalescedRefresh } from '../../lib/coalescedRefresh'
+import { t } from '../../i18n/i18n'
 
 export const INBOX_REFRESH_WAIT_MS = 3000
 
@@ -23,7 +24,7 @@ export function useChatInbox({ workspaceId = '', memberId = '', enabled = false 
       setError('')
       return next
     } catch (err) {
-      setError(err?.message || 'Unable to load chats.')
+      setError(err?.message || t("Unable to load chats."))
       return []
     } finally {
       setLoading(false)

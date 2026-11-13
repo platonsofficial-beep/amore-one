@@ -1,4 +1,5 @@
 import { formatZoomPercent } from '../hooks/useCanvasViewport'
+import { t } from '../../i18n/i18n'
 
 export function CanvasNavigationWidget({
   zoom,
@@ -9,14 +10,14 @@ export function CanvasNavigationWidget({
   onResetView,
 }) {
   return (
-    <div className="fpb-nav-widget" aria-label="Canvas navigation">
+    <div className="fpb-nav-widget" aria-label={t("Canvas navigation")}>
       <div className="fpb-nav-widget-zoom">
         <button
           type="button"
           className="fpb-nav-widget-btn fpb-nav-widget-btn-zoom"
           onClick={onZoomIn}
-          title="Zoom in"
-          aria-label="Zoom in"
+          title={t("Zoom in")}
+          aria-label={t("Zoom in")}
         >
           +
         </button>
@@ -25,8 +26,8 @@ export function CanvasNavigationWidget({
           type="button"
           className="fpb-nav-widget-btn fpb-nav-widget-btn-zoom"
           onClick={onZoomOut}
-          title="Zoom out"
-          aria-label="Zoom out"
+          title={t("Zoom out")}
+          aria-label={t("Zoom out")}
         >
           −
         </button>
@@ -39,15 +40,15 @@ export function CanvasNavigationWidget({
           type="button"
           className="fpb-nav-widget-btn fpb-nav-widget-btn-action"
           onClick={onFitAll}
-          title="Fit all objects"
+          title={t("Fit all objects")}
         >
-          Fit
+          {t("Fit")}
         </button>
         <button
           type="button"
           className="fpb-nav-widget-btn fpb-nav-widget-btn-action"
           onClick={onZoomTo100}
-          title="Zoom to 100%"
+          title={t("Zoom to 100%")}
         >
           100%
         </button>
@@ -55,9 +56,9 @@ export function CanvasNavigationWidget({
           type="button"
           className="fpb-nav-widget-btn fpb-nav-widget-btn-action"
           onClick={onResetView}
-          title="Reset view"
+          title={t("Reset view")}
         >
-          Reset View
+          {t("Reset View")}
         </button>
       </div>
     </div>

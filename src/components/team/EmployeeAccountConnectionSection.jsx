@@ -6,6 +6,7 @@ import {
   revokeInvite,
 } from '../../services/inviteService'
 import { EmployeeInviteModal } from './EmployeeInviteModal'
+import { t } from '../../i18n/i18n'
 
 function formatInviteExpiryDate(value) {
   const timestamp = Date.parse(value ?? '')
@@ -91,7 +92,7 @@ export function EmployeeAccountConnectionSection({
       const nextStatus = await getEmployeeAccountConnectionStatus(normalizedWorkspaceId, employeeId)
       setConnectionStatus(nextStatus)
     } catch (error) {
-      setStatusError(error?.message || 'Unable to load account connection status.')
+      setStatusError(error?.message || t("Unable to load account connection status."))
       setConnectionStatus({
         pendingInvite: null,
         linkedMembership: null,
@@ -130,7 +131,7 @@ export function EmployeeAccountConnectionSection({
 
     try {
       const copied = await copyTextToClipboard(buildInviteUrl(pendingInvite.token))
-      setCopyNotice(copied ? 'Invite link copied.' : 'Unable to copy invite link.')
+      setCopyNotice(copied ? t("Invite link copied.") : t("Unable to copy invite link."))
     } catch {
       setActionError('Unable to copy invite link.')
     }
@@ -147,7 +148,7 @@ export function EmployeeAccountConnectionSection({
       await revokeInvite(pendingInvite.id)
       await loadConnectionStatus()
     } catch (error) {
-      setActionError(error?.message || 'Unable to revoke invite right now.')
+      setActionError(error?.message || t("Unable to revoke invite right now."))
     } finally {
       setIsRevoking(false)
     }
@@ -160,20 +161,20 @@ export function EmployeeAccountConnectionSection({
 
   return (
     <>
-      <section className="employee-account-connection" aria-label="ONE account connection">
+      <section className="employee-account-connection" aria-label={t("ONE account connection")}>
         <div className="employee-account-connection-header">
-          <p className="eyebrow">ONE account</p>
-          <h4>Account connection</h4>
+          <p className="eyebrow">{t("ONE account")}</p>
+          <h4>{t("Account connection")}</h4>
         </div>
 
-        {isLoading ? <p className="employee-account-connection-status">Checking connection…</p> : null}
+        {isLoading ? <p className="employee-account-connection-status">{t("Checking connection…")}</p> : null}
         {statusError ? <p className="employee-account-connection-error" role="alert">{statusError}</p> : null}
         {actionError ? <p className="employee-account-connection-error" role="alert">{actionError}</p> : null}
         {copyNotice ? <p className="employee-account-connection-notice">{copyNotice}</p> : null}
 
         {!isLoading && isConnected ? (
           <div className="employee-account-connection-card is-connected">
-            <p className="employee-account-connection-label">ONE account active</p>
+            <p className="employee-account-connection-label">{t("ONE account active")}</p>
             {connectedEmail ? (
               <p className="employee-account-connection-meta">{connectedEmail}</p>
             ) : null}
@@ -187,18 +188,18 @@ export function EmployeeAccountConnectionSection({
 
         {!isLoading && !isConnected && showPending ? (
           <div className="employee-account-connection-card is-pending">
-            <p className="employee-account-connection-label">Invite pending</p>
+            <p className="employee-account-connection-label">{t("Invite pending")}</p>
             <dl className="employee-account-connection-details">
               <div className="employee-account-connection-detail-row">
-                <dt>Invited email</dt>
+                <dt>{t("Invited email")}</dt>
                 <dd>{pendingInvite.email || '—'}</dd>
               </div>
               <div className="employee-account-connection-detail-row">
-                <dt>Role</dt>
+                <dt>{t("Role")}</dt>
                 <dd>{getWorkspaceRoleLabel(pendingInvite.role)}</dd>
               </div>
               <div className="employee-account-connection-detail-row">
-                <dt>Expires</dt>
+                <dt>{t("Expires")}</dt>
                 <dd>{formatInviteExpiryDate(pendingInvite.expiresAt)}</dd>
               </div>
             </dl>
@@ -210,7 +211,7 @@ export function EmployeeAccountConnectionSection({
                   className="ghost-btn employee-account-connection-btn"
                   onClick={handleCopyInviteLink}
                 >
-                  Copy link
+                  {t("Copy link")}
                 </button>
                 <button
                   type="button"
@@ -218,7 +219,7 @@ export function EmployeeAccountConnectionSection({
                   onClick={handleRevokeInvite}
                   disabled={isRevoking}
                 >
-                  {isRevoking ? 'Revoking…' : 'Revoke invite'}
+                  {isRevoking ? 'Revoking…' : t("Revoke invite")}
                 </button>
               </div>
             ) : null}
@@ -227,17 +228,17 @@ export function EmployeeAccountConnectionSection({
 
         {!isLoading && !isConnected && !showPending ? (
           <div className="employee-account-connection-card is-disconnected">
-            <p className="employee-account-connection-label">Not connected to ONE</p>
+            <p className="employee-account-connection-label">{t("Not connected to ONE")}</p>
             {canManageInvites ? (
               <button
                 type="button"
                 className="primary-btn employee-account-connection-btn"
                 onClick={() => setIsInviteModalOpen(true)}
               >
-                Invite to ONE
+                {t("Invite to ONE")}
               </button>
             ) : (
-              <p className="employee-account-connection-meta">No linked sign-in account yet.</p>
+              <p className="employee-account-connection-meta">{t("No linked sign-in account yet.")}</p>
             )}
           </div>
         ) : null}

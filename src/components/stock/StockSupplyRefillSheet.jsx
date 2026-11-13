@@ -46,6 +46,7 @@ function compactSourceLabel(source) {
 }
 import { loadSupplyRefillCatalog, takeRefillLines } from '../../services/stockSupplyRefillService'
 import { transferStockBetweenLocations } from '../../services/stockMutationService'
+import { t } from '../../i18n/i18n'
 
 function qtyLabel(value, unit) {
   return formatStockQuantity(value, unit)
@@ -98,7 +99,7 @@ export function StockSupplyRefillSheet({
   transfer = transferStockBetweenLocations,
 } = {}) {
   const destinationId = `${destinationStorage?.id ?? ''}`.trim()
-  const destinationName = destinationStorage?.name || destinationStorage?.locationKey || 'This storage'
+  const destinationName = destinationStorage?.name || destinationStorage?.locationKey || t("This storage")
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'error'} */ ('loading'))
   const [loadError, setLoadError] = useState('')
   const [catalog, setCatalog] = useState(null)
@@ -146,7 +147,7 @@ export function StockSupplyRefillSheet({
       } catch (error) {
         if (cancelled) return
         setStatus('error')
-        setLoadError(error?.message || 'Unable to load supply stock right now.')
+        setLoadError(error?.message || t("Unable to load supply stock right now."))
       }
     })()
     return () => {
@@ -200,7 +201,7 @@ export function StockSupplyRefillSheet({
     } catch (refreshError) {
       setTakeRows(applyTakeResults(takeSnapshot, results))
       setLines(applyRefillResults(refillSnapshot, results))
-      setNotice(`${moved} moved. ${failed} still here. ${refreshError?.message || 'Refresh failed.'}`)
+      setNotice(`${moved} moved. ${failed} still here. ${refreshError?.message || t("Refresh failed.")}`)
       if (moved > 0) await onCompleted?.()
       return
     }
@@ -230,7 +231,7 @@ export function StockSupplyRefillSheet({
         setBusy(false)
       }
     }).catch((error) => {
-      setNotice(error?.message || 'Unable to take from supply right now.')
+      setNotice(error?.message || t("Unable to take from supply right now."))
       setBusy(false)
     })
   }
@@ -284,7 +285,7 @@ export function StockSupplyRefillSheet({
           <div>
             <h3 id="supply-refill-title">
               <span className="stock-supply-refill-title-full">{TAKE_FROM_SUPPLY_LABEL}</span>
-              <span className="stock-supply-refill-title-short">Take from supply</span>
+              <span className="stock-supply-refill-title-short">{t("Take from supply")}</span>
             </h3>
             <p className="stock-modal-subtitle">
               Into {destinationName}
@@ -295,14 +296,14 @@ export function StockSupplyRefillSheet({
             className="icon-btn"
             onClick={() => onClose?.()}
             disabled={busy}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
         </div>
 
         {status === 'loading' ? (
-          <p className="stock-supply-refill-status" role="status">Loading supply stock…</p>
+          <p className="stock-supply-refill-status" role="status">{t("Loading supply stock…")}</p>
         ) : null}
         {status === 'error' ? (
           <p className="stock-supply-refill-status is-error" role="alert">{loadError}</p>
@@ -324,7 +325,7 @@ export function StockSupplyRefillSheet({
 
         {status === 'ready' && !supplyUnavailable && !noSupply ? (
           <>
-            <div className="stock-supply-refill-tabs" role="tablist" aria-label="Take from supply">
+            <div className="stock-supply-refill-tabs" role="tablist" aria-label={t("Take from supply")}>
               <button
                 type="button"
                 role="tab"
@@ -355,14 +356,14 @@ export function StockSupplyRefillSheet({
                   type="search"
                   className="stock-take-search"
                   data-testid="supply-take-search"
-                  placeholder="Search products"
-                  aria-label="Search products"
+                  placeholder={t("Search products")}
+                  aria-label={t("Search products")}
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                 />
                 {visibleRows.length === 0 ? (
                   <p className="stock-supply-refill-hint" role="status">
-                    {takeRows.length === 0 ? 'Nothing to take from supply yet.' : 'No matching products.'}
+                    {takeRows.length === 0 ? t("Nothing to take from supply yet.") : t("No matching products.")}
                   </p>
                 ) : (
                   <ul className="stock-take-list">
@@ -465,7 +466,7 @@ export function StockSupplyRefillSheet({
                 <section className="stock-take-summary" aria-label={TAKE_LIST_LABEL} data-testid="supply-take-list">
                   <h4>{TAKE_LIST_LABEL}</h4>
                   {queued.length === 0 ? (
-                    <p>Add a quantity on one or more products, then take them together.</p>
+                    <p>{t("Add a quantity on one or more products, then take them together.")}</p>
                   ) : (
                     <ul>
                       {queued.map((row) => (
@@ -544,7 +545,7 @@ export function StockSupplyRefillSheet({
                           <div className="stock-supply-refill-source">
                             {line.sources.length > 1 ? (
                               <label>
-                                <span>Source</span>
+                                <span>{t("Source")}</span>
                                 <select
                                   value={line.sourceStorageId}
                                   disabled={busy}
@@ -567,7 +568,7 @@ export function StockSupplyRefillSheet({
                               </label>
                             ) : (
                               <p>
-                                <span>Source</span>
+                                <span>{t("Source")}</span>
                                 <strong>{formatSourceStockLabel({
                                   storageName: line.sourceStorageName,
                                   quantity: line.sourceAvailable,

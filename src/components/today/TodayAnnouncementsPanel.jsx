@@ -15,6 +15,7 @@ import {
   writeTodayPanelExpanded,
 } from '../../lib/todayPanelCollapse'
 import { shouldShowAnnouncementPreviewToggle } from '../../lib/todayStatusPresentationUtils'
+import { t } from '../../i18n/i18n'
 
 const PREVIEW_CHAR_LIMIT = 120
 
@@ -52,7 +53,7 @@ function TodayAnnouncementCard({
             onClick={() => setIsExpanded((current) => !current)}
             aria-expanded={isExpanded}
           >
-            {isExpanded ? 'Show less' : 'Show more'}
+            {isExpanded ? t("Show less") : t("Show more")}
           </button>
         ) : null}
 
@@ -70,7 +71,7 @@ function TodayAnnouncementCard({
           onClick={() => onMarkSeen?.(announcement)}
           disabled={isSaving}
         >
-          Seen
+          {t("Seen")}
         </button>
       ) : null}
     </article>
@@ -123,7 +124,7 @@ export function TodayAnnouncementsPanel({
   const announcementList = activeAnnouncements.length === 0 && loadStatus !== 'ready' ? (
     <div className="today-empty-note"><PendingValue status={loadStatus} lines={2} onRetry={onRetry} /></div>
   ) : activeAnnouncements.length === 0 ? (
-    <p className="today-empty-note today-empty-note-clear">No announcements right now.</p>
+    <p className="today-empty-note today-empty-note-clear">{t("No announcements right now.")}</p>
   ) : (
     <div className="today-announcements-list">
       {activeAnnouncements.map((announcement) => (
@@ -141,9 +142,9 @@ export function TodayAnnouncementsPanel({
     if (activeAnnouncements.length === 0) return null
 
     return (
-      <section className="today-announcements" id="today-announcements" aria-label="Announcements">
+      <section className="today-announcements" id="today-announcements" aria-label={t("Announcements")}>
         <header className="today-announcements-header">
-          <h3>Announcements</h3>
+          <h3>{t("Announcements")}</h3>
         </header>
         {announcementList}
       </section>
@@ -154,7 +155,7 @@ export function TodayAnnouncementsPanel({
     <section
       id="today-announcements"
       className={`today-panel today-collapsible-panel today-announcements today-announcements-panel ${isPanelExpanded ? 'is-expanded' : 'is-collapsed'}`.trim()}
-      aria-label="Announcements"
+      aria-label={t("Announcements")}
     >
       <button
         type="button"
@@ -163,7 +164,7 @@ export function TodayAnnouncementsPanel({
         aria-expanded={isPanelExpanded}
       >
         <div className="today-collapsible-header-copy">
-          <h3>Announcements</h3>
+          <h3>{t("Announcements")}</h3>
           {!isPanelExpanded ? (
             <p className="today-collapsible-summary">{collapsedSummary}</p>
           ) : null}

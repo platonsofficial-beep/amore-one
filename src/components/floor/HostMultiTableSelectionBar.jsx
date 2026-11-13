@@ -5,6 +5,7 @@ import {
   formatSeatingAssignmentDrawerLabels,
 } from '../../lib/seatingAssignment'
 import { buildHostMultiTableSelectionSummary } from '../../lib/hostAssignmentPanelUtils'
+import { t } from '../../i18n/i18n'
 
 export function HostMultiTableSelectionBar({
   selectedUnitIds = [],
@@ -29,11 +30,11 @@ export function HostMultiTableSelectionBar({
     <div
       className="host-multi-table-selection-bar"
       role="region"
-      aria-label="Multi-table selection"
+      aria-label={t("Multi-table selection")}
       data-testid="host-multi-table-selection-bar"
     >
       <div className="host-multi-table-selection-bar-main">
-        <span className="host-multi-table-selection-mode">Multi-table</span>
+        <span className="host-multi-table-selection-mode">{t("Multi-table")}</span>
         <div className="host-multi-table-selection-copy">
           <strong className="host-multi-table-selection-count">
             {selectionLabel}
@@ -46,7 +47,7 @@ export function HostMultiTableSelectionBar({
           </span>
           {missingService ? (
             <span className="host-multi-table-selection-note" data-testid="host-multi-table-missing-service">
-              This booking has no seating. Choose a service before assigning tables.
+              {t("This booking has no seating. Choose a service before assigning tables.")}
             </span>
           ) : serviceName ? (
             <span className="host-multi-table-selection-note">
@@ -62,7 +63,7 @@ export function HostMultiTableSelectionBar({
           onClick={onCancel}
           data-testid="host-multi-table-cancel"
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -71,7 +72,7 @@ export function HostMultiTableSelectionBar({
           disabled={tableCount === 0}
           data-testid="host-multi-table-continue"
         >
-          Continue
+          {t("Continue")}
         </button>
       </div>
     </div>

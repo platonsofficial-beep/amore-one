@@ -35,6 +35,7 @@ import {
   loadAttendanceShifts,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
+import { t } from '../../i18n/i18n'
 
 function AttendanceFace({ employeeId = '', memberId = '', name = '' }) {
   return (
@@ -57,8 +58,8 @@ function personName(employees, employeeId, fallback = 'Team member') {
 // hours still say who it was (the employee link is gone after delete).
 export function entryPersonName(entry, employees) {
   const memberName = `${entry?.member?.display_name ?? ''}`.trim()
-  if (entry?.employee_id) return personName(employees, entry.employee_id, memberName || 'Team member')
-  return memberName || 'Team member'
+  if (entry?.employee_id) return personName(employees, entry.employee_id, memberName || t("Team member"))
+  return memberName || t("Team member")
 }
 
 export function AttendanceBoard({
@@ -215,7 +216,7 @@ export function AttendanceBoard({
     setNotice('')
     try {
       await decideException({ exceptionId: exception.id, approve, note })
-      setNotice(approve ? 'Request approved.' : 'Request rejected.')
+      setNotice(approve ? t("Request approved.") : t("Request rejected."))
       await reload()
     } catch (error) {
       setNotice(attendanceErrorMessage(error))
@@ -263,14 +264,14 @@ export function AttendanceBoard({
   }
 
   return (
-    <section className="attendance-board" aria-label="Time clock">
+    <section className="attendance-board" aria-label={t("Time clock")}>
       {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
       {notice ? <p className="attendance-clock-message" role="status">{notice}</p> : null}
 
       <div className="attendance-board-grid">
-        <article className="attendance-panel" aria-label="Working now">
+        <article className="attendance-panel" aria-label={t("Working now")}>
           <h3>▶ Working now</h3>
-          {workingNow.length === 0 ? <p className="attendance-empty">Nobody is clocked in.</p> : null}
+          {workingNow.length === 0 ? <p className="attendance-empty">{t("Nobody is clocked in.")}</p> : null}
           <ul className="attendance-list">
             {workingNow.map((entry) => {
               const onBreak = (breaksByEntry[entry.id] ?? []).some((item) => isOpenBreak(item))
@@ -290,9 +291,9 @@ export function AttendanceBoard({
           </ul>
         </article>
 
-        <article className="attendance-panel" aria-label="Late today">
+        <article className="attendance-panel" aria-label={t("Late today")}>
           <h3>⏱ Late today</h3>
-          {lateRows.length === 0 ? <p className="attendance-empty">No late arrivals or no-shows.</p> : null}
+          {lateRows.length === 0 ? <p className="attendance-empty">{t("No late arrivals or no-shows.")}</p> : null}
           <ul className="attendance-list">
             {lateRows.map((row) => (
               <li key={row.id}>
@@ -303,9 +304,9 @@ export function AttendanceBoard({
           </ul>
         </article>
 
-        <article className="attendance-panel" aria-label="Requests">
+        <article className="attendance-panel" aria-label={t("Requests")}>
           <h3>✉ Requests</h3>
-          {exceptions.length === 0 ? <p className="attendance-empty">No requests waiting.</p> : null}
+          {exceptions.length === 0 ? <p className="attendance-empty">{t("No requests waiting.")}</p> : null}
           <ul className="attendance-list">
             {exceptions.map((exception) => {
               const allowed = canDecideOwnAttendance({
@@ -326,7 +327,7 @@ export function AttendanceBoard({
                   {allowed ? (
                     <>
                       <label className="attendance-field">
-                        Note
+                        {t("Note")}
                         <textarea
                           value={notes[exception.id] ?? ''}
                           onChange={(event) => setNotes((current) => ({ ...current, [exception.id]: event.target.value }))}
@@ -343,7 +344,7 @@ export function AttendanceBoard({
                       </div>
                     </>
                   ) : (
-                    <p className="attendance-empty">Your own request. The owner can decide it.</p>
+                    <p className="attendance-empty">{t("Your own request. The owner can decide it.")}</p>
                   )}
                 </li>
               )
@@ -352,10 +353,10 @@ export function AttendanceBoard({
         </article>
       </div>
 
-      <article className="attendance-panel attendance-timesheet" aria-label="Weekly timesheet">
+      <article className="attendance-panel attendance-timesheet" aria-label={t("Weekly timesheet")}>
         <h3>◷ Hours this week</h3>
-        {people.length === 0 ? <p className="attendance-empty">No shifts or clock times this week.</p> : null}
-        <div className="attendance-person-row" role="tablist" aria-label="People">
+        {people.length === 0 ? <p className="attendance-empty">{t("No shifts or clock times this week.")}</p> : null}
+        <div className="attendance-person-row" role="tablist" aria-label={t("People")}>
           {people.map((person) => (
             <button
               key={person.id}
@@ -376,15 +377,15 @@ export function AttendanceBoard({
           <>
             <dl className="attendance-hours-inline">
               <div>
-                <dt>Scheduled</dt>
+                <dt>{t("Scheduled")}</dt>
                 <dd>{formatHoursMinutes(hours.scheduled)}</dd>
               </div>
               <div>
-                <dt>Actual</dt>
+                <dt>{t("Actual")}</dt>
                 <dd>{formatHoursMinutes(hours.actual)}</dd>
               </div>
               <div>
-                <dt>Difference</dt>
+                <dt>{t("Difference")}</dt>
                 <dd>{formatSignedHours(hours.difference)}</dd>
               </div>
             </dl>
@@ -408,19 +409,19 @@ export function AttendanceBoard({
           <form className="attendance-consent-card" onSubmit={saveFix}>
             <h3 id="attendance-fix-title">✎ Fix time</h3>
             <label className="attendance-field">
-              Clock in
+              {t("Clock in")}
               <input type="datetime-local" value={fixClockIn} onChange={(event) => setFixClockIn(event.target.value)} required />
             </label>
             <label className="attendance-field">
-              Clock out
+              {t("Clock out")}
               <input type="datetime-local" value={fixClockOut} onChange={(event) => setFixClockOut(event.target.value)} />
             </label>
             <label className="attendance-field">
-              Note
+              {t("Note")}
               <textarea value={fixNote} onChange={(event) => setFixNote(event.target.value)} rows={3} required />
             </label>
             {audit.length > 0 ? (
-              <ul className="attendance-audit" aria-label="Change history">
+              <ul className="attendance-audit" aria-label={t("Change history")}>
                 {audit.map((row) => (
                   <li key={row.id}>
                     <span>{row.field}</span>
@@ -429,13 +430,13 @@ export function AttendanceBoard({
                   </li>
                 ))}
               </ul>
-            ) : <p className="attendance-empty">No changes recorded yet.</p>}
+            ) : <p className="attendance-empty">{t("No changes recorded yet.")}</p>}
             <div className="attendance-consent-actions">
               <button type="submit" className="attendance-action attendance-action-in" disabled={busyId === fixEntry.id}>
-                Save
+                {t("Save")}
               </button>
               <button type="button" className="attendance-action attendance-action-break" onClick={() => setFixEntry(null)}>
-                Cancel
+                {t("Cancel")}
               </button>
             </div>
           </form>

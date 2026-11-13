@@ -1,3 +1,4 @@
+import { uiLocale } from '../i18n/i18n'
 import {
   DEFAULT_LATE_GRACE_MINUTES,
   actualWorkedMinutes,
@@ -23,7 +24,7 @@ function formatDayLabel(isoValue, timeZone) {
   const date = new Date(isoValue)
   if (Number.isNaN(date.getTime())) return ''
   try {
-    return new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', ...(timeZone ? { timeZone } : {}) }).format(date)
+    return new Intl.DateTimeFormat(uiLocale('en-GB'), { weekday: 'short', day: 'numeric', month: 'short', ...(timeZone ? { timeZone } : {}) }).format(date)
   } catch {
     return ''
   }

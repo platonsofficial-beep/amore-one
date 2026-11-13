@@ -1,4 +1,5 @@
 import { EMPLOYEE_AVAILABILITY_STATUS, summarizeAvailabilityWeek } from './employeeAvailabilityUtils'
+import { t } from '../i18n/i18n'
 
 export const SCHEDULE_AVAILABILITY_INDICATORS = Object.freeze({
   available: Object.freeze({
@@ -15,11 +16,11 @@ export const SCHEDULE_AVAILABILITY_INDICATORS = Object.freeze({
   }),
   empty: Object.freeze({
     tone: 'empty',
-    label: 'No availability submitted',
+    label: t("No availability submitted"),
   }),
   loading: Object.freeze({
     tone: 'loading',
-    label: 'Loading availability',
+    label: t("Loading availability"),
   }),
 })
 
@@ -104,9 +105,9 @@ export function formatScheduleAvailabilityChipLabel(employeeAvailability, {
   isLoading = false,
   loadFailed = false,
 } = {}) {
-  if (isLoading) return 'Loading availability'
-  if (loadFailed) return 'Availability unavailable'
-  if (!employeeAvailability?.hasSubmitted) return 'No availability'
+  if (isLoading) return t("Loading availability")
+  if (loadFailed) return t("Availability unavailable")
+  if (!employeeAvailability?.hasSubmitted) return t("No availability")
   return summarizeAvailabilityWeek(employeeAvailability.week)
 }
 

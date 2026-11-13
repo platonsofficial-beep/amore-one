@@ -1,4 +1,5 @@
 import { EMPLOYEE_TODAY_STATUS } from './employeeTodayStatusUtils'
+import { t } from '../i18n/i18n'
 
 export function isResolvedEmployeeOnLeaveToday(result) {
   return result?.key === EMPLOYEE_TODAY_STATUS.on_leave.key
@@ -46,7 +47,7 @@ export function formatEmployeeTodayShiftSummary(result) {
 export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = false } = {}) {
   if (isLoading && !isResolvedEmployeeOnLeaveToday(result)) {
     return {
-      primaryLabel: 'Loading today status…',
+      primaryLabel: t("Loading today status…"),
       secondaryLabel: '',
       pillLabel: 'Loading…',
       toneKey: 'not_scheduled',
@@ -55,14 +56,14 @@ export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = f
 
   if (!result || typeof result !== 'object') {
     return {
-      primaryLabel: 'Not scheduled',
-      secondaryLabel: 'Schedule not published',
-      pillLabel: 'Not scheduled',
+      primaryLabel: t("Not scheduled"),
+      secondaryLabel: t("Schedule not published"),
+      pillLabel: t("Not scheduled"),
       toneKey: 'not_scheduled',
     }
   }
 
-  const primaryLabel = `${result.label ?? 'Not scheduled'}`.trim() || 'Not scheduled'
+  const primaryLabel = `${result.label ?? t("Not scheduled")}`.trim() || t("Not scheduled")
   let secondaryLabel = ''
 
   switch (result.key) {
@@ -100,8 +101,8 @@ export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = f
 export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = false } = {}) {
   if (isLoading && !isResolvedEmployeeOnLeaveToday(result)) {
     return {
-      statusLabel: 'Loading today status…',
-      todaySubtitle: 'Loading schedule…',
+      statusLabel: t("Loading today status…"),
+      todaySubtitle: t("Loading schedule…"),
       pillLabel: 'Loading…',
       toneKey: 'not_scheduled',
     }
@@ -109,14 +110,14 @@ export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = fal
 
   if (!result || typeof result !== 'object') {
     return {
-      statusLabel: 'Not scheduled',
-      todaySubtitle: 'Schedule not published',
-      pillLabel: 'Not scheduled',
+      statusLabel: t("Not scheduled"),
+      todaySubtitle: t("Schedule not published"),
+      pillLabel: t("Not scheduled"),
       toneKey: 'not_scheduled',
     }
   }
 
-  const statusLabel = `${result.label ?? 'Not scheduled'}`.trim() || 'Not scheduled'
+  const statusLabel = `${result.label ?? t("Not scheduled")}`.trim() || t("Not scheduled")
   let todaySubtitle = ''
 
   switch (result.key) {
@@ -140,13 +141,13 @@ export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = fal
       break
     }
     case 'day_off':
-      todaySubtitle = 'No published shift today'
+      todaySubtitle = t("No published shift today")
       break
     case 'not_scheduled':
-      todaySubtitle = 'Schedule not published'
+      todaySubtitle = t("Schedule not published")
       break
     case 'on_leave':
-      todaySubtitle = 'Approved leave today'
+      todaySubtitle = t("Approved leave today")
       break
     default:
       todaySubtitle = 'Today'

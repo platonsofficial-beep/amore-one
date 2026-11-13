@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 export default function TasksAssignmentFilter({
   value = 'all',
   onChange,
@@ -6,8 +7,8 @@ export default function TasksAssignmentFilter({
 }) {
   return (
     <div className="tasks-assignment-filter">
-      <span className="tasks-assignment-filter-label">View</span>
-      <div className="tasks-assignment-filter-options" role="tablist" aria-label="Task assignment filter">
+      <span className="tasks-assignment-filter-label">{t("View")}</span>
+      <div className="tasks-assignment-filter-options" role="tablist" aria-label={t("Task assignment filter")}>
         <button
           type="button"
           role="tab"
@@ -15,7 +16,7 @@ export default function TasksAssignmentFilter({
           aria-selected={value === 'all'}
           onClick={() => onChange?.('all')}
         >
-          All Tasks
+          {t("All Tasks")}
         </button>
         <button
           type="button"
@@ -24,7 +25,7 @@ export default function TasksAssignmentFilter({
           aria-selected={value === 'mine'}
           onClick={() => onChange?.('mine')}
         >
-          Assigned to me
+          {t("Assigned to me")}
         </button>
       </div>
       {value === 'mine' && !hasCurrentEmployee ? (

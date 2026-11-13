@@ -8,6 +8,7 @@ import {
   resolveTimezoneClosedDisplay,
   searchTimezoneOptions,
 } from '../../lib/workspaceTimezoneUtils'
+import { t } from '../../i18n/i18n'
 import './workspaceTimezonePicker.css'
 
 const PICKER_Z_INDEX = 12140
@@ -98,7 +99,7 @@ function TimezonePickerPanel({
           className="workspace-timezone-picker-search"
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search city, country, or timezone"
+          placeholder={t("Search city, country, or timezone")}
           autoComplete="off"
           enterKeyHint="search"
         />
@@ -106,9 +107,9 @@ function TimezonePickerPanel({
 
       <div className="workspace-timezone-picker-scroll">
         {isSearching ? (
-          <ul id={listId} className="workspace-timezone-picker-list" role="listbox" aria-label="Timezone search results">
+          <ul id={listId} className="workspace-timezone-picker-list" role="listbox" aria-label={t("Timezone search results")}>
             {flatOptions.length === 0 ? (
-              <li className="workspace-timezone-picker-empty" role="presentation">No timezones found</li>
+              <li className="workspace-timezone-picker-empty" role="presentation">{t("No timezones found")}</li>
             ) : flatOptions.map((option, index) => (
               <TimezoneOptionButton
                 key={`${option.value}-${option.kind ?? 'search'}-${index}`}
@@ -122,7 +123,7 @@ function TimezonePickerPanel({
             ))}
           </ul>
         ) : (
-          <div id={listId} role="listbox" aria-label="Timezone options">
+          <div id={listId} role="listbox" aria-label={t("Timezone options")}>
             {sections.map((section) => (
               <section key={section.id} className="workspace-timezone-picker-group" aria-label={section.label}>
                 <p className="workspace-timezone-picker-group-label">{section.label}</p>
@@ -325,7 +326,7 @@ export function WorkspaceTimezonePicker({
           className="workspace-timezone-picker-menu"
           style={{ maxHeight: `${menuPosition?.maxHeight ?? 460}px` }}
           role="dialog"
-          aria-label="Choose timezone"
+          aria-label={t("Choose timezone")}
         >
           <TimezonePickerPanel
             sections={sections}
@@ -366,7 +367,7 @@ export function WorkspaceTimezonePicker({
         <span className="workspace-timezone-picker-trigger-chevron" aria-hidden="true">▾</span>
       </button>
       <small className="workspace-timezone-picker-hint">
-        Used for reservations, schedules, reports, and opening hours.
+        {t("Used for reservations, schedules, reports, and opening hours.")}
       </small>
       {portal}
     </div>

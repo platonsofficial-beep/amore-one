@@ -22,6 +22,7 @@ import { getReservationPurpose } from './reservationPurpose'
 import { isReservationInHouseStatus } from './reservationHostStatus'
 import { isAutoClosedReservation } from './reservationAutoClose'
 import { reservationDateKey } from './reservationServiceIntelligence'
+import { t } from '../i18n/i18n'
 
 export const HOST_QUEUE_ALL_AREAS = '__all__'
 export const HOST_QUEUE_UNASSIGNED_AREA = '__unassigned__'
@@ -39,24 +40,24 @@ function formatHostQueueTableAriaLabel(tableSegment) {
 export const HOST_QUEUE_DEFAULT_SORT = 'time-asc'
 
 export const HOST_QUEUE_SORT_OPTIONS = [
-  { id: 'time-asc', label: 'Time — earliest first' },
-  { id: 'time-desc', label: 'Time — latest first' },
+  { id: 'time-asc', label: t("Time — earliest first") },
+  { id: 'time-desc', label: t("Time — latest first") },
   { id: 'table', label: 'Table' },
-  { id: 'name-asc', label: 'Guest name — A–Z' },
-  { id: 'party-desc', label: 'Party size — largest first' },
-  { id: 'party-asc', label: 'Party size — smallest first' },
+  { id: 'name-asc', label: t("Guest name — A–Z") },
+  { id: 'party-desc', label: t("Party size — largest first") },
+  { id: 'party-asc', label: t("Party size — smallest first") },
 ]
 
 export const HOST_QUEUE_FILTER_OPTIONS = [
-  { id: 'all', label: 'All reservations' },
-  { id: 'unassigned-table', label: 'Unassigned table' },
+  { id: 'all', label: t("All reservations") },
+  { id: 'unassigned-table', label: t("Unassigned table") },
   { id: 'multi-table', label: 'Multi-table' },
-  { id: 'extra-chair', label: 'Extra chair' },
-  { id: 'standing-guests', label: 'Standing guests' },
-  { id: 'has-notes', label: 'Has notes' },
-  { id: 'large-party', label: 'Large party (4+)' },
+  { id: 'extra-chair', label: t("Extra chair") },
+  { id: 'standing-guests', label: t("Standing guests") },
+  { id: 'has-notes', label: t("Has notes") },
+  { id: 'large-party', label: t("Large party (4+)") },
   { id: 'problems', label: 'Problems' },
-  { id: 'special-requirements', label: 'Special requirements' },
+  { id: 'special-requirements', label: t("Special requirements") },
 ]
 
 export const HOST_QUEUE_PURPOSE_FILTER_OPTIONS = [
@@ -73,7 +74,7 @@ export const HOST_QUEUE_FILTER_MENU_SECTIONS = [
     options: HOST_QUEUE_FILTER_OPTIONS.filter((entry) => entry.id !== 'all'),
   },
   {
-    label: 'Reservation Type',
+    label: t("Reservation Type"),
     options: HOST_QUEUE_PURPOSE_FILTER_OPTIONS,
   },
 ]
@@ -194,7 +195,7 @@ export function reservationMatchesHostQueueArea(
 }
 
 export function buildHostQueueAreaOptions(layout = null) {
-  const options = [{ id: HOST_QUEUE_ALL_AREAS, label: 'All areas' }]
+  const options = [{ id: HOST_QUEUE_ALL_AREAS, label: t("All areas") }]
 
   ;(layout?.zones ?? []).forEach((zone) => {
     if (!zone?.id) return
@@ -204,7 +205,7 @@ export function buildHostQueueAreaOptions(layout = null) {
     })
   })
 
-  options.push({ id: HOST_QUEUE_UNASSIGNED_AREA, label: 'Unassigned / No area' })
+  options.push({ id: HOST_QUEUE_UNASSIGNED_AREA, label: t("Unassigned / No area") })
   return options
 }
 
@@ -621,7 +622,7 @@ export function buildHostQueueEmptyState({
   if (loadFailed) {
     return {
       title: "Couldn't load reservations",
-      copy: 'Retry to load the queue. An empty list is not confirmed.',
+      copy: t("Retry to load the queue. An empty list is not confirmed."),
       showClearFilters: false,
       loadFailed: true,
     }
@@ -632,10 +633,10 @@ export function buildHostQueueEmptyState({
 
   if (activeFilterCount > 0 || `${searchTerm ?? ''}`.trim()) {
     return {
-      title: 'No reservations match the current filters',
+      title: t("No reservations match the current filters"),
       copy: scopeLabel
         ? `Try clearing filters or changing the scope for ${scopeLabel}.`
-        : 'Try clearing filters or adjusting your search.',
+        : t("Try clearing filters or adjusting your search."),
       showClearFilters: activeFilterCount > 0 || Boolean(`${searchTerm ?? ''}`.trim()),
     }
   }
@@ -643,14 +644,14 @@ export function buildHostQueueEmptyState({
   if (sectionLabel && scopeLabel) {
     return {
       title: `No ${sectionLabel.toLowerCase()} reservations in ${scopeLabel}`,
-      copy: 'Reservations will appear here when they match the selected seating and area.',
+      copy: t("Reservations will appear here when they match the selected seating and area."),
       showClearFilters: false,
     }
   }
 
   return {
-    title: 'No reservations in this queue',
-    copy: 'Adjust seating, area, or filters to widen the list.',
+    title: t("No reservations in this queue"),
+    copy: t("Adjust seating, area, or filters to widen the list."),
     showClearFilters: false,
   }
 }
@@ -688,7 +689,7 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   const extraChairs = assignment?.extraChairs ?? 0
   const standingGuests = assignment?.standingGuests ?? 0
 
-  const guestLabel = `${partySize} guest${partySize === 1 ? '' : 's'}`
+  const guestLabel = t('{{count}} guest', { count: partySize })
   const metaParts = [`👤 ${guestLabel}`]
   if (areaLabel && !hasAssignedTables) {
     metaParts.push(`📍 ${areaLabel}`)
@@ -724,7 +725,7 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   return {
     metaLine: metaParts.join(HOST_QUEUE_META_SEPARATOR),
     metaAriaLabel: [
-      `${partySize} guest${partySize === 1 ? '' : 's'}`,
+      t('{{count}} guest', { count: partySize }),
       formatHostQueueTableAriaLabel(tableSegment),
       extraChairs > 0 ? `${extraChairs} extra chair${extraChairs === 1 ? '' : 's'}` : '',
       standingGuests > 0 ? `${standingGuests} standing guest${standingGuests === 1 ? '' : 's'}` : '',

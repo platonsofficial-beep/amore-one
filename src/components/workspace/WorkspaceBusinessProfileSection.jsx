@@ -6,6 +6,7 @@ import { isWorkspaceProfileConfigured } from '../../lib/workspaceProfileUtils'
 import { useState } from 'react'
 import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
+import { t } from '../../i18n/i18n'
 
 export function WorkspaceBusinessProfileSection({
   workspaceProfile,
@@ -40,13 +41,13 @@ export function WorkspaceBusinessProfileSection({
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Venue</p>
+          <p className="eyebrow">{t("Venue")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">🏢</span>
-            Business Profile
+            {t("Business Profile")}
           </h3>
           <p className="workspace-section-subtitle">
-            Configure your business identity and manager details for the Operations Dashboard.
+            {t("Configure your business identity and manager details for the Operations Dashboard.")}
           </p>
         </div>
       </div>
@@ -56,18 +57,18 @@ export function WorkspaceBusinessProfileSection({
           {noticeMessage}
         </div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">Loading business profile…</div> : null}
+      {isLoading ? <div className="staff-status-banner">{t("Loading business profile…")}</div> : null}
       {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
         <div className="staff-status-banner">
-          Set your business name and manager details so ONE can personalize dashboards and reports.
+          {t("Set your business name and manager details so ONE can personalize dashboards and reports.")}
         </div>
       ) : null}
 
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Business identity</p>
-            <h3>Profile details</h3>
+            <p className="eyebrow">{t("Business identity")}</p>
+            <h3>{t("Profile details")}</h3>
           </div>
         </div>
 
@@ -80,34 +81,34 @@ export function WorkspaceBusinessProfileSection({
         >
           <div className="form-grid">
             <label className="form-field">
-              <span>Business Name</span>
+              <span>{t("Business Name")}</span>
               <input
                 value={workspaceProfile.businessName}
                 onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
-                placeholder="e.g. Amore Nicosia"
+                placeholder={t("e.g. Amore Nicosia")}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>Manager Full Name</span>
+              <span>{t("Manager Full Name")}</span>
               <input
                 value={workspaceProfile.managerName}
                 onChange={(event) => onChange({ ...workspaceProfile, managerName: event.target.value })}
-                placeholder="Full name"
+                placeholder={t("Full name")}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>Manager Role</span>
+              <span>{t("Manager Role")}</span>
               <input
                 value={workspaceProfile.managerRole}
                 onChange={(event) => onChange({ ...workspaceProfile, managerRole: event.target.value })}
-                placeholder="e.g. General Manager"
+                placeholder={t("e.g. General Manager")}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>Time zone</span>
+              <span>{t("Time zone")}</span>
               <WorkspaceTimezonePicker
                 value={workspaceProfile.timezone}
                 onChange={(timezone) => onChange({ ...workspaceProfile, timezone })}
@@ -118,48 +119,48 @@ export function WorkspaceBusinessProfileSection({
               />
             </label>
             <label className="form-field">
-              <span>Currency</span>
+              <span>{t("Currency")}</span>
               <select
                 value={workspaceProfile.currency}
                 onChange={(event) => onChange({ ...workspaceProfile, currency: event.target.value })}
                 disabled={isLoading || isSavePending}
               >
-                <option value="">Not set</option>
+                <option value="">{t("Not set")}</option>
                 {WORKSPACE_PROFILE_CURRENCIES.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </label>
             <label className="form-field">
-              <span>Country code</span>
+              <span>{t("Country code")}</span>
               <input
                 value={workspaceProfile.countryCode}
                 onChange={(event) => onChange({ ...workspaceProfile, countryCode: event.target.value.toUpperCase() })}
-                placeholder="CY"
+                placeholder={t("CY")}
                 maxLength={2}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>Country</span>
+              <span>{t("Country")}</span>
               <input
                 value={workspaceProfile.countryName}
                 onChange={(event) => onChange({ ...workspaceProfile, countryName: event.target.value })}
-                placeholder="Cyprus"
+                placeholder={t("Cyprus")}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>City</span>
+              <span>{t("City")}</span>
               <input
                 value={workspaceProfile.city}
                 onChange={(event) => onChange({ ...workspaceProfile, city: event.target.value })}
-                placeholder="Nicosia"
+                placeholder={t("Nicosia")}
                 disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
-              <span>Default phone country</span>
+              <span>{t("Default phone country")}</span>
               <input
                 value={workspaceProfile.defaultPhoneCountryCode}
                 onChange={(event) => onChange({ ...workspaceProfile, defaultPhoneCountryCode: event.target.value })}
@@ -168,18 +169,18 @@ export function WorkspaceBusinessProfileSection({
               />
             </label>
             <label className="form-field full-width">
-              <span>Logo</span>
+              <span>{t("Logo")}</span>
               <div className="workspace-logo-field">
                 {workspaceProfile.logoUrl ? (
                   <div className="workspace-logo-preview">
-                    <img src={workspaceProfile.logoUrl} alt="Business logo preview" />
+                    <img src={workspaceProfile.logoUrl} alt={t("Business logo preview")} />
                   </div>
                 ) : (
-                  <div className="workspace-logo-placeholder">No logo uploaded</div>
+                  <div className="workspace-logo-placeholder">{t("No logo uploaded")}</div>
                 )}
                 <div className="workspace-logo-actions">
                   <label className="ghost-btn small workspace-logo-upload-btn">
-                    Upload logo
+                    {t("Upload logo")}
                     <input
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/svg+xml"
@@ -190,7 +191,7 @@ export function WorkspaceBusinessProfileSection({
                   </label>
                   {workspaceProfile.logoUrl ? (
                     <button type="button" className="ghost-btn small" onClick={onClearLogo} disabled={isLoading || isSavePending}>
-                      Remove logo
+                      {t("Remove logo")}
                     </button>
                   ) : null}
                 </div>
@@ -207,7 +208,7 @@ export function WorkspaceBusinessProfileSection({
               loadingLabel="Saving..."
               disabled={isLoading || !isDirty}
             >
-              Save Profile
+              {t("Save Profile")}
             </LoadingButton>
           </div>
         </form>

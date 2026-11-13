@@ -1,0 +1,32 @@
+.one-language-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.one-language-picker button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--one-gold-line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.one-language-picker button.is-selected {
+  background: var(--one-gold);
+  color: var(--one-navy-900);
+  border-color: var(--one-gold);
+}
+
+.auth-language {
+  margin-top: 12px;
+}
+
+.mobile-profile-language {
+  margin: 12px 0;
+}

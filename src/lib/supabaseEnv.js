@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 function normalizeSupabaseUrl(url) {
   if (!url) return ''
 
@@ -32,15 +33,15 @@ export function getSupabaseSetupError() {
   const { url, anonKey } = readSupabaseEnv()
 
   if (!url && !anonKey) {
-    return 'Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).'
+    return t("Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (or VITE_SUPABASE_ANON_KEY).")
   }
 
   if (!url) {
-    return 'Missing VITE_SUPABASE_URL. Add your Supabase project URL to the deployment environment.'
+    return t("Missing VITE_SUPABASE_URL. Add your Supabase project URL to the deployment environment.")
   }
 
   if (!anonKey) {
-    return 'Missing Supabase anon key. Set VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY in the deployment environment.'
+    return t("Missing Supabase anon key. Set VITE_SUPABASE_PUBLISHABLE_KEY or VITE_SUPABASE_ANON_KEY in the deployment environment.")
   }
 
   return null

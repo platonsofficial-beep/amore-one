@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /** Visible supply-storage label. Greek line is the venue wording. */
 export const SUPPLY_STORAGE_LABEL = 'Supply storage'
 export const SUPPLY_STORAGE_LABEL_EL = 'Αποθήκη τροφοδοσίας'
@@ -65,7 +66,7 @@ export function isBuyingStorageColumnMissing(error) {
 export function validateWorkspaceDepartmentName(rawName) {
   const trimmed = `${rawName ?? ''}`.trim()
   if (!trimmed) {
-    return { ok: false, value: '', error: 'Department name is required.' }
+    return { ok: false, value: '', error: t("Department name is required.") }
   }
   if (trimmed.length > DEPARTMENT_NAME_MAX_LENGTH) {
     return {
@@ -169,7 +170,7 @@ export function groupActiveStoragesByDepartment({
   if (unassigned.length > 0 || includeEmptyDepartments) {
     groups.push({
       id: UNASSIGNED_STORAGE_GROUP_ID,
-      name: 'No department',
+      name: t("No department"),
       active: true,
       isUnassigned: true,
       storages: unassigned,

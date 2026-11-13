@@ -1,5 +1,6 @@
 import { createHostReservationEditForm } from '../../reservations/HostReservationEditPanel'
 import { createHostQuickCreateFormState } from '../../../lib/hostQuickCreateForm'
+import { t } from '../../../i18n/i18n'
 
 export function splitGuestNameForQuickCreateEdit(guestName) {
   const trimmed = `${guestName ?? ''}`.trim()
@@ -39,6 +40,6 @@ export function buildQuickCreateEditHydration(reservation, layout, seatings = []
     },
     firstName,
     lastName,
-    guestTitle: `${editForm.guestName ?? ''}`.trim() || 'Edit reservation',
+    guestTitle: `${editForm.guestName ?? ''}`.trim() || t("Edit reservation"),
   }
 }

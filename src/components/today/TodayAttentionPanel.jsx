@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { groupTodayAttentionItems } from '../../lib/todayAttentionPresentationUtils'
 import { TodayAttentionListItem } from './TodayAttentionListItem'
+import { t } from '../../i18n/i18n'
 
 export function TodayAttentionPanel({
   attentionItems = [],
@@ -29,14 +30,14 @@ export function TodayAttentionPanel({
   if (attentionItems.length === 0) {
     return (
       <p className="today-empty-note today-empty-note-clear">
-        Nothing needs your attention right now.
+        {t("Nothing needs your attention right now.")}
       </p>
     )
   }
 
   return (
     <div className="today-attention-panel">
-      <div className="today-attention-groups" aria-label="Attention groups">
+      <div className="today-attention-groups" aria-label={t("Attention groups")}>
         {groups.map((group) => (
           <section
             key={group.id}
@@ -64,25 +65,25 @@ export function TodayAttentionPanel({
       </div>
 
       {showAttentionActions ? (
-        <div className="today-attention-actions" aria-label="Attention quick filters">
+        <div className="today-attention-actions" aria-label={t("Attention quick filters")}>
           {showReservationAttention ? (
             <button type="button" className="today-attention-pill" onClick={onViewReservations}>
-              Reservations
+              {t("Reservations")}
             </button>
           ) : null}
           {showStockAttention ? (
             <button type="button" className="today-attention-pill" onClick={onViewStock}>
-              Stock
+              {t("Stock")}
             </button>
           ) : null}
           {showTasksAttention ? (
             <button type="button" className="today-attention-pill" onClick={onViewTasks}>
-              Tasks
+              {t("Tasks")}
             </button>
           ) : null}
           {showScheduleAttention ? (
             <button type="button" className="today-attention-pill" onClick={onViewSchedule}>
-              Schedule
+              {t("Schedule")}
             </button>
           ) : null}
         </div>

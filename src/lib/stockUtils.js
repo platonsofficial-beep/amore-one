@@ -1,3 +1,4 @@
+import { t, uiLocale } from '../i18n/i18n'
 import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
 import { isWasteNote } from './stockWaste'
 import { getCurrentDateKey } from './currentDateUtils'
@@ -52,17 +53,17 @@ export function resolveStockItemStatus(item) {
 }
 
 export function getStockStatusLabel(status) {
-  if (status === 'out') return 'Out of stock'
-  if (status === 'low') return 'Low'
-  if (status === 'inactive') return 'Inactive'
-  return 'In stock'
+  if (status === 'out') return t("Out of stock")
+  if (status === 'low') return t('Low')
+  if (status === 'inactive') return t('Inactive')
+  return t("In stock")
 }
 
 export function getStockStatusShortLabel(status) {
-  if (status === 'out') return 'Out'
-  if (status === 'low') return 'Low'
-  if (status === 'inactive') return 'Inactive'
-  return 'OK'
+  if (status === 'out') return t('Out')
+  if (status === 'low') return t('Low')
+  if (status === 'inactive') return t('Inactive')
+  return t('OK')
 }
 
 function normalizeStockAlertDateKey(value) {
@@ -99,7 +100,7 @@ export function getStockModuleAlertItems(stockItems = [], limit = 5) {
     .map(({ item, status }) => ({
       id: String(item.id),
       name: `${item.name ?? ''}`.trim() || 'Item',
-      status: status === 'out' ? 'Out of Stock' : 'Low Stock',
+      status: status === 'out' ? t("Out of Stock") : t("Low Stock"),
       severity: status === 'out' ? 'critical' : 'low',
       quantity: item.currentQuantity,
       unit: item.unit,
@@ -164,7 +165,7 @@ export function buildTodayStockActivitySummary(stockItems = [], todayKey = getCu
 
 export function formatTodayStockActivityLine(summary) {
   if (!summary?.hasActivity) {
-    return 'No stock updates today'
+    return t("No stock updates today")
   }
 
   const parts = []
@@ -187,7 +188,7 @@ export function formatTodayStockActivityLine(summary) {
 
   if (parts.length === 0) {
     const count = Number(summary.itemsTouched) || 0
-    return count === 1 ? '1 item updated today' : `${count} items updated today`
+    return t('{{count}} item updated today', { count })
   }
 
   return parts.join(' · ')
@@ -250,7 +251,7 @@ export function formatSharedStockHealthLine(summary = {}) {
   if (outCount > 1) return `${outCount} items out`
   if (lowCount === 1) return '1 item low'
   if (lowCount > 1) return `${lowCount} items low`
-  return 'Stock levels OK'
+  return t("Stock levels OK")
 }
 
 export function formatStockTotalItemsLabel(totalItems) {
@@ -276,13 +277,20 @@ export function formatStockActiveCountWord(totalItems) {
 export function formatStockBrowseResultCount(visibleCount, matchCount, visibilityFilter = 'active') {
   const visible = Math.max(0, Number(visibleCount) || 0)
   const total = Math.max(0, Number(matchCount) || 0)
-  const products = total === 1 ? 'product' : 'products'
-  const scope = visibilityFilter === 'inactive'
-    ? 'inactive'
-    : visibilityFilter === 'all'
-      ? 'active and inactive'
-      : 'active'
-  return `Showing ${visible} of ${total} ${scope} ${products}`
+  const many = total !== 1
+  if (visibilityFilter === 'all') {
+    return t(many
+      ? 'Showing {{visible}} of {{total}} active and inactive products'
+      : 'Showing {{visible}} of {{total}} active and inactive product', { visible, total })
+  }
+  if (visibilityFilter === 'inactive') {
+    return t(many
+      ? 'Showing {{visible}} of {{total}} inactive products'
+      : 'Showing {{visible}} of {{total}} inactive product', { visible, total })
+  }
+  return t(many
+    ? 'Showing {{visible}} of {{total}} active products'
+    : 'Showing {{visible}} of {{total}} active product', { visible, total })
 }
 
 export function getStockCategoryFilters(items = []) {
@@ -298,7 +306,7 @@ export function getStockCategoryFilters(items = []) {
 
 export function formatStockCurrency(value) {
   const amount = Number(value) || 0
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat(uiLocale('en-US'), {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,
@@ -307,7 +315,7 @@ export function formatStockCurrency(value) {
 
 export function formatStockPurchasePrice(value) {
   const amount = Number(value) || 0
-  return new Intl.NumberFormat('en-IE', {
+  return new Intl.NumberFormat(uiLocale('en-IE'), {
     style: 'currency',
     currency: 'EUR',
     minimumFractionDigits: 2,
@@ -357,7 +365,7 @@ export function getStockMovementLabel(type, note = '') {
   if (resolvedType === 'receive') return 'Receive'
   if (resolvedType === 'usage') return 'Usage'
   if (resolvedType === 'adjustment') return 'Adjustment'
-  if (resolvedType === 'stock_count') return 'Stock count'
+  if (resolvedType === 'stock_count') return t("Stock count")
   return 'Update'
 }
 

@@ -1,4 +1,5 @@
 import { AUTO_CLOSED_BADGE_LABEL, isAutoClosedReservation } from '../../lib/reservationAutoClose'
+import { t } from '../../i18n/i18n'
 
 export function ReservationAutoClosedBadge({
   reservation,
@@ -23,7 +24,7 @@ export function ReservationAutoClosedBadge({
             onUndo?.(reservation)
           }}
         >
-          Undo
+          {t("Undo")}
         </button>
       ) : null}
       <span className="sr-only">Auto-closed reservation for {guestName}</span>

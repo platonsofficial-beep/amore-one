@@ -5,6 +5,7 @@ import {
   resolveStockStorageLocation,
 } from './stockCatalog'
 import { getStockStatusShortLabel } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 export function buildStockItemUpdatePayload(item, changes = {}) {
   const category = normalizeStockCategory(changes.category ?? item.category)
@@ -22,7 +23,7 @@ export function buildStockItemUpdatePayload(item, changes = {}) {
     category,
     itemType,
     supplier: `${changes.supplier ?? item.supplier ?? ''}`.trim(),
-    storageLocation: `${changes.storageLocation ?? resolveStockStorageLocation(item)}`.trim() || 'Main Storage',
+    storageLocation: `${changes.storageLocation ?? resolveStockStorageLocation(item)}`.trim() || t("Main Storage"),
     unit: item.unit,
     minimumQuantity: item.minimumQuantity,
     targetQuantity: item.targetQuantity,

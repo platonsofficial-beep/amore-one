@@ -1,3 +1,5 @@
+import { t, uiLocale } from '../i18n/i18n'
+
 export const CHAT_EMOJIS = ['👍', '❤️', '😂', '✅', '👀', '🙏']
 export const CHAT_COMPOSER_EMOJIS = [
   '😀', '😁', '😂', '😊', '😍', '😘', '😎', '🤔', '😴', '👍',
@@ -36,31 +38,31 @@ export function orderInbox(rows) {
 }
 
 export function conversationTitle(row, membersById = {}, aliases = {}) {
-  if (!row) return 'Chat'
-  if (row.kind === 'team') return row.name || 'Team'
+  if (!row) return t('Chat')
+  if (row.kind === 'team') return row.name || t('Team')
   if (row.kind === 'direct') {
     const other = membersById[row.other_member_id]
     return other?.name
       || aliases[row.other_member_id]
       || aliases[row.conversation_id]
-      || 'Direct message'
+      || t('Direct message')
   }
-  return row.name || 'Group'
+  return row.name || t('Group')
 }
 
 export function lastMessagePreview(row) {
   const body = `${row?.last_body ?? ''}`.trim()
   if (body) return body
-  if (row?.last_message_at) return '📷 Photo'
-  return 'No messages yet'
+  if (row?.last_message_at) return t('📷 Photo')
+  return t('No messages yet')
 }
 
 export function lastMessageTimeLabel(iso, now = new Date()) {
   const date = new Date(iso)
   if (!iso || Number.isNaN(date.getTime())) return ''
-  const time = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const time = date.toLocaleTimeString(uiLocale('en-GB'), { hour: '2-digit', minute: '2-digit' })
   if (date.toDateString() === now.toDateString()) return time
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  return date.toLocaleDateString(uiLocale('en-GB'), { day: 'numeric', month: 'short' })
 }
 
 export function chatIdentityHints(rows) {
@@ -206,9 +208,9 @@ export function dayLabel(iso, now = new Date()) {
   const that = new Date(date)
   that.setHours(0, 0, 0, 0)
   const diff = Math.round((start.getTime() - that.getTime()) / 86400000)
-  if (diff === 0) return 'Today'
-  if (diff === 1) return 'Yesterday'
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  if (diff === 0) return t('Today')
+  if (diff === 1) return t('Yesterday')
+  return date.toLocaleDateString(uiLocale('en-GB'), { day: 'numeric', month: 'short' })
 }
 
 export function muteUntilValue(choice, now = new Date()) {
@@ -236,9 +238,9 @@ export function clipChatBody(value) {
 
 export function chatErrorMessage(error) {
   const raw = `${error?.message || error?.details || error || ''}`.toLowerCase()
-  if (raw.includes('announcement_only')) return 'Only managers can post in this channel.'
-  if (raw.includes('not_allowed')) return 'You cannot do that in this chat.'
-  if (raw.includes('bad_attachment_path')) return 'That photo could not be sent.'
-  if (raw.includes('photo is still too large')) return 'That photo is still too large. Try another one.'
-  return 'Something went wrong. Try again.'
+  if (raw.includes('announcement_only')) return t("Only managers can post in this channel.")
+  if (raw.includes('not_allowed')) return t("You cannot do that in this chat.")
+  if (raw.includes('bad_attachment_path')) return t("That photo could not be sent.")
+  if (raw.includes('photo is still too large')) return t("That photo is still too large. Try another one.")
+  return t("Something went wrong. Try again.")
 }

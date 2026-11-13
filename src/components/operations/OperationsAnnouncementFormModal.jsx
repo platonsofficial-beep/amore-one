@@ -13,6 +13,7 @@ import {
 } from '../../lib/operationsAnnouncementUtils'
 import { combineDateAndTime } from '../../lib/timeFormatUtils'
 import { TimeSelect } from '../TimeSelect'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_OPTIONS = ANNOUNCEMENT_PRIORITIES.map((id) => ({
   id,
@@ -77,7 +78,7 @@ export function OperationsAnnouncementFormModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to publish right now.')
+      setError(submitError?.message || t("Unable to publish right now."))
     }
   }
 
@@ -95,12 +96,12 @@ export function OperationsAnnouncementFormModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Announcements</p>
+            <p className="eyebrow">{t("Announcements")}</p>
             <h3 id="operations-announcement-form-title">
               {announcement ? 'Edit' : 'New'}
             </h3>
           </div>
-          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
@@ -112,7 +113,7 @@ export function OperationsAnnouncementFormModal({
         >
           <div className={`operations-announcement-form-content${showMoreOptions ? ' is-expanded' : ''}`}>
             <label className="form-field full-width">
-              <span>Title</span>
+              <span>{t("Title")}</span>
               <input
                 type="text"
                 value={form.title}
@@ -120,13 +121,13 @@ export function OperationsAnnouncementFormModal({
                   setError('')
                   setForm((current) => ({ ...current, title: event.target.value }))
                 }}
-                placeholder="Staff meeting Friday 20:00"
+                placeholder={t("Staff meeting Friday 20:00")}
                 autoFocus
               />
             </label>
 
             <label className="form-field full-width">
-              <span>Message</span>
+              <span>{t("Message")}</span>
               <textarea
                 rows={2}
                 value={form.message}
@@ -134,13 +135,13 @@ export function OperationsAnnouncementFormModal({
                   setError('')
                   setForm((current) => ({ ...current, message: event.target.value }))
                 }}
-                placeholder="New menu starts Monday"
+                placeholder={t("New menu starts Monday")}
               />
             </label>
 
             <fieldset className="operations-announcement-toggle-fieldset full-width">
-              <legend>Priority</legend>
-              <div className="operations-announcement-toggle-group" role="group" aria-label="Priority">
+              <legend>{t("Priority")}</legend>
+              <div className="operations-announcement-toggle-group" role="group" aria-label={t("Priority")}>
                 {PRIORITY_OPTIONS.map((option) => (
                   <button
                     key={option.id}
@@ -161,14 +162,14 @@ export function OperationsAnnouncementFormModal({
               onClick={() => setShowMoreOptions((current) => !current)}
               aria-expanded={showMoreOptions}
             >
-              {showMoreOptions ? 'Hide options' : 'More options'}
+              {showMoreOptions ? t("Hide options") : t("More options")}
             </button>
 
             {showMoreOptions ? (
               <div className="operations-announcement-more-options">
                 <fieldset className="operations-announcement-toggle-fieldset full-width">
-                  <legend>Audience</legend>
-                  <div className="operations-announcement-toggle-group is-wrap" role="group" aria-label="Audience">
+                  <legend>{t("Audience")}</legend>
+                  <div className="operations-announcement-toggle-group is-wrap" role="group" aria-label={t("Audience")}>
                     {AUDIENCE_OPTIONS.map((option) => (
                       <button
                         key={option.id}
@@ -185,7 +186,7 @@ export function OperationsAnnouncementFormModal({
 
                 <div className="operations-announcement-schedule-grid">
                   <label className="form-field">
-                    <span>Start date</span>
+                    <span>{t("Start date")}</span>
                     <input
                       type="date"
                       value={form.startsAtDate}
@@ -197,16 +198,16 @@ export function OperationsAnnouncementFormModal({
                   </label>
 
                   <label className="form-field">
-                    <span>Start time</span>
+                    <span>{t("Start time")}</span>
                     <TimeSelect
                       value={form.startsAtTime}
                       onChange={(time) => setForm((current) => ({ ...current, startsAtTime: time }))}
-                      placeholder="Optional"
+                      placeholder={t("Optional")}
                     />
                   </label>
 
                   <label className="form-field">
-                    <span>End date</span>
+                    <span>{t("End date")}</span>
                     <input
                       type="date"
                       value={form.endsAtDate}
@@ -218,11 +219,11 @@ export function OperationsAnnouncementFormModal({
                   </label>
 
                   <label className="form-field">
-                    <span>End time</span>
+                    <span>{t("End time")}</span>
                     <TimeSelect
                       value={form.endsAtTime}
                       onChange={(time) => setForm((current) => ({ ...current, endsAtTime: time }))}
-                      placeholder="Optional"
+                      placeholder={t("Optional")}
                     />
                   </label>
                 </div>
@@ -234,7 +235,7 @@ export function OperationsAnnouncementFormModal({
 
           <div className="modal-actions operations-announcement-form-actions">
             <button type="button" className="ghost-btn operations-form-action" onClick={onClose} disabled={isSaving}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
               {isSaving ? 'Publishing…' : 'Publish'}

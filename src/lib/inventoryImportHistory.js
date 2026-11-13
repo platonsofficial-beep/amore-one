@@ -1,10 +1,11 @@
+import { t } from '../i18n/i18n'
 export const RECENT_INVENTORY_IMPORT_LIMIT = 5
 
 const STATUS_LABELS = {
   completed: 'Completed',
   cancelled: 'Cancelled',
   failed: 'Failed',
-  ready: 'Ready to apply',
+  ready: t("Ready to apply"),
   applying: 'Applying',
 }
 
@@ -28,7 +29,7 @@ function readCount(row, resultKey, columnKey) {
 
 export function inventoryImportStatusLabel(status) {
   const key = `${status ?? ''}`.trim()
-  return STATUS_LABELS[key] || 'In progress'
+  return STATUS_LABELS[key] || t("In progress")
 }
 
 export function inventoryImportActorId(row) {

@@ -1,5 +1,6 @@
 import { EMPLOYEE_AVAILABILITY_DAYS, EMPLOYEE_AVAILABILITY_STATUS } from '../../lib/employeeAvailabilityUtils'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 const DAY_LABELS = Object.freeze({
   monday: 'Mon',
@@ -47,14 +48,14 @@ export function ManagerAvailabilityEditor({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Staff availability</p>
+            <p className="eyebrow">{t("Staff availability")}</p>
             <h3 id="manager-availability-title">{employeeName || 'Employee'}</h3>
             {weekLabel ? <p className="staff-subtitle">{weekLabel}</p> : null}
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close availability editor">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close availability editor")}>✕</button>
         </div>
 
-        {isLoading ? <p className="staff-subtitle">Loading availability…</p> : null}
+        {isLoading ? <p className="staff-subtitle">{t("Loading availability…")}</p> : null}
         {error ? <div className="staff-status-banner" role="alert">{error}</div> : null}
 
         {!isLoading && days.length > 0 ? (
@@ -82,7 +83,7 @@ export function ManagerAvailabilityEditor({
                   </div>
                   <div className="manager-availability-times">
                     <label>
-                      <span>From</span>
+                      <span>{t("From")}</span>
                       <input
                         type="time"
                         value={timeInputValue(entry.startTime)}
@@ -91,7 +92,7 @@ export function ManagerAvailabilityEditor({
                       />
                     </label>
                     <label>
-                      <span>To</span>
+                      <span>{t("To")}</span>
                       <input
                         type="time"
                         value={timeInputValue(entry.endTime)}
@@ -101,7 +102,7 @@ export function ManagerAvailabilityEditor({
                     </label>
                   </div>
                   <label className="manager-availability-note">
-                    <span>Note</span>
+                    <span>{t("Note")}</span>
                     <input
                       type="text"
                       value={entry.note ?? ''}
@@ -116,9 +117,9 @@ export function ManagerAvailabilityEditor({
         ) : null}
 
         <div className="modal-actions">
-          <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>Cancel</button>
+          <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>{t("Cancel")}</button>
           <button type="button" className="primary-btn" onClick={onSave} disabled={isLoading || isSaving || !week}>
-            {isSaving ? 'Saving…' : 'Save availability'}
+            {isSaving ? 'Saving…' : t("Save availability")}
           </button>
         </div>
       </div>

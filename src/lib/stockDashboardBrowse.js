@@ -8,6 +8,7 @@ import {
 import { buildProductDisplayNameFromItem } from './stockProductIdentity'
 import { buildStockProductSearchHaystack } from './stockProductMetadataDisplay'
 import { resolveStockItemQuantityStatus } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 export const STOCK_LAYOUT_MODES = [
   { id: 'cards', label: 'Cards', icon: 'grid' },
@@ -143,7 +144,7 @@ function resolveGroupKey(item, groupBy) {
   }
 
   if (groupBy === 'supplier') {
-    return `${item.supplier ?? ''}`.trim() || 'No supplier'
+    return `${item.supplier ?? ''}`.trim() || t("No supplier")
   }
 
   if (groupBy === 'type') {
@@ -238,8 +239,8 @@ export function dismissStockSearchKeyboardOnEnter(event) {
  * and at or under the minimum. It is not the shelf below-par count.
  */
 export function getStockStatusFilterLabel(statusFilter = 'all') {
-  if (statusFilter === 'low') return 'Low'
-  if (statusFilter === 'out') return 'Out of stock'
-  if (statusFilter === 'order') return 'To order'
-  return 'All products'
+  if (statusFilter === 'low') return t('Low')
+  if (statusFilter === 'out') return t("Out of stock")
+  if (statusFilter === 'order') return t("To order")
+  return t("All products")
 }

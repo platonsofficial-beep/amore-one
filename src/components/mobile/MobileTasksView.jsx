@@ -15,6 +15,7 @@ import {
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { parseLocalDate } from '../../lib/weekUtils'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
+import { t } from '../../i18n/i18n'
 
 const TASK_TABS = [
   { id: 'upcoming', label: 'Upcoming' },
@@ -55,7 +56,7 @@ function formatTaskDueLabel(task, todayKey = '') {
 }
 
 function formatCompletedCardMeta(task) {
-  const completedBy = `${task?.completedByName ?? ''}`.trim() || 'Team member'
+  const completedBy = `${task?.completedByName ?? ''}`.trim() || t("Team member")
   const completedAt = task?.completedAt ?? task?.completed_at
   if (!completedAt) return `Completed by ${completedBy}`
 
@@ -157,7 +158,7 @@ function PendingTaskSections({
 
   const sections = [
     overdue.length > 0 ? { key: 'overdue', label: 'Overdue', tasks: overdue } : null,
-    dueToday.length > 0 ? { key: 'due-today', label: 'Due today', tasks: dueToday } : null,
+    dueToday.length > 0 ? { key: 'due-today', label: t("Due today"), tasks: dueToday } : null,
   ].filter(Boolean)
 
   if (sections.length <= 1) {
@@ -240,13 +241,13 @@ export function MobileTasksView({
     return (
       <div className="mobile-screen mobile-tasks">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">My work</p>
-          <h1 className="mobile-screen-title">Tasks</h1>
+          <p className="mobile-screen-eyebrow">{t("My work")}</p>
+          <h1 className="mobile-screen-title">{t("Tasks")}</h1>
         </header>
 
         <section className="mobile-card tone-neutral">
-          <h2 className="mobile-card-headline">Employee profile required</h2>
-          <p className="mobile-card-detail">Link your employee profile to view and complete your tasks.</p>
+          <h2 className="mobile-card-headline">{t("Employee profile required")}</h2>
+          <p className="mobile-card-detail">{t("Link your employee profile to view and complete your tasks.")}</p>
         </section>
       </div>
     )
@@ -255,11 +256,11 @@ export function MobileTasksView({
   return (
     <div className="mobile-screen mobile-tasks">
       <header className="mobile-screen-header">
-        <p className="mobile-screen-eyebrow">My work</p>
-        <h1 className="mobile-screen-title">Tasks</h1>
+        <p className="mobile-screen-eyebrow">{t("My work")}</p>
+        <h1 className="mobile-screen-title">{t("Tasks")}</h1>
       </header>
 
-      <div className="mobile-segmented-control" role="tablist" aria-label="Task filters">
+      <div className="mobile-segmented-control" role="tablist" aria-label={t("Task filters")}>
         {TASK_TABS.map((tab) => (
           <button
             key={tab.id}
@@ -282,7 +283,7 @@ export function MobileTasksView({
       ) : null}
 
       {isLoading ? (
-        <p className="mobile-empty-note">Loading tasks…</p>
+        <p className="mobile-empty-note">{t("Loading tasks…")}</p>
       ) : visibleTasks.length === 0 ? (
         <section className="mobile-empty-state">
           <p className="mobile-empty-icon" aria-hidden="true">✓</p>
@@ -290,7 +291,7 @@ export function MobileTasksView({
           <p>{emptyState.message}</p>
           {onOpenTasksWorkspace ? (
             <button type="button" className="mobile-primary-btn" onClick={onOpenTasksWorkspace}>
-              Open operations dashboard
+              {t("Open operations dashboard")}
             </button>
           ) : null}
         </section>
@@ -320,7 +321,7 @@ export function MobileTasksView({
 
       {!isLoading && visibleTasks.length > 0 && onOpenTasksWorkspace ? (
         <button type="button" className="mobile-secondary-btn" onClick={onOpenTasksWorkspace}>
-          Open operations dashboard
+          {t("Open operations dashboard")}
         </button>
       ) : null}
 

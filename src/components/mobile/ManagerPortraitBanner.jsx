@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { t } from '../../i18n/i18n'
 
 const STORAGE_PREFIX = 'one.managerPortraitBanner.'
 /** P-01: one dismiss hides the hint on every manager portrait screen on this device. */
@@ -30,7 +31,7 @@ export function ManagerPortraitBanner({ area = 'view' }) {
   }
 
   return (
-    <button type="button" className="manager-portrait-banner" onClick={dismiss} aria-label="Dismiss">
+    <button type="button" className="manager-portrait-banner" onClick={dismiss} aria-label={t("Dismiss")}>
       <span className="manager-portrait-banner-icon" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18">
           <rect x="8" y="3" width="8" height="14" rx="1.6" fill="none" stroke="currentColor" strokeWidth="1.6" />
@@ -38,7 +39,7 @@ export function ManagerPortraitBanner({ area = 'view' }) {
           <path d="M15.2 6.2l2.6.4-.4 2.6" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </span>
-      <span className="manager-portrait-banner-copy">Turn your phone sideways for the full view</span>
+      <span className="manager-portrait-banner-copy">{t("Turn your phone sideways for the full view")}</span>
       <span className="manager-portrait-banner-dismiss" aria-hidden="true">×</span>
     </button>
   )

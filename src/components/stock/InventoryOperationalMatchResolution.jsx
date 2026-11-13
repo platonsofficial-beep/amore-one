@@ -12,6 +12,7 @@ import {
   getOperationalMatchResolutionRowKey,
 } from '../../lib/inventoryOperationalMatchResolutions'
 import { formatOperationalImportPreviewValue } from './InventoryOperationalImportPreview'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {object|null|undefined} preview
@@ -77,7 +78,7 @@ export function InventoryOperationalMatchResolution({
   return (
     <section
       className="inventory-operational-match-resolution"
-      aria-label="Resolve possible matches"
+      aria-label={t("Resolve possible matches")}
       data-possible-count={possibleRows.length}
       data-resolved-count={resolvedCount}
       data-remaining-count={remainingCount}
@@ -85,10 +86,10 @@ export function InventoryOperationalMatchResolution({
       <header className="inventory-operational-match-resolution-header">
         <div>
           <h3 className="inventory-operational-review-title">
-            Resolve Possible Matches
+            {t("Resolve Possible Matches")}
           </h3>
           <p className="inventory-operational-match-resolution-subtext">
-            Review uncertain matches and choose whether to link an existing ONE product, create a new product, or skip the source row.
+            {t("Review uncertain matches and choose whether to link an existing ONE product, create a new product, or skip the source row.")}
           </p>
         </div>
       </header>
@@ -114,10 +115,10 @@ export function InventoryOperationalMatchResolution({
       {possibleRows.length === 0 ? (
         <div className="inventory-operational-review-empty" role="status">
           <p className="inventory-operational-review-empty-title">
-            No matches need resolution
+            {t("No matches need resolution")}
           </p>
           <p className="inventory-operational-review-empty-copy">
-            ONE did not find any uncertain product matches in this worksheet.
+            {t("ONE did not find any uncertain product matches in this worksheet.")}
           </p>
         </div>
       ) : (
@@ -146,26 +147,26 @@ export function InventoryOperationalMatchResolution({
                     </p>
                   </div>
                   <span className={`inventory-operational-match-resolution-status ${complete ? 'is-resolved' : 'is-pending'}`}>
-                    {complete ? 'Resolved' : 'Needs decision'}
+                    {complete ? 'Resolved' : t("Needs decision")}
                   </span>
                 </div>
 
                 <dl className="inventory-operational-match-resolution-facts">
                   <div>
-                    <dt>Storage</dt>
+                    <dt>{t("Storage")}</dt>
                     <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
                   </div>
                   <div>
-                    <dt>BAR</dt>
+                    <dt>{t("BAR")}</dt>
                     <dd>{formatOperationalImportPreviewValue(row.source?.bar)}</dd>
                   </div>
                 </dl>
 
                 <fieldset className="inventory-operational-match-resolution-candidates">
-                  <legend>Existing ONE candidates</legend>
+                  <legend>{t("Existing ONE candidates")}</legend>
                   {candidates.length === 0 ? (
                     <p className="inventory-operational-match-resolution-empty-candidates">
-                      No candidates available.
+                      {t("No candidates available.")}
                     </p>
                   ) : (
                     candidates.map((candidate, candidateIndex) => {
@@ -212,7 +213,7 @@ export function InventoryOperationalMatchResolution({
                 </fieldset>
 
                 <fieldset className="inventory-operational-match-resolution-decisions">
-                  <legend>Decision</legend>
+                  <legend>{t("Decision")}</legend>
                   <label>
                     <input
                       type="radio"
@@ -226,7 +227,7 @@ export function InventoryOperationalMatchResolution({
                         })
                       }}
                     />
-                    <span>Link existing product</span>
+                    <span>{t("Link existing product")}</span>
                   </label>
                   <label>
                     <input
@@ -241,7 +242,7 @@ export function InventoryOperationalMatchResolution({
                         })
                       }}
                     />
-                    <span>Create new product</span>
+                    <span>{t("Create new product")}</span>
                   </label>
                   <label>
                     <input
@@ -256,7 +257,7 @@ export function InventoryOperationalMatchResolution({
                         })
                       }}
                     />
-                    <span>Skip this row</span>
+                    <span>{t("Skip this row")}</span>
                   </label>
                 </fieldset>
               </li>

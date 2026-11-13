@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { HostWorkspaceDatePicker } from './HostWorkspaceDatePicker'
 import { ReservationCalendarIcon } from './ReservationCalendarIcon'
+import { t } from '../../i18n/i18n'
 
 export function HostWorkspaceDateNav({
   dateTime,
@@ -40,13 +41,13 @@ export function HostWorkspaceDateNav({
   const closePicker = () => setIsPickerOpen(false)
 
   return (
-    <div className="host-workspace-date-nav" role="group" aria-label="Reservation date">
+    <div className="host-workspace-date-nav" role="group" aria-label={t("Reservation date")}>
       <div className="host-workspace-date-nav-main">
         <button
           type="button"
           className="host-workspace-date-nav-btn"
           onClick={onPreviousDay}
-          aria-label="Previous day"
+          aria-label={t("Previous day")}
         >
           ‹
         </button>
@@ -80,7 +81,7 @@ export function HostWorkspaceDateNav({
           type="button"
           className="host-workspace-date-nav-btn"
           onClick={onNextDay}
-          aria-label="Next day"
+          aria-label={t("Next day")}
         >
           ›
         </button>
@@ -93,7 +94,7 @@ export function HostWorkspaceDateNav({
         disabled={isViewingToday}
         aria-current={isViewingToday ? 'date' : undefined}
       >
-        Today
+        {t("Today")}
       </button>
     </div>
   )

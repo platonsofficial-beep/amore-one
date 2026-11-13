@@ -18,11 +18,12 @@ import { StockDashboardMovementDialog } from '../stock/StockDashboardMovementDia
 import { StockItemFormModal } from '../stock/StockItemFormModal'
 import { formatInventoryUnit } from '../../lib/inventoryUnitDisplay'
 import { buildProductDisplayNameFromItem, formatProductSizeDetail } from '../../lib/stockProductIdentity'
+import { t } from '../../i18n/i18n'
 
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
   const quantity = line.quantity > 0 ? line.quantity : 1
-  const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
+  const supplier = `${item.supplier ?? ''}`.trim() || t("No supplier")
 
   return [{
     supplier,
@@ -95,7 +96,7 @@ function MobileStockDetailSheet({
 
   return (
     <div className="mobile-stock-detail-sheet" role="presentation">
-      <button type="button" className="mobile-stock-detail-backdrop" aria-label="Close product" onClick={onClose} />
+      <button type="button" className="mobile-stock-detail-backdrop" aria-label={t("Close product")} onClick={onClose} />
       <section className="mobile-stock-detail-card" role="dialog" aria-modal="true" aria-labelledby="mobile-stock-detail-title">
         <header className="mobile-stock-detail-header">
           <div>
@@ -105,24 +106,24 @@ function MobileStockDetailSheet({
             ) : null}
             <p>{categoryLabel}</p>
           </div>
-          <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+          <button type="button" className="ghost-btn" onClick={onClose}>{t("Close")}</button>
         </header>
         <dl>
           <div>
-            <dt>On hand</dt>
+            <dt>{t("On hand")}</dt>
             <dd>{formatInventoryUnit(currentQuantity, item.unit)}</dd>
           </div>
           <div>
-            <dt>Minimum</dt>
+            <dt>{t("Minimum")}</dt>
             <dd>{formatInventoryUnit(minimumQuantity, item.unit)}</dd>
           </div>
           <div>
-            <dt>Status</dt>
+            <dt>{t("Status")}</dt>
             <dd>{getStockStatusShortLabel(item.status)}</dd>
           </div>
           {supplierLabel ? (
             <div>
-              <dt>Supplier</dt>
+              <dt>{t("Supplier")}</dt>
               <dd>{supplierLabel}</dd>
             </div>
           ) : null}
@@ -134,20 +135,20 @@ function MobileStockDetailSheet({
             onClick={() => onAddToOrder?.(item)}
             disabled={!isWorkspaceReady}
           >
-            Add to order
+            {t("Add to order")}
           </button>
         ) : null}
         {/* S-08: same per-product actions as landscape (Count, Receive, Edit). */}
         {canManageStock && (onCount || onReceive || onEdit) ? (
-          <div className="mobile-stock-detail-actions" role="group" aria-label="Product actions">
+          <div className="mobile-stock-detail-actions" role="group" aria-label={t("Product actions")}>
             {onCount ? (
-              <button type="button" className="ghost-btn" onClick={() => onCount(item)} disabled={!isWorkspaceReady}>Count</button>
+              <button type="button" className="ghost-btn" onClick={() => onCount(item)} disabled={!isWorkspaceReady}>{t("Count")}</button>
             ) : null}
             {onReceive ? (
-              <button type="button" className="ghost-btn" onClick={() => onReceive(item)} disabled={!isWorkspaceReady} aria-label="Receive delivery">Receive</button>
+              <button type="button" className="ghost-btn" onClick={() => onReceive(item)} disabled={!isWorkspaceReady} aria-label={t("Receive delivery")}>{t("Receive")}</button>
             ) : null}
             {onEdit ? (
-              <button type="button" className="ghost-btn" onClick={() => onEdit(item)} disabled={!isWorkspaceReady}>Edit</button>
+              <button type="button" className="ghost-btn" onClick={() => onEdit(item)} disabled={!isWorkspaceReady}>{t("Edit")}</button>
             ) : null}
           </div>
         ) : null}
@@ -180,19 +181,19 @@ function MobileStockPendingOrdersBanner({
 
   let message = ''
   if (awaitingCount > 0 && partialCount > 0) {
-    message = `${awaitingCount} awaiting delivery · ${partialCount} partial`
+    message = `${t('{{count}} awaiting delivery', { count: awaitingCount })} · ${t('{{count}} partial', { count: partialCount })}`
   } else if (awaitingCount > 0) {
-    message = awaitingCount === 1 ? '1 delivery awaiting receipt' : `${awaitingCount} deliveries awaiting receipt`
+    message = t('{{count}} delivery awaiting receipt', { count: awaitingCount })
   } else if (partialCount > 0) {
-    message = partialCount === 1 ? '1 partial order open' : `${partialCount} partial orders open`
+    message = t('{{count}} partial order open', { count: partialCount })
   } else if (draftCount > 0) {
-    message = draftCount === 1 ? '1 order to review' : `${draftCount} orders to review`
+    message = t('{{count}} order to review', { count: draftCount })
   }
 
   return (
-    <section className="mobile-manager-stock-pending-banner" aria-label="Pending orders">
+    <section className="mobile-manager-stock-pending-banner" aria-label={t("Pending orders")}>
       <div className="mobile-manager-stock-pending-copy">
-        <p className="mobile-manager-stock-pending-title">Orders need attention</p>
+        <p className="mobile-manager-stock-pending-title">{t("Orders need attention")}</p>
         {message ? <p className="mobile-manager-stock-pending-message">{message}</p> : null}
       </div>
       <div className="mobile-manager-stock-pending-actions">
@@ -202,7 +203,7 @@ function MobileStockPendingOrdersBanner({
             className="mobile-manager-stock-pending-btn mobile-manager-stock-pending-btn-primary"
             onClick={onReceiveDeliveries}
           >
-            Receive delivery
+            {t("Receive delivery")}
           </button>
         ) : null}
         <button
@@ -210,7 +211,7 @@ function MobileStockPendingOrdersBanner({
           className="mobile-manager-stock-pending-btn"
           onClick={onOpenOrders}
         >
-          View orders
+          {t("View orders")}
         </button>
       </div>
     </section>
@@ -283,14 +284,14 @@ export function MobileManagerStockView({
     if (statusFilter === 'low' && hasNoMatches) {
       return {
         ...base,
-        message: 'Everything looks good',
+        message: t("Everything looks good"),
       }
     }
 
     if (statusFilter === 'out' && hasNoMatches) {
       return {
         ...base,
-        message: 'Everything looks good',
+        message: t("Everything looks good"),
       }
     }
 
@@ -338,7 +339,7 @@ export function MobileManagerStockView({
   }
 
   const quickActions = canManageStock ? (
-    <section className="mobile-manager-stock-action-bar is-compact" aria-label="Stock quick actions">
+    <section className="mobile-manager-stock-action-bar is-compact" aria-label={t("Stock quick actions")}>
       <button
         type="button"
         className="mobile-manager-stock-quick-btn"
@@ -346,7 +347,7 @@ export function MobileManagerStockView({
         data-help="stock.count-now"
         disabled={!isWorkspaceReady}
       >
-        Count
+        {t("Count")}
       </button>
       {onPrepareDrafts ? (
         <button
@@ -359,8 +360,8 @@ export function MobileManagerStockView({
         >
           {isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : (
             <>
-              <span className="mobile-manager-stock-quick-label-full">Suggest order</span>
-              <span className="mobile-manager-stock-quick-label-short">Suggest</span>
+              <span className="mobile-manager-stock-quick-label-full">{t("Suggest order")}</span>
+              <span className="mobile-manager-stock-quick-label-short">{t("Suggest")}</span>
             </>
           ))}
         </button>
@@ -372,7 +373,7 @@ export function MobileManagerStockView({
         data-help="stock.create-order"
         disabled={!isWorkspaceReady}
       >
-        Create order
+        {t("Create order")}
       </button>
     </section>
   ) : null
@@ -380,29 +381,29 @@ export function MobileManagerStockView({
   return (
     <div className={`mobile-screen mobile-manager-stock mobile-manager-stock-inventory${detailItem ? ' is-detail-open' : ''}`}>
       <div className="mobile-manager-stock-top">
-      <header className="mobile-manager-stock-command" aria-label="Stock overview">
-        <h1 className="mobile-manager-stock-command-title">Stock</h1>
+      <header className="mobile-manager-stock-command" aria-label={t("Stock overview")}>
+        <h1 className="mobile-manager-stock-command-title">{t("Stock")}</h1>
         <p className="mobile-manager-stock-command-stats">
           <span>
-            <strong>{isLoading || catalogLoadFailed ? '—' : totalItems}</strong> items
+            <strong>{isLoading || catalogLoadFailed ? '—' : totalItems}</strong> {t("items")}
           </span>
           <span aria-hidden="true">·</span>
           <span className={lowCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading || catalogLoadFailed ? '—' : lowCount}</strong> low
+            <strong>{isLoading || catalogLoadFailed ? '—' : lowCount}</strong> {t("low")}
           </span>
           <span aria-hidden="true">·</span>
           <span className={outCount > 0 ? 'tone-danger' : ''}>
-            <strong>{isLoading || catalogLoadFailed ? '—' : outCount}</strong> out
+            <strong>{isLoading || catalogLoadFailed ? '—' : outCount}</strong> {t("out")}
           </span>
           <span aria-hidden="true">·</span>
           <span className={toOrderCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading || catalogLoadFailed ? '—' : toOrderCount}</strong> to order
+            <strong>{isLoading || catalogLoadFailed ? '—' : toOrderCount}</strong> {t("to order")}
           </span>
           {pendingOrders > 0 ? (
             <>
               <span aria-hidden="true">·</span>
               <span className="tone-info">
-                <strong>{isLoading ? '0' : pendingOrders}</strong> {pendingOrders === 1 ? 'order' : 'orders'} pending
+                <strong>{isLoading ? '0' : pendingOrders}</strong> {t('order pending', { count: pendingOrders })}
               </span>
             </>
           ) : null}
@@ -422,19 +423,19 @@ export function MobileManagerStockView({
 
       <div className="mobile-manager-stock-sticky-tools">
         <label className="mobile-manager-stock-search">
-          <span className="sr-only">Search stock items</span>
+          <span className="sr-only">{t("Search stock items")}</span>
           <input
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search stock item..."
+            placeholder={t("Search stock item...")}
             autoComplete="off"
             enterKeyHint="search"
           />
         </label>
 
         <div className="mobile-manager-stock-filters">
-          <div className="mobile-manager-stock-chip-scroll" role="tablist" aria-label="Stock filters">
+          <div className="mobile-manager-stock-chip-scroll" role="tablist" aria-label={t("Stock filters")}>
           <button
             type="button"
             role="tab"
@@ -445,7 +446,7 @@ export function MobileManagerStockView({
               setCategoryFilter('All')
             }}
           >
-            All
+            {t("All")}
           </button>
           <button
             type="button"
@@ -454,7 +455,7 @@ export function MobileManagerStockView({
             className={`mobile-manager-stock-chip${statusFilter === 'low' ? ' is-active' : ''}`}
             onClick={() => handleStatusChip('low')}
           >
-            Low
+            {t("Low")}
           </button>
           <button
             type="button"
@@ -463,7 +464,7 @@ export function MobileManagerStockView({
             className={`mobile-manager-stock-chip${statusFilter === 'out' ? ' is-active' : ''}`}
             onClick={() => handleStatusChip('out')}
           >
-            Out
+            {t("Out")}
           </button>
           <button
             type="button"
@@ -472,7 +473,7 @@ export function MobileManagerStockView({
             className={`mobile-manager-stock-chip${statusFilter === 'order' ? ' is-active' : ''}`}
             onClick={() => handleStatusChip('order')}
           >
-            To order
+            {t("To order")}
           </button>
           {categoryFilters
             .filter((category) => category !== 'All')
@@ -495,18 +496,18 @@ export function MobileManagerStockView({
       <div className="mobile-manager-stock-stage">
       <div className="mobile-manager-stock-scroll-body">
       {isLoading ? (
-        <p className="mobile-manager-stock-loading">Loading stock…</p>
+        <p className="mobile-manager-stock-loading">{t("Loading stock…")}</p>
       ) : catalogLoadFailed ? (
         <div className="mobile-manager-stock-empty stock-catalog-load-failed" role="alert">
-          <p className="mobile-manager-stock-empty-title">Stock couldn&apos;t be loaded</p>
-          <p className="mobile-manager-stock-empty-message">Check your connection and try again.</p>
+          <p className="mobile-manager-stock-empty-title">{t("Stock couldn't be loaded")}</p>
+          <p className="mobile-manager-stock-empty-message">{t("Check your connection and try again.")}</p>
           <button
             type="button"
             className="primary-btn"
             onClick={() => onRetryCatalogLoad?.()}
             disabled={typeof onRetryCatalogLoad !== 'function'}
           >
-            Retry
+            {t("Retry")}
           </button>
         </div>
       ) : emptyState ? (

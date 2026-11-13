@@ -1,3 +1,5 @@
+import { t } from '../../i18n/i18n'
+
 export function ModuleSectionTabs({
   sections,
   activeSection,
@@ -19,7 +21,7 @@ export function ModuleSectionTabs({
           onClick={() => onSectionChange(section.id)}
           aria-current={activeSection === section.id ? 'page' : undefined}
         >
-          {section.label}
+          {t(section.label)}
         </button>
       ))}
     </nav>

@@ -15,6 +15,7 @@ import { recordPublishBreadcrumb } from '../../lib/publishFloorPlanDiagnostics'
 import { validatePublishReturnToHostReadiness } from '../../lib/publishReturnToHost'
 import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
 import { FLOOR_PLAN_OBJECT_TYPES } from '../../floor-plan-builder/models/floorPlanObject'
+import { t } from '../../i18n/i18n'
 import '../../floor-plan-builder/floorPlanBuilder.css'
 
 const TABLET_EDITOR_BREAKPOINT = 1180
@@ -52,18 +53,18 @@ function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
   }
 
   return (
-    <div className="floor-plan-area-switcher unified-floor-editor-area-switcher" aria-label="Restaurant area">
+    <div className="floor-plan-area-switcher unified-floor-editor-area-switcher" aria-label={t("Restaurant area")}>
       <button
         type="button"
         className="floor-plan-area-nav-btn"
         onClick={() => switchArea('prev')}
-        aria-label="Previous area"
+        aria-label={t("Previous area")}
       >
         ‹
       </button>
 
       <label className="floor-plan-area-select">
-        <span className="sr-only">Restaurant area</span>
+        <span className="sr-only">{t("Restaurant area")}</span>
         <select
           className="floor-plan-area-select-input"
           value={activeFloorId}
@@ -80,7 +81,7 @@ function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
         type="button"
         className="floor-plan-area-nav-btn"
         onClick={() => switchArea('next')}
-        aria-label="Next area"
+        aria-label={t("Next area")}
       >
         ›
       </button>
@@ -98,8 +99,8 @@ function CanvasSizeControls({
   onReset,
 }) {
   return (
-    <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
-      <span className="unified-floor-editor-canvas-size-label">Canvas</span>
+    <div className="unified-floor-editor-canvas-size" aria-label={t("Canvas size")}>
+      <span className="unified-floor-editor-canvas-size-label">{t("Canvas")}</span>
       <span className="unified-floor-editor-canvas-size-value">
         {canvasWidth}×{canvasHeight}
       </span>
@@ -125,7 +126,7 @@ function CanvasSizeControls({
         onClick={onReset}
         title={`Reset to ${DEFAULT_FLOOR_SIZE.width}×${DEFAULT_FLOOR_SIZE.height}`}
       >
-        Reset size
+        {t("Reset size")}
       </button>
     </div>
   )
@@ -335,7 +336,7 @@ function EmbeddedFloorPlanEditorShell({
       setPublishedTransition(transition)
       setPublishSuccess(true)
     } catch (error) {
-      setPublishError(error?.message || 'Unable to publish the floor plan right now.')
+      setPublishError(error?.message || t("Unable to publish the floor plan right now."))
     } finally {
       setIsPublishingLayout(false)
     }
@@ -357,7 +358,7 @@ function EmbeddedFloorPlanEditorShell({
     try {
       const result = await onReturnToHost?.(publishedTransition)
       if (!result?.ok) {
-        setReturnPrepareMessage(result?.message || 'Preparing published layout…')
+        setReturnPrepareMessage(result?.message || t("Preparing published layout…"))
         return
       }
 
@@ -368,7 +369,7 @@ function EmbeddedFloorPlanEditorShell({
       recordPublishBreadcrumb('editor-unmounted')
       exitEditMode()
     } catch (error) {
-      setPublishError(error?.message || 'Unable to return to Host Station right now.')
+      setPublishError(error?.message || t("Unable to return to Host Station right now."))
       setReturnPrepareMessage('')
     } finally {
       setIsReturningToHost(false)
@@ -453,7 +454,7 @@ function EmbeddedFloorPlanEditorShell({
   const isBusy = isSavingDraft || isPublishingLayout
   const canUndo = (state.undoStack?.length ?? 0) > 0
   const canRedo = (state.redoStack?.length ?? 0) > 0
-  const exitLabel = state.hasUnsavedChanges ? 'Discard & exit' : 'Exit'
+  const exitLabel = state.hasUnsavedChanges ? t("Discard & exit") : t('Exit')
 
   const requestClearLayout = () => {
     if (activeFloorTableCount === 0) return
@@ -497,30 +498,30 @@ function EmbeddedFloorPlanEditorShell({
           >
             <h3 id="floor-publish-confirm-title">
               {confirmAction === 'blocked'
-                ? 'Ask a manager'
+                ? t("Ask a manager")
                 : confirmAction === 'clear'
-                  ? 'Clear this area?'
-                  : 'Publish the live floor?'}
+                  ? t("Clear this area?")
+                  : t("Publish the live floor?")}
             </h3>
             <p>
               {confirmAction === 'blocked'
-                ? 'Ask a manager to publish or clear the live floor. You can still save a draft.'
+                ? t("Ask a manager to publish or clear the live floor. You can still save a draft.")
                 : confirmAction === 'clear'
-                  ? 'This removes every table in this area for the whole team.'
-                  : 'This changes the live floor for the whole team.'}
+                  ? t("This removes every table in this area for the whole team.")
+                  : t("This changes the live floor for the whole team.")}
             </p>
             <div className="unified-floor-editor-confirm-actions">
               <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch" onClick={() => setConfirmAction(null)}>
-                Cancel
+                {t("Cancel")}
               </button>
               {confirmAction === 'clear' ? (
                 <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-danger" onClick={commitClearLayout}>
-                  Clear area
+                  {t("Clear area")}
                 </button>
               ) : null}
               {confirmAction === 'publish' ? (
                 <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary" onClick={commitPublishLayout}>
-                  Publish
+                  {t("Publish")}
                 </button>
               ) : null}
             </div>
@@ -530,7 +531,7 @@ function EmbeddedFloorPlanEditorShell({
       {publishSuccess ? (
         <div className="unified-floor-editor-publish-success" role="status">
           <div className="unified-floor-editor-publish-success-copy">
-            <strong>Layout published successfully.</strong>
+            <strong>{t("Layout published successfully.")}</strong>
             {returnPrepareMessage && !returnReadiness.ok ? (
               <p>{returnPrepareMessage}</p>
             ) : null}
@@ -542,7 +543,7 @@ function EmbeddedFloorPlanEditorShell({
               onClick={handleReturnToHost}
               disabled={isReturningToHost || isPublishingLayout || !returnReadiness.ok}
             >
-              {isReturningToHost ? 'Preparing…' : 'Return to Host'}
+              {isReturningToHost ? 'Preparing…' : t("Return to Host")}
             </button>
             {returnPrepareMessage && !returnReadiness.ok ? (
               <button
@@ -551,7 +552,7 @@ function EmbeddedFloorPlanEditorShell({
                 onClick={handleRetryReturn}
                 disabled={isReturningToHost}
               >
-                Retry
+                {t("Retry")}
               </button>
             ) : null}
           </div>
@@ -565,7 +566,7 @@ function EmbeddedFloorPlanEditorShell({
       >
         <div ref={toolbarRef} className="fpb-editor-toolbar unified-floor-editor-toolbar">
           <div className="unified-floor-editor-toolbar-main">
-            <span className="unified-floor-editor-mode">Edit layout</span>
+            <span className="unified-floor-editor-mode">{t("Edit layout")}</span>
             {publishError ? (
               <span className="floor-plan-persistence-notice unified-floor-editor-publish-error" role="alert">
                 {publishError}
@@ -577,11 +578,11 @@ function EmbeddedFloorPlanEditorShell({
               onChange={handleAreaChange}
             />
             {hasUnpublishedDraft ? (
-              <span className="unified-floor-editor-draft-badge" role="status">Unpublished draft</span>
+              <span className="unified-floor-editor-draft-badge" role="status">{t("Unpublished draft")}</span>
             ) : null}
           </div>
           <div className="unified-floor-editor-toolbar-actions">
-            <div className="unified-floor-editor-toolbar-group" role="group" aria-label="Edit tools">
+            <div className="unified-floor-editor-toolbar-group" role="group" aria-label={t("Edit tools")}>
               <button
                 type="button"
                 className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-multi-select-toggle${state.multiSelectEnabled ? ' is-active' : ''}`}
@@ -591,7 +592,7 @@ function EmbeddedFloorPlanEditorShell({
                 })}
                 aria-pressed={state.multiSelectEnabled}
               >
-                Select multiple
+                {t("Select multiple")}
               </button>
               <button
                 type="button"
@@ -599,9 +600,9 @@ function EmbeddedFloorPlanEditorShell({
                 onClick={() => dispatch({ type: 'UNDO' })}
                 disabled={!canUndo || isBusy}
                 aria-keyshortcuts="Control+Z Meta+Z"
-                title="Undo"
+                title={t("Undo")}
               >
-                Undo
+                {t("Undo")}
               </button>
               <button
                 type="button"
@@ -609,9 +610,9 @@ function EmbeddedFloorPlanEditorShell({
                 onClick={() => dispatch({ type: 'REDO' })}
                 disabled={!canRedo || isBusy}
                 aria-keyshortcuts="Control+Shift+Z Control+Y Meta+Shift+Z"
-                title="Redo"
+                title={t("Redo")}
               >
-                Redo
+                {t("Redo")}
               </button>
               {isTabletLayout ? (
                 <>
@@ -622,9 +623,9 @@ function EmbeddedFloorPlanEditorShell({
                     aria-pressed={toolsOpen}
                     aria-expanded={toolsOpen}
                     aria-controls="fpb-embedded-tools"
-                    aria-label={toolsOpen ? 'Hide tools' : 'Show tools'}
+                    aria-label={toolsOpen ? t("Hide tools") : t("Show tools")}
                   >
-                    Tools
+                    {t("Tools")}
                   </button>
                   <button
                     type="button"
@@ -633,9 +634,9 @@ function EmbeddedFloorPlanEditorShell({
                     aria-pressed={inspectorOpen}
                     aria-expanded={inspectorOpen}
                     aria-controls="fpb-embedded-properties"
-                    aria-label={inspectorOpen ? 'Hide properties' : 'Show properties'}
+                    aria-label={inspectorOpen ? t("Hide properties") : t("Show properties")}
                   >
-                    Properties
+                    {t("Properties")}
                   </button>
                 </>
               ) : null}
@@ -661,14 +662,14 @@ function EmbeddedFloorPlanEditorShell({
                 aria-haspopup="menu"
                 aria-controls="fpb-embedded-more"
               >
-                More
+                {t("More")}
               </button>
               {moreOpen ? (
                 <div
                   id="fpb-embedded-more"
                   className="unified-floor-editor-more-menu"
                   role="menu"
-                  aria-label="More layout actions"
+                  aria-label={t("More layout actions")}
                 >
                   <button
                     type="button"
@@ -677,36 +678,36 @@ function EmbeddedFloorPlanEditorShell({
                     onClick={requestClearLayout}
                     disabled={activeFloorTableCount === 0 || isBusy}
                   >
-                    Clear layout
+                    {t("Clear layout")}
                   </button>
                   {isTabletLayout ? canvasSizeControls : null}
                 </div>
               ) : null}
             </div>
-            <div className="unified-floor-editor-toolbar-commit" role="group" aria-label="Save layout">
+            <div className="unified-floor-editor-toolbar-commit" role="group" aria-label={t("Save layout")}>
               <button
                 type="button"
                 className="fpb-toolbar-btn fpb-toolbar-btn-touch"
                 onClick={handleSaveDraft}
                 disabled={isBusy}
-                title="Save without publishing"
+                title={t("Save without publishing")}
               >
-                {isSavingDraft ? 'Saving…' : 'Save draft'}
+                {isSavingDraft ? 'Saving…' : t("Save draft")}
               </button>
               <button
                 type="button"
                 className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary"
                 onClick={requestPublishLayout}
                 disabled={isBusy}
-                title="Publish to the host floor"
+                title={t("Publish to the host floor")}
               >
-                {isPublishingLayout ? 'Publishing…' : 'Publish layout'}
+                {isPublishingLayout ? 'Publishing…' : t("Publish layout")}
               </button>
               <button
                 type="button"
                 className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-exit-btn"
                 onClick={handleExit}
-                title={state.hasUnsavedChanges ? 'Discard unsaved changes and exit' : 'Exit layout editor'}
+                title={state.hasUnsavedChanges ? t("Discard unsaved changes and exit") : t("Exit layout editor")}
               >
                 {exitLabel}
               </button>

@@ -1,7 +1,8 @@
 import { createDefaultWorkspace } from './floorWorkspace'
+import { t } from '../../i18n/i18n'
 
 export const DEFAULT_RESTAURANT_AREAS = [
-  { id: 'main-dining', label: 'Main Dining' },
+  { id: 'main-dining', label: t("Main Dining") },
   { id: 'terrace', label: 'Terrace' },
   { id: 'bar', label: 'Bar' },
   { id: 'private', label: 'Private' },

@@ -64,6 +64,7 @@ import { StockDashboardMovementDialog } from './StockDashboardMovementDialog'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
+import { t } from '../../i18n/i18n'
 
 function StockLayoutModeIcon({ icon }) {
   if (icon === 'grid') {
@@ -129,9 +130,9 @@ function StockSortDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
-        title={selectedOption?.label}
+        title={t(selectedOption?.label ?? '')}
       >
-        <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
+        <span className="stock-sort-dropdown-value">{t(selectedOption?.label ?? '')}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
@@ -149,7 +150,7 @@ function StockSortDropdown({
                   setIsOpen(false)
                 }}
               >
-                {option.label}
+                {t(option.label)}
               </button>
             </li>
           ))}
@@ -208,7 +209,7 @@ function StockItemCard({
   const sizeDetail = formatProductSizeDetail(item)
   const needsDelivery = item.status === 'out' || item.status === 'low'
   const level = stockLevelPercent(item)
-  const metaLine = [supplierLabel || 'No supplier', location, staleCount?.label].filter(Boolean).join(' · ')
+  const metaLine = [supplierLabel || t("No supplier"), location, staleCount?.label].filter(Boolean).join(' · ')
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -244,7 +245,7 @@ function StockItemCard({
           </h3>
           {sizeDetail ? <p className="stock-item-size-detail">{sizeDetail}</p> : null}
           {item.active === false ? (
-            <span className="stock-item-status-badge tone-muted">Inactive</span>
+            <span className="stock-item-status-badge tone-muted">{t("Inactive")}</span>
           ) : (
             <span className={`stock-item-status-badge tone-${item.status}`}>
               {getStockStatusShortLabel(item.status)}
@@ -280,7 +281,7 @@ function StockItemCard({
               }}
             >
               <StockActionIcon name={needsDelivery ? 'box' : 'clipboard'} />
-              <span>{needsDelivery ? 'Receive delivery' : 'Count'}</span>
+              <span>{needsDelivery ? t("Receive delivery") : 'Count'}</span>
             </button>
             <button
               type="button"
@@ -288,7 +289,7 @@ function StockItemCard({
               onClick={(event) => { event.stopPropagation(); onToggleMenu(event) }}
               aria-expanded={isMenuOpen}
               aria-haspopup="menu"
-              aria-label="More stock actions"
+              aria-label={t("More stock actions")}
             >
               ⋯
             </button>
@@ -305,7 +306,7 @@ function StockItemCard({
               onOpenHistory?.()
             }}
           >
-            Details
+            {t("Details")}
           </button>
         </div>
       )}
@@ -363,7 +364,7 @@ function StockItemRowActions({
   if (!canManage) {
     return (
       <button type="button" className="ghost-btn stock-row-action-btn" onClick={keepRow(onOpenHistory)}>
-        Details
+        {t("Details")}
       </button>
     )
   }
@@ -375,18 +376,18 @@ function StockItemRowActions({
           type="button"
           className="ghost-btn stock-row-action-btn is-receive"
           onClick={keepRow(onReceive)}
-          aria-label="Receive delivery"
+          aria-label={t("Receive delivery")}
         >
-          Receive delivery
+          {t("Receive delivery")}
         </button>
         <button
           type="button"
           className="ghost-btn stock-row-action-btn is-count"
           onClick={keepRow(onCount)}
-          aria-label="Count"
+          aria-label={t("Count")}
           data-stock-row-count-action="true"
         >
-          Count
+          {t("Count")}
         </button>
         <button
           type="button"
@@ -458,7 +459,7 @@ function StockListRow({
           {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted stock-list-product-inactive">
-              Inactive
+              {t("Inactive")}
             </span>
           ) : null}
         </div>
@@ -568,19 +569,19 @@ function StockListMobileCard({
 
       <dl className="stock-list-mobile-meta">
         <div className="stock-list-mobile-meta-row">
-          <dt>Category / Type</dt>
+          <dt>{t("Category / Type")}</dt>
           <dd>{formatStockCategoryTypeLine(item.category, itemType)}</dd>
         </div>
         <div className="stock-list-mobile-meta-row">
-          <dt>Supplier</dt>
+          <dt>{t("Supplier")}</dt>
           <dd>{supplierLabel}</dd>
         </div>
         <div className="stock-list-mobile-meta-row">
-          <dt>Location</dt>
+          <dt>{t("Location")}</dt>
           <dd>{location}</dd>
         </div>
         <div className="stock-list-mobile-meta-row stock-list-mobile-meta-row-qty">
-          <dt>On hand / Min</dt>
+          <dt>{t("On hand / Min")}</dt>
           <dd>
             <span className={`stock-list-mobile-qty-current${item.status === 'out' || item.status === 'low' ? ` tone-${item.status}` : ''}`}>
               {formatStockQuantity(item.currentQuantity, item.unit)}
@@ -590,7 +591,7 @@ function StockListMobileCard({
           </dd>
         </div>
         <div className="stock-list-mobile-meta-row">
-          <dt>Last movement</dt>
+          <dt>{t("Last movement")}</dt>
           <dd>{formatLastMovementCell(item, timeZone)}</dd>
         </div>
       </dl>
@@ -633,14 +634,14 @@ function StockListTable({
           <thead>
             <tr>
               {selectionMode && canManage ? (
-                <th scope="col" className="stock-list-head-select"><span className="sr-only">Select</span></th>
+                <th scope="col" className="stock-list-head-select"><span className="sr-only">{t("Select")}</span></th>
               ) : null}
-              <th scope="col" className="stock-list-head-product">Product</th>
-              <th scope="col" className="stock-list-head-details">Details</th>
-              <th scope="col" className="stock-list-head-stock">Stock</th>
-              <th scope="col" className="stock-list-head-status">Status</th>
-              <th scope="col" className="stock-list-head-updated">Updated</th>
-              <th scope="col" className="stock-list-head-actions">Actions</th>
+              <th scope="col" className="stock-list-head-product">{t("Product")}</th>
+              <th scope="col" className="stock-list-head-details">{t("Details")}</th>
+              <th scope="col" className="stock-list-head-stock">{t("Stock")}</th>
+              <th scope="col" className="stock-list-head-status">{t("Status")}</th>
+              <th scope="col" className="stock-list-head-updated">{t("Updated")}</th>
+              <th scope="col" className="stock-list-head-actions">{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -745,11 +746,11 @@ function StockCompactRow({
       <div className="stock-compact-actions" onClick={(event) => event.stopPropagation()}>
         {canManage ? (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
-            Count
+            {t("Count")}
           </button>
         ) : (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
-            Details
+            {t("Details")}
           </button>
         )}
       </div>
@@ -812,14 +813,14 @@ function StockTodayActivitySection({ activityLine }) {
   return (
     <section
       className={`stock-today-activity panel staff-panel is-dense${isEmpty ? ' is-empty' : ''}`}
-      aria-label="Today's stock activity"
+      aria-label={t("Today's stock activity")}
       data-stock-widget-density="dense"
     >
       <header className="stock-today-activity-header">
-        <h3 className="stock-today-activity-title">What changed today</h3>
+        <h3 className="stock-today-activity-title">{t("What changed today")}</h3>
         <StockMetaSegments
           className="stock-today-activity-line"
-          text={isEmpty ? 'Nothing moved today' : activityLine}
+          text={isEmpty ? t("Nothing moved today") : activityLine}
         />
       </header>
     </section>
@@ -842,12 +843,12 @@ function StockBulkFieldModal({
   const isBusy = isSaving || isSubmitting
 
   const title = field === 'supplier'
-    ? 'Change supplier'
+    ? t("Change supplier")
     : field === 'storageLocation'
-      ? 'Change location'
+      ? t("Change location")
       : field === 'category'
-        ? 'Change category'
-        : 'Change type'
+        ? t("Change category")
+        : t("Change type")
 
   const typeOptions = useMemo(() => getBulkTypeOptionsForItems(selectedItems), [selectedItems])
 
@@ -877,7 +878,7 @@ function StockBulkFieldModal({
       await onSubmit(field, trimmed)
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to update products right now.')
+      setError(submitError?.message || t("Unable to update products right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -896,18 +897,18 @@ function StockBulkFieldModal({
             <h3>{title}</h3>
             <p className="stock-modal-subtitle">{selectedItems.length} selected product{selectedItems.length === 1 ? '' : 's'}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label={t("Close")}>✕</button>
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
           {field === 'supplier' ? (
             <label>
-              Supplier
+              {t("Supplier")}
               <input
                 type="text"
                 value={value}
                 onChange={(event) => setValue(event.target.value)}
-                placeholder="e.g. Malakakos"
+                placeholder={t("e.g. Malakakos")}
                 required
               />
             </label>
@@ -915,7 +916,7 @@ function StockBulkFieldModal({
 
           {field === 'storageLocation' ? (
             <label>
-              Storage location
+              {t("Storage location")}
               <WorkspaceStorageSelector
                 workspaceId={workspaceId}
                 value={value}
@@ -930,9 +931,9 @@ function StockBulkFieldModal({
 
           {field === 'category' ? (
             <label>
-              Category
+              {t("Category")}
               <select value={value} onChange={(event) => setValue(event.target.value)} required>
-                <option value="">Select category</option>
+                <option value="">{t("Select category")}</option>
                 {STOCK_CATEGORIES.map((category) => (
                   <option key={category} value={category}>{category}</option>
                 ))}
@@ -942,9 +943,9 @@ function StockBulkFieldModal({
 
           {field === 'itemType' ? (
             <label>
-              Type
+              {t("Type")}
               <select value={value} onChange={(event) => setValue(event.target.value)} required>
-                <option value="">Select type</option>
+                <option value="">{t("Select type")}</option>
                 {typeOptions.map((type) => (
                   <option key={type} value={type}>{type}</option>
                 ))}
@@ -955,9 +956,9 @@ function StockBulkFieldModal({
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>{t("Cancel")}</button>
             <button type="submit" className="primary-btn" disabled={isBusy}>
-              {isBusy ? 'Saving…' : 'Apply to selected'}
+              {isBusy ? 'Saving…' : t("Apply to selected")}
             </button>
           </div>
         </form>
@@ -1007,7 +1008,7 @@ function StockItemDeactivateConfirmModal({
     try {
       await onConfirm?.(item)
     } catch (error) {
-      setSubmitError(error?.message || 'Unable to deactivate right now.')
+      setSubmitError(error?.message || t("Unable to deactivate right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -1028,14 +1029,14 @@ function StockItemDeactivateConfirmModal({
       >
         <div className="drawer-header">
           <div>
-            <h3 id="stock-item-deactivate-title">Deactivate Product?</h3>
+            <h3 id="stock-item-deactivate-title">{t("Deactivate Product?")}</h3>
           </div>
           <button
             type="button"
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isBusy || !canDismiss}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -1043,7 +1044,7 @@ function StockItemDeactivateConfirmModal({
 
         <div className="stock-supplier-delete-body">
           <p>
-            This product will become inactive and will no longer appear in active Stock views or dashboard alerts.
+            {t("This product will become inactive and will no longer appear in active Stock views or dashboard alerts.")}
           </p>
           {item.name ? (
             <p>
@@ -1062,7 +1063,7 @@ function StockItemDeactivateConfirmModal({
             onClick={handleDismiss}
             disabled={isBusy || !canDismiss}
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -1447,7 +1448,7 @@ export function StockDashboardView({
           <section
             key={group.key || 'all'}
             className="stock-group-section"
-            aria-label={group.label || 'Stock products'}
+            aria-label={group.label || t("Stock products")}
           >
             {group.label ? (
               <header className="stock-group-header">
@@ -1547,7 +1548,7 @@ export function StockDashboardView({
     <div
       className="stock-compact-browse-toolbar"
       data-stock-compact-browse-toolbar="true"
-      aria-label="Stock catalog controls"
+      aria-label={t("Stock catalog controls")}
     >
       <button
         type="button"
@@ -1556,7 +1557,7 @@ export function StockDashboardView({
         aria-controls="stock-compact-browse-row"
         onClick={() => setFiltersOpen((open) => !open)}
       >
-        Filters
+        {t("Filters")}
       </button>
       <div
         id="stock-compact-browse-row"
@@ -1564,7 +1565,7 @@ export function StockDashboardView({
         data-stock-compact-browse-row="true"
       >
         <div className="stock-browse-control stock-browse-category">
-          <span className="stock-browse-control-label">Category</span>
+          <span className="stock-browse-control-label">{t("Category")}</span>
           <StockSortDropdown
             value={categoryFilter}
             options={categoryOptions}
@@ -1575,8 +1576,8 @@ export function StockDashboardView({
 
         {canManage ? (
           <div className="stock-browse-control stock-browse-visibility">
-            <span className="stock-browse-control-label">Visibility</span>
-            <div className="stock-status-filters stock-visibility-segment" role="tablist" aria-label="Product visibility">
+            <span className="stock-browse-control-label">{t("Visibility")}</span>
+            <div className="stock-status-filters stock-visibility-segment" role="tablist" aria-label={t("Product visibility")}>
               {STOCK_VISIBILITY_OPTIONS.map((option) => (
                 <button
                   key={option.id}
@@ -1586,7 +1587,7 @@ export function StockDashboardView({
                   className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
                   onClick={() => setVisibilityFilter(option.id)}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
@@ -1594,7 +1595,7 @@ export function StockDashboardView({
         ) : null}
 
         <div className="stock-browse-control stock-browse-layout">
-          <span className="sr-only" id="stock-layout-label">View</span>
+          <span className="sr-only" id="stock-layout-label">{t("View")}</span>
           <div
             className="stock-layout-mode-control"
             role="group"
@@ -1606,12 +1607,12 @@ export function StockDashboardView({
                 type="button"
                 className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
                 aria-pressed={layoutMode === mode.id}
-                aria-label={mode.label}
-                title={mode.label}
+                aria-label={t(mode.label)}
+                title={t(mode.label)}
                 onClick={() => setLayoutMode(mode.id)}
               >
                 <StockLayoutModeIcon icon={mode.icon} />
-                <span>{mode.label}</span>
+                <span>{t(mode.label)}</span>
               </button>
             ))}
           </div>
@@ -1622,7 +1623,7 @@ export function StockDashboardView({
           data-stock-browse-refine-cluster="true"
         >
           <div className="stock-browse-control stock-browse-group">
-            <span className="stock-browse-control-label">Group by</span>
+            <span className="stock-browse-control-label">{t("Group by")}</span>
             <StockSortDropdown
               value={groupBy}
               options={STOCK_GROUP_BY_OPTIONS}
@@ -1632,7 +1633,7 @@ export function StockDashboardView({
           </div>
 
           <div className="stock-browse-control stock-browse-sort">
-            <span className="stock-browse-control-label">Sort</span>
+            <span className="stock-browse-control-label">{t("Sort")}</span>
             <StockSortDropdown
               value={sortKey}
               options={STOCK_SORT_OPTIONS}
@@ -1659,7 +1660,7 @@ export function StockDashboardView({
               disabled={!isWorkspaceReady || isStockActionBusy}
             >
               <StockActionIcon name="bag" />
-              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : 'Suggest order')}</span>
+              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : t("Suggest order"))}</span>
             </button>
           ) : null}
           <button
@@ -1669,7 +1670,7 @@ export function StockDashboardView({
             disabled={!isWorkspaceReady || isStockActionBusy}
           >
             <StockActionIcon name="plus" />
-            <span>Add item</span>
+            <span>{t("Add item")}</span>
           </button>
           {selectionMode ? (
             <button
@@ -1678,14 +1679,14 @@ export function StockDashboardView({
               onClick={toggleSelectionMode}
               disabled={isStockActionBusy}
             >
-              Done
+              {t("Done")}
             </button>
           ) : null}
           <div className="stock-catalog-more">
             <button
               type="button"
               className="ghost-btn stock-catalog-more-btn"
-              aria-label="More catalog actions"
+              aria-label={t("More catalog actions")}
               aria-expanded={catalogMoreOpen}
               aria-haspopup="menu"
               onClick={() => setCatalogMoreOpen((open) => !open)}
@@ -1698,7 +1699,7 @@ export function StockDashboardView({
                 <button
                   type="button"
                   className="stock-catalog-more-backdrop"
-                  aria-label="Close catalog menu"
+                  aria-label={t("Close catalog menu")}
                   onClick={() => setCatalogMoreOpen(false)}
                 />
                 <div className="stock-catalog-more-menu" role="menu">
@@ -1712,7 +1713,7 @@ export function StockDashboardView({
                     }}
                     disabled={!isWorkspaceReady || isStockActionBusy}
                   >
-                    {isSavingOrders ? 'Saving…' : 'Create order'}
+                    {isSavingOrders ? 'Saving…' : t("Create order")}
                   </button>
                   <button
                     type="button"
@@ -1724,7 +1725,7 @@ export function StockDashboardView({
                     }}
                     disabled={!isWorkspaceReady || isStockActionBusy}
                   >
-                    Usage report
+                    {t("Usage report")}
                   </button>
                   <button
                     type="button"
@@ -1748,7 +1749,7 @@ export function StockDashboardView({
   )
 
   return (
-    <section className="stock-dashboard-page" aria-label="Stock dashboard">
+    <section className="stock-dashboard-page" aria-label={t("Stock dashboard")}>
       {noticeMessage && !catalogLoadFailed ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
@@ -1757,31 +1758,31 @@ export function StockDashboardView({
         <div className="stock-loading-skeleton" role="status" aria-busy="true">
           <span className="stock-loading-skeleton-bar" />
           <span className="stock-loading-skeleton-bar is-short" />
-          <span className="sr-only">Loading stock…</span>
+          <span className="sr-only">{t("Loading stock…")}</span>
         </div>
       ) : null}
 
       {catalogLoadFailed && !isLoading ? (
         <div className="stock-empty-state panel staff-panel stock-catalog-load-failed" role="alert">
-          <h4>Stock couldn&apos;t be loaded</h4>
-          <p>Check your connection and try again.</p>
+          <h4>{t("Stock couldn't be loaded")}</h4>
+          <p>{t("Check your connection and try again.")}</p>
           <button
             type="button"
             className="primary-btn"
             onClick={() => onRetryCatalogLoad?.()}
             disabled={typeof onRetryCatalogLoad !== 'function'}
           >
-            Retry
+            {t("Retry")}
           </button>
         </div>
       ) : null}
 
       <header className="stock-calm-header">
         <div>
-          <p className="stock-calm-kicker">Inventory</p>
+          <p className="stock-calm-kicker">{t("Inventory")}</p>
           <h2 className="stock-calm-title">
             {isLoading || catalogLoadFailed ? '—' : summary.totalItems}
-            <span>{isLoading || catalogLoadFailed ? ' items' : ` ${formatStockActiveCountWord(summary.totalItems)}`}</span>
+            <span>{isLoading || catalogLoadFailed ? ` ${t('items')}` : ` ${t('active item', { count: summary.totalItems })}`}</span>
           </h2>
           {!isLoading && !catalogLoadFailed && inactiveNote ? (
             <p className="stock-calm-inactive-note">{inactiveNote}</p>
@@ -1790,16 +1791,16 @@ export function StockDashboardView({
         {canManage ? (
           <p className="stock-calm-value">
             <strong>{isLoading || catalogLoadFailed ? '—' : formatStockInventoryValue(summary.totalValue)}</strong>
-            <span>inventory value</span>
+            <span>{t("inventory value")}</span>
           </p>
         ) : null}
       </header>
 
       {!isLoading && !catalogLoadFailed ? (
-        <section className="stock-today-board" aria-label="What to do today" data-stock-widget-density="dense">
+        <section className="stock-today-board" aria-label={t("What to do today")} data-stock-widget-density="dense">
           <div className="stock-today-kpis">
             <StockSummaryCard
-              label="Low"
+              label={t("Low")}
               value={summary.lowStock}
               tone={summary.lowStock > 0 ? 'warning' : 'default'}
               isInteractive
@@ -1807,7 +1808,7 @@ export function StockDashboardView({
               onClick={() => applyKpiStatusFilter('low')}
             />
             <StockSummaryCard
-              label="Out of stock"
+              label={t("Out of stock")}
               value={summary.outOfStock}
               tone={summary.outOfStock > 0 ? 'danger' : 'default'}
               isInteractive
@@ -1815,7 +1816,7 @@ export function StockDashboardView({
               onClick={() => applyKpiStatusFilter('out')}
             />
             <StockSummaryCard
-              label="To order"
+              label={t("To order")}
               value={summary.toOrder}
               tone={summary.toOrder > 0 ? 'warning' : 'default'}
               isInteractive
@@ -1823,11 +1824,11 @@ export function StockDashboardView({
               onClick={() => applyKpiStatusFilter('order')}
             />
           </div>
-          <article className="stock-today-card" aria-label="To order">
+          <article className="stock-today-card" aria-label={t("To order")}>
             <header className="stock-today-card-header">
-              <h3>To order</h3>
+              <h3>{t("To order")}</h3>
               <StockMetaSegments
-                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${canManage && toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
+                text={`${formatToOrderBreakdown(activeCatalogItems, summary)}${canManage && toOrderEstimate > 0 ? ` · ${t('Est.')} ${formatStockPurchasePrice(toOrderEstimate)}` : ''}`}
               />
             </header>
             {visibleOrderGroups.length > 0 ? (
@@ -1840,7 +1841,7 @@ export function StockDashboardView({
                 ))}
               </ul>
             ) : (
-              <p className="stock-today-card-empty">Nothing to order.</p>
+              <p className="stock-today-card-empty">{t("Nothing to order.")}</p>
             )}
             {hiddenOrderGroups > 0 ? (
               <p className="stock-today-card-more">+{hiddenOrderGroups} more supplier{hiddenOrderGroups === 1 ? '' : 's'}</p>
@@ -1848,29 +1849,29 @@ export function StockDashboardView({
             <div className="stock-today-links">
               {stockLiveSnapshot?.parsReady && Number(stockLiveSnapshot.belowParCount) > 0 ? (
                 <button type="button" className="stock-text-btn" onClick={onOpenBelowPar}>
-                  Shelf levels
+                  {t("Shelf levels")}
                 </button>
               ) : null}
               {canManage && ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
                 <button type="button" className="stock-text-btn" onClick={onOpenDrafts}>
-                  Review order
+                  {t("Review order")}
                 </button>
               ) : null}
               {ordersSummary.pendingCount > 0 && typeof onOpenOrders === 'function' ? (
                 <button type="button" className="stock-text-btn" onClick={() => onOpenOrders('all')}>
-                  View orders
+                  {t("View orders")}
                 </button>
               ) : null}
             </div>
           </article>
 
-          <article className="stock-today-card" aria-label="To count">
+          <article className="stock-today-card" aria-label={t("To count")}>
             <header className="stock-today-card-header">
-              <h3>To count</h3>
+              <h3>{t("To count")}</h3>
               <StockMetaSegments
                 text={toCountTotal === 0
-                  ? 'Nothing waiting'
-                  : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
+                  ? t("Nothing waiting")
+                  : t('{{count}} item to count', { count: toCountTotal })}
               />
             </header>
             {visibleCountGroups.length > 0 ? (
@@ -1883,7 +1884,7 @@ export function StockDashboardView({
                 ))}
               </ul>
             ) : (
-              <p className="stock-today-card-empty">Only items not counted in the last 14 days show here.</p>
+              <p className="stock-today-card-empty">{t("Only items not counted in the last 14 days show here.")}</p>
             )}
             {hiddenCountItems > 0 ? (
               <p className="stock-today-card-more">+{hiddenCountItems} in other storages</p>
@@ -1891,7 +1892,7 @@ export function StockDashboardView({
             {typeof onOpenCounts === 'function' && toCountTotal > 0 ? (
               <button type="button" className="stock-text-btn" onClick={onOpenCounts}>
                 <StockActionIcon name="clipboard" />
-                <span>Start count</span>
+                <span>{t("Start count")}</span>
               </button>
             ) : null}
           </article>
@@ -1905,13 +1906,13 @@ export function StockDashboardView({
       <div
         id="stock-all-products-catalog"
         className={`stock-all-products-catalog${isFilteredMode ? ' is-filtered-mode' : ''}`}
-        aria-label="All products catalog"
+        aria-label={t("All products catalog")}
       >
       {isFilteredMode ? (
         <header
           id="stock-filtered-context"
           className="stock-filtered-context"
-          aria-label="Filtered stock results"
+          aria-label={t("Filtered stock results")}
         >
           <div className="stock-filtered-context-main">
             <div className="stock-filtered-context-copy">
@@ -1925,7 +1926,7 @@ export function StockDashboardView({
               className="ghost-btn stock-filtered-context-clear"
               onClick={clearStatusFilter}
             >
-              Clear filter
+              {t("Clear filter")}
             </button>
           </div>
         </header>
@@ -1944,7 +1945,7 @@ export function StockDashboardView({
             className="ghost-btn stock-selection-bar-btn"
             onClick={toggleSelectAllVisible}
           >
-            {allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+            {allVisibleSelected ? t("Deselect all") : t("Select all visible")}
           </button>
           <span className="stock-selection-bar-count">
             {selectedItems.length} selected
@@ -1953,39 +1954,39 @@ export function StockDashboardView({
       ) : null}
 
       {selectionMode && canManage && selectedItems.length > 0 ? (
-        <div className="stock-bulk-toolbar" aria-label="Bulk actions">
+        <div className="stock-bulk-toolbar" aria-label={t("Bulk actions")}>
           <p className="stock-bulk-toolbar-label">
-            Selected: <strong>{selectedItems.length}</strong> product{selectedItems.length === 1 ? '' : 's'}
+            {t("Selected:")} <strong>{selectedItems.length}</strong> product{selectedItems.length === 1 ? '' : 's'}
           </p>
           <div className="stock-bulk-toolbar-actions">
             <div
               className="stock-bulk-action-cluster"
               data-stock-bulk-edit-cluster="true"
-              aria-label="Bulk edit fields"
+              aria-label={t("Bulk edit fields")}
             >
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')} disabled={isStockActionBusy}>
-                Change supplier
+                {t("Change supplier")}
               </button>
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('storageLocation')} disabled={isStockActionBusy}>
-                Change location
+                {t("Change location")}
               </button>
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('category')} disabled={isStockActionBusy}>
-                Change category
+                {t("Change category")}
               </button>
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('itemType')} disabled={isStockActionBusy}>
-                Change type
+                {t("Change type")}
               </button>
             </div>
             <div
               className="stock-bulk-action-cluster is-utility"
               data-stock-bulk-utility-cluster="true"
-              aria-label="Bulk utilities"
+              aria-label={t("Bulk utilities")}
             >
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={handleExportSelected} disabled={isStockActionBusy}>
-                Export selected
+                {t("Export selected")}
               </button>
               <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setSelectedIds(new Set())} disabled={isStockActionBusy}>
-                Clear
+                {t("Clear")}
               </button>
             </div>
           </div>
@@ -2004,7 +2005,7 @@ export function StockDashboardView({
               disabled={!isWorkspaceReady}
             >
               <StockActionIcon name="plus" />
-              <span>Add item</span>
+              <span>{t("Add item")}</span>
             </button>
           ) : null}
         </div>
@@ -2012,7 +2013,7 @@ export function StockDashboardView({
 
       {!isFilteredMode && !emptyState && visibleItems.length > 0 && !isLoading ? (
         <header className="stock-all-products-header">
-          <h3 className="stock-all-products-title">All products</h3>
+          <h3 className="stock-all-products-title">{t("All products")}</h3>
         </header>
       ) : null}
 

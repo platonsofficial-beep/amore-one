@@ -13,6 +13,7 @@ import {
   filterAnnouncementsForUser,
   normalizeAnnouncementPriority,
 } from './operationsAnnouncementUtils'
+import { t } from '../i18n/i18n'
 
 const DUE_TODAY_TASK_LIMIT = 3
 const RESERVATION_ALERT_LIMIT = 3
@@ -211,7 +212,7 @@ export function buildTodayStatusSummary({
   const clockedIn = Number.isFinite(clockedInCount) ? clockedInCount : null
   let onShiftSummary = 'No one on shift now'
   if (liveFloor.state === 'unpublished') {
-    onShiftSummary = clockedIn ? `Schedule not published · ${clockedIn} clocked in` : 'Schedule not published'
+    onShiftSummary = clockedIn ? `Schedule not published · ${clockedIn} clocked in` : t("Schedule not published")
   } else if (workingCount > 0 || clockedIn) {
     onShiftSummary = formatOnShiftSummary(workingCount, clockedIn)
   }
@@ -229,17 +230,17 @@ export function buildTodayStatusSummary({
       : `${scheduledStaff} scheduled today`
   }
 
-  let reservationsSummaryLine = reservationsConnected ? 'No reservations today' : 'Reservations not connected'
+  let reservationsSummaryLine = reservationsConnected ? t("No reservations today") : t("Reservations not connected")
   if (reservationsConnected) {
     const bookings = Number(reservationsSummary.bookings) || 0
     const guests = Number(serviceSnapshot?.totalCovers ?? reservationsSummary.guests) || 0
     if (bookings > 0) {
       const coverLabel = guests > 0
-        ? `${guests} cover${guests === 1 ? '' : 's'}`
+        ? t('{{count}} cover', { count: guests })
         : ''
       reservationsSummaryLine = coverLabel
-        ? `${bookings} booking${bookings === 1 ? '' : 's'} · ${coverLabel}`
-        : `${bookings} booking${bookings === 1 ? '' : 's'} today`
+        ? `${t('{{count}} booking', { count: bookings })} · ${coverLabel}`
+        : t('{{count}} booking today', { count: bookings })
     }
     if (reservationsFooter?.type === 'next' && reservationsFooter.time) {
       reservationsSummaryLine = `${reservationsSummaryLine} · Next ${reservationsFooter.time}`
@@ -247,7 +248,7 @@ export function buildTodayStatusSummary({
   }
 
   const operationsOpen = Math.max(0, Number(operationsOpenCount) || 0)
-  let tasksSummary = tasksConnected ? 'No open tasks today' : 'Tasks not connected'
+  let tasksSummary = tasksConnected ? t("No open tasks today") : t("Tasks not connected")
   const boardHasTasks = tasksConnected && !tasksOverview.showEmptyToday
   if (boardHasTasks || operationsOpen > 0) {
     const active = (tasksConnected ? (Number(tasksOverview.active) || 0) : 0) + operationsOpen
@@ -331,12 +332,10 @@ export function buildReservationAttentionItems({
       category: 'reservation',
       tone: snapshot.lateCount > 0 ? 'critical' : 'warning',
       priority: 'urgent',
-      label: snapshot.waitingLateCount === 1
-        ? '1 guest needs attention'
-        : `${snapshot.waitingLateCount} guests need attention`,
+      label: t('{{count}} guest needs attention', { count: snapshot.waitingLateCount }),
       detail: snapshot.lateCount > 0
-        ? `${snapshot.lateCount} late · ${snapshot.waitingCount} waiting`
-        : `${snapshot.waitingCount} waiting in lobby`,
+        ? t('{{late}} late · {{waiting}} waiting', { late: snapshot.lateCount, waiting: snapshot.waitingCount })
+        : t('{{count}} waiting in lobby', { count: snapshot.waitingCount }),
     })
   }
 
@@ -356,8 +355,8 @@ export function buildReservationAttentionItems({
       priority: alert.type === HOST_ALERT_TYPES.LATE ? 'urgent' : 'reminder',
       label: alert.label,
       detail: alert.type === HOST_ALERT_TYPES.STALE_SEATED
-        ? 'Still seated from an earlier date'
-        : 'Reservation service',
+        ? t("Still seated from an earlier date")
+        : t("Reservation service"),
       reservationId: alert.reservationId ?? alert.reservation?.id ?? null,
       reservationDate: alert.reservationDate ?? `${alert.reservation?.date ?? ''}`.slice(0, 10),
       canComplete: alert.type === HOST_ALERT_TYPES.STALE_SEATED,
@@ -392,7 +391,7 @@ export function buildAnnouncementAttentionItems({
         tone: priority === 'urgent' ? 'warning' : 'info',
         priority: priority === 'urgent' ? 'urgent' : 'reminder',
         label: `${announcement.title ?? 'Announcement'}`.trim() || 'Announcement',
-        detail: priority === 'urgent' ? 'Urgent announcement' : 'Unread announcement',
+        detail: priority === 'urgent' ? t("Urgent announcement") : t("Unread announcement"),
       }
     })
 }
@@ -419,7 +418,7 @@ export function buildTodayAttentionItems({
         tone: item.severity === 'critical' ? 'critical' : 'warning',
         priority: item.severity === 'critical' ? 'urgent' : 'reminder',
         label: item.name,
-        detail: item.severity === 'critical' ? 'Out of stock' : 'Low',
+        detail: item.severity === 'critical' ? t("Out of stock") : 'Low',
       })
     })
   }
@@ -437,7 +436,7 @@ export function buildTodayAttentionItems({
         tone: 'warning',
         priority: 'urgent',
         label: title,
-        detail: 'Overdue task',
+        detail: t("Overdue task"),
       })
       return
     }
@@ -450,7 +449,7 @@ export function buildTodayAttentionItems({
         tone: 'info',
         priority: 'reminder',
         label: title,
-        detail: 'Due today',
+        detail: t("Due today"),
       })
     }
   })
@@ -477,7 +476,7 @@ export function buildTodayAttentionItems({
       category: 'schedule',
       tone: issueCount >= 3 ? 'critical' : 'warning',
       priority: issueCount >= 3 ? 'urgent' : 'reminder',
-      label: issueCount === 1 ? 'Schedule issue' : `${issueCount} schedule issues`,
+      label: issueCount === 1 ? t("Schedule issue") : `${issueCount} schedule issues`,
       detail: scheduleDetail,
     })
   }
@@ -511,7 +510,7 @@ export function buildTodayServiceTimeline({
         time: dueTime || '23:59',
         timeLabel: dueTime ? formatTime24(dueTime) : 'Today',
         title,
-        note: isOverdue ? 'Overdue task' : department,
+        note: isOverdue ? t("Overdue task") : department,
         isOverdue,
         taskStatus: isOverdue ? 'overdue' : 'pending',
         type: 'task',

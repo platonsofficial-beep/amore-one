@@ -11,15 +11,16 @@ import {
   exportWorkspaceData,
   reopenVenue,
 } from '../../services/privacyService'
+import { t } from '../../i18n/i18n'
 import '../workspace/venueManager.css'
 import './privacy.css'
 
 export function LegalLinks({ className = '' }) {
   return (
-    <nav className={`legal-links ${className}`.trim()} aria-label="Legal">
-      <a href="/privacy?lang=en" target="_blank" rel="noopener">Privacy policy</a>
+    <nav className={`legal-links ${className}`.trim()} aria-label={t("Legal")}>
+      <a href="/privacy?lang=en" target="_blank" rel="noopener">{t("Privacy policy")}</a>
       <span aria-hidden="true">·</span>
-      <a href="/terms?lang=en" target="_blank" rel="noopener">Terms of use</a>
+      <a href="/terms?lang=en" target="_blank" rel="noopener">{t("Terms of use")}</a>
     </nav>
   )
 }
@@ -38,7 +39,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
     try {
       await onConfirm(value.trim())
     } catch (confirmError) {
-      setError(confirmError?.message || 'Something went wrong.')
+      setError(confirmError?.message || t("Something went wrong."))
       setBusy(false)
     }
   }
@@ -49,7 +50,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         onClick={(event) => event.stopPropagation()} onSubmit={submit}>
         <header className="venue-sheet-header">
           <h3>{title}</h3>
-          <button type="button" className="venue-sheet-close" aria-label="Close" disabled={busy} onClick={onClose}>✕</button>
+          <button type="button" className="venue-sheet-close" aria-label={t("Close")} disabled={busy} onClick={onClose}>✕</button>
         </header>
         <div className="privacy-sheet-body">{children}</div>
         {expected ? (
@@ -60,9 +61,9 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         ) : null}
         {error ? <p className="venue-sheet-error" role="alert">{error}</p> : null}
         <footer className="venue-sheet-actions">
-          <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>Cancel</button>
+          <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>{t("Cancel")}</button>
           <button type="submit" className={danger ? 'privacy-danger' : 'primary-btn'} disabled={busy || !matches}>
-            {busy ? 'Please wait…' : confirmLabel}
+            {busy ? t("Please wait…") : confirmLabel}
           </button>
         </footer>
       </form>
@@ -88,28 +89,28 @@ export function PrivacyAccountSection() {
       downloadJson(data, buildExportFilename('one-my-data'))
       setNotice('Your data downloaded as a JSON file.')
     } catch (error) {
-      setNotice(error?.message || 'The download failed.')
+      setNotice(error?.message || t("The download failed."))
     } finally {
       setIsExporting(false)
     }
   }
 
   return (
-    <section className="privacy-section mobile-card" aria-label="Privacy and account">
-      <p className="mobile-card-label">Privacy</p>
+    <section className="privacy-section mobile-card" aria-label={t("Privacy and account")}>
+      <p className="mobile-card-label">{t("Privacy")}</p>
       <div className="privacy-actions">
         <button type="button" className="ghost-btn" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? 'Preparing…' : 'Download my data'}
+          {isExporting ? 'Preparing…' : t("Download my data")}
         </button>
         <button type="button" className="ghost-btn privacy-danger-text" onClick={() => setIsDeleteOpen(true)}>
-          Delete account
+          {t("Delete account")}
         </button>
       </div>
       {notice ? <p className="privacy-notice" role="status">{notice}</p> : null}
       <LegalLinks />
       {isDeleteOpen ? (
         <ConfirmSheet
-          title="Delete account"
+          title={t("Delete account")}
           confirmLabel="Delete permanently"
           expected={DELETE_ACCOUNT_CONFIRM_WORD}
           onClose={() => setIsDeleteOpen(false)}
@@ -120,13 +121,13 @@ export function PrivacyAccountSection() {
             window.location.assign('/delete-account?done=1')
           }}
         >
-          <p>Your account will be deleted permanently and you will not be able to sign in again.</p>
+          <p>{t("Your account will be deleted permanently and you will not be able to sign in again.")}</p>
           <ul>
-            <li>Your name, email, and photo are removed.</li>
-            <li>Notifications and push devices are deleted.</li>
-            <li>History that belongs to the venue (shifts, attendance, messages) stays, without your name.</li>
+            <li>{t("Your name, email, and photo are removed.")}</li>
+            <li>{t("Notifications and push devices are deleted.")}</li>
+            <li>{t("History that belongs to the venue (shifts, attendance, messages) stays, without your name.")}</li>
           </ul>
-          <p>You can download your data before you continue.</p>
+          <p>{t("You can download your data before you continue.")}</p>
         </ConfirmSheet>
       ) : null}
     </section>
@@ -151,15 +152,15 @@ export function VenuePrivacySection() {
       await task()
       if (done) setNotice(done)
     } catch (error) {
-      setNotice(error?.message || 'Something went wrong.')
+      setNotice(error?.message || t("Something went wrong."))
     } finally {
       setIsBusy(false)
     }
   }
 
   return (
-    <section className="privacy-section mobile-card" aria-label="Venue data">
-      <p className="mobile-card-label">Venue data</p>
+    <section className="privacy-section mobile-card" aria-label={t("Venue data")}>
+      <p className="mobile-card-label">{t("Venue data")}</p>
       {closedAt ? (
         <p className="privacy-warning" role="status">
           This venue is closed and will be deleted permanently on{' '}
@@ -172,7 +173,7 @@ export function VenuePrivacySection() {
             const data = await exportWorkspaceData(workspaceId)
             downloadJson(data, buildExportFilename(`one-venue-${workspace?.slug || 'export'}`))
           }, 'The venue export downloaded.')}>
-          Download all venue data
+          {t("Download all venue data")}
         </button>
         {closedAt ? (
           <button type="button" className="primary-btn" disabled={isBusy}
@@ -180,18 +181,18 @@ export function VenuePrivacySection() {
               await reopenVenue(workspaceId)
               await auth?.switchWorkspace?.(workspaceId)
             }, 'The venue is open again.')}>
-            Reopen venue
+            {t("Reopen venue")}
           </button>
         ) : (
           <button type="button" className="ghost-btn privacy-danger-text" disabled={isBusy} onClick={() => setIsCloseOpen(true)}>
-            Close venue
+            {t("Close venue")}
           </button>
         )}
       </div>
       {notice ? <p className="privacy-notice" role="status">{notice}</p> : null}
       {isCloseOpen ? (
         <ConfirmSheet
-          title="Close venue"
+          title={t("Close venue")}
           confirmLabel="Close venue"
           expected={workspace?.name || ''}
           onClose={() => setIsCloseOpen(false)}
@@ -202,8 +203,8 @@ export function VenuePrivacySection() {
           }}
         >
           <p>The venue “{workspace?.name}” will close for the whole team.</p>
-          <p>You can reopen it within <strong>30 days</strong>. After that, all of its data is deleted permanently.</p>
-          <p>Download the export first if you need it.</p>
+          <p>{t("You can reopen it within")} <strong>{t("30 days")}</strong>. After that, all of its data is deleted permanently.</p>
+          <p>{t("Download the export first if you need it.")}</p>
         </ConfirmSheet>
       ) : null}
     </section>
@@ -215,10 +216,10 @@ export function PrivacySettingsSection() {
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Privacy</p>
+          <p className="eyebrow">{t("Privacy")}</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">🔒</span>
-            Privacy & data
+            {t("Privacy & data")}
           </h3>
         </div>
       </div>

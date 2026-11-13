@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const HOST_RESERVATION_STATUSES = [
   {
     id: 'Pending',
@@ -274,7 +275,7 @@ export function getReservationDisplayStatusTone(status) {
 }
 
 export function getHostListStatusLabel(status) {
-  return getHostStatusMeta(status).label
+  return t(getHostStatusMeta(status).label)
 }
 
 const HOST_LIST_COMPACT_STATUS_LABELS = {
@@ -309,7 +310,7 @@ export function getPartialSeatCount(reservation) {
 /** "Seated 2/4" when the count is known, otherwise "Seated · partly". */
 export function formatPartialSeatLabel(reservation) {
   const count = getPartialSeatCount(reservation)
-  return count ? `Seated ${count.seated}/${count.party}` : 'Seated · partly'
+  return count ? `Seated ${count.seated}/${count.party}` : t("Seated · partly")
 }
 
 /** "2 to come" when the count is known, otherwise ''. */
@@ -320,7 +321,7 @@ export function formatPartialSeatRemaining(reservation) {
 
 export function getHostListCompactStatusLabel(status) {
   const normalized = normalizeReservationStatus(status)
-  return HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label
+  return t(HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label)
 }
 
 export function getReservationLateDelayMinutes(reservation, nowMinutes, todayKey) {
@@ -396,8 +397,8 @@ export function getHostFloorSelectionStatusPresentation(
   const tone = getHostStatusMeta(displayStatus).tone
   const icon = HOST_FLOOR_SELECTION_STATUS_ICONS[displayStatus] ?? '•'
 
-  let label = HOST_FLOOR_SELECTION_STATUS_LABELS[displayStatus]
-    ?? getHostListCompactStatusLabel(displayStatus)
+  let label = t(HOST_FLOOR_SELECTION_STATUS_LABELS[displayStatus]
+    ?? getHostListCompactStatusLabel(displayStatus))
 
   if (displayStatus === 'Late Booking') {
     label = compact.label
@@ -426,9 +427,9 @@ export const HOST_STATION_STATUS_MENU_OPTIONS = [
   { status: 'Pending', menuLabel: 'Pending' },
   { status: 'Confirmed', menuLabel: 'Confirmed' },
   { status: 'Waiting', menuLabel: 'Arrived' },
-  { status: 'Checked In', menuLabel: 'Seated' },
-  { status: 'Checked Out', menuLabel: 'Finished' },
-  { status: 'Not Shown', menuLabel: 'No-show' },
+  { status: t("Checked In"), menuLabel: 'Seated' },
+  { status: t("Checked Out"), menuLabel: 'Finished' },
+  { status: t("Not Shown"), menuLabel: 'No-show' },
   { status: 'Cancelled', menuLabel: 'Cancelled' },
 ]
 
@@ -471,11 +472,11 @@ function parseTimeToMinutes(value) {
 
 export function getReservationDisplayStatus(reservation, nowMinutes, todayKey) {
   const status = normalizeReservationStatus(reservation?.status)
-  if (status === 'Late Booking') return 'Late Booking'
+  if (status === 'Late Booking') return t("Late Booking")
   // An Arrived guest is already here: show Arrived, never Late (Platon t447u).
   // Late/waiting counts in the service snapshot are unchanged.
   if (status === 'Waiting') return status
-  if (isReservationLateByTime(reservation, nowMinutes, todayKey)) return 'Late Booking'
+  if (isReservationLateByTime(reservation, nowMinutes, todayKey)) return t("Late Booking")
   return status
 }
 
@@ -587,13 +588,13 @@ export function getHostReservationQuickActions(reservation, { nowMinutes = 0, to
       actions.push({ id: 'arrived', label: 'Arrived', status: 'Waiting', variant: 'primary' })
     }
     if (canSeatReservation(reservation)) {
-      actions.push({ id: 'seat', label: 'Seat', status: 'Checked In', variant: 'primary' })
+      actions.push({ id: 'seat', label: 'Seat', status: t("Checked In"), variant: 'primary' })
     }
     if (canMarkReservationNoShow(reservation)) {
-      actions.push({ id: 'no-show', label: 'No-show', status: 'Not Shown', variant: 'danger' })
+      actions.push({ id: 'no-show', label: 'No-show', status: t("Not Shown"), variant: 'danger' })
     }
   } else if (groupId === 'in-house' && canCompleteReservation(reservation)) {
-    actions.push({ id: 'complete', label: 'Complete', status: 'Checked Out', variant: 'primary' })
+    actions.push({ id: 'complete', label: 'Complete', status: t("Checked Out"), variant: 'primary' })
   }
 
   return actions

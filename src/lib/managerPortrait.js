@@ -9,6 +9,7 @@ import {
   canManageAttendance,
 } from './permissions'
 import { LIMITED_SETTINGS_SUBTITLE } from './settingsSections'
+import { t } from '../i18n/i18n'
 
 export const MANAGER_PHONE_MAX_WIDTH = 760
 
@@ -129,7 +130,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'schedule',
       label: 'Schedule',
-      subtitle: 'One day at a time. Turn sideways for the week.',
+      subtitle: t("One day at a time. Turn sideways for the week."),
       icon: '📅',
     })
   }
@@ -137,7 +138,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'stock',
       label: 'Stock',
-      subtitle: 'Quick list for counting',
+      subtitle: t("Quick list for counting"),
       icon: '📦',
     })
   }
@@ -145,15 +146,15 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'team',
       label: 'Team',
-      subtitle: 'People and who is in today',
+      subtitle: t("People and who is in today"),
       icon: '👥',
     })
   }
   if (canManageAttendance(access)) {
     items.push({
       id: 'time-clock',
-      label: 'Time clock',
-      subtitle: 'Who is in, late, and hours',
+      label: t("Time clock"),
+      subtitle: t("Who is in, late, and hours"),
       icon: '⏱',
     })
   }
@@ -161,7 +162,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'insights',
       label: 'Insights',
-      subtitle: 'Reports and performance',
+      subtitle: t("Reports and performance"),
       icon: '📈',
     })
   }
@@ -170,7 +171,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'settings',
       label: 'Settings',
-      subtitle: limitedSettings ? LIMITED_SETTINGS_SUBTITLE : 'Venue preferences',
+      subtitle: limitedSettings ? LIMITED_SETTINGS_SUBTITLE : t("Venue preferences"),
       icon: '⚙️',
     })
   }
@@ -178,15 +179,15 @@ export function buildManagerPortraitMoreItems(access, {
   items.push({
     id: 'profile',
     label: 'Profile',
-    subtitle: 'Personal details and account',
+    subtitle: t("Personal details and account"),
     icon: '👤',
   })
 
   if (canViewLeaveInbox) {
     items.push({
       id: 'leave-inbox',
-      label: 'Leave inbox',
-      subtitle: 'Pending leave requests',
+      label: t("Leave inbox"),
+      subtitle: t("Pending leave requests"),
       icon: '◷',
     })
   }
@@ -194,13 +195,13 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'notifications',
       label: 'Notifications',
-      subtitle: 'Device alerts, quiet hours and this phone',
+      subtitle: t("Device alerts, quiet hours and this phone"),
       icon: '🔔',
     })
   }
   items.push({
     id: 'sign-out',
-    label: 'Sign out',
+    label: t("Sign out"),
     subtitle: '',
     icon: '↪',
     tone: 'danger',
@@ -217,7 +218,7 @@ export const PORTRAIT_TABLE_STATUS_LABELS = {
   upcoming: 'Upcoming',
   cleaning: 'Cleaning',
   reserved: 'Reserved',
-  stale: 'Still seated',
+  stale: t("Still seated"),
 }
 
 const PORTRAIT_LEFTOVER_STATUSES = new Set([

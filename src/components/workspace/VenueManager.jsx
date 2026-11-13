@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useOptionalAuth } from '../../context/AuthContext'
 import { createVenue } from '../../services/workspaceService'
+import { t } from '../../i18n/i18n'
 import './venueManager.css'
 
 const DEFAULT_TIMEZONE = 'Europe/Nicosia'
@@ -46,12 +47,12 @@ export function VenueSwitcher({ className = '' }) {
   const activeId = `${membership?.workspaceId ?? ''}`
   return (
     <label className={`venue-switcher ${className}`.trim()}>
-      <span className="venue-switcher-label">Venue</span>
+      <span className="venue-switcher-label">{t("Venue")}</span>
       <select
         className="venue-switcher-select"
         value={activeId}
         disabled={isSwitching}
-        aria-label="Switch venue"
+        aria-label={t("Switch venue")}
         onChange={async (event) => {
           const nextId = event.target.value
           if (!nextId || nextId === activeId) return
@@ -88,7 +89,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
       const workspaceId = await createVenue(form)
       await onCreated?.(workspaceId)
     } catch (createError) {
-      setError(createError?.message || 'The venue could not be created.')
+      setError(createError?.message || t("The venue could not be created."))
       setIsSaving(false)
     }
   }
@@ -104,38 +105,38 @@ export function NewVenueSheet({ onClose, onCreated }) {
         onSubmit={handleSubmit}
       >
         <header className="venue-sheet-header">
-          <h3 id="venue-sheet-title">New venue</h3>
-          <button type="button" className="venue-sheet-close" aria-label="Close" disabled={isSaving} onClick={onClose}>✕</button>
+          <h3 id="venue-sheet-title">{t("New venue")}</h3>
+          <button type="button" className="venue-sheet-close" aria-label={t("Close")} disabled={isSaving} onClick={onClose}>✕</button>
         </header>
         <div className="venue-sheet-place">
           <label className="venue-field">
-            <span>Name</span>
-            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder="e.g. SENTIO.LIMASSOL" />
+            <span>{t("Name")}</span>
+            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder={t("e.g. SENTIO.LIMASSOL")} />
           </label>
           <label className="venue-field">
-            <span>City</span>
+            <span>{t("City")}</span>
             <input value={form.city} onChange={update('city')} maxLength={80} />
           </label>
         </div>
         <div className="venue-field-row">
           <label className="venue-field">
-            <span>Country</span>
+            <span>{t("Country")}</span>
             <input value={form.countryName} onChange={update('countryName')} maxLength={80} />
           </label>
           <label className="venue-field venue-field-short">
-            <span>Code</span>
+            <span>{t("Code")}</span>
             <input value={form.countryCode} onChange={update('countryCode')} maxLength={2} />
           </label>
         </div>
         <div className="venue-field-row">
           <label className="venue-field">
-            <span>Time zone</span>
+            <span>{t("Time zone")}</span>
             <select value={form.timezone} onChange={update('timezone')}>
               {timezones.map((zone) => <option key={zone} value={zone}>{zone}</option>)}
             </select>
           </label>
           <label className="venue-field venue-field-short">
-            <span>Currency</span>
+            <span>{t("Currency")}</span>
             <select value={form.currency} onChange={update('currency')}>
               {CURRENCIES.map((code) => <option key={code} value={code}>{code}</option>)}
             </select>
@@ -143,7 +144,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
         </div>
         {error ? <p className="venue-sheet-error" role="alert">{error}</p> : null}
         <footer className="venue-sheet-actions">
-          <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>Cancel</button>
+          <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>{t("Cancel")}</button>
           <button type="submit" className="primary-btn" disabled={isSaving || form.name.trim().length < 2}>
             {isSaving ? 'Creating…' : 'Create'}
           </button>

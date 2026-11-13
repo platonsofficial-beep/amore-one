@@ -2,6 +2,7 @@ import { isDeletableCustomDepartmentName } from '../../lib/taskDepartments'
 import { calculateDepartmentStats, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
 import DepartmentPerformanceSummary from './DepartmentPerformanceSummary'
 import TaskAlertsSection from './TaskAlertsSection'
+import { t } from '../../i18n/i18n'
 
 function DepartmentBoardCard({
   board,
@@ -28,7 +29,7 @@ function DepartmentBoardCard({
           disabled={isDeletingDepartment}
           aria-label={`Delete ${board.label} department`}
         >
-          Delete
+          {t("Delete")}
         </button>
       ) : null}
 
@@ -47,13 +48,13 @@ function DepartmentBoardCard({
           <>
             <div className="tasks-department-metrics">
               <p className="tasks-department-metric">
-                <strong>{stats.active}</strong> Active
+                <strong>{stats.active}</strong> {t("Active")}
               </p>
               <p className={`tasks-department-metric${stats.overdue > 0 ? ' is-alert' : ''}`}>
-                <strong>{stats.overdue}</strong> Overdue
+                <strong>{stats.overdue}</strong> {t("Overdue")}
               </p>
               <p className="tasks-department-metric">
-                <strong>{stats.completedToday}</strong> Completed today
+                <strong>{stats.completedToday}</strong> {t("Completed today")}
               </p>
             </div>
 
@@ -69,9 +70,9 @@ function DepartmentBoardCard({
           </>
         ) : (
           <div className="tasks-department-empty">
-            <p className="tasks-department-empty-line">No active tasks</p>
+            <p className="tasks-department-empty-line">{t("No active tasks")}</p>
             {!compact ? (
-              <p className="tasks-department-empty-subline">Ready for today</p>
+              <p className="tasks-department-empty-subline">{t("Ready for today")}</p>
             ) : null}
           </div>
         )}
@@ -104,8 +105,8 @@ export default function TasksHomeView({
         alerts={taskAlerts}
         employees={employees}
         compact={isMobileLayout}
-        title="Needs attention"
-        emptyMessage={loadFailed ? "Couldn't load what needs attention." : 'No tasks need attention right now.'}
+        title={t("Needs attention")}
+        emptyMessage={loadFailed ? "Couldn't load what needs attention." : t("No tasks need attention right now.")}
       />
 
       {loadFailed ? null : (
@@ -116,18 +117,18 @@ export default function TasksHomeView({
       )}
 
       {isMobileLayout && canManage ? (
-        <section className="tasks-mobile-templates-section" aria-label="Daily templates">
+        <section className="tasks-mobile-templates-section" aria-label={t("Daily templates")}>
           <header className="tasks-mobile-templates-header">
-            <h3>Daily templates</h3>
+            <h3>{t("Daily templates")}</h3>
           </header>
           <button
             type="button"
             className="tasks-mobile-templates-btn"
             onClick={onOpenTemplates}
           >
-            <span className="tasks-mobile-templates-btn-label">Open daily templates</span>
+            <span className="tasks-mobile-templates-btn-label">{t("Open daily templates")}</span>
             <span className="tasks-mobile-templates-btn-meta">
-              {templateCount > 0 ? `${templateCount} saved` : 'Set up routines'}
+              {templateCount > 0 ? `${templateCount} saved` : t("Set up routines")}
             </span>
           </button>
         </section>
@@ -135,18 +136,18 @@ export default function TasksHomeView({
 
       <header className="tasks-home-header">
         <div>
-          {!isMobileLayout ? <p className="eyebrow">Departments</p> : null}
-          <h3>{isMobileLayout ? 'Departments' : 'Task boards'}</h3>
+          {!isMobileLayout ? <p className="eyebrow">{t("Departments")}</p> : null}
+          <h3>{isMobileLayout ? 'Departments' : t("Task boards")}</h3>
           {!isMobileLayout ? (
             <p className="staff-subtitle">
-              Choose a department to review today&apos;s work, upcoming tasks, and completion progress.
+              {t("Choose a department to review today's work, upcoming tasks, and completion progress.")}
             </p>
           ) : null}
         </div>
       </header>
 
       {isLoading ? (
-        <div className="staff-status-banner">Loading tasks…</div>
+        <div className="staff-status-banner">{t("Loading tasks…")}</div>
       ) : null}
 
       <div className={`tasks-department-grid${isMobileLayout ? ' is-mobile-layout' : ''}`}>
@@ -173,11 +174,11 @@ export default function TasksHomeView({
         >
           <div className="tasks-department-sticker-top">
             <span className="tasks-department-icon" aria-hidden="true">+</span>
-            <h4 className="tasks-department-name">Create Department</h4>
+            <h4 className="tasks-department-name">{t("Create Department")}</h4>
           </div>
           {!isMobileLayout ? (
             <div className="tasks-department-empty">
-              <p className="tasks-department-empty-line">Add Kitchen, Cleaning, Delivery, or any custom team.</p>
+              <p className="tasks-department-empty-line">{t("Add Kitchen, Cleaning, Delivery, or any custom team.")}</p>
             </div>
           ) : null}
         </button>

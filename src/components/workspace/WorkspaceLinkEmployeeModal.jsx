@@ -1,7 +1,8 @@
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 function resolveEmployeeLabel(employee) {
-  const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || 'Unnamed employee'
+  const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || t("Unnamed employee")
   const position = `${employee?.primaryPosition ?? employee?.position ?? ''}`.trim()
   return position ? `${name} · ${position}` : name
 }
@@ -33,26 +34,26 @@ export function WorkspaceLinkEmployeeModal({
       <div className="employee-modal blend-compact-modal workspace-link-employee-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Team member</p>
-            <h3>Link employee</h3>
+            <p className="eyebrow">{t("Team member")}</p>
+            <h3>{t("Link employee")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
         </div>
 
         <div className="workspace-link-employee-body">
           <p className="workspace-link-employee-copy">
-            Connect your signed-in account to an existing staff record.
+            {t("Connect your signed-in account to an existing staff record.")}
           </p>
 
           <label className="form-field full-width">
-            <span>Employee</span>
+            <span>{t("Employee")}</span>
             <select
               value={selectedEmployeeId}
               onChange={(event) => onSelectEmployeeId?.(event.target.value)}
               disabled={isSaving || sortedEmployees.length === 0}
             >
               <option value="">
-                {sortedEmployees.length === 0 ? 'No employees available' : 'Select employee'}
+                {sortedEmployees.length === 0 ? t("No employees available") : t("Select employee")}
               </option>
               {sortedEmployees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
@@ -69,7 +70,7 @@ export function WorkspaceLinkEmployeeModal({
 
         <div className="drawer-footer workspace-link-employee-footer">
           <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -77,7 +78,7 @@ export function WorkspaceLinkEmployeeModal({
             onClick={onSave}
             disabled={isSaving || !selectedEmployeeId || sortedEmployees.length === 0}
           >
-            {isSaving ? 'Saving…' : 'Save link'}
+            {isSaving ? 'Saving…' : t("Save link")}
           </button>
         </div>
       </div>

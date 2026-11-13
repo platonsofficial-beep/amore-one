@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * Waste is a usage movement with a structured note.
  * No new stock_movements type: record_location_usage already
@@ -10,8 +11,8 @@ export const WASTE_REASONS = Object.freeze([
   Object.freeze({ id: 'broken', label: 'Broken' }),
   Object.freeze({ id: 'spilled', label: 'Spilled' }),
   Object.freeze({ id: 'expired', label: 'Expired' }),
-  Object.freeze({ id: 'comp', label: 'Comp / on the house' }),
-  Object.freeze({ id: 'staff_drink', label: 'Staff drink' }),
+  Object.freeze({ id: 'comp', label: t("Comp / on the house") }),
+  Object.freeze({ id: 'staff_drink', label: t("Staff drink") }),
   Object.freeze({ id: 'other', label: 'Other' }),
 ])
 

@@ -3,6 +3,7 @@ import {
   applyInventoryCountCorrections,
   getInventoryCountPostedReview,
 } from '../../services/inventoryCountService'
+import { t } from '../../i18n/i18n'
 
 function formatQuantity(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -200,15 +201,15 @@ function ApplyCorrectionsConfirmDialog({
           id="inventory-count-correction-apply-title"
           className="inventory-count-correction-confirm-title"
         >
-          Apply Inventory Corrections?
+          {t("Apply Inventory Corrections?")}
         </h2>
         <div
           id="inventory-count-correction-apply-body"
           className="inventory-count-correction-confirm-body"
         >
-          <p>These corrections will update the current stock.</p>
-          <p>The original posted inventory count will remain unchanged.</p>
-          <p>New adjustment movements will be created for every corrected product.</p>
+          <p>{t("These corrections will update the current stock.")}</p>
+          <p>{t("The original posted inventory count will remain unchanged.")}</p>
+          <p>{t("New adjustment movements will be created for every corrected product.")}</p>
         </div>
         {error ? (
           <p className="inventory-count-session-card-error" role="alert">{error}</p>
@@ -220,7 +221,7 @@ function ApplyCorrectionsConfirmDialog({
             disabled={isApplying}
             onClick={onCancel}
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -228,7 +229,7 @@ function ApplyCorrectionsConfirmDialog({
             disabled={isApplying}
             onClick={onConfirm}
           >
-            {isApplying ? 'Applying…' : 'Apply Corrections'}
+            {isApplying ? 'Applying…' : t("Apply Corrections")}
           </button>
         </div>
       </div>
@@ -262,26 +263,26 @@ function CorrectionSummaryPanel({
           id="inventory-count-correction-summary-title"
           className="inventory-count-correction-summary-title"
         >
-          Review Corrections
+          {t("Review Corrections")}
         </h2>
         <p className="inventory-count-correction-summary-copy">
-          Review current effective, corrected, and delta values before applying.
+          {t("Review current effective, corrected, and delta values before applying.")}
         </p>
 
         {changes.length === 0 ? (
           <div className="stock-empty-state inventory-count-correction-summary-empty">
-            <h4>No corrections yet</h4>
-            <p>Enter Correction Mode and change at least one quantity to review differences.</p>
+            <h4>{t("No corrections yet")}</h4>
+            <p>{t("Enter Correction Mode and change at least one quantity to review differences.")}</p>
           </div>
         ) : (
           <div className="inventory-count-correction-summary-table-wrap">
             <table className="inventory-count-correction-summary-table">
               <thead>
                 <tr>
-                  <th scope="col">Product</th>
-                  <th scope="col">Current Effective</th>
-                  <th scope="col">Corrected</th>
-                  <th scope="col">Delta</th>
+                  <th scope="col">{t("Product")}</th>
+                  <th scope="col">{t("Current Effective")}</th>
+                  <th scope="col">{t("Corrected")}</th>
+                  <th scope="col">{t("Delta")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -314,7 +315,7 @@ function CorrectionSummaryPanel({
             disabled={isApplying}
             onClick={onClose}
           >
-            Close
+            {t("Close")}
           </button>
           <button
             type="button"
@@ -322,7 +323,7 @@ function CorrectionSummaryPanel({
             disabled={isApplying || changes.length === 0}
             onClick={onRequestApply}
           >
-            Apply Corrections
+            {t("Apply Corrections")}
           </button>
         </div>
       </div>
@@ -388,7 +389,7 @@ export function InventoryCountCorrectionReview({
         if (cancelled) return
         setSession(null)
         setDraftRows([])
-        setLoadError(error?.message || 'Unable to load posted inventory count for correction right now.')
+        setLoadError(error?.message || t("Unable to load posted inventory count for correction right now."))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -449,7 +450,7 @@ export function InventoryCountCorrectionReview({
         lineCount: result?.lineCount,
       })
     } catch (error) {
-      setApplyError(error?.message || 'Unable to apply inventory count corrections right now.')
+      setApplyError(error?.message || t("Unable to apply inventory count corrections right now."))
     } finally {
       setIsApplying(false)
     }
@@ -458,25 +459,24 @@ export function InventoryCountCorrectionReview({
   return (
     <section
       className="inventory-count-correction-review"
-      aria-label="Inventory count correction review"
+      aria-label={t("Inventory count correction review")}
       data-inventory-count-correction-review="true"
       data-correction-mode={isCorrectionMode ? 'true' : 'false'}
       data-session-id={sessionId}
     >
       <header className="inventory-count-correction-review-header">
         <div className="inventory-count-correction-review-header-copy">
-          <p className="inventory-count-correction-review-eyebrow">Correction Review</p>
+          <p className="inventory-count-correction-review-eyebrow">{t("Correction Review")}</p>
           <div className="inventory-count-correction-review-title-row">
             <h2 className="inventory-count-correction-review-title">
-              {session?.countTypeLabel || 'Inventory Count'} — Suggest Correction
+              {session?.countTypeLabel || t("Inventory Count")} — Suggest Correction
             </h2>
             <span className="inventory-count-session-pill is-status is-posted">
               {session?.statusLabel || 'Posted'}
             </span>
           </div>
           <p className="inventory-count-correction-review-subtitle">
-            Draft corrections against the posted snapshot. Applying creates new adjustment
-            movements only — the original posted count stays unchanged.
+            {t('Draft corrections against the posted snapshot. Applying creates new adjustment movements only — the original posted count stays unchanged.')}
           </p>
         </div>
         <div className="inventory-count-correction-review-header-actions">
@@ -487,18 +487,18 @@ export function InventoryCountCorrectionReview({
               disabled={isLoading || Boolean(loadError) || draftRows.length === 0 || isApplying}
               onClick={() => setIsCorrectionMode(true)}
             >
-              Enter Correction Mode
+              {t("Enter Correction Mode")}
             </button>
           ) : (
             <span className="inventory-count-correction-mode-badge" role="status">
-              Correction Mode
+              {t("Correction Mode")}
             </span>
           )}
         </div>
       </header>
 
       {isLoading ? (
-        <div className="staff-status-banner" role="status">Loading posted snapshot…</div>
+        <div className="staff-status-banner" role="status">{t("Loading posted snapshot…")}</div>
       ) : null}
 
       {loadError ? (
@@ -511,17 +511,17 @@ export function InventoryCountCorrectionReview({
         <div className="inventory-count-correction-review-table-wrap">
           {draftRows.length === 0 ? (
             <div className="stock-empty-state">
-              <h4>No lines to correct</h4>
-              <p>This posted count has no session item rows.</p>
+              <h4>{t("No lines to correct")}</h4>
+              <p>{t("This posted count has no session item rows.")}</p>
             </div>
           ) : (
             <table className="inventory-count-correction-review-table">
               <thead>
                 <tr>
-                  <th scope="col">Item</th>
-                  <th scope="col">Location</th>
-                  <th scope="col">Current Effective</th>
-                  <th scope="col">Corrected quantity</th>
+                  <th scope="col">{t("Item")}</th>
+                  <th scope="col">{t("Location")}</th>
+                  <th scope="col">{t("Current Effective")}</th>
+                  <th scope="col">{t("Corrected quantity")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -588,7 +588,7 @@ export function InventoryCountCorrectionReview({
           disabled={isApplying}
           onClick={() => onCancel?.()}
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -599,7 +599,7 @@ export function InventoryCountCorrectionReview({
             setIsSummaryOpen(true)
           }}
         >
-          Review Corrections
+          {t("Review Corrections")}
         </button>
       </footer>
 

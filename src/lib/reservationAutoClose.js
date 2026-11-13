@@ -1,4 +1,5 @@
 import { isReservationInHouseStatus, normalizeReservationStatus } from './reservationHostStatus'
+import { t } from '../i18n/i18n'
 
 export const DEFAULT_RESERVATION_AUTO_CLOSE_TIME = '05:00'
 export const AUTO_CLOSED_BADGE_LABEL = 'Auto-closed'
@@ -28,7 +29,7 @@ export function resolveAutoCloseUndoStatus(reservation) {
     reservation?.autoClosedFromStatus ?? reservation?.auto_closed_from_status ?? '',
   )
   if (isReservationInHouseStatus(prior)) return prior
-  return 'Checked In'
+  return t("Checked In")
 }
 
 export function isMissingAutoClosedColumnError(error) {

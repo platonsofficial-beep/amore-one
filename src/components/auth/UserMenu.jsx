@@ -7,6 +7,7 @@ import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { resolveUserDisplayName } from '../../lib/userDisplayName'
 import { placeUserMenuPanel } from '../../lib/userMenuPlacement'
 import { readCssPx } from '../../lib/safeInline'
+import { t } from '../../i18n/i18n'
 
 function readSafeAreaInsets() {
   return {
@@ -93,9 +94,9 @@ export function UserMenu({
 
   const memberDisplayName = resolveUserDisplayName({ membership, employees, user })
     || `${profileChipDisplay?.name ?? ''}`.trim()
-    || 'Profile not set'
+    || t("Profile not set")
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
-    || (isAuthDisabled ? 'Development mode' : 'Signed in')
+    || (isAuthDisabled ? t("Development mode") : t("Signed in"))
   const chipInitials = getProfileInitials(memberDisplayName)
 
   const chipClassName = variant === 'today-compact'
@@ -129,7 +130,7 @@ export function UserMenu({
         className={chipClassName}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label="Your menu"
+        aria-label={t("Your menu")}
         title={[memberDisplayName, resolvedRoleLabel].filter(Boolean).join(" · ") || undefined}
         data-help="header.profile"
         onClick={() => setIsOpen((current) => !current)}
@@ -165,7 +166,7 @@ export function UserMenu({
           ref={panelRef}
           className="user-menu-panel user-menu-panel-portaled"
           role="menu"
-          aria-label="User menu"
+          aria-label={t("User menu")}
           style={placement ? {
             top: `${placement.top}px`,
             left: `${placement.left}px`,
@@ -185,7 +186,7 @@ export function UserMenu({
               role="menuitem"
               onClick={handleOpenWorkspaceProfile}
             >
-              Open Settings
+              {t("Open Settings")}
             </button>
           ) : null}
           {onOpenNotifications ? (
@@ -198,7 +199,7 @@ export function UserMenu({
                 onOpenNotifications()
               }}
             >
-              Notifications
+              {t("Notifications")}
             </button>
           ) : null}
           {accountActions.map((action) => (
@@ -223,7 +224,7 @@ export function UserMenu({
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
-              {isSigningOut ? 'Signing out…' : 'Logout'}
+              {isSigningOut ? t("Signing out…") : 'Logout'}
             </button>
           ) : null}
         </div>,

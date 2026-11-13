@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
+import { t } from '../../i18n/i18n'
 
 const TOOLTIP_GAP = 6
 const BOUNDARY_PADDING = 6
@@ -153,7 +154,7 @@ export function FloorTableReservationTooltip({
                   <span className="floor-table-tooltip-schedule-sep" aria-hidden="true">·</span>
                   <span className="floor-table-tooltip-schedule-guest">{entry.guestName}</span>
                   <span className="floor-table-tooltip-schedule-sep" aria-hidden="true">·</span>
-                  <span className="floor-table-tooltip-schedule-guests">{entry.guests} guests</span>
+                  <span className="floor-table-tooltip-schedule-guests">{t('{{count}} guest', { count: entry.guests })}</span>
                 </div>
                 <div className="floor-table-tooltip-schedule-secondary">
                   <span className="floor-table-tooltip-schedule-tables">{entry.tablesLabel || '—'}</span>

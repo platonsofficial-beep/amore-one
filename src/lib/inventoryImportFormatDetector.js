@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * P8.16.4 — Inventory Import workbook format detection foundation.
  *
@@ -15,9 +16,9 @@ export const INVENTORY_IMPORT_FORMAT = Object.freeze({
 })
 
 export const INVENTORY_IMPORT_FORMAT_LABEL = Object.freeze({
-  [INVENTORY_IMPORT_FORMAT.STANDARD]: 'Standard Inventory Table',
-  [INVENTORY_IMPORT_FORMAT.OPERATIONAL]: 'Operational Weekly Stock Sheet',
-  [INVENTORY_IMPORT_FORMAT.UNKNOWN]: 'Unknown Worksheet Layout',
+  [INVENTORY_IMPORT_FORMAT.STANDARD]: t("Standard Inventory Table"),
+  [INVENTORY_IMPORT_FORMAT.OPERATIONAL]: t("Operational Weekly Stock Sheet"),
+  [INVENTORY_IMPORT_FORMAT.UNKNOWN]: t("Unknown Worksheet Layout"),
 })
 
 /** Bounded row sample for category-separator scanning. */
@@ -433,16 +434,16 @@ export function detectInventoryImportFormat(tabularData) {
     )
     matchStrength = score >= 70 ? 'strong' : 'possible'
     summary = matchStrength === 'strong'
-      ? 'This worksheet looks like an operational weekly stock sheet.'
-      : 'This worksheet may be an operational weekly stock sheet.'
+      ? t("This worksheet looks like an operational weekly stock sheet.")
+      : t("This worksheet may be an operational weekly stock sheet.")
   } else if (isStandard) {
     format = INVENTORY_IMPORT_FORMAT.STANDARD
     evidence = buildStandardEvidence(signals)
     score = signals.productNameCount * 20 + signals.inventoryDetailCount * 15
     matchStrength = score >= 35 ? 'strong' : 'possible'
     summary = matchStrength === 'strong'
-      ? 'This worksheet looks like a standard flat inventory table.'
-      : 'This worksheet may be a standard flat inventory table.'
+      ? t("This worksheet looks like a standard flat inventory table.")
+      : t("This worksheet may be a standard flat inventory table.")
   } else {
     // Keep evidence empty for unknown — do not invent signals.
     evidence = []

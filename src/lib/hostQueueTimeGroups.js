@@ -1,5 +1,6 @@
 import { normalizeReservationTimeValue } from './timeFormatUtils'
 import { HOST_QUEUE_DEFAULT_SORT } from './hostQueuePipeline'
+import { t } from '../i18n/i18n'
 
 export const HOST_QUEUE_TIME_SORT_IDS = new Set(['time-asc', 'time-desc'])
 
@@ -14,7 +15,7 @@ export function getReservationExactTimeKey(reservation) {
 }
 
 export function formatHostQueueTimeGroupLabel(timeKey) {
-  if (timeKey === '__unscheduled__') return 'No time'
+  if (timeKey === '__unscheduled__') return t("No time")
   return timeKey
 }
 

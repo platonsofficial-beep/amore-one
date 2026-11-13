@@ -18,6 +18,7 @@ import { formatTime24 } from '../../lib/timeFormatUtils'
 import { OperationsTaskFormModal } from '../operations/OperationsTaskFormModal'
 import { OperationsAnnouncementFormModal } from '../operations/OperationsAnnouncementFormModal'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
+import { t } from '../../i18n/i18n'
 
 const RECENT_NOTES_LIMIT = 2
 
@@ -39,7 +40,7 @@ function normalizeTaskDateKey(value) {
 
 function formatTaskDueTimeLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
-  return dueTime ? `Due ${dueTime}` : ''
+  return dueTime ? t('Due {{time}}', { time: dueTime }) : ''
 }
 
 function getTaskStatusLabel(task, todayKey = '') {
@@ -141,7 +142,7 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
             <span className="mobile-manager-today-task-due" aria-hidden="true" />
           )}
           <span className={`mobile-manager-today-task-status${isDone ? ' is-done' : ''}${isOverdue ? ' is-overdue' : ''}`}>
-            {statusLabel}
+            {t(statusLabel)}
           </span>
         </div>
       </button>
@@ -153,7 +154,7 @@ function RecentNoteCard({ log }) {
   const tone = getOperationsLogTypeTone(log.type)
   const headline = getOperationsShiftNoteHeadline(log)
   const authorName = `${log.createdByName ?? ''}`.trim()
-  const authorLabel = authorName && authorName !== 'System' ? authorName : 'Team member'
+  const authorLabel = authorName && authorName !== 'System' ? authorName : t("Team member")
 
   return (
     <li className="mobile-manager-tasks-note-item">
@@ -268,20 +269,20 @@ export function MobileManagerTasksView({
 
   return (
     <div className="mobile-screen mobile-manager-tasks mobile-manager-tasks-workflow">
-      <header className="mobile-manager-tasks-header" aria-label="Tasks overview">
-        <h1 className="mobile-manager-tasks-title">Operations</h1>
+      <header className="mobile-manager-tasks-header" aria-label={t("Tasks overview")}>
+        <h1 className="mobile-manager-tasks-title">{t("Operations")}</h1>
       </header>
 
       {isLoading ? (
-        <p className="mobile-manager-tasks-loading">Loading tasks…</p>
+        <p className="mobile-manager-tasks-loading">{t("Loading tasks…")}</p>
       ) : (
         <>
           {hasTodayWork ? (
-            <section className="mobile-manager-tasks-command" aria-label="Today progress">
-              <p className="mobile-manager-tasks-block-label">Today</p>
+            <section className="mobile-manager-tasks-command" aria-label={t("Today progress")}>
+              <p className="mobile-manager-tasks-block-label">{t("Today")}</p>
               <div className="mobile-manager-tasks-command-body">
                 <p className="mobile-manager-tasks-command-summary">
-                  <strong>{todayCompleted}</strong> of <strong>{todayTotal}</strong> complete
+                  <strong>{todayCompleted}</strong> {t("of")} <strong>{todayTotal}</strong> {t("complete")}
                 </p>
                 <span className="mobile-manager-tasks-command-percent">{completionPercent}%</span>
               </div>
@@ -315,9 +316,9 @@ export function MobileManagerTasksView({
             </section>
           ) : null}
 
-          <section className="mobile-manager-tasks-section" aria-label="Today's tasks">
+          <section className="mobile-manager-tasks-section" aria-label={t("Today's tasks")}>
             <div className="mobile-manager-tasks-section-header">
-              <p className="mobile-manager-tasks-block-label">Today&apos;s tasks</p>
+              <p className="mobile-manager-tasks-block-label">{t("Today's tasks")}</p>
               <button
                 type="button"
                 className="mobile-manager-tasks-inline-new-btn"
@@ -341,19 +342,19 @@ export function MobileManagerTasksView({
               </ul>
             ) : (
               <div className="mobile-manager-tasks-empty is-hero" role="status">
-                <p className="mobile-manager-tasks-empty-title">Everything is on track</p>
+                <p className="mobile-manager-tasks-empty-title">{t("Everything is on track")}</p>
                 <p className="mobile-manager-tasks-empty-message">
                   {completedToday > 0
                     ? `${completedToday} completed today. No open tasks right now.`
-                    : 'No pending tasks today'}
+                    : t("No pending tasks today")}
                 </p>
               </div>
             )}
           </section>
 
           {teamProgress.length > 0 ? (
-            <section className="mobile-manager-tasks-section" aria-label="Team progress">
-              <p className="mobile-manager-tasks-block-label">Who owns what</p>
+            <section className="mobile-manager-tasks-section" aria-label={t("Team progress")}>
+              <p className="mobile-manager-tasks-block-label">{t("Who owns what")}</p>
               <ul className="mobile-manager-team-progress-list">
                 {teamProgress.map((entry) => (
                   <TeamProgressRow key={entry.employeeId} entry={entry} />
@@ -363,9 +364,9 @@ export function MobileManagerTasksView({
           ) : null}
 
           {onCreateAnnouncement ? (
-            <section className="mobile-manager-tasks-section" aria-label="Announcements">
+            <section className="mobile-manager-tasks-section" aria-label={t("Announcements")}>
               <div className="mobile-manager-tasks-section-header">
-                <p className="mobile-manager-tasks-block-label">Announcements</p>
+                <p className="mobile-manager-tasks-block-label">{t("Announcements")}</p>
                 <button
                   type="button"
                   className="mobile-manager-tasks-inline-new-btn"
@@ -379,8 +380,8 @@ export function MobileManagerTasksView({
             </section>
           ) : null}
 
-          <section className="mobile-manager-tasks-section" aria-label="Today's checklist">
-            <p className="mobile-manager-tasks-block-label">Start a checklist</p>
+          <section className="mobile-manager-tasks-section" aria-label={t("Today's checklist")}>
+            <p className="mobile-manager-tasks-block-label">{t("Start a checklist")}</p>
             {checklistRows.length > 0 ? (
               <ul className="mobile-manager-tasks-checklist-list">
                 {checklistRows.map((row) => (
@@ -388,12 +389,12 @@ export function MobileManagerTasksView({
                 ))}
               </ul>
             ) : (
-              <p className="mobile-manager-tasks-inline-empty">No checklists to start</p>
+              <p className="mobile-manager-tasks-inline-empty">{t("No checklists to start")}</p>
             )}
           </section>
 
-          <section className="mobile-manager-tasks-section" aria-label="Recent team notes">
-            <p className="mobile-manager-tasks-block-label">Recent team notes</p>
+          <section className="mobile-manager-tasks-section" aria-label={t("Recent team notes")}>
+            <p className="mobile-manager-tasks-block-label">{t("Recent team notes")}</p>
             {recentNotes.length > 0 ? (
               <ul className="mobile-manager-tasks-note-list">
                 {recentNotes.map((log) => (
@@ -401,7 +402,7 @@ export function MobileManagerTasksView({
                 ))}
               </ul>
             ) : (
-              <p className="mobile-manager-tasks-inline-empty">No notes yet today</p>
+              <p className="mobile-manager-tasks-inline-empty">{t("No notes yet today")}</p>
             )}
           </section>
         </>

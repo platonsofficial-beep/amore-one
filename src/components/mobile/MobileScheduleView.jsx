@@ -1,4 +1,5 @@
 import { ScheduleWeekNav } from '../schedule/ScheduleWeekNav'
+import { t } from '../../i18n/i18n'
 
 function ScheduleWeekHeader({
   employeeName = '',
@@ -14,11 +15,11 @@ function ScheduleWeekHeader({
     <>
       <header className="mobile-screen-header mobile-schedule-header">
         <div className="mobile-schedule-title-block">
-          <p className="mobile-screen-eyebrow">My schedule</p>
-          <h1 className="mobile-screen-title">{employeeName || 'Your week'}</h1>
+          <p className="mobile-screen-eyebrow">{t("My schedule")}</p>
+          <h1 className="mobile-screen-title">{employeeName || t("Your week")}</h1>
           {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
           {isWeekUpdating ? (
-            <p className="mobile-week-updating" aria-live="polite">Updating…</p>
+            <p className="mobile-week-updating" aria-live="polite">{t("Updating…")}</p>
           ) : null}
         </div>
       </header>
@@ -65,7 +66,7 @@ export function MobileScheduleView({
         />
 
         <section className="mobile-card tone-neutral">
-          <p className="mobile-card-detail">Link your employee profile to view your schedule</p>
+          <p className="mobile-card-detail">{t("Link your employee profile to view your schedule")}</p>
         </section>
       </div>
     )
@@ -86,13 +87,13 @@ export function MobileScheduleView({
 
       {showUnpublishedMessage ? (
         <section className="mobile-card tone-neutral">
-          <h2 className="mobile-card-headline">Schedule not published</h2>
-          <p className="mobile-card-detail">Published shifts will appear here when your manager releases the schedule.</p>
+          <h2 className="mobile-card-headline">{t("Schedule not published")}</h2>
+          <p className="mobile-card-detail">{t("Published shifts will appear here when your manager releases the schedule.")}</p>
         </section>
       ) : days.length === 0 ? (
         <section className="mobile-card tone-neutral">
-          <h2 className="mobile-card-headline">No shifts this week</h2>
-          <p className="mobile-card-detail">You have no published shifts for this week. Check another week or ask your manager if something looks wrong.</p>
+          <h2 className="mobile-card-headline">{t("No shifts this week")}</h2>
+          <p className="mobile-card-detail">{t("You have no published shifts for this week. Check another week or ask your manager if something looks wrong.")}</p>
         </section>
       ) : (
         <div className="mobile-schedule-days">
@@ -105,7 +106,7 @@ export function MobileScheduleView({
                 <div>
                   <div className="mobile-schedule-day-title-row">
                     <p className="mobile-schedule-day-label">{day.dayLabel}</p>
-                    {day.isToday ? <span className="mobile-schedule-today-badge">Today</span> : null}
+                    {day.isToday ? <span className="mobile-schedule-today-badge">{t("Today")}</span> : null}
                   </div>
                   <p className="mobile-schedule-day-date">{day.shortDate}</p>
                 </div>
@@ -114,7 +115,7 @@ export function MobileScheduleView({
                 </span>
               </div>
               {day.isDayOff ? (
-                <p className="mobile-schedule-day-off">No shift scheduled</p>
+                <p className="mobile-schedule-day-off">{t("No shift scheduled")}</p>
               ) : (
                 <ul className="mobile-schedule-shift-list">
                   {day.shifts.map((shift) => (
@@ -132,7 +133,7 @@ export function MobileScheduleView({
 
       {canOpenFullSchedule ? (
         <button type="button" className="mobile-secondary-btn" onClick={onOpenFullSchedule}>
-          Open full team schedule
+          {t("Open full team schedule")}
         </button>
       ) : null}
     </div>

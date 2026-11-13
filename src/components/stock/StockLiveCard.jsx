@@ -1,6 +1,7 @@
 import { buildStockLiveFacts } from '../../lib/stockLiveCard'
 import { formatSharedStockHealthLine } from '../../lib/stockUtils'
 import { LoadFailed, LoadingLines } from '../common/DataPending'
+import { t } from '../../i18n/i18n'
 
 function LiveRow({ label, tone = 'default', onClick }) {
   return (
@@ -33,15 +34,15 @@ export function StockLiveCard({
 }) {
   if (loadStatus !== 'ready') {
     return (
-      <section className={`stock-live-card panel staff-panel is-${loadStatus}`} aria-label="Stock live" aria-busy={loadStatus === 'loading' ? 'true' : undefined}>
-        <h3 className="stock-live-card-title">Stock</h3>
+      <section className={`stock-live-card panel staff-panel is-${loadStatus}`} aria-label={t("Stock live")} aria-busy={loadStatus === 'loading' ? 'true' : undefined}>
+        <h3 className="stock-live-card-title">{t("Stock")}</h3>
         {loadStatus === 'error' ? (
           <div className="stock-live-card-pending"><LoadFailed onRetry={onRetry} /></div>
         ) : (
           <div className="stock-live-card-rows">
             {[0, 1, 2].map((row) => (
               <div key={row} className="stock-live-card-row stock-live-card-row-pending" aria-hidden={row > 0 ? 'true' : undefined}>
-                <LoadingLines label="Loading stock" />
+                <LoadingLines label={t("Loading stock")} />
               </div>
             ))}
           </div>
@@ -60,9 +61,9 @@ export function StockLiveCard({
   })
   const sharedHealth = stockSummary ? formatSharedStockHealthLine(stockSummary) : ''
   const belowParLabel = parsStatus === 'loading'
-    ? 'Checking pars…'
+    ? t("Checking pars…")
     : parsStatus === 'error'
-      ? 'Pars could not be loaded'
+      ? t("Pars could not be loaded")
       : facts.belowParLabel
   const healthLabel = sharedHealth || belowParLabel
   const healthTone = sharedHealth
@@ -74,8 +75,8 @@ export function StockLiveCard({
     : (parsStatus === 'ready' ? facts.belowParTone : 'default')
 
   return (
-    <section className="stock-live-card panel staff-panel" aria-label="Stock live">
-      <h3 className="stock-live-card-title">Stock</h3>
+    <section className="stock-live-card panel staff-panel" aria-label={t("Stock live")}>
+      <h3 className="stock-live-card-title">{t("Stock")}</h3>
       <div className="stock-live-card-rows">
         <LiveRow
           label={healthLabel}

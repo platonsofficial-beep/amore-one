@@ -3,6 +3,7 @@ import { readPersistedMobileWeekStart } from '../../lib/mobileNavigationPersiste
 import { getCurrentWeekStartDate, getWeekDays } from '../../lib/weekUtils'
 import { resolveEmployeeWorkspaceId } from '../../services/availabilityService'
 import { MobileAvailabilityView } from './MobileAvailabilityView'
+import { t } from '../../i18n/i18n'
 
 function formatAvailabilityWeekLabel(weekStartDate = '') {
   const normalized = `${weekStartDate ?? ''}`.trim()
@@ -57,7 +58,7 @@ export function StaffWeekScreen({
         weekStartDate,
         weekLabel: formatAvailabilityWeekLabel(weekStartDate),
       })
-      setAvailabilityContextError(error?.message || 'Unable to load availability context right now.')
+      setAvailabilityContextError(error?.message || t("Unable to load availability context right now."))
     } finally {
       setIsAvailabilityContextLoading(false)
     }

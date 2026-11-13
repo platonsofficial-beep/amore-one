@@ -3,6 +3,7 @@ import { BOOTSTRAP_TIMEOUT_MESSAGE, useAuth } from '../../context/AuthContext'
 import { formatInviteErrorMessage, shouldShowJoiningWorkspaceMessage } from '../../lib/inviteFlowUtils'
 import { readPendingInviteToken } from '../../lib/inviteTokenStorage'
 import { LoginView } from './LoginView'
+import { t } from '../../i18n/i18n'
 
 export function AuthGate({ children }) {
   const {
@@ -25,7 +26,7 @@ export function AuthGate({ children }) {
       <div className="auth-page auth-loading-page" aria-busy="true" aria-live="polite">
         <div className="auth-loading-card panel staff-panel">
           <OneFullLogo compact />
-          <p className="auth-loading-text">Loading session…</p>
+          <p className="auth-loading-text">{t("Loading session…")}</p>
         </div>
       </div>
     )
@@ -49,8 +50,8 @@ export function AuthGate({ children }) {
           <OneFullLogo compact />
           <p className="auth-loading-text">
             {isJoiningWorkspace || readPendingInviteToken()
-              ? 'Joining your venue…'
-              : 'Loading your venue…'}
+              ? t("Joining your venue…")
+              : t("Loading your venue…")}
           </p>
         </div>
       </div>
@@ -66,17 +67,17 @@ export function AuthGate({ children }) {
           <header className="auth-header">
             <OneFullLogo compact />
             <h1 className="auth-title">
-              {membershipLoadError === BOOTSTRAP_TIMEOUT_MESSAGE ? 'Πρόβλημα σύνδεσης' : 'Unable to join this venue'}
+              {membershipLoadError === BOOTSTRAP_TIMEOUT_MESSAGE ? t('Connection problem') : t('Unable to join this venue')}
             </h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
             {inviteErrorMessage}
           </div>
           <button type="button" className="primary-btn auth-submit-btn" onClick={() => window.location.reload()}>
-            Try again
+            {t("Try again")}
           </button>
           <button type="button" className="secondary-btn auth-submit-btn" onClick={() => signOut()}>
-            Sign out
+            {t("Sign out")}
           </button>
         </div>
       </div>
@@ -89,13 +90,13 @@ export function AuthGate({ children }) {
         <div className="auth-card panel staff-panel">
           <header className="auth-header">
             <OneFullLogo compact />
-            <h1 className="auth-title">Workspace unavailable</h1>
+            <h1 className="auth-title">{t("Workspace unavailable")}</h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
-            No workspace membership was found for this account.
+            {t("No workspace membership was found for this account.")}
           </div>
           <button type="button" className="primary-btn auth-submit-btn" onClick={() => signOut()}>
-            Sign out
+            {t("Sign out")}
           </button>
         </div>
       </div>

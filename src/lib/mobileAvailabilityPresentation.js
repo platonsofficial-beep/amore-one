@@ -3,6 +3,7 @@ import {
   EMPLOYEE_AVAILABILITY_STATUS,
   normalizeAvailabilityWeek,
 } from './employeeAvailabilityUtils'
+import { t } from '../i18n/i18n'
 
 export const MOBILE_AVAILABILITY_STATUS_OPTIONS = Object.freeze([
   {
@@ -58,19 +59,19 @@ export function getFriendlyAvailabilityError(error, fallback = 'Unable to update
 
   const lowered = message.toLowerCase()
   if (lowered.includes('employee is required') || lowered.includes('link your employee')) {
-    return 'Link your employee profile to manage availability.'
+    return t("Link your employee profile to manage availability.")
   }
   if (lowered.includes('week start date')) {
-    return 'Choose a valid week before saving availability.'
+    return t("Choose a valid week before saving availability.")
   }
   if (lowered.includes('sign in')) {
-    return 'Sign in to manage your availability.'
+    return t("Sign in to manage your availability.")
   }
   if (lowered.includes('not ready yet') || lowered.includes('does not exist')) {
-    return 'Availability is not ready yet. Try again later.'
+    return t("Availability is not ready yet. Try again later.")
   }
   if (lowered.includes('row-level security') || lowered.includes('permission denied')) {
-    return 'You can only edit your own availability.'
+    return t("You can only edit your own availability.")
   }
 
   return fallback

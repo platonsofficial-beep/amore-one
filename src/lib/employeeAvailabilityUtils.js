@@ -1,4 +1,5 @@
 import { parseTimeToMinutes } from './shiftHoursUtils'
+import { t } from '../i18n/i18n'
 
 export const EMPLOYEE_AVAILABILITY_STATUS = Object.freeze({
   AVAILABLE: Object.freeze({
@@ -257,7 +258,7 @@ export function validateAvailabilityWeek(week) {
   if (normalizedWeek.days.length !== EMPLOYEE_AVAILABILITY_DAYS.length) {
     issues.push({
       code: 'invalid_day_count',
-      message: 'Availability week must contain exactly 7 days',
+      message: t("Availability week must contain exactly 7 days"),
     })
   }
 
@@ -350,7 +351,7 @@ export function summarizeAvailabilityWeek(week) {
   const entries = normalizedWeek.days
 
   if (entries.every(isDefaultAvailableEntry)) {
-    return 'Available every day'
+    return t("Available every day")
   }
 
   const unavailableCount = entries.filter((entry) => (
@@ -364,11 +365,11 @@ export function summarizeAvailabilityWeek(week) {
   )).length
 
   if (unavailableCount === entries.length) {
-    return 'Unavailable every day'
+    return t("Unavailable every day")
   }
 
   if (preferredCount === entries.length) {
-    return 'Preferred every day'
+    return t("Preferred every day")
   }
 
   const hasUnavailable = unavailableCount > 0
@@ -377,7 +378,7 @@ export function summarizeAvailabilityWeek(week) {
   const patternCount = [hasUnavailable, hasPreferred, hasAvailableWithDetails].filter(Boolean).length
 
   if (patternCount > 1) {
-    return 'Mixed availability'
+    return t("Mixed availability")
   }
 
   if (hasUnavailable) {
@@ -391,7 +392,7 @@ export function summarizeAvailabilityWeek(week) {
       return `Unavailable ${formatDayRange(group)}`
     }
 
-    return 'Mixed availability'
+    return t("Mixed availability")
   }
 
   if (hasPreferred) {
@@ -415,8 +416,8 @@ export function summarizeAvailabilityWeek(week) {
       }
     }
 
-    return 'Mixed availability'
+    return t("Mixed availability")
   }
 
-  return 'Mixed availability'
+  return t("Mixed availability")
 }

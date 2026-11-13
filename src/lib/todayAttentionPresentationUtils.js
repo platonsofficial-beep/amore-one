@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const TODAY_ATTENTION_GROUP_ORDER = [
   'needs-action',
   'reservation-service',
@@ -9,13 +10,13 @@ export const TODAY_ATTENTION_GROUP_META = {
   'needs-action': {
     id: 'needs-action',
     icon: '🔴',
-    title: 'Needs Action',
+    title: t("Needs Action"),
     accent: 'critical',
   },
   'reservation-service': {
     id: 'reservation-service',
     icon: '🟠',
-    title: 'Reservation Service',
+    title: t("Reservation Service"),
     accent: 'warning',
   },
   schedule: {
@@ -83,7 +84,7 @@ export function groupTodayAttentionItems(items = []) {
 }
 
 export function getTodayAttentionRowBadge(item) {
-  if (`${item?.priority ?? ''}` === 'urgent') return 'Urgent'
-  if (`${item?.tone ?? ''}` === 'critical') return 'Critical'
+  if (`${item?.priority ?? ''}` === 'urgent') return t('Urgent')
+  if (`${item?.tone ?? ''}` === 'critical') return t('Critical')
   return ''
 }

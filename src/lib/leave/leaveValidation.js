@@ -1,4 +1,5 @@
 import { normalizeLeaveDateKey } from './leaveDateUtils'
+import { t } from '../../i18n/i18n'
 
 const MAX_LEAVE_DURATION_DAYS = 365
 
@@ -22,26 +23,26 @@ export function validateLeaveDates({
   const normalizedToday = normalizeLeaveDateKey(workspaceToday)
 
   if (!normalizedStart) {
-    return { ok: false, error: 'Start date is required.' }
+    return { ok: false, error: t("Start date is required.") }
   }
 
   if (!normalizedEnd) {
-    return { ok: false, error: 'End date is required.' }
+    return { ok: false, error: t("End date is required.") }
   }
 
   if (normalizedEnd < normalizedStart) {
-    return { ok: false, error: 'End date must be on or after start date.' }
+    return { ok: false, error: t("End date must be on or after start date.") }
   }
 
   if (!allowPastRequests && normalizedToday) {
     if (normalizedEnd < normalizedToday) {
-      return { ok: false, error: 'Leave cannot be requested for past dates.' }
+      return { ok: false, error: t("Leave cannot be requested for past dates.") }
     }
   }
 
   const durationDays = countInclusiveLeaveDays(normalizedStart, normalizedEnd)
   if (durationDays > MAX_LEAVE_DURATION_DAYS) {
-    return { ok: false, error: 'Leave duration exceeds the maximum allowed range.' }
+    return { ok: false, error: t("Leave duration exceeds the maximum allowed range.") }
   }
 
   return {

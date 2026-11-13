@@ -6,6 +6,7 @@ import termsEn from './terms-en.md?raw'
 import deleteEl from './delete-account-el.md?raw'
 import deleteEn from './delete-account-en.md?raw'
 import { renderLegalMarkdown } from './markdown'
+import { t } from '../i18n/i18n'
 import './legal.css'
 
 export const LEGAL_ROUTES = {
@@ -38,7 +39,7 @@ export function LegalPage({ path, lang = 'el', done = false }) {
       </nav>
       {done ? (
         <p className="legal-done" role="status">
-          {language === 'el' ? 'Ο λογαριασμός σου διαγράφηκε.' : 'Your account has been deleted.'}
+          {language === 'el' ? 'Ο λογαριασμός σου διαγράφηκε.' : t("Your account has been deleted.")}
         </p>
       ) : null}
       <article className="legal-article" dangerouslySetInnerHTML={{ __html: html }} />

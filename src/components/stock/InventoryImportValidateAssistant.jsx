@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 /**
  * P8.28.0 — Validate Import guided assistant presentation.
  *
@@ -59,7 +60,7 @@ export function InventoryImportValidateAssistant({
     >
       <section
         className={`inventory-import-validate-guidance is-${state}`}
-        aria-label="Import guidance"
+        aria-label={t("Import guidance")}
       >
         <div className="inventory-import-validate-guidance-copy">
           <p className="inventory-import-validate-guidance-status">
@@ -74,22 +75,22 @@ export function InventoryImportValidateAssistant({
         </div>
         <div
           className="inventory-import-validate-progress"
-          aria-label="Validation progress"
+          aria-label={t("Validation progress")}
         >
           <div className="inventory-import-validate-progress-item">
-            <span className="inventory-import-validate-progress-label">Resolved</span>
+            <span className="inventory-import-validate-progress-label">{t("Resolved")}</span>
             <span className="inventory-import-validate-progress-value">
               {Number(progress.resolved) || 0}
             </span>
           </div>
           <div className="inventory-import-validate-progress-item">
-            <span className="inventory-import-validate-progress-label">Remaining</span>
+            <span className="inventory-import-validate-progress-label">{t("Remaining")}</span>
             <span className="inventory-import-validate-progress-value">
               {Number(progress.remaining) || 0}
             </span>
           </div>
           <div className="inventory-import-validate-progress-item is-ready">
-            <span className="inventory-import-validate-progress-label">Ready</span>
+            <span className="inventory-import-validate-progress-label">{t("Ready")}</span>
             <span className="inventory-import-validate-progress-value">
               {Number(progress.ready) || 0}
             </span>
@@ -99,17 +100,17 @@ export function InventoryImportValidateAssistant({
 
       <section
         className="inventory-import-validate-section is-blockers"
-        aria-label="Blockers"
+        aria-label={t("Blockers")}
       >
         <header className="inventory-import-validate-section-header">
-          <h4 className="inventory-import-validate-section-title">Blockers</h4>
+          <h4 className="inventory-import-validate-section-title">{t("Blockers")}</h4>
           <p className="inventory-import-validate-section-copy">
-            Required fixes before this import is fully ready.
+            {t("Required fixes before this import is fully ready.")}
           </p>
         </header>
         {blockers.length === 0 ? (
           <p className="inventory-import-validate-section-empty" role="status">
-            No blockers.
+            {t("No blockers.")}
           </p>
         ) : (
           <div className="inventory-import-validate-groups is-blockers">
@@ -148,10 +149,10 @@ export function InventoryImportValidateAssistant({
 
       <section
         className="inventory-import-validate-section is-decisions"
-        aria-label="Decisions"
+        aria-label={t("Decisions")}
       >
         <header className="inventory-import-validate-section-header">
-          <h4 className="inventory-import-validate-section-title">Decisions</h4>
+          <h4 className="inventory-import-validate-section-title">{t("Decisions")}</h4>
           <p className="inventory-import-validate-section-copy">
             {hasDecisions
               ? (decisionCount > 0
@@ -161,7 +162,7 @@ export function InventoryImportValidateAssistant({
                 : (decisionTotal === 1
                   ? '1 possible match has been reviewed.'
                   : `${decisionTotal} possible matches have been reviewed.`))
-              : 'Manager choices required for uncertain matches.'}
+              : t("Manager choices required for uncertain matches.")}
           </p>
         </header>
         {hasDecisions ? (
@@ -170,24 +171,24 @@ export function InventoryImportValidateAssistant({
           </div>
         ) : (
           <p className="inventory-import-validate-section-empty is-positive" role="status">
-            No decisions required.
+            {t("No decisions required.")}
           </p>
         )}
       </section>
 
       <section
         className="inventory-import-validate-section is-warnings"
-        aria-label="Warnings"
+        aria-label={t("Warnings")}
       >
         <header className="inventory-import-validate-section-header">
-          <h4 className="inventory-import-validate-section-title">Warnings</h4>
+          <h4 className="inventory-import-validate-section-title">{t("Warnings")}</h4>
           <p className="inventory-import-validate-section-copy">
-            Non-blocking items worth a quick review.
+            {t("Non-blocking items worth a quick review.")}
           </p>
         </header>
         {warnings.length === 0 ? (
           <p className="inventory-import-validate-section-empty" role="status">
-            No warnings.
+            {t("No warnings.")}
           </p>
         ) : (
           <div className="inventory-import-validate-groups is-warnings">

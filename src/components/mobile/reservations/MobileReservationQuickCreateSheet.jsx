@@ -31,6 +31,7 @@ import { readGuestPreview } from '../../../lib/guestHistoryPreview'
 import { SeatingHoursFallback } from '../../reservations/NoServiceHoursNotice'
 import { seatingHoursPanelKind } from '../../../lib/hostLoadRecovery'
 import { buildQuickCreateEditHydration } from './hostQuickCreateEditHydration'
+import { t } from '../../../i18n/i18n'
 
 const EDIT_RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
@@ -189,7 +190,7 @@ function HostReservationQuickCreateFields({
       <div className="mobile-host-reservation-form-fields">
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field">
-          <span>First name</span>
+          <span>{t("First name")}</span>
           <input
             type="text"
             value={firstName}
@@ -197,14 +198,14 @@ function HostReservationQuickCreateFields({
               onNameValidationError?.('')
               onFirstNameChange?.(event.target.value)
             }}
-            placeholder="First name"
+            placeholder={t("First name")}
             required={mode === 'create'}
             autoComplete="given-name"
           />
         </label>
 
         <label className="mobile-host-form-field">
-          <span>Last name</span>
+          <span>{t("Last name")}</span>
           <input
             type="text"
             value={lastName}
@@ -212,7 +213,7 @@ function HostReservationQuickCreateFields({
               onNameValidationError?.('')
               onLastNameChange?.(event.target.value)
             }}
-            placeholder="Last name"
+            placeholder={t("Last name")}
             required={mode !== 'edit'}
             autoComplete="family-name"
           />
@@ -224,11 +225,11 @@ function HostReservationQuickCreateFields({
       ) : null}
 
       <label className="mobile-host-form-field" hidden={walkInShort}>
-        <span>Phone</span>
+        <span>{t("Phone")}</span>
         <ReservationPhoneField
           value={form.phone}
           onChange={(phone) => updateForm({ phone })}
-          placeholder="Optional"
+          placeholder={t("Optional")}
           workspaceProfile={workspaceProfile}
         />
       </label>
@@ -242,7 +243,7 @@ function HostReservationQuickCreateFields({
       />
 
       <label className="mobile-host-form-field" hidden={walkInShort}>
-        <span>Date</span>
+        <span>{t("Date")}</span>
         <ReservationDateField
           value={form.date}
           onChange={(date) => {
@@ -257,7 +258,7 @@ function HostReservationQuickCreateFields({
 
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field" hidden={walkInShort}>
-          <span>Time</span>
+          <span>{t("Time")}</span>
           <HostQuickCreateTimePicker
             value={form.time}
             onChange={(time) => updateForm({ time })}
@@ -265,7 +266,7 @@ function HostReservationQuickCreateFields({
         </label>
 
         <label className="mobile-host-form-field">
-          <span>Party size</span>
+          <span>{t("Party size")}</span>
           <input
             type="number"
             min="1"
@@ -281,7 +282,7 @@ function HostReservationQuickCreateFields({
 
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field" hidden={walkInShort && activeSeatings.length > 0}>
-          <span>Seating</span>
+          <span>{t("Seating")}</span>
           {seatingHoursKind === 'list' ? (
             <select
               value={form.seatingId ?? ''}
@@ -290,7 +291,7 @@ function HostReservationQuickCreateFields({
               })}
               data-testid="host-quick-create-seating"
             >
-              <option value="">Choose a seating</option>
+              <option value="">{t("Choose a seating")}</option>
               {activeSeatings.map((seating) => (
                 <option key={seating.id} value={seating.id}>
                   {formatHostQuickCreateSeatingOptionLabel(seating)}
@@ -307,14 +308,14 @@ function HostReservationQuickCreateFields({
         </label>
 
         <label className="mobile-host-form-field">
-          <span>Area</span>
+          <span>{t("Area")}</span>
           <select
             value={form.seatingAreaId}
             onChange={(event) => updateForm({ seatingAreaId: event.target.value })}
             disabled={zones.length === 0}
             data-testid="host-quick-create-area"
           >
-            <option value="">Choose an area</option>
+            <option value="">{t("Choose an area")}</option>
             {visibleAreas.map(({ zone, tableCount }) => (
               <option key={zone.id} value={zone.id} disabled={tableCount === 0}>
                 {tableCount === 0 ? `${zone.label} — no tables yet` : zone.label}
@@ -325,7 +326,7 @@ function HostReservationQuickCreateFields({
       </div>
       {selectedAreaHasNoTables ? (
         <p className="mobile-host-form-hint" role="status">
-          This area has no tables. Choose an area that has tables before seating the party.
+          {t("This area has no tables. Choose an area that has tables before seating the party.")}
         </p>
       ) : null}
 
@@ -341,34 +342,34 @@ function HostReservationQuickCreateFields({
 
       <div className="mobile-host-form-row" hidden={walkInShort}>
         <label className="mobile-host-form-field">
-          <span>Reservation Type</span>
+          <span>{t("Reservation Type")}</span>
           <select
             value={form.reservationPurpose ?? 'dinner'}
             onChange={(event) => updateForm({ reservationPurpose: event.target.value })}
             data-testid="host-quick-create-purpose"
           >
             {RESERVATION_PURPOSE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>{t(option.label)}</option>
             ))}
           </select>
         </label>
 
         <label className="mobile-host-form-field">
-          <span>Guest Type</span>
+          <span>{t("Guest Type")}</span>
           <select
             value={form.customerType ?? 'Regular'}
             onChange={(event) => updateForm({ customerType: event.target.value })}
             data-testid="host-quick-create-customer-type"
           >
             {GUEST_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
+              <option key={option.value} value={option.value}>{t(option.label)}</option>
             ))}
           </select>
         </label>
 
         {mode === 'edit' ? (
           <label className="mobile-host-form-field">
-            <span>Status</span>
+            <span>{t("Status")}</span>
             <select
               value={form.status ?? 'Pending'}
               onChange={(event) => updateForm({ status: event.target.value })}
@@ -383,18 +384,18 @@ function HostReservationQuickCreateFields({
       </div>
 
       <label className="mobile-host-form-field" hidden={walkInShort}>
-        <span>Notes</span>
+        <span>{t("Notes")}</span>
         <textarea
           rows={3}
           value={form.notes}
           onChange={(event) => updateForm({ notes: event.target.value })}
-          placeholder="Allergies, occasion, seating preference"
+          placeholder={t("Allergies, occasion, seating preference")}
         />
       </label>
 
       {showPendingHint ? (
         <p className="mobile-host-form-hint">
-          Saved as Pending until you confirm or seat them.
+          {t("Saved as Pending until you confirm or seat them.")}
         </p>
       ) : null}
 
@@ -425,7 +426,7 @@ function HostReservationQuickCreateFields({
           onClick={onClose}
           disabled={isSaving}
         >
-          Cancel
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -586,11 +587,11 @@ export function MobileReservationQuickCreateSheet({
   }
 
   const eyebrowLabel = isEditMode
-    ? 'Edit reservation'
+    ? t("Edit reservation")
     : isWalkInMode
-      ? 'NEW WALK-IN'
-      : 'New reservation'
-  const titleLabel = isEditMode ? editGuestTitle : 'Quick create'
+      ? t("NEW WALK-IN")
+      : t("New reservation")
+  const titleLabel = isEditMode ? editGuestTitle : t("Quick create")
 
   const header = (
     <header className="mobile-host-reservation-panel-header">
@@ -602,7 +603,7 @@ export function MobileReservationQuickCreateSheet({
         type="button"
         className="mobile-sheet-close-btn"
         onClick={handleClose}
-        aria-label="Close"
+        aria-label={t("Close")}
       >
         ✕
       </button>
@@ -628,7 +629,7 @@ export function MobileReservationQuickCreateSheet({
       reservations={availabilityReservations}
       layout={layout}
       mode={mode}
-      primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
+      primaryActionLabel={isEditMode ? t("Save changes") : isWalkInMode ? t("Seat Now") : t("Save reservation")}
       showPendingHint={!isEditMode && !isWalkInMode}
       workspaceProfile={workspaceProfile}
       role={role}
@@ -640,10 +641,10 @@ export function MobileReservationQuickCreateSheet({
   )
 
   const panelAriaLabel = isEditMode
-    ? 'Edit reservation'
+    ? t("Edit reservation")
     : isWalkInMode
-      ? 'Create walk-in'
-      : 'Create reservation'
+      ? t("Create walk-in")
+      : t("Create reservation")
   const dialogTitleId = isEditMode
     ? 'mobile-host-reservation-edit-title'
     : isWalkInMode
@@ -711,7 +712,7 @@ export function MobileReservationQuickCreateSheet({
             type="button"
             className="mobile-sheet-close-btn"
             onClick={handleClose}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>

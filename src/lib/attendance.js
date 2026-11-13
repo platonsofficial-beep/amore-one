@@ -1,4 +1,5 @@
 import { getDateKeyInTimeZone, getWeekDateKeys, getWeekStartDate } from './weekUtils'
+import { t } from '../i18n/i18n'
 
 export const LOCATION_CONSENT_STORAGE_KEY = 'one.attendance.locationConsent.v1'
 
@@ -50,11 +51,11 @@ export function failureMessage(result) {
   }
   if (reason === 'poor_accuracy') return POOR_ACCURACY_MESSAGE
   if (reason === 'no_location') return LOCATION_OFF_MESSAGE
-  if (reason === 'already_clocked_in') return 'You are already clocked in.'
-  if (reason === 'not_clocked_in') return 'Clock in before you clock out.'
-  if (reason === 'already_on_break') return 'You are already on a break.'
-  if (reason === 'not_on_break') return 'You are not on a break.'
-  return 'Something went wrong. Try again.'
+  if (reason === 'already_clocked_in') return t("You are already clocked in.")
+  if (reason === 'not_clocked_in') return t("Clock in before you clock out.")
+  if (reason === 'already_on_break') return t("You are already on a break.")
+  if (reason === 'not_on_break') return t("You are not on a break.")
+  return t("Something went wrong. Try again.")
 }
 
 export function needsManagerRequest(result) {
@@ -87,8 +88,8 @@ export function clockInMessage(result, clockedAt = new Date(), timeZone = '') {
 
 export function clockOutMessage(result) {
   if (!result?.ok) return failureMessage(result)
-  if (result.pending_approval) return 'You are clocked out. Sent to your manager for approval.'
-  return 'You are clocked out.'
+  if (result.pending_approval) return t("You are clocked out. Sent to your manager for approval.")
+  return t("You are clocked out.")
 }
 
 export function attendanceErrorMessage(error) {
@@ -97,16 +98,16 @@ export function attendanceErrorMessage(error) {
   if (!message || lowered.includes('failed to fetch') || lowered.includes('network')) {
     return OFFLINE_MESSAGE
   }
-  if (lowered.includes('owner_only')) return 'Only the owner can save the venue location.'
+  if (lowered.includes('owner_only')) return t("Only the owner can save the venue location.")
   if (lowered.includes('note_required') || lowered.includes('reason_required')) {
-    return 'Add a note so the change is recorded.'
+    return t("Add a note so the change is recorded.")
   }
-  if (lowered.includes('cannot_edit_own_entry')) return 'You cannot change your own time. The owner can.'
-  if (lowered.includes('cannot_decide_own')) return 'You cannot approve your own request. The owner can.'
-  if (lowered.includes('already_decided')) return 'This request was already decided.'
-  if (lowered.includes('invalid_times')) return 'Clock out has to be after clock in.'
+  if (lowered.includes('cannot_edit_own_entry')) return t("You cannot change your own time. The owner can.")
+  if (lowered.includes('cannot_decide_own')) return t("You cannot approve your own request. The owner can.")
+  if (lowered.includes('already_decided')) return t("This request was already decided.")
+  if (lowered.includes('invalid_times')) return t("Clock out has to be after clock in.")
   if (lowered.includes('not_a_member') || lowered.includes('forbidden')) {
-    return 'You cannot do that with your access.'
+    return t("You cannot do that with your access.")
   }
   return message
 }
@@ -379,7 +380,7 @@ export function describeTodayShift(shifts, {
 
   const chosen = covering ?? todayShifts[0] ?? null
   if (!chosen) {
-    return { label: 'No shift today (Unscheduled)', unscheduled: true, shift: null }
+    return { label: t("No shift today (Unscheduled)"), unscheduled: true, shift: null }
   }
 
   const place = shiftPlaceLabel(chosen)
@@ -438,10 +439,10 @@ export function canDecideOwnAttendance({ isOwner = false, actorMemberId = '', ta
 }
 
 export function exceptionKindLabel(kind) {
-  if (kind === 'outside_clock_in') return 'Outside clock in'
-  if (kind === 'outside_clock_out') return 'Outside clock out'
-  if (kind === 'missed_clock_out') return 'Missed clock out'
-  if (kind === 'edit_request') return 'Time change'
+  if (kind === 'outside_clock_in') return t("Outside clock in")
+  if (kind === 'outside_clock_out') return t("Outside clock out")
+  if (kind === 'missed_clock_out') return t("Missed clock out")
+  if (kind === 'edit_request') return t("Time change")
   return 'Request'
 }
 
@@ -451,21 +452,21 @@ export function validateVenueSettings({ lat, lng, radiusM, lateGraceMinutes }) {
   const radius = Number(radiusM)
   const grace = Number(lateGraceMinutes)
   if ((latText && !lngText) || (!latText && lngText)) {
-    return { ok: false, message: 'Enter both latitude and longitude.' }
+    return { ok: false, message: t("Enter both latitude and longitude.") }
   }
   const latNumber = latText ? Number(latText) : null
   const lngNumber = lngText ? Number(lngText) : null
   if (latNumber != null && (!Number.isFinite(latNumber) || latNumber < -90 || latNumber > 90)) {
-    return { ok: false, message: 'Latitude must be between -90 and 90.' }
+    return { ok: false, message: t("Latitude must be between -90 and 90.") }
   }
   if (lngNumber != null && (!Number.isFinite(lngNumber) || lngNumber < -180 || lngNumber > 180)) {
-    return { ok: false, message: 'Longitude must be between -180 and 180.' }
+    return { ok: false, message: t("Longitude must be between -180 and 180.") }
   }
   if (!Number.isInteger(radius) || radius < 25 || radius > 1000) {
-    return { ok: false, message: 'Radius must be between 25 and 1000 metres.' }
+    return { ok: false, message: t("Radius must be between 25 and 1000 metres.") }
   }
   if (!Number.isInteger(grace) || grace < 0 || grace > 120) {
-    return { ok: false, message: 'Late grace must be between 0 and 120 minutes.' }
+    return { ok: false, message: t("Late grace must be between 0 and 120 minutes.") }
   }
   return {
     ok: true,

@@ -13,6 +13,7 @@ import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
 import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoClosedBadge'
+import { t } from '../../../i18n/i18n'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
@@ -110,7 +111,7 @@ function MobileHostReservationCompactRow({
             />
           ) : (
             <p className="mobile-host-reservation-row-meta">
-              {partySize} {partySize === 1 ? 'guest' : 'guests'} · {tableSection}
+              {t('{{count}} guest', { count: partySize })} · {tableSection}
             </p>
           )}
         </button>
@@ -134,7 +135,7 @@ function MobileHostReservationCompactRow({
         <button
           type="button"
           className="mobile-host-reservation-row-more"
-          aria-label="More reservation actions"
+          aria-label={t("More reservation actions")}
           aria-haspopup="menu"
           disabled={isSaving}
           onClick={(event) => {
@@ -246,14 +247,14 @@ export function MobileReservationHostCard({
               isSaving={isSaving}
             />
             <p className="mobile-host-reservation-meta">
-              {partySize} {partySize === 1 ? 'guest' : 'guests'}
+              {t('{{count}} guest', { count: partySize })}
               {phone ? ` · ${phone}` : ''}
             </p>
             <p className="mobile-host-reservation-table">{tableSection}</p>
           </div>
         </button>
 
-        <div className="mobile-host-reservation-actions" role="group" aria-label="Quick actions">
+        <div className="mobile-host-reservation-actions" role="group" aria-label={t("Quick actions")}>
           {quickActions.map((action) => (
             <button
               key={action.id}

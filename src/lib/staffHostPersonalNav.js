@@ -1,4 +1,5 @@
 import { isHostRole, normalizeWorkspaceRole } from './membershipRoles'
+import { t } from '../i18n/i18n'
 
 export const STAFF_HOST_PERSONAL_VIEWS = ['my-week', 'account', 'clock', 'notifications']
 
@@ -22,7 +23,7 @@ export function canOpenStaffHostPersonalView(access, view) {
   return isStaffOrHostRole(access) && isStaffHostPersonalView(view)
 }
 
-export const MY_WEEK_NAV_ITEM = { id: 'my-week', label: 'My week', icon: '◔' }
+export const MY_WEEK_NAV_ITEM = { id: 'my-week', label: t("My week"), icon: '◔' }
 
 export function withStaffHostRailItems(items, access) {
   const source = Array.isArray(items) ? items : []
@@ -42,10 +43,10 @@ export function withStaffHostRailItems(items, access) {
 export function staffHostAvatarActions({ canRequestLeave = false, canUseChat = false } = {}) {
   return [
     ...(canUseChat ? [{ id: 'chat', label: 'Chat' }] : []),
-    { id: 'my-week', label: 'My week' },
+    { id: 'my-week', label: t("My week") },
     { id: 'account', label: 'Profile' },
-    { id: 'clock', label: 'Clock in/out' },
-    ...(canRequestLeave ? [{ id: 'leave', label: 'Request Leave' }] : []),
+    { id: 'clock', label: t("Clock in/out") },
+    ...(canRequestLeave ? [{ id: 'leave', label: t("Request Leave") }] : []),
   ]
 }
 

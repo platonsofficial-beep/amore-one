@@ -5,6 +5,7 @@ import {
   resolveEmployeeIdentityPresentation,
 } from '../../lib/identity/employeeIdentityResolve'
 import { resolveEmployeeIdentitySize } from '../../lib/identity/employeeIdentitySize'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {{
@@ -63,7 +64,7 @@ export function EmployeeIdentity({
               <img
                 className="employee-identity-photo"
                 src={presentation.photoUrl}
-                alt={presentation.name ? `${presentation.name} profile photo` : 'Employee profile photo'}
+                alt={presentation.name ? `${presentation.name} profile photo` : t("Employee profile photo")}
               />
             ) : null}
 

@@ -4,12 +4,13 @@ import {
   normalizeReservationTimeValue,
   snapTimeToQuarter,
 } from '../../../lib/timeFormatUtils'
+import { t } from '../../../i18n/i18n'
 
 const TIME_TABS = [
   { id: 'morning', label: 'Morning', start: '07:00', end: '13:45', spansMidnight: false },
   { id: 'afternoon', label: 'Afternoon', start: '15:00', end: '19:45', spansMidnight: false },
   { id: 'night', label: 'Night', start: '20:00', end: '00:45', spansMidnight: true },
-  { id: 'all-day', label: 'All Day', start: '07:00', end: '00:45', spansMidnight: true },
+  { id: 'all-day', label: t("All Day"), start: '07:00', end: '00:45', spansMidnight: true },
 ]
 
 function parseTimeToMinutes(value) {
@@ -81,7 +82,7 @@ const TAB_SLOTS = Object.fromEntries(
 export function HostQuickCreateTimePicker({
   value,
   onChange,
-  placeholder = 'Select time',
+  placeholder = t("Select time"),
   disabled = false,
 }) {
   const fieldId = useId()
@@ -141,11 +142,11 @@ export function HostQuickCreateTimePicker({
       >
         <header className="host-quick-create-time-picker-header">
           <h3 id={`${fieldId}-picker-title`} className="host-quick-create-time-picker-title">
-            Select time
+            {t("Select time")}
           </h3>
         </header>
 
-        <div className="host-quick-create-time-picker-tabs" role="tablist" aria-label="Time of day">
+        <div className="host-quick-create-time-picker-tabs" role="tablist" aria-label={t("Time of day")}>
           {TIME_TABS.map((tab) => (
             <button
               key={tab.id}
@@ -163,7 +164,7 @@ export function HostQuickCreateTimePicker({
         <div
           className="host-quick-create-time-picker-slots"
           role="listbox"
-          aria-label={`${TIME_TABS.find((tab) => tab.id === activeTabId)?.label ?? 'All Day'} times`}
+          aria-label={`${TIME_TABS.find((tab) => tab.id === activeTabId)?.label ?? t("All Day")} times`}
         >
           <div className="host-quick-create-time-picker-grid">
             {activeSlots.map((time) => (
@@ -189,7 +190,7 @@ export function HostQuickCreateTimePicker({
             data-testid="host-quick-create-time-cancel"
             onClick={closePicker}
           >
-            Cancel
+            {t("Cancel")}
           </button>
         </footer>
       </div>

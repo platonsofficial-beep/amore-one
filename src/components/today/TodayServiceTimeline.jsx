@@ -10,6 +10,7 @@ import {
   TIMELINE_SCROLL_LIMIT,
 } from '../../lib/todayDashboardUtils'
 import { buildReservationTimelinePresentation } from '../../lib/todayTimelinePresentationUtils'
+import { t } from '../../i18n/i18n'
 
 function TodayTimelineNowRow({ row }) {
   return (
@@ -127,11 +128,11 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
   const isScrollable = showAll && totalActiveCount > TIMELINE_SCROLL_LIMIT
 
   if (isLoading) {
-    return <p className="today-empty-note">Loading timeline…</p>
+    return <p className="today-empty-note">{t("Loading timeline…")}</p>
   }
 
   if (totalActiveCount === 0 && completedCount === 0) {
-    return <p className="today-empty-note">No upcoming events for today.</p>
+    return <p className="today-empty-note">{t("No upcoming events for today.")}</p>
   }
 
   const hasActiveRows = activeRows.length > 0
@@ -147,7 +148,7 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           ))}
         </ul>
       ) : (
-        <p className="today-empty-note">Nothing active right now.</p>
+        <p className="today-empty-note">{t("Nothing active right now.")}</p>
       )}
       {completedCount > 0 ? (
         <button
@@ -156,7 +157,7 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           onClick={() => setShowCompleted((current) => !current)}
           aria-expanded={showCompleted}
         >
-          {showCompleted ? 'Hide completed' : `Show completed (${completedCount})`}
+          {showCompleted ? t("Hide completed") : `Show completed (${completedCount})`}
         </button>
       ) : null}
       {showCompleted && completedRows.length > 0 ? (
@@ -177,7 +178,7 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           Show all ({totalActiveCount})
         </button>
       ) : null}
-      <div className="today-timeline-legend" aria-label="Timeline legend">
+      <div className="today-timeline-legend" aria-label={t("Timeline legend")}>
         {TIMELINE_LEGEND_ITEMS.map((item) => (
           <span key={item.key} className="today-timeline-legend-item">
             <span className="today-timeline-legend-icon" aria-hidden="true">{item.icon}</span>

@@ -4,6 +4,7 @@ import {
   recordPublishBreadcrumb,
 } from './publishFloorPlanDiagnostics'
 import { takeHostReturnAfterPublishIntent } from './hostReturnAfterPublishBoot'
+import { t } from '../i18n/i18n'
 
 export function useHostReturnAfterPublishBoot({
   enabled = false,
@@ -49,7 +50,7 @@ export function useHostReturnAfterPublishBoot({
 
     if (isLoading) return
 
-    const message = loadError || 'Published layout not available after boot.'
+    const message = loadError || t("Published layout not available after boot.")
     recordPublishBreadcrumb('boot-layout-error', { message })
     logPublishBreadcrumbsOnError(new Error(message), { phase: 'boot-restore' })
     setPhase('error')

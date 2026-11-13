@@ -1,4 +1,5 @@
 import { Component } from 'react'
+import { t } from '../../i18n/i18n'
 
 export class HostReservationEditErrorBoundary extends Component {
   constructor(props) {
@@ -26,21 +27,21 @@ export class HostReservationEditErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <aside className="host-reservation-edit-panel is-drawer" aria-label="Edit reservation">
+        <aside className="host-reservation-edit-panel is-drawer" aria-label={t("Edit reservation")}>
           <div className="host-reservation-edit-header">
             <div>
-              <p className="host-reservation-edit-eyebrow">Edit reservation</p>
-              <h4>Reservation data unavailable</h4>
+              <p className="host-reservation-edit-eyebrow">{t("Edit reservation")}</p>
+              <h4>{t("Reservation data unavailable")}</h4>
             </div>
             <div className="host-reservation-edit-header-actions">
-              <button type="button" className="icon-btn" onClick={this.props.onClose} aria-label="Close edit panel">
+              <button type="button" className="icon-btn" onClick={this.props.onClose} aria-label={t("Close edit panel")}>
                 ✕
               </button>
             </div>
           </div>
           <div className="host-reservation-edit-scroll">
             <p className="host-reservation-edit-unavailable">
-              This reservation could not be loaded safely. Close and try again, or refresh the page.
+              {t("This reservation could not be loaded safely. Close and try again, or refresh the page.")}
             </p>
           </div>
         </aside>

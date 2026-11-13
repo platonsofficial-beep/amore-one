@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 export const NAV_ITEMS = [
   { id: 'today', label: 'Today', icon: '◈' },
   { id: 'chat', label: 'Chat', icon: '💬' },
@@ -39,12 +41,12 @@ export const MODULE_LABELS = {
   operations: 'Operations',
   insights: 'Insights',
   settings: 'Settings',
-  attendance: 'Time clock',
-  'time-clock': 'Time clock',
-  'floor-plan-builder': 'Floor Plan Builder',
-  'my-week': 'My week',
+  attendance: t("Time clock"),
+  'time-clock': t("Time clock"),
+  'floor-plan-builder': t("Floor Plan Builder"),
+  'my-week': t("My week"),
   account: 'Profile',
-  clock: 'Clock in/out',
+  clock: t("Clock in/out"),
   notifications: 'Notifications',
   chat: 'Chat',
 }
@@ -86,7 +88,7 @@ export function resolveInsightsModuleLink(moduleId) {
 }
 
 export function getModuleLabel(moduleId) {
-  return MODULE_LABELS[moduleId] || 'This module'
+  return MODULE_LABELS[moduleId] || t("This module")
 }
 
 export function isTodayView(activeView) {
@@ -139,35 +141,35 @@ export function getModuleTitle(activeView, {
   stockSection = 'dashboard',
   operationsSection = 'dashboard',
 } = {}) {
-  if (activeView === 'today') return 'Today'
-  if (activeView === 'reservations') return 'Reservations'
+  if (activeView === 'today') return t('Today')
+  if (activeView === 'reservations') return t('Reservations')
   if (activeView === 'team') {
-    if (teamSection === 'schedule') return 'Schedule'
-    if (teamSection === 'members') return 'People'
-    return 'Team'
+    if (teamSection === 'schedule') return t('Schedule')
+    if (teamSection === 'members') return t('People')
+    return t('Team')
   }
   if (activeView === 'stock') {
-    if (stockSection === 'count') return 'Counts'
-    if (stockSection === 'storages') return 'Storages'
-    if (stockSection === 'suppliers') return 'Suppliers'
-    if (stockSection === 'orders') return 'Orders'
-    if (stockSection === 'migration') return 'Import'
-    return 'Stock'
+    if (stockSection === 'count') return t('Counts')
+    if (stockSection === 'storages') return t('Storages')
+    if (stockSection === 'suppliers') return t('Suppliers')
+    if (stockSection === 'orders') return t('Orders')
+    if (stockSection === 'migration') return t('Import')
+    return t('Stock')
   }
   if (activeView === 'operations') {
-    if (operationsSection === 'checklists') return 'Checklists'
-    if (operationsSection === 'tasks') return 'Task boards'
-    return 'Operations'
+    if (operationsSection === 'checklists') return t('Checklists')
+    if (operationsSection === 'tasks') return t('Task boards')
+    return t('Operations')
   }
-  if (activeView === 'insights') return 'Insights'
-  if (activeView === 'settings') return 'Settings'
-  if (activeView === 'my-week') return 'My week'
-  if (activeView === 'account') return 'Profile'
-  if (activeView === 'clock') return 'Clock in/out'
-  if (activeView === 'notifications') return 'Notifications'
-  if (activeView === 'chat') return 'Chat'
-  if (activeView === 'time-clock' || activeView === 'attendance') return 'Time clock'
-  return getModuleLabel(activeView)
+  if (activeView === 'insights') return t('Insights')
+  if (activeView === 'settings') return t('Settings')
+  if (activeView === 'my-week') return t('My week')
+  if (activeView === 'account') return t('Profile')
+  if (activeView === 'clock') return t('Clock in/out')
+  if (activeView === 'notifications') return t('Notifications')
+  if (activeView === 'chat') return t('Chat')
+  if (activeView === 'time-clock' || activeView === 'attendance') return t('Time clock')
+  return t(getModuleLabel(activeView))
 }
 
 export function getModuleSubtitle(activeView, currentDateLabel, {
@@ -176,35 +178,35 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   operationsSection = 'dashboard',
 } = {}) {
   if (activeView === 'today') {
-    return `${currentDateLabel} · Your daily command center`
+    return `${currentDateLabel} · ${t('Your daily command center')}`
   }
-  if (activeView === 'reservations') return 'Guest flow and service.'
-  if (activeView === 'team' && teamSection === 'today') return "Who's working today."
-  if (activeView === 'team' && teamSection === 'members') return 'Manage your team.'
+  if (activeView === 'reservations') return t('Guest flow and service.')
+  if (activeView === 'team' && teamSection === 'today') return t("Who's working today.")
+  if (activeView === 'team' && teamSection === 'members') return t('Manage your team.')
   if (activeView === 'team' && teamSection === 'schedule') return ''
-  if (activeView === 'stock' && stockSection === 'dashboard') return 'Stock levels, movements, and alerts.'
+  if (activeView === 'stock' && stockSection === 'dashboard') return t('Stock levels, movements, and alerts.')
   if (activeView === 'stock' && stockSection === 'count') {
-    return 'Count inventory by location, review variances, and post verified stock levels.'
+    return t('Count inventory by location, review variances, and post verified stock levels.')
   }
   if (activeView === 'stock' && stockSection === 'storages') {
-    return 'Understand and manage stock by physical location.'
+    return t('Understand and manage stock by physical location.')
   }
-  if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
-  if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
+  if (activeView === 'stock' && stockSection === 'suppliers') return t('Supplier contacts, products, and purchase history.')
+  if (activeView === 'stock' && stockSection === 'orders') return t('Supplier purchase orders and receiving.')
   if (activeView === 'stock' && stockSection === 'migration') {
-    return 'Bring products in from a spreadsheet. Review every row before it is applied.'
+    return t('Bring products in from a spreadsheet. Review every row before it is applied.')
   }
-  if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
-  if (activeView === 'operations' && operationsSection === 'tasks') return 'Department task boards, separate from the operations checklist.'
-  if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
-  if (activeView === 'insights') return 'Business intelligence from live data.'
-  if (activeView === 'settings') return 'Venue and account configuration.'
-  if (activeView === 'my-week') return 'Weekly availability.'
-  if (activeView === 'account') return 'Personal details and account.'
-  if (activeView === 'clock') return 'Clock in or out for this shift.'
-  if (activeView === 'notifications') return 'Reminders, quiet hours and this device.'
-  if (activeView === 'chat') return 'Team messages.'
-  if (activeView === 'time-clock' || activeView === 'attendance') return "Who is in, late arrivals, and this week's hours."
+  if (activeView === 'operations' && operationsSection === 'checklists') return t('Build reusable opening, closing, and prep procedures.')
+  if (activeView === 'operations' && operationsSection === 'tasks') return t('Department task boards, separate from the operations checklist.')
+  if (activeView === 'operations') return t('Daily tasks, issues, and shift communication.')
+  if (activeView === 'insights') return t('Business intelligence from live data.')
+  if (activeView === 'settings') return t('Venue and account configuration.')
+  if (activeView === 'my-week') return t('Weekly availability.')
+  if (activeView === 'account') return t('Personal details and account.')
+  if (activeView === 'clock') return t('Clock in or out for this shift.')
+  if (activeView === 'notifications') return t('Reminders, quiet hours and this device.')
+  if (activeView === 'chat') return t('Team messages.')
+  if (activeView === 'time-clock' || activeView === 'attendance') return t("Who is in, late arrivals, and this week's hours.")
   return ''
 }
 
@@ -213,18 +215,18 @@ export function getSearchPlaceholder(activeView, {
   stockSection = 'dashboard',
   operationsSection = 'dashboard',
 } = {}) {
-  if (activeView === 'team' && teamSection === 'members') return 'Search employee'
-  if (activeView === 'stock' && stockSection === 'orders') return 'Search orders'
-  if (activeView === 'stock' && stockSection === 'dashboard') return 'Search stock item'
-  if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
-  if (activeView === 'stock' && stockSection === 'storages') return 'Search storages'
-  if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
-  if (activeView === 'stock' && stockSection === 'migration') return 'Search import'
-  if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
-  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'
-  if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks'
-  if (activeView === 'insights') return 'Search insights'
-  return 'Search'
+  if (activeView === 'team' && teamSection === 'members') return t('Search employee')
+  if (activeView === 'stock' && stockSection === 'orders') return t('Search orders')
+  if (activeView === 'stock' && stockSection === 'dashboard') return t('Search stock item')
+  if (activeView === 'stock' && stockSection === 'count') return t('Search counts')
+  if (activeView === 'stock' && stockSection === 'storages') return t('Search storages')
+  if (activeView === 'stock' && stockSection === 'suppliers') return t('Search supplier')
+  if (activeView === 'stock' && stockSection === 'migration') return t('Search import')
+  if (activeView === 'operations' && operationsSection === 'checklists') return t('Search checklists')
+  if (activeView === 'operations' && operationsSection === 'tasks') return t('Search tasks')
+  if (activeView === 'operations' && operationsSection === 'dashboard') return t('Search tasks')
+  if (activeView === 'insights') return t('Search insights')
+  return t('Search')
 }
 
 export function shouldShowModuleSearch(activeView, teamSection, stockSection = 'dashboard') {

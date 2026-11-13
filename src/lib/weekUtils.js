@@ -1,3 +1,5 @@
+import { t, uiLocale, upper } from '../i18n/i18n'
+
 /** Venue calendar. Asia/Nicosia and Europe/Nicosia are the same zone. */
 export const NICOSIA_TIME_ZONE = 'Asia/Nicosia'
 
@@ -76,8 +78,8 @@ export function getWeekDays(weekStartDate, options = {}) {
     const date = parseLocalDate(key)
     return {
       key,
-      label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      shortDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      label: date.toLocaleDateString(uiLocale('en-US'), { weekday: 'short' }),
+      shortDate: date.toLocaleDateString(uiLocale('en-US'), { month: 'short', day: 'numeric' }),
       count: Number(shiftCounts[key] ?? 0),
     }
   })
@@ -100,16 +102,16 @@ export function isCurrentWeek(weekStartDate, timeZone = NICOSIA_TIME_ZONE) {
 }
 
 export function formatWeekRange(days) {
-  if (!Array.isArray(days) || days.length === 0) return 'No week selected'
+  if (!Array.isArray(days) || days.length === 0) return t("No week selected")
   return `${days[0].shortDate} – ${days[days.length - 1].shortDate}`
 }
 
 export function formatScheduleDayHeader(dateKey) {
   const date = parseLocalDate(dateKey)
   return {
-    weekdayLabel: date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
-    weekdayShortLabel: date.toLocaleDateString('en-US', { weekday: 'short' }).replace(/\./g, '').toUpperCase(),
-    calendarLabel: `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}`,
+    weekdayLabel: upper(date.toLocaleDateString(uiLocale('en-US'), { weekday: 'long' })),
+    weekdayShortLabel: upper(date.toLocaleDateString(uiLocale('en-US'), { weekday: 'short' }).replace(/\./g, '')),
+    calendarLabel: `${date.getDate()} ${upper(date.toLocaleDateString(uiLocale('en-US'), { month: 'short' }))}`,
   }
 }
 

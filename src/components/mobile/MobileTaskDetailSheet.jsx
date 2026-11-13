@@ -7,6 +7,7 @@ import {
 } from '../../lib/operationsUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { parseLocalDate } from '../../lib/weekUtils'
+import { t } from '../../i18n/i18n'
 
 function normalizeTaskDateKey(value) {
   if (!value) return ''
@@ -123,7 +124,7 @@ export function MobileTaskDetailSheet({
             type="button"
             className="mobile-sheet-close-btn"
             onClick={handleClose}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -131,14 +132,14 @@ export function MobileTaskDetailSheet({
 
         {step === 'complete' ? (
           <form className="mobile-sheet-body" onSubmit={handleCompleteSubmit}>
-            <p className="mobile-sheet-lead">Add an optional note about what was done.</p>
+            <p className="mobile-sheet-lead">{t("Add an optional note about what was done.")}</p>
             <label className="mobile-sheet-field">
-              <span>Completion note</span>
+              <span>{t("Completion note")}</span>
               <textarea
                 rows={4}
                 value={completionNote}
                 onChange={(event) => setCompletionNote(event.target.value)}
-                placeholder="Optional note"
+                placeholder={t("Optional note")}
               />
             </label>
             <div className="mobile-sheet-actions">
@@ -148,10 +149,10 @@ export function MobileTaskDetailSheet({
                 onClick={() => setStep('detail')}
                 disabled={isSaving}
               >
-                Back
+                {t("Back")}
               </button>
               <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Mark complete'}
+                {isSaving ? 'Saving…' : t("Mark complete")}
               </button>
             </div>
           </form>
@@ -163,11 +164,11 @@ export function MobileTaskDetailSheet({
 
             <dl className="mobile-task-detail-grid">
               <div>
-                <dt>Due</dt>
+                <dt>{t("Due")}</dt>
                 <dd>{formatTaskDueLabel(task, todayKey)}</dd>
               </div>
               <div>
-                <dt>Priority</dt>
+                <dt>{t("Priority")}</dt>
                 <dd>
                   <span className={`mobile-task-priority-badge priority-${priority}`}>
                     {getOperationsPriorityLabel(task.priority)}
@@ -175,21 +176,21 @@ export function MobileTaskDetailSheet({
                 </dd>
               </div>
               <div>
-                <dt>Assigned</dt>
+                <dt>{t("Assigned")}</dt>
                 <dd>{assigneeName}</dd>
               </div>
               <div>
-                <dt>Status</dt>
+                <dt>{t("Status")}</dt>
                 <dd>{getStatusLabel(task.status)}</dd>
               </div>
               {isDone ? (
                 <>
                   <div>
-                    <dt>Completed by</dt>
-                    <dd>{task.completedByName || 'Team member'}</dd>
+                    <dt>{t("Completed by")}</dt>
+                    <dd>{task.completedByName || t("Team member")}</dd>
                   </div>
                   <div>
-                    <dt>Completed</dt>
+                    <dt>{t("Completed")}</dt>
                     <dd>{formatCompletedTimestamp(task.completedAt ?? task.completed_at)}</dd>
                   </div>
                 </>
@@ -198,7 +199,7 @@ export function MobileTaskDetailSheet({
 
             {task.completionNote ? (
               <div className="mobile-task-completion-note">
-                <p className="mobile-sheet-field-label">Completion note</p>
+                <p className="mobile-sheet-field-label">{t("Completion note")}</p>
                 <p>{task.completionNote}</p>
               </div>
             ) : null}
@@ -211,7 +212,7 @@ export function MobileTaskDetailSheet({
                   onClick={() => setStep('complete')}
                   disabled={isSaving}
                 >
-                  Complete task
+                  {t("Complete task")}
                 </button>
               ) : null}
               <button

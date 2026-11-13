@@ -13,6 +13,7 @@ import {
   reloadPwaForUpdate,
   subscribePwaUpdateAvailable,
 } from '../../lib/pwaUpdate.js'
+import { t } from '../../i18n/i18n'
 
 const ONLINE_BANNER_MS = 3200
 
@@ -21,7 +22,7 @@ function NetworkStatusBanner({ isOnline, showBackOnline }) {
     return (
       <div className="pwa-offline-banner" role="status" aria-live="polite">
         <p className="pwa-offline-banner-copy">
-          <strong>You're offline.</strong> ONE will open, but live data and saves need a connection. Changes won't sync until you're back online.
+          <strong>{t("You're offline.")}</strong> {t("ONE will open, but live data and saves need a connection. Changes won't sync until you're back online.")}
         </p>
       </div>
     )
@@ -32,7 +33,7 @@ function NetworkStatusBanner({ isOnline, showBackOnline }) {
   return (
     <div className="pwa-offline-banner pwa-online-banner" role="status" aria-live="polite">
       <p className="pwa-offline-banner-copy">
-        <strong>Back online.</strong> Live data and saves are available again.
+        <strong>{t("Back online.")}</strong> {t("Live data and saves are available again.")}
       </p>
     </div>
   )
@@ -42,7 +43,7 @@ function PwaUpdateBanner({ onRefresh }) {
   return (
     <div className="pwa-update-banner" role="status" aria-live="polite">
       <p className="pwa-offline-banner-copy">
-        <strong>New version available — Refresh</strong>
+        <strong>{t("New version available — Refresh")}</strong>
       </p>
       <button
         type="button"
@@ -50,7 +51,7 @@ function PwaUpdateBanner({ onRefresh }) {
         data-pwa-update="refresh"
         onClick={onRefresh}
       >
-        Refresh
+        {t("Refresh")}
       </button>
     </div>
   )
@@ -65,28 +66,28 @@ function PwaInstallBanner({
   if (!deferredPrompt && !showIosHint) return null
 
   return (
-    <aside className="pwa-install-banner" aria-label="Install ONE">
+    <aside className="pwa-install-banner" aria-label={t("Install ONE")}>
       <div className="pwa-install-banner-copy">
         {deferredPrompt ? (
           <>
-            <strong>Install ONE</strong>
-            <span>Add ONE to your home screen or apps for faster access.</span>
+            <strong>{t("Install ONE")}</strong>
+            <span>{t("Add ONE to your home screen or apps for faster access.")}</span>
           </>
         ) : (
           <>
-            <strong>Install on iPhone</strong>
-            <span>Tap Share, then Add to Home Screen to install ONE without browser chrome.</span>
+            <strong>{t("Install on iPhone")}</strong>
+            <span>{t("Tap Share, then Add to Home Screen to install ONE without browser chrome.")}</span>
           </>
         )}
       </div>
       <div className="pwa-install-banner-actions">
         {deferredPrompt ? (
           <button type="button" className="primary-btn pwa-install-btn" onClick={onInstall}>
-            Install
+            {t("Install")}
           </button>
         ) : null}
         <button type="button" className="ghost-btn pwa-install-dismiss-btn" onClick={onDismiss}>
-          Dismiss
+          {t("Dismiss")}
         </button>
       </div>
     </aside>

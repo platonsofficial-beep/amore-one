@@ -1,5 +1,6 @@
 import { getTodayAttentionItemA11y } from '../../lib/todayAttentionNavigation'
 import { getTodayAttentionRowBadge } from '../../lib/todayAttentionPresentationUtils'
+import { t } from '../../i18n/i18n'
 
 export function TodayAttentionListItem({
   item,
@@ -29,20 +30,20 @@ export function TodayAttentionListItem({
     <>
       <span className="mobile-manager-priority-dot" aria-hidden="true" />
       <div className="mobile-manager-attention-copy" aria-hidden={isActionable ? 'true' : undefined}>
-        <strong>{item.label}</strong>
-        <span>{item.detail}</span>
+        <strong>{t(item.label)}</strong>
+        <span>{t(item.detail)}</span>
       </div>
     </>
   ) : (
     <span className="today-attention-copy" aria-hidden={isActionable ? 'true' : undefined}>
       <span className="today-attention-row-top">
-        <strong className="today-attention-row-title">{item.label}</strong>
+        <strong className="today-attention-row-title">{t(item.label)}</strong>
         {badge ? (
           <span className={`today-attention-row-badge tone-${tone}`}>{badge}</span>
         ) : null}
       </span>
       {item.detail ? (
-        <span className="today-attention-row-subtitle">{item.detail}</span>
+        <span className="today-attention-row-subtitle">{t(item.detail)}</span>
       ) : null}
     </span>
   )
@@ -68,7 +69,7 @@ export function TodayAttentionListItem({
             onCompleteAttentionItem?.(item)
           }}
         >
-          Complete
+          {t("Complete")}
         </button>
       ) : null}
     </li>

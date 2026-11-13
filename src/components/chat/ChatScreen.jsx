@@ -58,6 +58,7 @@ import {
   subscribeToChatTyping,
   uploadChatPhoto,
 } from '../../services/chatService'
+import { t } from '../../i18n/i18n'
 import './chat.css'
 
 const CHAT_SESSION_KEY = 'one.chat.session'
@@ -122,7 +123,7 @@ function ChatPhoto({ path, onOpen }) {
   }, [path])
   if (!url) return null
   return (
-    <button type="button" className="chat-photo" aria-label="View photo" onClick={() => onOpen?.(url)}>
+    <button type="button" className="chat-photo" aria-label={t("View photo")} onClick={() => onOpen?.(url)}>
       <img src={url} alt="" />
     </button>
   )
@@ -300,7 +301,7 @@ export function ChatScreen({
     let cancelled = false
     setError('')
     loadRef.current(openId).catch((err) => {
-      if (!cancelled) setError(err?.message || 'Unable to open this chat.')
+      if (!cancelled) setError(err?.message || t("Unable to open this chat."))
     })
     return () => {
       cancelled = true
@@ -477,7 +478,7 @@ export function ChatScreen({
       await loadConversation(openId)
     } catch (err) {
       forceBottomRef.current = false
-      setError(err?.message || 'Unable to send that message.')
+      setError(err?.message || t("Unable to send that message."))
     } finally {
       setBusy(false)
     }
@@ -510,7 +511,7 @@ export function ChatScreen({
     } catch (err) {
       forceBottomRef.current = false
       setOutgoingPhoto({ url: localUrl, status: 'failed' })
-      setError(err?.message || 'That photo could not be sent.')
+      setError(err?.message || t("That photo could not be sent."))
     } finally {
       setBusy(false)
     }
@@ -538,7 +539,7 @@ export function ChatScreen({
       const next = await fetchChatReactions(messages.map((item) => item.id))
       setReactions(next)
     } catch (err) {
-      setError(err?.message || 'Unable to react.')
+      setError(err?.message || t("Unable to react."))
     }
     setSheet(null)
   }
@@ -552,7 +553,7 @@ export function ChatScreen({
       setOpenId(conversationId)
       setSheet(null)
     } catch (err) {
-      setError(err?.message || 'Unable to start that chat.')
+      setError(err?.message || t("Unable to start that chat."))
     } finally {
       setBusy(false)
     }
@@ -578,7 +579,7 @@ export function ChatScreen({
       setOpenId(conversationId)
       setSheet(null)
     } catch (err) {
-      setError(err?.message || 'Unable to create that channel.')
+      setError(err?.message || t("Unable to create that channel."))
     } finally {
       setBusy(false)
     }
@@ -591,7 +592,7 @@ export function ChatScreen({
       setSheet(null)
       await loadConversation(openId)
     } catch (err) {
-      setError(err?.message || 'Unable to update members.')
+      setError(err?.message || t("Unable to update members."))
     } finally {
       setBusy(false)
     }
@@ -603,7 +604,7 @@ export function ChatScreen({
       setSheet(null)
       await onRefreshInbox?.()
     } catch (err) {
-      setError(err?.message || 'Unable to change mute.')
+      setError(err?.message || t("Unable to change mute."))
     }
   }
 
@@ -613,7 +614,7 @@ export function ChatScreen({
   )
 
   const isPanelSheet = sheet === 'direct' || sheet === 'channel'
-  const panelTitle = sheet === 'channel' ? 'New channel' : 'New chat'
+  const panelTitle = sheet === 'channel' ? t("New channel") : t("New chat")
   const directPeople = members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase()))
   const channelPeople = members.filter((member) => member.id !== memberId && `${member.name ?? ''} ${member.email ?? ''}`.toLowerCase().includes(memberQuery.trim().toLowerCase()))
 
@@ -622,32 +623,32 @@ export function ChatScreen({
       className={`chat-screen${resolvedLayout === 'split' ? ' is-split' : ''}`}
     >
       {showList ? (
-        <section className="chat-list" aria-label="Chats">
+        <section className="chat-list" aria-label={t("Chats")}>
           <header className="chat-list-header">
-            <h2>Chat</h2>
+            <h2>{t("Chat")}</h2>
             <div className="chat-header-actions">
               {canManage ? (
-                <button type="button" className="chat-header-action" aria-label="New channel" title="New channel" data-help="chat.channel" onClick={() => setSheet('channel')}>
+                <button type="button" className="chat-header-action" aria-label={t("New channel")} title={t("New channel")} data-help="chat.channel" onClick={() => setSheet('channel')}>
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <path fill="currentColor" d="M18 3v2.3L6.6 8H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1l1.2 4.6a1 1 0 0 0 1 .7H9a1 1 0 0 0 1-1.2L9 15.6l9 2.1V20h2V3h-2Zm0 12.6-8-1.9V9.4l8-1.9v8.1Z" />
                   </svg>
-                  <span className="chat-header-action-label">Channel</span>
+                  <span className="chat-header-action-label">{t("Channel")}</span>
                 </button>
               ) : null}
-              <button type="button" className="chat-header-action is-primary" aria-label="New chat" title="New chat" data-help="chat.new" onClick={() => setSheet('direct')}>
+              <button type="button" className="chat-header-action is-primary" aria-label={t("New chat")} title={t("New chat")} data-help="chat.new" onClick={() => setSheet('direct')}>
                 <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                   <path fill="currentColor" d="M12 3C6.5 3 2 6.9 2 11.7c0 2.4 1.1 4.6 3 6.2L4 21.6l4.4-1.9c1.1.4 2.3.6 3.6.6 5.5 0 10-3.9 10-8.6S17.5 3 12 3Zm4 9.7h-3v3h-2v-3H8v-2h3v-3h2v3h3v2Z" />
                 </svg>
-                <span className="chat-header-action-label">New</span>
+                <span className="chat-header-action-label">{t("New")}</span>
               </button>
             </div>
           </header>
           <label className="chat-search" data-help="chat.search">
-            <span className="sr-only">Search chats</span>
+            <span className="sr-only">{t("Search chats")}</span>
             <input
               type="search"
               value={query}
-              placeholder="Search by name"
+              placeholder={t("Search by name")}
               data-testid="chat-search"
               onChange={(event) => setQuery(event.target.value)}
             />
@@ -655,7 +656,7 @@ export function ChatScreen({
           {error && !openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
           <div className="chat-list-scroll">
             {listed.length === 0 ? (
-              <p className="chat-empty">{query.trim() ? `No chats named “${query.trim()}”.` : 'No chats yet. Start one with New.'}</p>
+              <p className="chat-empty">{query.trim() ? `No chats named “${query.trim()}”.` : t("No chats yet. Start one with New.")}</p>
             ) : null}
             {listed.map((row) => {
               const title = conversationTitle(row, membersById, aliases)
@@ -696,12 +697,12 @@ export function ChatScreen({
                     <span className="chat-row-line">
                       <span className="chat-row-preview">{lastMessagePreview(row)}</span>
                       {row.muted ? (
-                        <span className="chat-muted" title="Muted">
+                        <span className="chat-muted" title={t("Muted")}>
                           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                             <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.2-2h-4.4A2.2 2.2 0 0 0 12 22Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 1 0-2 0v1.1A6 6 0 0 0 6 11v5l-1.7 1.7A1 1 0 0 0 5 19.4h14a1 1 0 0 0 .7-1.7L18 16Z" />
                             <path fill="currentColor" d="M4.3 3.3 3 4.6 19.4 21l1.3-1.3L4.3 3.3Z" />
                           </svg>
-                          <span className="sr-only">Muted</span>
+                          <span className="sr-only">{t("Muted")}</span>
                         </span>
                       ) : null}
                       {!row.muted && Number(row.unread) > 0 ? (
@@ -717,10 +718,10 @@ export function ChatScreen({
       ) : null}
 
       {showThread ? (
-        <section className="chat-thread-pane" aria-label="Conversation">
+        <section className="chat-thread-pane" aria-label={t("Conversation")}>
           <header className="chat-thread-header">
             {resolvedLayout !== 'split' ? (
-              <button type="button" className="chat-icon-btn chat-back-btn" aria-label="Back" data-help="chat.back" onClick={() => setOpenId('')}>
+              <button type="button" className="chat-icon-btn chat-back-btn" aria-label={t("Back")} data-help="chat.back" onClick={() => setOpenId('')}>
                 <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                   <path fill="currentColor" d="M15.4 19.4 8 12l7.4-7.4 1.4 1.4L10.8 12l6 6z" />
                 </svg>
@@ -747,14 +748,14 @@ export function ChatScreen({
               ) : openRow ? (
                 <span className="chat-avatar chat-avatar-inline" aria-hidden="true">{openRow.icon || initials(conversationTitle(openRow, membersById, aliases))}</span>
               ) : null}
-              <span>{openRow ? conversationTitle(openRow, membersById, aliases) : 'Choose a chat'}</span>
+              <span>{openRow ? conversationTitle(openRow, membersById, aliases) : t("Choose a chat")}</span>
               </button>
             </h2>
             {openId ? (
               <button
                 type="button"
                 className="chat-icon-btn chat-mute-btn"
-                aria-label="Mute"
+                aria-label={t("Mute")}
                 aria-pressed={Boolean(openRow?.muted)}
                 data-help="chat.mute"
                 onClick={() => setSheet('mute')}
@@ -774,13 +775,13 @@ export function ChatScreen({
                   setSheet('members')
                 }}
               >
-                Members
+                {t("Members")}
               </button>
             ) : null}
           </header>
           {error && openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
           {pinned.length > 0 ? (
-            <div className="chat-pinned" aria-label="Pinned messages">
+            <div className="chat-pinned" aria-label={t("Pinned messages")}>
               {pinned.map((message) => (
                 <button key={message.id} type="button" onClick={() => document.getElementById(`chat-message-${message.id}`)?.scrollIntoView({ block: 'center' })}>
                   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
@@ -823,7 +824,7 @@ export function ChatScreen({
                 className="chat-icon-btn"
                 onClick={() => loadConversation(openId, { before: messages[0]?.created_at }).catch((err) => setError(err.message))}
               >
-                Earlier messages
+                {t("Earlier messages")}
               </button>
             ) : null}
             {messages.map((message, index) => {
@@ -897,13 +898,13 @@ export function ChatScreen({
                     {reply ? (
                       <p className="chat-reply-quote">
                         <strong>{membersById[reply.author_member_id]?.name || aliases[reply.author_member_id] || 'Message'}</strong>
-                        <span>{reply.deleted_at ? 'Message deleted' : (reply.body || 'Photo')}</span>
+                        <span>{reply.deleted_at ? t("Message deleted") : (reply.body || 'Photo')}</span>
                       </p>
                     ) : null}
                     {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} onOpen={setViewerUrl} /> : null}
-                    <p>{deleted ? 'Message deleted' : (message.body || (message.attachment_path ? '' : ''))}</p>
+                    <p>{deleted ? t("Message deleted") : (message.body || (message.attachment_path ? '' : ''))}</p>
                     <span className="chat-bubble-meta">
-                      {message.edited_at && !deleted ? <span>Edited</span> : null}
+                      {message.edited_at && !deleted ? <span>{t("Edited")}</span> : null}
                       <time dateTime={message.created_at}>{lastMessageTimeLabel(message.created_at)}</time>
                       {tick ? <span className={`chat-ticks is-${tick}`} aria-label={tick === 'read' ? 'Read' : 'Sent'}>{tick === 'read' ? '✓✓' : '✓'}</span> : null}
                     </span>
@@ -928,7 +929,7 @@ export function ChatScreen({
                 </div>
               )
             })}
-            {someoneTyping ? <p className="chat-typing" role="status">Typing…</p> : null}
+            {someoneTyping ? <p className="chat-typing" role="status">{t("Typing…")}</p> : null}
             </div>
           </div>
           {showJump ? (
@@ -936,7 +937,7 @@ export function ChatScreen({
               type="button"
               className="chat-scroll-bottom"
               data-testid="chat-scroll-bottom"
-              aria-label={jumpCount > 0 ? `Scroll to latest, ${jumpCount} new` : 'Scroll to latest'}
+              aria-label={jumpCount > 0 ? `Scroll to latest, ${jumpCount} new` : t("Scroll to latest")}
               onClick={() => pinToLatest()}
             >
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -964,19 +965,19 @@ export function ChatScreen({
                     <strong>{membersById[replyTo.author_member_id]?.name || aliases[replyTo.author_member_id] || 'Message'}</strong>
                     {replyTo.body || 'Photo'}
                   </span>
-                  <button type="button" aria-label="Cancel reply" onClick={() => setReplyTo(null)}>✕</button>
+                  <button type="button" aria-label={t("Cancel reply")} onClick={() => setReplyTo(null)}>✕</button>
                 </p>
               ) : null}
               {outgoingPhoto ? (
                 <p className="chat-photo-preview">
                   <img src={outgoingPhoto.url} alt="" />
-                  <span>{outgoingPhoto.status === 'failed' ? 'Photo failed' : 'Sending photo…'}</span>
+                  <span>{outgoingPhoto.status === 'failed' ? t("Photo failed") : t("Sending photo…")}</span>
                 </p>
               ) : null}
-              {editing ? <p className="chat-meta">Editing your message</p> : null}
-              {cannotPost ? <p className="chat-meta">Only managers can post in this channel.</p> : null}
+              {editing ? <p className="chat-meta">{t("Editing your message")}</p> : null}
+              {cannotPost ? <p className="chat-meta">{t("Only managers can post in this channel.")}</p> : null}
               {emojiOpen ? (
-                <div className="chat-emoji-picker" role="listbox" aria-label="Emoji">
+                <div className="chat-emoji-picker" role="listbox" aria-label={t("Emoji")}>
                   {CHAT_COMPOSER_EMOJIS.map((emoji) => (
                     <button key={emoji} type="button" onClick={() => setDraft((current) => clipChatBody(`${current}${emoji}`))}>{emoji}</button>
                   ))}
@@ -990,18 +991,18 @@ export function ChatScreen({
                 onChange={onPhoto}
               />
               <div className="chat-composer-field">
-                <button type="button" className="chat-composer-emoji" aria-label="Emoji" data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
+                <button type="button" className="chat-composer-emoji" aria-label={t("Emoji")} data-help="chat.emoji" aria-pressed={emojiOpen} disabled={cannotPost} onClick={() => setEmojiOpen((current) => !current)}>
                   ☺
                 </button>
                 <textarea
                   ref={draftRef}
-                  aria-label="Message"
+                  aria-label={t("Message")}
                   data-help="chat.message"
                   value={draft}
                   maxLength={4000}
                   rows={1}
                   disabled={cannotPost}
-                  placeholder="Message"
+                  placeholder={t("Message")}
                   onChange={(event) => setDraft(clipChatBody(event.target.value))}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
@@ -1010,32 +1011,32 @@ export function ChatScreen({
                     }
                   }}
                 />
-                <button type="button" className="chat-composer-photo" aria-label="Photo" data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
+                <button type="button" className="chat-composer-photo" aria-label={t("Photo")} data-help="chat.photo" disabled={cannotPost || busy} onClick={() => fileRef.current?.click()}>
                   <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
                     <path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 13a4 4 0 1 1 0-8 4 4 0 0 1 0 8Z" />
                   </svg>
                 </button>
               </div>
-              <button type="submit" className="chat-send" aria-label="Send" data-help="chat.send" disabled={busy || cannotPost || !draft.trim()}>
+              <button type="submit" className="chat-send" aria-label={t("Send")} data-help="chat.send" disabled={busy || cannotPost || !draft.trim()}>
                 <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                   <path fill="currentColor" d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z" />
                 </svg>
               </button>
             </form>
           ) : (
-            <p className="chat-empty">Pick a chat to start.</p>
+            <p className="chat-empty">{t("Pick a chat to start.")}</p>
           )}
         </section>
       ) : null}
 
       {sheet ? createPortal((
         <div className={`chat-sheet-backdrop${isPanelSheet ? ' is-panel' : ''}`} role="presentation" onClick={() => setSheet(null)}>
-          <div className={`chat-sheet${isPanelSheet ? ' is-panel' : ''}`} role="dialog" aria-label={isPanelSheet ? panelTitle : 'Chat actions'} onClick={(event) => event.stopPropagation()}>
+          <div className={`chat-sheet${isPanelSheet ? ' is-panel' : ''}`} role="dialog" aria-label={isPanelSheet ? panelTitle : t("Chat actions")} onClick={(event) => event.stopPropagation()}>
             {isPanelSheet ? (
               <div className="chat-sheet-head">
                 <span className="chat-sheet-grab" aria-hidden="true" />
                 <h3>{panelTitle}</h3>
-                <button type="button" className="chat-sheet-close" aria-label="Close" onClick={() => setSheet(null)}>
+                <button type="button" className="chat-sheet-close" aria-label={t("Close")} onClick={() => setSheet(null)}>
                   <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                     <path fill="currentColor" d="M18.3 5.7 16.9 4.3 12 9.2 7.1 4.3 5.7 5.7 10.6 10.6 5.7 15.5l1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9z" />
                   </svg>
@@ -1049,17 +1050,17 @@ export function ChatScreen({
                     <button key={emoji} type="button" onClick={() => toggleReaction(activeMessage, emoji)}>{emoji}</button>
                   ))}
                 </div>
-                <button type="button" onClick={() => { setReplyTo(activeMessage); setSheet(null) }}>Reply</button>
-                <button type="button" onClick={() => copyMessage(activeMessage)}>Copy</button>
+                <button type="button" onClick={() => { setReplyTo(activeMessage); setSheet(null) }}>{t("Reply")}</button>
+                <button type="button" onClick={() => copyMessage(activeMessage)}>{t("Copy")}</button>
                 {canEditChatMessage(activeMessage, memberId) ? (
-                  <button type="button" onClick={() => { setEditing(activeMessage); setDraft(activeMessage.body || ''); setSheet(null) }}>Edit</button>
+                  <button type="button" onClick={() => { setEditing(activeMessage); setDraft(activeMessage.body || ''); setSheet(null) }}>{t("Edit")}</button>
                 ) : null}
                 {canDeleteChatMessage(activeMessage, memberId, canManage) ? (
                   <button type="button" onClick={async () => {
                     await deleteChatMessage(activeMessage.id)
                     setSheet(null)
                     loadConversation(openId).catch(() => {})
-                  }}>Delete</button>
+                  }}>{t("Delete")}</button>
                 ) : null}
                 {canManage ? (
                   <button type="button" onClick={async () => {
@@ -1073,13 +1074,13 @@ export function ChatScreen({
             {sheet === 'direct' ? (
               <>
                 <label className="chat-sheet-search">
-                  <span className="sr-only">Search people</span>
+                  <span className="sr-only">{t("Search people")}</span>
                   <input
                     type="search"
                     value={directQuery}
                     onChange={(event) => setDirectQuery(event.target.value)}
-                    placeholder="Search people"
-                    aria-label="Search people"
+                    placeholder={t("Search people")}
+                    aria-label={t("Search people")}
                   />
                 </label>
                 <div className="chat-sheet-body">
@@ -1109,7 +1110,7 @@ export function ChatScreen({
                           <strong>{member.name}</strong>
                           {member.role ? <span>{member.role}</span> : null}
                         </span>
-                        {existing ? <span className="chat-person-badge">Open chat</span> : null}
+                        {existing ? <span className="chat-person-badge">{t("Open chat")}</span> : null}
                         <svg className="chat-person-chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                           <path fill="currentColor" d="m9.4 18-1.4-1.4 4.6-4.6L8 7.4 9.4 6l6 6z" />
                         </svg>
@@ -1125,12 +1126,12 @@ export function ChatScreen({
                   <div className="chat-channel-top">
                     <span className="chat-channel-icon-preview" aria-hidden="true">{channelIcon.trim() || '#'}</span>
                     <label className="chat-field chat-channel-name">
-                      Channel name
-                      <input value={channelName} onChange={(event) => setChannelName(event.target.value)} placeholder="e.g. Kitchen" />
+                      {t("Channel name")}
+                      <input value={channelName} onChange={(event) => setChannelName(event.target.value)} placeholder={t("e.g. Kitchen")} />
                     </label>
                   </div>
                   <div className="chat-field">
-                    <span id="chat-channel-icon-label">Icon (optional)</span>
+                    <span id="chat-channel-icon-label">{t("Icon (optional)")}</span>
                     <div className="chat-icon-picker" role="group" aria-labelledby="chat-channel-icon-label">
                       {CHANNEL_ICON_CHOICES.map((icon) => (
                         <button
@@ -1144,32 +1145,32 @@ export function ChatScreen({
                         </button>
                       ))}
                       <input
-                        aria-label="Icon"
+                        aria-label={t("Icon")}
                         value={channelIcon}
                         onChange={(event) => setChannelIcon(event.target.value)}
-                        placeholder="Other"
+                        placeholder={t("Other")}
                         maxLength={8}
                       />
                     </div>
                   </div>
                   <div className="chat-field">
-                    <span id="chat-channel-policy-label">Who can post</span>
+                    <span id="chat-channel-policy-label">{t("Who can post")}</span>
                     <div className="chat-segmented" role="radiogroup" aria-labelledby="chat-channel-policy-label">
                       <button type="button" role="radio" aria-checked={channelPolicy === 'all'} className={channelPolicy === 'all' ? 'is-on' : ''} onClick={() => setChannelPolicy('all')}>
-                        Everyone can post
+                        {t("Everyone can post")}
                       </button>
                       <button type="button" role="radio" aria-checked={channelPolicy === 'managers'} className={channelPolicy === 'managers' ? 'is-on' : ''} onClick={() => setChannelPolicy('managers')}>
-                        Announcements only
+                        {t("Announcements only")}
                       </button>
                     </div>
                   </div>
                   <div className="chat-members-head">
-                    <span>Members</span>
+                    <span>{t("Members")}</span>
                     <span className="chat-members-count">{pickedMembers.length} selected</span>
                   </div>
                   <label className="chat-sheet-search">
-                    <span className="sr-only">Search members</span>
-                    <input type="search" value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder="Search members" aria-label="Search members" />
+                    <span className="sr-only">{t("Search members")}</span>
+                    <input type="search" value={memberQuery} onChange={(event) => setMemberQuery(event.target.value)} placeholder={t("Search members")} aria-label={t("Search members")} />
                   </label>
                   {channelPeople.map((member) => {
                     const on = pickedMembers.includes(member.id)
@@ -1200,7 +1201,7 @@ export function ChatScreen({
                   {channelPeople.length === 0 ? <p className="chat-sheet-empty">No one matches “{memberQuery.trim()}”.</p> : null}
                 </div>
                 <div className="chat-sheet-footer">
-                  <button type="button" className="chat-sheet-primary" disabled={busy || !channelName.trim()} onClick={createChannel}>Create channel</button>
+                  <button type="button" className="chat-sheet-primary" disabled={busy || !channelName.trim()} onClick={createChannel}>{t("Create channel")}</button>
                 </div>
               </>
             ) : null}
@@ -1222,19 +1223,19 @@ export function ChatScreen({
                     {member.name}
                   </label>
                 ))}
-                <button type="button" onClick={saveMembers}>Save members</button>
+                <button type="button" onClick={saveMembers}>{t("Save members")}</button>
               </>
             ) : null}
             {sheet === 'info' && openRow ? (
               <>
                 <p className="chat-sheet-title">{conversationTitle(openRow, membersById, aliases)}</p>
-                <p className="chat-meta">{openRow.kind === 'team' ? 'Team' : openRow.kind === 'group' ? 'Channel' : 'Direct message'}</p>
+                <p className="chat-meta">{openRow.kind === 'team' ? 'Team' : openRow.kind === 'group' ? 'Channel' : t("Direct message")}</p>
                 {participants.filter((person) => !person.left_at).map((person) => (
                   <p key={person.member_id} className="chat-sheet-person">
                     {membersById[person.member_id]?.name || aliases[person.member_id] || 'Member'}
                   </p>
                 ))}
-                <button type="button" data-help="chat.mute" onClick={() => setSheet('mute')}>Mute</button>
+                <button type="button" data-help="chat.mute" onClick={() => setSheet('mute')}>{t("Mute")}</button>
                 {canManage && openRow.kind === 'group' ? (
                   <button
                     type="button"
@@ -1243,26 +1244,26 @@ export function ChatScreen({
                       setSheet('members')
                     }}
                   >
-                    Members
+                    {t("Members")}
                   </button>
                 ) : null}
               </>
             ) : null}
             {sheet === 'mute' ? (
               <>
-                <button type="button" onClick={() => applyMute('1h')}>Mute for 1 hour</button>
-                <button type="button" onClick={() => applyMute('8h')}>Mute for 8 hours</button>
-                <button type="button" onClick={() => applyMute('tomorrow')}>Mute until tomorrow</button>
-                <button type="button" onClick={() => applyMute('always')}>Mute always</button>
-                <button type="button" onClick={() => applyMute('off')}>Unmute</button>
+                <button type="button" onClick={() => applyMute('1h')}>{t("Mute for 1 hour")}</button>
+                <button type="button" onClick={() => applyMute('8h')}>{t("Mute for 8 hours")}</button>
+                <button type="button" onClick={() => applyMute('tomorrow')}>{t("Mute until tomorrow")}</button>
+                <button type="button" onClick={() => applyMute('always')}>{t("Mute always")}</button>
+                <button type="button" onClick={() => applyMute('off')}>{t("Unmute")}</button>
               </>
             ) : null}
-            {isPanelSheet ? null : <button type="button" onClick={() => setSheet(null)}>Close</button>}
+            {isPanelSheet ? null : <button type="button" onClick={() => setSheet(null)}>{t("Close")}</button>}
           </div>
         </div>
       ), document.body) : null}
       {viewerUrl ? (
-        <div className="chat-viewer" role="dialog" aria-label="Photo" onClick={() => setViewerUrl('')}>
+        <div className="chat-viewer" role="dialog" aria-label={t("Photo")} onClick={() => setViewerUrl('')}>
           <img src={viewerUrl} alt="" />
         </div>
       ) : null}

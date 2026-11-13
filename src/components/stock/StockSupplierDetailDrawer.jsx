@@ -16,6 +16,7 @@ import {
   getSupplierStatusTone,
   supplierHasHistory,
 } from '../../lib/stockSupplierUtils'
+import { t } from '../../i18n/i18n'
 
 function DetailRow({ label, value }) {
   if (!`${value ?? ''}`.trim()) return null
@@ -75,10 +76,10 @@ export function StockSupplierDetailDrawer({
               {getSupplierInitials(supplier?.companyName)}
             </div>
             <div>
-              <p className="stock-order-detail-eyebrow">Supplier</p>
+              <p className="stock-order-detail-eyebrow">{t("Supplier")}</p>
               <div className="stock-product-history-title-row">
                 <h2 id="stock-supplier-detail-title" className="stock-product-history-title">
-                  {supplier?.companyName || 'Unnamed supplier'}
+                  {supplier?.companyName || t("Unnamed supplier")}
                 </h2>
                 <span className={`stock-order-status-badge tone-${statusTone}`}>
                   {formatSupplierStatusLabel(supplier)}
@@ -90,36 +91,36 @@ export function StockSupplierDetailDrawer({
             type="button"
             className="icon-btn stock-product-history-close"
             onClick={onClose}
-            aria-label="Close supplier details"
+            aria-label={t("Close supplier details")}
           >
             ✕
           </button>
         </header>
 
         <div className="stock-product-history-scroll">
-          <section className="stock-product-history-section" aria-label="Contact">
-            <h3 className="stock-product-history-section-title">Contact</h3>
+          <section className="stock-product-history-section" aria-label={t("Contact")}>
+            <h3 className="stock-product-history-section-title">{t("Contact")}</h3>
             <dl className="stock-supplier-detail-list">
-              <DetailRow label="Contact person" value={supplier?.contactPerson} />
+              <DetailRow label={t("Contact person")} value={supplier?.contactPerson} />
               {canManage ? <DetailRow label="Phone" value={supplier?.phone} /> : null}
               {canManage ? <DetailRow label="Email" value={supplier?.email} /> : null}
               <DetailRow label="Address" value={supplier?.address} />
               <DetailRow label="Notes" value={supplier?.notes} />
             </dl>
             {!supplier?.contactPerson && !(canManage && (supplier?.phone || supplier?.email)) && !supplier?.address && !supplier?.notes ? (
-              <p className="stock-supplier-detail-empty">No contact details added yet.</p>
+              <p className="stock-supplier-detail-empty">{t("No contact details added yet.")}</p>
             ) : null}
           </section>
 
-          <section className="stock-product-history-section" aria-label="Products">
+          <section className="stock-product-history-section" aria-label={t("Products")}>
             <h3 className="stock-product-history-section-title">
-              Products
+              {t("Products")}
               <span className="stock-supplier-section-count">{productLines.length}</span>
             </h3>
             {productLines.length === 0 ? (
               <div className="stock-product-history-empty panel staff-panel">
-                <h4>No linked products</h4>
-                <p>Stock items using this supplier name will appear here.</p>
+                <h4>{t("No linked products")}</h4>
+                <p>{t("Stock items using this supplier name will appear here.")}</p>
               </div>
             ) : (
               <ul className="stock-supplier-product-list">
@@ -141,15 +142,15 @@ export function StockSupplierDetailDrawer({
             )}
           </section>
 
-          <section className="stock-product-history-section" aria-label="Purchase history">
+          <section className="stock-product-history-section" aria-label={t("Purchase history")}>
             <h3 className="stock-product-history-section-title">
-              Purchase history
+              {t("Purchase history")}
               <span className="stock-supplier-section-count">{metrics.linkedOrders.length}</span>
             </h3>
             {metrics.linkedOrders.length === 0 ? (
               <div className="stock-product-history-empty panel staff-panel">
-                <h4>No orders yet</h4>
-                <p>Purchase orders for this supplier will appear here.</p>
+                <h4>{t("No orders yet")}</h4>
+                <p>{t("Purchase orders for this supplier will appear here.")}</p>
               </div>
             ) : (
               <ul className="stock-supplier-order-list">
@@ -178,16 +179,16 @@ export function StockSupplierDetailDrawer({
             )}
           </section>
 
-          <section className="stock-product-history-section" aria-label="Statistics">
-            <h3 className="stock-product-history-section-title">Statistics</h3>
+          <section className="stock-product-history-section" aria-label={t("Statistics")}>
+            <h3 className="stock-product-history-section-title">{t("Statistics")}</h3>
             <dl className="stock-product-history-overview stock-supplier-stats-grid">
               <div className="stock-product-history-overview-row">
-                <dt>Total orders</dt>
+                <dt>{t("Total orders")}</dt>
                 <dd>{metrics.totalOrders}</dd>
               </div>
               {canManage ? (
                 <div className="stock-product-history-overview-row">
-                  <dt>Received value</dt>
+                  <dt>{t("Received value")}</dt>
                   <dd>
                     <span className="stock-received-value">{receivedValue.value}</span>
                     {receivedValue.caption ? (
@@ -198,7 +199,7 @@ export function StockSupplierDetailDrawer({
               ) : null}
               {canManage ? (
                 <div className="stock-product-history-overview-row">
-                  <dt>Average received</dt>
+                  <dt>{t("Average received")}</dt>
                   <dd>
                     <span className="stock-received-value">{averageReceived.value}</span>
                     {averageReceived.caption ? (
@@ -208,7 +209,7 @@ export function StockSupplierDetailDrawer({
                 </div>
               ) : null}
               <div className="stock-product-history-overview-row">
-                <dt>Last delivery</dt>
+                <dt>{t("Last delivery")}</dt>
                 <dd>{metrics.lastDelivery ? formatSupplierMetricDate(metrics.lastDelivery) : '—'}</dd>
               </div>
             </dl>
@@ -223,7 +224,7 @@ export function StockSupplierDetailDrawer({
               onClick={() => onEdit?.(supplier)}
               disabled={isSaving}
             >
-              Edit
+              {t("Edit")}
             </button>
             {hasHistory ? (
               <button
@@ -241,7 +242,7 @@ export function StockSupplierDetailDrawer({
                 onClick={() => onDelete?.(supplier)}
                 disabled={isSaving}
               >
-                Delete
+                {t("Delete")}
               </button>
             )}
           </footer>

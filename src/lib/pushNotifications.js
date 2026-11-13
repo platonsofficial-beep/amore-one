@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const NOTIFICATION_NOT_NOW_MS = 7 * 24 * 60 * 60 * 1000
 
 export const QUIET_HOUR_DEFAULTS = {
@@ -11,32 +12,32 @@ export const QUIET_HOUR_DEFAULTS = {
 export const NOTIFICATION_GROUPS = [
   {
     id: 'clockin',
-    label: 'Clock-in reminders',
-    detail: 'A nudge if you have not clocked in.',
+    label: t("Clock-in reminders"),
+    detail: t("A nudge if you have not clocked in."),
     icon: '⏰',
     types: ['clockin_reminder_10', 'clockin_reminder_20'],
     managerOnly: false,
   },
   {
     id: 'timeclock_request',
-    label: 'Time clock requests',
-    detail: 'When someone asks to fix a clock-in or clock-out.',
+    label: t("Time clock requests"),
+    detail: t("When someone asks to fix a clock-in or clock-out."),
     icon: '📋',
     types: ['timeclock_request'],
     managerOnly: true,
   },
   {
     id: 'late_team',
-    label: 'Late team members',
-    detail: 'When someone is still not clocked in 20 minutes after the shift starts.',
+    label: t("Late team members"),
+    detail: t("When someone is still not clocked in 20 minutes after the shift starts."),
     icon: '⏱️',
     types: ['clockin_reminder_20_manager'],
     managerOnly: true,
   },
   {
     id: 'schedule',
-    label: 'Schedule published',
-    detail: 'When a new week goes out.',
+    label: t("Schedule published"),
+    detail: t("When a new week goes out."),
     icon: '📅',
     types: ['schedule_published'],
     managerOnly: false,
@@ -44,7 +45,7 @@ export const NOTIFICATION_GROUPS = [
   {
     id: 'announcements',
     label: 'Announcements',
-    detail: 'When a new announcement is posted for you.',
+    detail: t("When a new announcement is posted for you."),
     icon: '📣',
     types: ['announcement'],
     managerOnly: false,
@@ -52,7 +53,7 @@ export const NOTIFICATION_GROUPS = [
   {
     id: 'tasks',
     label: 'Tasks',
-    detail: 'When a task is assigned to you or added for your department.',
+    detail: t("When a task is assigned to you or added for your department."),
     icon: '✓',
     types: ['task_assigned', 'task_new'],
     managerOnly: false,
@@ -60,23 +61,23 @@ export const NOTIFICATION_GROUPS = [
   {
     id: 'checklists',
     label: 'Checklists',
-    detail: 'When a checklist starts for today.',
+    detail: t("When a checklist starts for today."),
     icon: '☑️',
     types: ['checklist_started'],
     managerOnly: false,
   },
   {
     id: 'chat_message',
-    label: 'Team & group chats',
-    detail: 'Messages in Team and group channels.',
+    label: t("Team & group chats"),
+    detail: t("Messages in Team and group channels."),
     icon: '💬',
     types: ['chat_message'],
     managerOnly: false,
   },
   {
     id: 'chat_direct',
-    label: 'Direct messages',
-    detail: 'Private messages sent to you.',
+    label: t("Direct messages"),
+    detail: t("Private messages sent to you."),
     icon: '✉️',
     types: ['chat_direct'],
     managerOnly: false,
@@ -194,7 +195,7 @@ export function formatNotificationTimeAgo(iso, now = Date.now()) {
   const then = new Date(iso).getTime()
   if (!Number.isFinite(then)) return ''
   const seconds = Math.max(0, Math.round((now - then) / 1000))
-  if (seconds < 60) return 'Just now'
+  if (seconds < 60) return t("Just now")
   const minutes = Math.round(seconds / 60)
   if (minutes < 60) return minutes === 1 ? '1 min ago' : `${minutes} min ago`
   const hours = Math.round(minutes / 60)
@@ -304,12 +305,12 @@ export function readNotifIdFromSearch(search = '') {
 
 export function pushSetupMessage(error) {
   const text = `${error?.message ?? ''}`.toLowerCase()
-  if (!text) return 'Unable to turn on reminders right now.'
+  if (!text) return t("Unable to turn on reminders right now.")
   if (text.includes('not configured') || text.includes('vapid')) {
-    return 'Reminders are not ready on this app yet. You can still see them in the bell.'
+    return t("Reminders are not ready on this app yet. You can still see them in the bell.")
   }
   if (text.includes('service worker') || text.includes('not supported') || text.includes('not active')) {
-    return 'Turn reminders on from the installed ONE app. The bell still works here.'
+    return t("Turn reminders on from the installed ONE app. The bell still works here.")
   }
   return error.message
 }

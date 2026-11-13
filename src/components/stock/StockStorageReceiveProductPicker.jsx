@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { t } from '../../i18n/i18n'
 
 /**
  * @param {{
@@ -22,7 +23,7 @@ import { useEscapeToClose } from '../../lib/useEscapeToClose'
 export function StockStorageReceiveProductPicker({
   storage,
   products = [],
-  title = 'Receive stock',
+  title = t("Receive stock"),
   subtitlePrefix = 'Destination',
   emptyMessage = 'No products with a balance in this storage yet.',
   testId = 'stock-storage-receive-product-picker',
@@ -65,12 +66,12 @@ export function StockStorageReceiveProductPicker({
               {subtitlePrefix}: {storageTitle}
             </p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
         </div>
 
         <div className="stock-storage-receive-picker-body">
           <p className="stock-storage-receive-picker-copy">
-            Choose a product for this storage.
+            {t("Choose a product for this storage.")}
           </p>
           {list.length === 0 ? (
             <div className="staff-status-banner" role="status">
@@ -106,7 +107,7 @@ export function StockStorageReceiveProductPicker({
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="ghost-btn" onClick={onClose}>{t("Cancel")}</button>
         </div>
       </div>
     </div>

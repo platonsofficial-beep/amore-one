@@ -12,6 +12,7 @@ import {
   fetchMemberPermissionRows,
   saveMemberPermissionLevels,
 } from '../../services/memberPermissionService'
+import { t } from '../../i18n/i18n'
 
 const LEVEL_OPTIONS = [
   { id: 'none', label: 'None' },
@@ -22,7 +23,7 @@ const LEVEL_OPTIONS = [
 function levelOptionsFor(area) {
   if (area.module !== 'stock') return LEVEL_OPTIONS
   return LEVEL_OPTIONS.map((option) => (
-    option.id === 'view' ? { ...option, label: 'Take & count' } : option
+    option.id === 'view' ? { ...option, label: t("Take & count") } : option
   ))
 }
 
@@ -108,7 +109,7 @@ export function MemberAccessPanel({
       } catch (error) {
         if (cancelled) return
         setStatus('error')
-        setErrorMessage(error?.message || 'Unable to load access right now.')
+        setErrorMessage(error?.message || t("Unable to load access right now."))
       }
     }
 
@@ -156,7 +157,7 @@ export function MemberAccessPanel({
       setNotice(successNotice)
     } catch (error) {
       setStatus('ready')
-      setErrorMessage(error?.message || 'Unable to save access right now.')
+      setErrorMessage(error?.message || t("Unable to save access right now."))
     }
   }
 
@@ -172,18 +173,18 @@ export function MemberAccessPanel({
   }
 
   return (
-    <section className="employee-profile-drawer-section member-access" aria-label="Access">
-      <h4 className="employee-profile-drawer-section-title">Access</h4>
+    <section className="employee-profile-drawer-section member-access" aria-label={t("Access")}>
+      <h4 className="employee-profile-drawer-section-title">{t("Access")}</h4>
       {linkedMembership?.role ? <p className="member-access-preset">Preset: {presetName}</p> : null}
 
       {status === 'loading' || status === 'saving' ? (
-        <p className="member-access-status">{status === 'saving' ? 'Saving access…' : 'Loading access…'}</p>
+        <p className="member-access-status">{status === 'saving' ? t("Saving access…") : t("Loading access…")}</p>
       ) : null}
       {status === 'unlinked' ? (
-        <p className="member-access-status">No ONE account yet. Invite them before setting access.</p>
+        <p className="member-access-status">{t("No ONE account yet. Invite them before setting access.")}</p>
       ) : null}
       {status === 'locked' ? (
-        <p className="member-access-locked">Full access (owner)</p>
+        <p className="member-access-locked">{t("Full access (owner)")}</p>
       ) : null}
       {errorMessage ? (
         <div className="staff-status-banner auth-banner-error" role="alert">{errorMessage}</div>
@@ -255,7 +256,7 @@ export function MemberAccessPanel({
               onClick={handleReset}
               disabled={status === 'saving'}
             >
-              Reset to role default
+              {t("Reset to role default")}
             </button>
             <button
               type="button"
@@ -263,7 +264,7 @@ export function MemberAccessPanel({
               onClick={handleSave}
               disabled={status === 'saving' || !dirty}
             >
-              Save
+              {t("Save")}
             </button>
           </div>
         </>

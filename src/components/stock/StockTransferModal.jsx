@@ -11,6 +11,7 @@ import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { t } from '../../i18n/i18n'
 
 const NEW_DESTINATION_HELPER =
   'First transfer to this storage will automatically create its inventory balance.'
@@ -124,7 +125,7 @@ export function StockTransferModal({
         if (cancelled) return
         setDestinations([])
         setDestinationVersions(new Map())
-        setError(loadError?.message || 'Unable to load destination storages.')
+        setError(loadError?.message || t("Unable to load destination storages."))
       } finally {
         if (!cancelled) {
           setIsLoadingDestinations(false)
@@ -189,7 +190,7 @@ export function StockTransferModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to transfer stock right now.')
+      setError(submitError?.message || t("Unable to transfer stock right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -206,15 +207,15 @@ export function StockTransferModal({
       >
         <div className="drawer-header">
           <div>
-            <h3>Transfer stock</h3>
+            <h3>{t("Transfer stock")}</h3>
             <p className="stock-modal-subtitle">{buildProductDisplayNameFromItem(item)}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label={t("Close")}>✕</button>
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
           <div className="stock-movement-destination-lock" data-testid="stock-transfer-source-lock">
-            <span className="stock-movement-destination-lock-label">Source</span>
+            <span className="stock-movement-destination-lock-label">{t("Source")}</span>
             <strong className="stock-movement-destination-lock-value">{sourceLabel}</strong>
             <span className="stock-movement-destination-lock-note">
               Locked · On hand {formatStockQuantity(maxQuantity, item?.unit)}
@@ -222,7 +223,7 @@ export function StockTransferModal({
           </div>
 
           <label>
-            Destination
+            {t("Destination")}
             <select
               value={destinationId}
               onChange={(event) => {
@@ -231,11 +232,11 @@ export function StockTransferModal({
               }}
               required
               disabled={isBusy || isLoading}
-              aria-label="Destination storage"
+              aria-label={t("Destination storage")}
               data-testid="stock-transfer-destination-select"
             >
               <option value="">
-                {isLoading ? 'Loading storages…' : 'Select destination'}
+                {isLoading ? t("Loading storages…") : t("Select destination")}
               </option>
               {destinationOptions.map((entry) => (
                 <option
@@ -259,7 +260,7 @@ export function StockTransferModal({
           ) : null}
 
           <label>
-            Quantity
+            {t("Quantity")}
             <input
               type="number"
               step="any"
@@ -273,12 +274,12 @@ export function StockTransferModal({
           </label>
 
           <label>
-            Note
+            {t("Note")}
             <input
               type="text"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="Optional"
+              placeholder={t("Optional")}
               disabled={isBusy}
             />
           </label>
@@ -286,7 +287,7 @@ export function StockTransferModal({
           {error ? <div className="staff-status-banner" role="alert">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>{t("Cancel")}</button>
             <button
               type="submit"
               className="primary-btn"

@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /** Single grace length for a lapsed trial or a failed payment. Default 7 days. */
 export const SUBSCRIPTION_GRACE_DAYS = 7
 
@@ -194,19 +195,19 @@ export function subscriptionBannerCopy(resolved) {
   if (resolved.phase === 'trial') {
     return {
       message: `${days} ${word} left on your free month.`,
-      action: 'Choose plan',
+      action: t("Choose plan"),
     }
   }
   if (resolved.phase === 'grace' && resolved.reason === 'payment') {
     return {
       message: `Payment didn't go through. ${days} ${word} left to update payment.`,
-      action: 'Update payment',
+      action: t("Update payment"),
     }
   }
   if (resolved.phase === 'grace') {
     return {
       message: `Your free month has ended. You have ${days} ${word} left to choose a plan before ONE pauses.`,
-      action: 'Choose plan',
+      action: t("Choose plan"),
     }
   }
   return null

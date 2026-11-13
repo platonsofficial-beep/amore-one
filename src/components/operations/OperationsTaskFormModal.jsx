@@ -10,6 +10,7 @@ import {
   validateOperationsTaskForm,
 } from '../../lib/operationsUtils'
 import { TimeSelect } from '../TimeSelect'
+import { t } from '../../i18n/i18n'
 
 export function OperationsTaskFormModal({
   isOpen,
@@ -68,7 +69,7 @@ export function OperationsTaskFormModal({
       await onSubmit(buildOperationsTaskSubmitPayload(form))
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save task right now.')
+      setError(submitError?.message || t("Unable to save task right now."))
     }
   }
 
@@ -83,39 +84,39 @@ export function OperationsTaskFormModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Operations task</p>
-            <h3 id="operations-task-form-title">{task ? 'Edit task' : 'Create task'}</h3>
+            <p className="eyebrow">{t("Operations task")}</p>
+            <h3 id="operations-task-form-title">{task ? t("Edit task") : t("Create task")}</h3>
           </div>
-          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
           </button>
         </div>
 
         <form className="employee-form operations-form" onSubmit={handleSubmit}>
           <label className="form-field full-width">
-            <span>Title</span>
+            <span>{t("Title")}</span>
             <input
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="e.g. Check walk-in fridge temperatures"
+              placeholder={t("e.g. Check walk-in fridge temperatures")}
               required
               autoFocus
             />
           </label>
 
           <label className="form-field full-width">
-            <span>Description</span>
+            <span>{t("Description")}</span>
             <textarea
               rows={3}
               value={form.description}
               onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              placeholder="Optional details for the team"
+              placeholder={t("Optional details for the team")}
             />
           </label>
 
           <div className="form-grid">
             <label className="form-field">
-              <span>Category</span>
+              <span>{t("Category")}</span>
               <select
                 value={form.category}
                 onChange={(event) => setForm((current) => ({ ...current, category: event.target.value }))}
@@ -127,7 +128,7 @@ export function OperationsTaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Priority</span>
+              <span>{t("Priority")}</span>
               <select
                 value={form.priority}
                 onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
@@ -139,12 +140,12 @@ export function OperationsTaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Assign to</span>
+              <span>{t("Assign to")}</span>
               <select
                 value={form.assignedTo}
                 onChange={(event) => setForm((current) => ({ ...current, assignedTo: event.target.value }))}
               >
-                <option value="">Unassigned</option>
+                <option value="">{t("Unassigned")}</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
                     {employee.full_name ?? employee.name ?? 'Employee'}
@@ -154,7 +155,7 @@ export function OperationsTaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Due date</span>
+              <span>{t("Due date")}</span>
               <input
                 type="date"
                 value={form.dueDate}
@@ -163,24 +164,24 @@ export function OperationsTaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Due time</span>
+              <span>{t("Due time")}</span>
               <TimeSelect
                 value={form.dueTime}
                 onChange={(time) => setForm((current) => ({ ...current, dueTime: time }))}
-                placeholder="Optional"
+                placeholder={t("Optional")}
               />
             </label>
           </div>
 
           <div className="operations-task-steps">
             <div className="operations-task-steps-header">
-              <span>Steps</span>
+              <span>{t("Steps")}</span>
               <button type="button" className="ghost-btn operations-form-action" onClick={addStep}>
-                Add step
+                {t("Add step")}
               </button>
             </div>
             <p className="operations-field-help">
-              Optional. Steps stay part of this one task.
+              {t("Optional. Steps stay part of this one task.")}
             </p>
             {(form.steps ?? []).map((step, index) => (
               <div className="operations-task-step-row" key={step.key || step.id || index}>
@@ -196,22 +197,22 @@ export function OperationsTaskFormModal({
                   onClick={() => removeStep(step.key)}
                   aria-label={`Remove step ${index + 1}`}
                 >
-                  Remove
+                  {t("Remove")}
                 </button>
               </div>
             ))}
           </div>
 
           <label className="form-field full-width operations-repeat-placeholder">
-            <span>Repeat rules</span>
+            <span>{t("Repeat rules")}</span>
             <input
               value=""
               disabled
-              placeholder="Coming soon — daily, weekly, and shift-based repeats"
+              placeholder={t("Coming soon — daily, weekly, and shift-based repeats")}
               aria-describedby="operations-repeat-help"
             />
             <span id="operations-repeat-help" className="operations-field-help">
-              Repeat scheduling will be available in a future update.
+              {t("Repeat scheduling will be available in a future update.")}
             </span>
           </label>
 
@@ -219,10 +220,10 @@ export function OperationsTaskFormModal({
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn operations-form-action" onClick={onClose}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : task ? 'Save task' : 'Create task'}
+              {isSaving ? 'Saving…' : task ? t("Save task") : t("Create task")}
             </button>
           </div>
         </form>

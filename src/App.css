@@ -176,9 +176,9 @@
 .nav-link > span:last-child {
   flex: 1 1 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .nav-link:hover {

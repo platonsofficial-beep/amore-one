@@ -1,4 +1,5 @@
 import { createDefaultFloor } from './floorWorkspace'
+import { t } from '../../i18n/i18n'
 
 export const FLOOR_PLAN_OBJECT_TYPES = {
   TABLE: 'table',
@@ -451,7 +452,7 @@ export function normalizeFloorPlanTableObject(
       maxGuests: guestRange.maxGuests,
       capacity: guestRange.maxGuests,
       shape,
-      area: object.properties?.area ?? floor?.label ?? 'Main Dining',
+      area: object.properties?.area ?? floor?.label ?? t("Main Dining"),
       visible: object.properties?.visible !== false,
       locked: object.properties?.locked === true,
       sections: Array.isArray(object.properties?.sections) ? object.properties.sections : [],

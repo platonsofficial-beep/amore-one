@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 const TECHNICAL_ERROR = /cannot read propert|typeerror|referenceerror|syntaxerror|is not a function|is not defined|failed to fetch|networkerror|network request failed|load failed|fetch failed|jwt|pgrst|permission denied for|does not exist|of null|of undefined|reading ['"]/i
 
 export const LOAD_RETRY_LABEL = 'Retry'
@@ -18,7 +20,7 @@ export function isLoadFailureMessage(value) {
 
 export function formatUserFacingLoadError(subject = 'this') {
   const name = `${subject ?? ''}`.trim() || 'this'
-  return `Couldn't load ${name}. Check your connection and try again.`
+  return t("Couldn't load {{name}}. Check your connection and try again.", { name })
 }
 
 export function logLoadFailure(subject, error) {

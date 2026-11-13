@@ -7,6 +7,7 @@
 import {
   INVENTORY_OPERATIONAL_MATCH_STATUS,
 } from '../../lib/inventoryOperationalProductMatcher'
+import { t } from '../../i18n/i18n'
 
 export const INVENTORY_OPERATIONAL_MATCHING_PREVIEW_LIMIT = 20
 
@@ -17,11 +18,11 @@ export const INVENTORY_OPERATIONAL_MATCHING_PREVIEW_LIMIT = 20
 export function getOperationalMatchStatusPresentation(status) {
   switch (status) {
     case INVENTORY_OPERATIONAL_MATCH_STATUS.EXACT_MATCH:
-      return { symbol: '✓', label: 'Exact Match', className: 'is-exact' }
+      return { symbol: '✓', label: t("Exact Match"), className: 'is-exact' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.POSSIBLE_MATCH:
-      return { symbol: '⚠', label: 'Possible Match', className: 'is-possible' }
+      return { symbol: '⚠', label: t("Possible Match"), className: 'is-possible' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.NEW_PRODUCT:
-      return { symbol: '➕', label: 'New Product', className: 'is-new' }
+      return { symbol: '➕', label: t("New Product"), className: 'is-new' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.INVALID_SOURCE:
       return { symbol: '✕', label: 'Invalid', className: 'is-invalid' }
     default:
@@ -58,13 +59,13 @@ export function InventoryOperationalMatchingSummary({ result = null } = {}) {
   return (
     <div
       className="inventory-operational-matching"
-      aria-label="Operational matching result"
+      aria-label={t("Operational matching result")}
       data-match-total={matches.length}
       data-match-preview-count={previewRows.length}
     >
       <section className="inventory-operational-review-summary inventory-operational-matching-summary">
         <h3 className="inventory-operational-review-title">
-          Operational Matching
+          {t("Operational Matching")}
         </h3>
         <p className="inventory-operational-review-meta inventory-operational-matching-counts">
           <span>
@@ -87,17 +88,17 @@ export function InventoryOperationalMatchingSummary({ result = null } = {}) {
             {' '}
             {invalidSource}
           </span>
-          <span>Read-only</span>
+          <span>{t("Read-only")}</span>
         </p>
       </section>
 
       {matches.length === 0 ? (
         <div className="inventory-operational-review-empty" role="status">
           <p className="inventory-operational-review-empty-title">
-            No matching rows
+            {t("No matching rows")}
           </p>
           <p className="inventory-operational-review-empty-copy">
-            The operational sheet did not yield any product rows to match.
+            {t("The operational sheet did not yield any product rows to match.")}
           </p>
         </div>
       ) : (

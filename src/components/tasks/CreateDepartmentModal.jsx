@@ -4,6 +4,7 @@ import {
   CUSTOM_DEPARTMENT_ICON,
   normalizeDepartmentIcon,
 } from '../../lib/taskDepartments'
+import { t } from '../../i18n/i18n'
 
 export default function CreateDepartmentModal({
   isOpen,
@@ -56,10 +57,10 @@ export default function CreateDepartmentModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Department</p>
-            <h3 id="create-department-title">Create department</h3>
+            <p className="eyebrow">{t("Department")}</p>
+            <h3 id="create-department-title">{t("Create department")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close create department form">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close create department form")}>
             ✕
           </button>
         </div>
@@ -68,7 +69,7 @@ export default function CreateDepartmentModal({
 
         <form className="employee-form task-form" onSubmit={handleSubmit}>
           <label className="form-field task-form-field-full">
-            <span>Department name</span>
+            <span>{t("Department name")}</span>
             <input
               type="text"
               value={name}
@@ -76,20 +77,20 @@ export default function CreateDepartmentModal({
                 setName(event.target.value)
                 setErrorMessage('')
               }}
-              placeholder="Kitchen, Λάντζα, Cleaning, Delivery…"
+              placeholder={t("Kitchen, Λάντζα, Cleaning, Delivery…")}
               required
               autoFocus
             />
           </label>
 
           <div className="task-department-icon-field task-form-field-full">
-            <span className="task-department-icon-label">Emoji / Icon</span>
+            <span className="task-department-icon-label">{t("Emoji / Icon")}</span>
 
             <div className="task-department-icon-preview" aria-hidden="true">
               {normalizeDepartmentIcon(icon)}
             </div>
 
-            <div className="task-department-icon-grid" role="group" aria-label="Quick emoji choices">
+            <div className="task-department-icon-grid" role="group" aria-label={t("Quick emoji choices")}>
               {CUSTOM_DEPARTMENT_EMOJI_PRESETS.map((preset) => (
                 <button
                   key={`${preset.emoji}-${preset.label}`}
@@ -106,7 +107,7 @@ export default function CreateDepartmentModal({
             </div>
 
             <label className="form-field task-department-icon-input">
-              <span>Or type / paste emoji</span>
+              <span>{t("Or type / paste emoji")}</span>
               <input
                 type="text"
                 value={icon}
@@ -119,10 +120,10 @@ export default function CreateDepartmentModal({
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={onClose}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn">
-              Create
+              {t("Create")}
             </button>
           </div>
         </form>

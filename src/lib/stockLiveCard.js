@@ -2,6 +2,7 @@ import { formatLastCountedLabel } from './stockProductHistory'
 import { calendarDayKey, formatInVenueZone } from './timeFormatUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { countBelowParByStorage, formatItemsBelowPar } from './stockStoragePar'
+import { t } from '../i18n/i18n'
 
 export function sumBelowParCounts(counts) {
   let total = 0
@@ -32,10 +33,10 @@ export function latestStockCountAt(items = []) {
 }
 
 export function formatLastCountFact(lastCountedAt, now = new Date()) {
-  if (!lastCountedAt) return 'No counts yet'
+  if (!lastCountedAt) return t("No counts yet")
   const label = formatLastCountedLabel({ createdAt: lastCountedAt }, now)
-  if (!label || label === 'Never') return 'No counts yet'
-  if (label === 'Today') return 'Last count today'
+  if (!label || label === 'Never') return t("No counts yet")
+  if (label === 'Today') return t("Last count today")
   return `Last count ${label.charAt(0).toLowerCase()}${label.slice(1)}`
 }
 
@@ -44,12 +45,12 @@ export function formatLastCountFact(lastCountedAt, now = new Date()) {
  * Uses the latest posted inventory count, not an unfinished session start.
  */
 export function formatInventoryCountFact(postedAt, now = new Date(), timeZone = '') {
-  if (!postedAt) return 'No inventory counts yet'
+  if (!postedAt) return t("No inventory counts yet")
   const date = new Date(postedAt)
-  if (Number.isNaN(date.getTime())) return 'No inventory counts yet'
+  if (Number.isNaN(date.getTime())) return t("No inventory counts yet")
 
   const sameDay = calendarDayKey(date, timeZone) === calendarDayKey(now, timeZone)
-  if (sameDay) return 'Last inventory count today'
+  if (sameDay) return t("Last inventory count today")
 
   const sameYear = calendarDayKey(date, timeZone).slice(0, 4) === calendarDayKey(now, timeZone).slice(0, 4)
   const label = formatInVenueZone(date, {
@@ -72,7 +73,7 @@ export function buildStockLiveFacts({
   const belowPar = Math.max(0, Number(belowParCount) || 0)
 
   return {
-    belowParLabel: parsReady ? formatItemsBelowPar(belowPar) : 'Pars not available yet',
+    belowParLabel: parsReady ? formatItemsBelowPar(belowPar) : t("Pars not available yet"),
     belowParTone: parsReady && belowPar > 0 ? 'warning' : 'default',
     draftCount,
     draftLabel: draftCount === 1 ? '1 open draft' : `${draftCount} open drafts`,

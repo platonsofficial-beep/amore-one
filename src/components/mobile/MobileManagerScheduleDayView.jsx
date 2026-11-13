@@ -7,6 +7,7 @@ import { portraitShiftSubtitle } from '../../lib/managerPortrait'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from '../../lib/shiftDisplayName'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
+import { t } from '../../i18n/i18n'
 
 function shiftDateKey(shift) {
   return `${shift?.date ?? ''}`.slice(0, 10)
@@ -84,7 +85,7 @@ export function MobileManagerScheduleDayView({
       await onUpdateShiftTimes?.(shift.id, { startTime, endTime })
       setEditingId('')
     } catch (error) {
-      setErrorMessage(error?.message || 'Unable to update this shift.')
+      setErrorMessage(error?.message || t("Unable to update this shift."))
     }
   }
 
@@ -93,13 +94,13 @@ export function MobileManagerScheduleDayView({
       <ManagerPortraitBanner area="schedule" />
       <header className="manager-portrait-screen-header">
         <div>
-          <p className="mobile-screen-eyebrow">Schedule</p>
+          <p className="mobile-screen-eyebrow">{t("Schedule")}</p>
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
         </div>
       </header>
-      <div className="manager-portrait-date-nav" aria-label="Schedule day">
-        <button type="button" onClick={() => shiftDate(-1)} aria-label="Previous day">‹</button>
+      <div className="manager-portrait-date-nav" aria-label={t("Schedule day")}>
+        <button type="button" onClick={() => shiftDate(-1)} aria-label={t("Previous day")}>‹</button>
         <button
           type="button"
           onClick={() => {
@@ -108,9 +109,9 @@ export function MobileManagerScheduleDayView({
           }}
           disabled={!todayKey || isToday}
         >
-          Today
+          {t("Today")}
         </button>
-        <button type="button" onClick={() => shiftDate(1)} aria-label="Next day">›</button>
+        <button type="button" onClick={() => shiftDate(1)} aria-label={t("Next day")}>›</button>
       </div>
       {isLoadFailureMessage(noticeMessage) ? (
         <LoadFailureBanner message={noticeMessage} subject="the schedule" onRetry={onRetryLoad} />
@@ -118,9 +119,9 @@ export function MobileManagerScheduleDayView({
       {isLoadFailureMessage(errorMessage) ? (
         <LoadFailureBanner message={errorMessage} subject="the schedule" onRetry={onRetryLoad} />
       ) : errorMessage ? <p className="manager-portrait-notice is-error" role="alert">{errorMessage}</p> : null}
-      {isLoading ? <p className="manager-portrait-empty">Loading shifts…</p> : null}
+      {isLoading ? <p className="manager-portrait-empty">{t("Loading shifts…")}</p> : null}
       {!isLoading && !isLoadFailureMessage(noticeMessage) && dayShifts.length === 0 ? (
-        <p className="manager-portrait-empty">No shifts on this day.</p>
+        <p className="manager-portrait-empty">{t("No shifts on this day.")}</p>
       ) : null}
       <ul className="manager-portrait-shift-list">
         {dayShifts.map((shift) => {
@@ -163,7 +164,7 @@ export function MobileManagerScheduleDayView({
                   />
                   <div className="manager-portrait-shift-actions">
                     <button type="button" className="mobile-secondary-btn" onClick={() => setEditingId('')} disabled={isSaving}>
-                      Cancel
+                      {t("Cancel")}
                     </button>
                     <button type="button" className="mobile-primary-btn" onClick={() => saveShift(shift)} disabled={isSaving}>
                       {isSaving ? 'Saving…' : 'Save'}

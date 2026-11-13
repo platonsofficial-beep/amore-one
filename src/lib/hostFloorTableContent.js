@@ -1,5 +1,6 @@
 import { formatTime24 } from './timeFormatUtils'
 import { resolveHostFloorSemanticClass } from './hostFloorTableVisualState'
+import { t } from '../i18n/i18n'
 
 export const HOST_FLOOR_CONTENT_TIERS = {
   VERY_SMALL: 'very-small',
@@ -142,7 +143,7 @@ export function buildHostFloorCompactTableContent({
     timeLabel,
     partyLabel: formatHostFloorCompactPartyLabel(guestCount),
     showChairDots: false,
-    statusBadgeText: operational?.bookingStale ? 'Last loaded' : null,
+    statusBadgeText: operational?.bookingStale ? t("Last loaded") : null,
     bookingStale: Boolean(operational?.bookingStale),
   }
 }
@@ -171,7 +172,7 @@ export function buildHostFloorCompactAriaLabel(content) {
     const parts = [content.tableLabel]
     if (content.bookingStale) parts.push('last loaded')
     if (content.timeLabel) parts.push(content.timeLabel)
-    if (guestCount !== null) parts.push(`${guestCount} guests`)
+    if (guestCount !== null) parts.push(t('{{count}} guest', { count: guestCount }))
     return parts.join(', ')
   }
 

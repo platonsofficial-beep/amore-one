@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isScrollInsideMenu, placeScheduleActionMenu } from '../../lib/scheduleActionMenuPosition'
 import { shouldUseMobileShell } from '../../lib/viewportUtils'
+import { t } from '../../i18n/i18n'
 
 const MENU_Z_INDEX = 1300
 
@@ -107,7 +108,7 @@ export function ScheduleCardActionMenu({
         <button
           type="button"
           className="schedule-card-action-menu-backdrop is-sheet"
-          aria-label="Close menu"
+          aria-label={t("Close menu")}
           onClick={onClose}
           style={{ zIndex: MENU_Z_INDEX - 1 }}
         />

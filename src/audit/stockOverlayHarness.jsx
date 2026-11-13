@@ -11,6 +11,7 @@ import { StockProductHistoryDrawer } from '../components/stock/StockProductHisto
 import { StaffShelfCountSheet } from '../components/stock/StaffShelfCountSheet'
 import { StockSuppliersView } from '../components/stock/StockSuppliersView'
 import { SupplyOrderDraftPreviewDialog } from '../components/stock/SupplyOrderDraftPreviewDialog'
+import { t } from '../i18n/i18n'
 
 const SUPPLIERS = [
   ['sup-1', 'MEDITERRANEAN BEVERAGE PARTNERS', 'Elena Costa', 'orders@mbp.example', '+357 99 100001'],
@@ -94,18 +95,18 @@ const ORDER = {
   id: 'order-7',
   orderNumber: 7,
   status: 'draft',
-  supplier: 'MEDITERRANEAN BEVERAGE PARTNERS',
+  supplier: t("MEDITERRANEAN BEVERAGE PARTNERS"),
   supplierId: 'sup-1',
-  notes: 'Leave at the cellar door.',
+  notes: t("Leave at the cellar door."),
   expectedDeliveryDate: '2026-10-28',
   totalCost: 96,
   createdAt: '2026-10-26T00:13:00.000Z',
-  createdByName: 'Platon Sachinis',
+  createdByName: t("Platon Sachinis"),
   items: [
     {
       id: 'line-1',
       stockItemId: 'item-8',
-      itemName: 'Sparkling water',
+      itemName: t("Sparkling water"),
       quantity: 18,
       receivedQuantity: 0,
       unit: 'Bottle',
@@ -153,8 +154,8 @@ const ORDER_GROUPS = SUPPLIERS.map((supplier) => ({
 const SUGGEST_REVIEW = SUPPLIERS.map((supplier, index) => ({
   supplier: supplier.companyName,
   items: [
-    { stockItemId: `s-${index}-a`, itemName: 'House pour', quantity: 6, unit: 'Bottle' },
-    { stockItemId: `s-${index}-b`, itemName: 'Backup case', quantity: 2, unit: 'Case' },
+    { stockItemId: `s-${index}-a`, itemName: t("House pour"), quantity: 6, unit: 'Bottle' },
+    { stockItemId: `s-${index}-b`, itemName: t("Backup case"), quantity: 2, unit: 'Case' },
   ],
 }))
 
@@ -191,14 +192,14 @@ function Shell({ title, children }) {
         <div className="mobile-app mobile-app-expanded mobile-manager-app">
           <div className="mobile-expanded-scroll">
             <header className="mobile-expanded-header">
-              <button type="button" className="mobile-back-btn">‹ Back</button>
+              <button type="button" className="mobile-back-btn">{t("‹ Back")}</button>
               <h1>{title}</h1>
             </header>
             <div className="mobile-workspace-module is-mobile-expanded">
               {children}
             </div>
           </div>
-          <nav className="mobile-bottom-nav" aria-label="Primary">
+          <nav className="mobile-bottom-nav" aria-label={t("Primary")}>
             {['Today', 'Stock', 'Tasks', 'Menu'].map((label) => (
               <button
                 key={label}
@@ -222,7 +223,7 @@ function Screen() {
 
   if (screen === 'order-drawer') {
     return (
-      <Shell title="Orders">
+      <Shell title={t("Orders")}>
         <StockOrdersView
           orders={[ORDER]}
           stockItems={PRODUCTS}
@@ -255,7 +256,7 @@ function Screen() {
 
   if (screen === 'create-orders') {
     return (
-      <Shell title="Orders">
+      <Shell title={t("Orders")}>
         <StockOrdersView
           orders={[ORDER]}
           stockItems={PRODUCTS}
@@ -277,7 +278,7 @@ function Screen() {
 
   if (screen === 'suggest') {
     return (
-      <Shell title="Stock">
+      <Shell title={t("Stock")}>
         <SupplyOrderDraftPreviewDialog
           lines={[]}
           review={SUGGEST_REVIEW}
@@ -290,7 +291,7 @@ function Screen() {
 
   if (screen === 'dashboard') {
     return (
-      <Shell title="Stock">
+      <Shell title={t("Stock")}>
         <StockDashboardView
           stockItems={PRODUCTS}
           stockOrders={[ORDER]}
@@ -309,7 +310,7 @@ function Screen() {
 
   if (screen === 'suppliers') {
     return (
-      <Shell title="Suppliers">
+      <Shell title={t("Suppliers")}>
         <StockSuppliersView
           suppliers={SUPPLIERS}
           stockItems={PRODUCTS}
@@ -327,7 +328,7 @@ function Screen() {
 
   if (screen === 'product') {
     return (
-      <Shell title="Stock">
+      <Shell title={t("Stock")}>
         <StockProductHistoryDrawer
           item={PRODUCTS[6]}
           workspaceId=""
@@ -342,10 +343,10 @@ function Screen() {
 
   if (screen === 'shelf') {
     return (
-      <Shell title="Shelf">
+      <Shell title={t("Shelf")}>
         <StaffShelfCountSheet
           workspaceId="ws-audit"
-          storage={{ id: 'cellar', name: 'Main cellar' }}
+          storage={{ id: 'cellar', name: t("Main cellar") }}
           products={PRODUCTS.map((item) => ({
             stockItemId: item.id,
             displayName: item.name,
@@ -363,7 +364,7 @@ function Screen() {
   }
 
   return (
-    <Shell title="Orders">
+    <Shell title={t("Orders")}>
       <StockOrdersView
         orders={[ORDER, { ...ORDER, id: 'order-8', orderNumber: 8, status: 'sent', supplier: 'Ramnista', supplierId: 'sup-2' }]}
         stockItems={PRODUCTS}

@@ -10,6 +10,7 @@ import {
   tryLockLandscapeOrientation,
   tryReleaseLandscapeOrientation,
 } from '../../lib/managerLandscape'
+import { t } from '../../i18n/i18n'
 import './ManagerLandscapeGate.css'
 
 function readTouchOrientation() {
@@ -127,12 +128,12 @@ function RotateDevicePrompt() {
             <path d="M46 16.5l8.5 1.2-1.4 8.2" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <p className="manager-landscape-gate-kicker">ONE</p>
+        <p className="manager-landscape-gate-kicker">{t("ONE")}</p>
         <h1 id={titleId} ref={titleRef} tabIndex={-1} className="manager-landscape-gate-title">
-          Rotate your device
+          {t("Rotate your device")}
         </h1>
         <p id={descriptionId} className="manager-landscape-gate-copy">
-          Managers and owners use ONE in landscape. Turn your phone or tablet sideways to continue.
+          {t("Managers and owners use ONE in landscape. Turn your phone or tablet sideways to continue.")}
         </p>
       </div>
     </div>

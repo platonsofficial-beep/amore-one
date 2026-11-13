@@ -1,0 +1,12 @@
+-- Not applied. Phase 1 stores the language in localStorage.
+-- Run later if each membership should remember a language across devices.
+--
+-- alter table public.workspace_members
+--   add column if not exists ui_locale text;
+--
+-- alter table public.workspace_members
+--   drop constraint if exists workspace_members_ui_locale_check;
+--
+-- alter table public.workspace_members
+--   add constraint workspace_members_ui_locale_check
+--   check (ui_locale is null or ui_locale in ('en', 'el', 'it', 'fr', 'de', 'ru', 'bg', 'ro', 'fil'));

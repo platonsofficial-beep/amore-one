@@ -4,6 +4,7 @@ import { buildTaskForm } from '../../lib/taskFormUtils'
 import { parseDepartmentBoardKey } from '../../lib/taskDepartments'
 import { TimeSelect } from '../TimeSelect'
 import TaskDepartmentFields from './TaskDepartmentFields'
+import { t } from '../../i18n/i18n'
 
 const PRIORITY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
@@ -79,10 +80,10 @@ export default function TaskFormModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Task</p>
-            <h3 id="task-form-title">{editingTask ? 'Edit task' : 'New task'}</h3>
+            <p className="eyebrow">{t("Task")}</p>
+            <h3 id="task-form-title">{editingTask ? t("Edit task") : t("New task")}</h3>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close task form">
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close task form")}>
             ✕
           </button>
         </div>
@@ -92,12 +93,12 @@ export default function TaskFormModal({
         <form className="employee-form task-form" onSubmit={handleSubmit}>
           <div className="form-grid task-form-grid">
             <label className="form-field task-form-field-full">
-              <span>Task title</span>
+              <span>{t("Task title")}</span>
               <input
                 type="text"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="What needs to be done?"
+                placeholder={t("What needs to be done?")}
                 required
               />
             </label>
@@ -115,12 +116,12 @@ export default function TaskFormModal({
             />
 
             <label className="form-field">
-              <span>Owner</span>
+              <span>{t("Owner")}</span>
               <select
                 value={form.assignedEmployeeId}
                 onChange={(event) => setForm((current) => ({ ...current, assignedEmployeeId: event.target.value }))}
               >
-                <option value="">Unassigned</option>
+                <option value="">{t("Unassigned")}</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={String(employee.id)}>
                     {employee.full_name || employee.name || `Employee ${employee.id}`}
@@ -130,7 +131,7 @@ export default function TaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Priority</span>
+              <span>{t("Priority")}</span>
               <select
                 value={form.priority}
                 onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
@@ -142,7 +143,7 @@ export default function TaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Due date</span>
+              <span>{t("Due date")}</span>
               <input
                 type="date"
                 value={form.dueDate}
@@ -152,16 +153,16 @@ export default function TaskFormModal({
             </label>
 
             <label className="form-field">
-              <span>Due time (optional)</span>
+              <span>{t("Due time (optional)")}</span>
               <TimeSelect
                 value={form.dueTime}
                 onChange={(time) => setForm((current) => ({ ...current, dueTime: time }))}
-                placeholder="Optional"
+                placeholder={t("Optional")}
               />
             </label>
 
             <label className="form-field">
-              <span>Recurrence</span>
+              <span>{t("Recurrence")}</span>
               <select
                 value={form.recurrence}
                 onChange={(event) => setForm((current) => ({ ...current, recurrence: event.target.value }))}
@@ -173,23 +174,23 @@ export default function TaskFormModal({
             </label>
 
             <label className="form-field task-form-field-full">
-              <span>Notes</span>
+              <span>{t("Notes")}</span>
               <textarea
                 rows={4}
                 value={form.notes}
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Optional context for the team"
+                placeholder={t("Optional context for the team")}
               />
             </label>
           </div>
 
           <p className="task-form-recurrence-note">
-            Repeat schedule will be used for automatic tasks.
+            {t("Repeat schedule will be used for automatic tasks.")}
           </p>
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>
-              Cancel
+              {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save'}

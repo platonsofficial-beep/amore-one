@@ -5,6 +5,7 @@ import {
   writeHostDiningTimerDurationPolicy,
 } from '../../lib/hostDiningTimer'
 import { resolveSupplierOrderVenueName } from '../../lib/stockOrderSend'
+import { t } from '../../i18n/i18n'
 
 export function HostSettingsPanel({
   profile = {},
@@ -27,23 +28,23 @@ export function HostSettingsPanel({
   return (
     <div className="host-settings-panel" role="dialog" aria-modal="true" aria-labelledby="host-settings-title">
       <header className="host-settings-header">
-        <h2 id="host-settings-title">Host settings</h2>
-        <button type="button" className="icon-btn" onClick={onClose} aria-label="Close settings">
+        <h2 id="host-settings-title">{t("Host settings")}</h2>
+        <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close settings")}>
           ✕
         </button>
       </header>
 
       <div className="host-settings-scroll">
         <section className="host-settings-section">
-          <h3>Profile</h3>
-          <p><strong>{profile.name || 'Host user'}</strong></p>
+          <h3>{t("Profile")}</h3>
+          <p><strong>{profile.name || t("Host user")}</strong></p>
           {profile.email ? <p>{profile.email}</p> : null}
           {profile.phone ? <p>{profile.phone}</p> : null}
           {membership?.employeeName ? <p>Linked employee: {membership.employeeName}</p> : null}
         </section>
 
         <section className="host-settings-section">
-          <h3>Venue</h3>
+          <h3>{t("Venue")}</h3>
           <p>{venueName || '—'}</p>
           {workspaceProfile.city || workspaceProfile.countryName ? (
             <p>
@@ -55,10 +56,10 @@ export function HostSettingsPanel({
         </section>
 
         <section className="host-settings-section" data-testid="host-dining-timer-settings">
-          <h3>Table timers</h3>
-          <p>Saved on this device until a venue-wide setting is approved.</p>
+          <h3>{t("Table timers")}</h3>
+          <p>{t("Saved on this device until a venue-wide setting is approved.")}</p>
           <label>
-            Dinner minutes
+            {t("Dinner minutes")}
             <input
               type="number"
               min="15"
@@ -74,7 +75,7 @@ export function HostSettingsPanel({
             />
           </label>
           <label>
-            Drinks minutes
+            {t("Drinks minutes")}
             <input
               type="number"
               min="15"
@@ -94,7 +95,7 @@ export function HostSettingsPanel({
 
       <footer className="host-settings-footer">
         <button type="button" className="host-settings-signout" onClick={onSignOut}>
-          Sign out
+          {t("Sign out")}
         </button>
       </footer>
     </div>

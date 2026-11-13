@@ -26,6 +26,7 @@ import {
   reservationBlocksTableAvailability,
   resolveSeatingFloorStatus,
 } from './tableAvailability'
+import { t } from '../i18n/i18n'
 
 function formatMinutesAsClock(totalMinutes) {
   const normalized = ((totalMinutes % 1440) + 1440) % 1440
@@ -323,9 +324,9 @@ export function getFloorTableSeatingDialogMountGuard({
 }
 
 const TABLE_DAY_VIEW_STATUS_LABELS = {
-  'Checked In (Partial)': 'Checked In',
-  'Walk In': 'Checked In',
-  'Not Shown': 'No Show',
+  'Checked In (Partial)': t("Checked In"),
+  'Walk In': t("Checked In"),
+  'Not Shown': t("No Show"),
   'Checked Out': 'Completed',
   'Late Booking': 'Late',
 }

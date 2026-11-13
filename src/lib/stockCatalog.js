@@ -6,6 +6,7 @@ import {
 } from './inventoryUnitStandard.js'
 
 import { normalizePackUnit, normalizeUnitsPerPack } from './stockPackUnits.js'
+import { t } from '../i18n/i18n'
 
 export { normalizePackagingNote }
 export {
@@ -137,12 +138,12 @@ const LEGACY_STOCK_CATEGORY_MAP = {
 }
 
 const LEGACY_STOCK_TYPE_MAP = {
-  'red wine': 'Red Wine',
-  'white wine': 'White Wine',
-  'rosé wine': 'Rosé Wine',
-  'sparkling wine': 'Sparkling Wine',
+  'red wine': t("Red Wine"),
+  'white wine': t("White Wine"),
+  'rosé wine': t("Rosé Wine"),
+  'sparkling wine': t("Sparkling Wine"),
   champagne: 'Champagne',
-  'dessert wine': 'Dessert Wine',
+  'dessert wine': t("Dessert Wine"),
   'fortified wine': 'Other',
   lager: 'Beer',
   ipa: 'Beer',
@@ -150,17 +151,17 @@ const LEGACY_STOCK_TYPE_MAP = {
   stout: 'Beer',
   cider: 'Beer',
   'non-alcoholic beer': 'Beer',
-  soda: 'Soda / Tonic',
-  tonic: 'Soda / Tonic',
-  cola: 'Soft Drink',
-  lemonade: 'Soft Drink',
+  soda: t("Soda / Tonic"),
+  tonic: t("Soda / Tonic"),
+  cola: t("Soft Drink"),
+  lemonade: t("Soft Drink"),
   juice: 'Juice',
-  'energy drink': 'Energy Drink',
+  'energy drink': t("Energy Drink"),
   water: 'Water',
   'sparkling water': 'Water',
   mezcal: 'Tequila',
-  liqueur: 'Vermouth & Liqueur',
-  vermouth: 'Vermouth & Liqueur',
+  liqueur: t("Vermouth & Liqueur"),
+  vermouth: t("Vermouth & Liqueur"),
   brandy: 'Cognac',
   whiskey: 'Whiskey',
 }
@@ -269,13 +270,13 @@ export const STOCK_DEFAULT_UNIT_BY_CATEGORY = {
 export const STOCK_DEFAULT_LOCATION_BY_CATEGORY = {
   Spirits: 'Bar',
   'Syrups & Purées': 'Bar',
-  Beverages: 'Main Storage',
-  Wine: 'Wine Storage',
+  Beverages: t("Main Storage"),
+  Wine: t("Wine Storage"),
   Fresh: 'Fridge',
   Vegetables: 'Fridge',
   'Meat and Seafood': 'Fridge',
-  Consumables: 'Main Storage',
-  Other: 'Main Storage',
+  Consumables: t("Main Storage"),
+  Other: t("Main Storage"),
 }
 
 export function normalizeStockCategory(category) {
@@ -320,7 +321,7 @@ export function getDefaultUnitForCategory(category) {
 
 export function getDefaultLocationForCategory(category) {
   const normalized = normalizeStockCategory(category)
-  return STOCK_DEFAULT_LOCATION_BY_CATEGORY[normalized] ?? 'Main Storage'
+  return STOCK_DEFAULT_LOCATION_BY_CATEGORY[normalized] ?? t("Main Storage")
 }
 
 export function resolveStockItemType(item) {
@@ -531,29 +532,29 @@ export function stockItemToForm(item) {
 
 export function validateStockItemForm(form) {
   const name = `${form.name ?? ''}`.trim()
-  if (!name) return 'Please enter a product name.'
+  if (!name) return t("Please enter a product name.")
 
   const rawCategory = `${form.category ?? ''}`.trim()
-  if (!rawCategory) return 'Please select a category.'
+  if (!rawCategory) return t("Please select a category.")
 
   const category = normalizeStockCategory(rawCategory)
-  if (!category) return 'Please select a category.'
+  if (!category) return t("Please select a category.")
 
   const itemType = `${form.itemType ?? ''}`.trim()
-  if (!itemType) return 'Please select a product type.'
+  if (!itemType) return t("Please select a product type.")
 
   const typeOptions = getStockTypeOptionsForCategory(category)
   if (!typeOptions.includes(itemType)) {
-    return 'Please select a valid type for this category.'
+    return t("Please select a valid type for this category.")
   }
 
   const storageLocation = `${form.storageLocation ?? ''}`.trim()
-  if (!storageLocation) return 'Please select a storage location.'
+  if (!storageLocation) return t("Please select a storage location.")
 
   const unit = resolveStockFormUnit(form)
-  if (!unit) return 'Please choose or enter a unit.'
+  if (!unit) return t("Please choose or enter a unit.")
   if (`${form.packUnit ?? ''}`.trim() && !normalizeUnitsPerPack(form.unitsPerPack)) {
-    return 'Enter how many units are in one pack (more than 0).'
+    return t("Enter how many units are in one pack (more than 0).")
   }
 
   const unitGate = resolveProductCreateEditInventoryUnit({
@@ -566,14 +567,14 @@ export function validateStockItemForm(form) {
 
   const minimumQuantity = Number(form.minimumQuantity)
   if (!Number.isFinite(minimumQuantity) || minimumQuantity < 0) {
-    return 'Minimum alert must be zero or greater.'
+    return t("Minimum alert must be zero or greater.")
   }
 
   const targetQuantityRaw = `${form.targetQuantity ?? ''}`.trim()
   if (targetQuantityRaw) {
     const targetQuantity = Number(targetQuantityRaw)
     if (!Number.isFinite(targetQuantity) || targetQuantity < 0) {
-      return 'Target stock must be zero or greater.'
+      return t("Target stock must be zero or greater.")
     }
   }
 
@@ -581,7 +582,7 @@ export function validateStockItemForm(form) {
   if (orderQuantityRaw) {
     const orderQuantity = Number(orderQuantityRaw)
     if (!Number.isFinite(orderQuantity) || orderQuantity < 0) {
-      return 'Suggested order must be zero or greater.'
+      return t("Suggested order must be zero or greater.")
     }
   }
 
@@ -589,7 +590,7 @@ export function validateStockItemForm(form) {
   if (purchasePriceRaw) {
     const purchasePrice = Number(purchasePriceRaw)
     if (!Number.isFinite(purchasePrice) || purchasePrice < 0) {
-      return 'Purchase price must be zero or greater.'
+      return t("Purchase price must be zero or greater.")
     }
   }
 
@@ -607,7 +608,7 @@ export function stockFormToPayload(form) {
     category: normalizeStockCategory(form.category),
     itemType: `${form.itemType ?? ''}`.trim() || 'Other',
     supplier: `${form.supplier ?? ''}`.trim(),
-    storageLocation: `${form.storageLocation ?? ''}`.trim() || 'Main Storage',
+    storageLocation: `${form.storageLocation ?? ''}`.trim() || t("Main Storage"),
     unit: resolveStockFormUnitForSave(form),
     size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),

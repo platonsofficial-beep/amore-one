@@ -1,5 +1,6 @@
 import { isOperationsTaskOverdue } from './operationsBrowse'
 import { normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
+import { t } from '../i18n/i18n'
 
 export const TODAY_ATTENTION_DESTINATION_VIEWS = new Set([
   'today',
@@ -83,32 +84,32 @@ function formatDestinationAction(destination) {
   if (!destination) return 'Open'
 
   if (destination.view === 'stock') {
-    if (destination.action === 'receive-deliveries') return 'Receive delivery'
-    if (destination.section === 'orders') return 'Open stock orders'
-    return 'Open stock'
+    if (destination.action === 'receive-deliveries') return t("Receive delivery")
+    if (destination.section === 'orders') return t("Open stock orders")
+    return t("Open stock")
   }
 
   if (destination.view === 'operations' && destination.section === 'dashboard' && destination.taskId) {
-    return 'Open task'
+    return t("Open task")
   }
 
   if (destination.view === 'team' && destination.section === 'schedule') {
-    return 'Open schedule'
+    return t("Open schedule")
   }
 
   if (destination.view === 'reservations') {
-    return destination.action === 'host' ? 'Open reservation in host view' : 'Open reservations'
+    return destination.action === 'host' ? t("Open reservation in host view") : t("Open reservations")
   }
 
   if (destination.view === 'today' && destination.action === 'announcements') {
-    return 'View announcement'
+    return t("View announcement")
   }
 
   return 'Open'
 }
 
 export function formatTodayAttentionActionLabel(item, destination = null) {
-  const label = `${item?.label ?? 'Attention item'}`.trim() || 'Attention item'
+  const label = `${item?.label ?? t("Attention item")}`.trim() || t("Attention item")
   const detail = `${item?.detail ?? ''}`.trim()
   const action = formatDestinationAction(destination)
 
@@ -132,7 +133,7 @@ export function buildOperationsTaskAttentionItems(tasks = [], todayKey = '') {
         tone: 'warning',
         priority: 'urgent',
         label: title,
-        detail: 'Overdue task',
+        detail: t("Overdue task"),
       })
       return
     }
@@ -145,7 +146,7 @@ export function buildOperationsTaskAttentionItems(tasks = [], todayKey = '') {
         tone: 'info',
         priority: 'reminder',
         label: title,
-        detail: 'Due today',
+        detail: t("Due today"),
       })
     }
   })

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { updateSupplyOrderDraftReviewQuantity } from '../../lib/stockSupplyOrderDraft'
 import { formatSupplierDisplayName } from '../../lib/stockOrderUtils'
+import { t } from '../../i18n/i18n'
 
 export function SupplyOrderDraftPreviewDialog({
   isOpen = false,
@@ -48,28 +49,28 @@ export function SupplyOrderDraftPreviewDialog({
       >
         <header className="supply-draft-preview-header">
           <div>
-            <p className="supply-draft-preview-kicker">Purchase orders</p>
-            <h2 id="supply-draft-preview-title">Suggest order</h2>
+            <p className="supply-draft-preview-kicker">{t("Purchase orders")}</p>
+            <h2 id="supply-draft-preview-title">{t("Suggest order")}</h2>
           </div>
           <button
             type="button"
             className="icon-btn supply-draft-preview-close"
             onClick={onCancel}
             disabled={isSaving}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
         </header>
         <div className="supply-draft-preview-scroll">
         {isLoading ? (
-          <p className="supply-draft-preview-summary" role="status">Preparing the suggested order…</p>
+          <p className="supply-draft-preview-summary" role="status">{t("Preparing the suggested order…")}</p>
         ) : null}
         {`${summary ?? ''}`.trim() ? (
           <p className="supply-draft-preview-summary">{`${summary}`.trim()}</p>
         ) : null}
         {message && !isLoading ? <p role="status">{message}</p> : null}
-        {!isLoading ? <p>Check each supplier, product, and quantity. Nothing is saved until you confirm.</p> : null}
+        {!isLoading ? <p>{t("Check each supplier, product, and quantity. Nothing is saved until you confirm.")}</p> : null}
         {groups.length > 0 ? (
           <div className="supply-draft-review">
             {groups.map((group, groupIndex) => (
@@ -108,7 +109,7 @@ export function SupplyOrderDraftPreviewDialog({
         </div>
         <div className="supply-draft-preview-actions">
           <button type="button" className="ghost-btn" onClick={onCancel} disabled={isSaving}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -116,7 +117,7 @@ export function SupplyOrderDraftPreviewDialog({
             onClick={() => onConfirm?.(usingReview ? groups : undefined)}
             disabled={isSaving || isLoading || (usingReview ? groups.length === 0 : lines.length === 0)}
           >
-            {isSaving ? 'Saving…' : 'Save order'}
+            {isSaving ? 'Saving…' : t("Save order")}
           </button>
         </div>
       </section>

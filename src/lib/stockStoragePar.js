@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /** Shown when stock_item_storage_pars is not in the database yet. */
 export const STORAGE_PAR_UNAVAILABLE_MESSAGE =
   'Per-shelf par is not available yet. On hand still shows. Pars appear after the shelf par update is applied.'
@@ -54,7 +55,7 @@ export function parseStorageParInput(raw) {
       ok: false,
       clear: false,
       value: null,
-      error: 'Par must be zero or greater, with up to 3 decimal places.',
+      error: t("Par must be zero or greater, with up to 3 decimal places."),
     }
   }
   const value = roundParQuantity(Number(trimmed))
@@ -63,7 +64,7 @@ export function parseStorageParInput(raw) {
       ok: false,
       clear: false,
       value: null,
-      error: 'Par must be zero or greater, with up to 3 decimal places.',
+      error: t("Par must be zero or greater, with up to 3 decimal places."),
     }
   }
   return { ok: true, clear: false, value }

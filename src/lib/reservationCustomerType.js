@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const CUSTOMER_TYPE_MARKER = '\n@@CUSTOMER@@'
 
 export const CUSTOMER_TYPES = ['Regular', 'VIP', 'VVIP', 'House Guest']
@@ -6,7 +7,7 @@ export const GUEST_TYPE_OPTIONS = [
   { value: 'Regular', label: 'Normal' },
   { value: 'VIP', label: 'VIP' },
   { value: 'VVIP', label: 'VVIP' },
-  { value: 'House Guest', label: 'House Guest' },
+  { value: t("House Guest"), label: t("House Guest") },
 ]
 
 export function getGuestTypeLabel(customerType) {

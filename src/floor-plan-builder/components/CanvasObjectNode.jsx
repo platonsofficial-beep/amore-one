@@ -2,6 +2,7 @@ import { memo } from 'react'
 import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, formatTableGuestRangeLabel } from '../models/floorPlanObject'
 import { getTableHandleMetrics } from '../lib/tableHandleMetrics'
 import { normalizeTableBounds } from '../lib/tableDimensions'
+import { t } from '../../i18n/i18n'
 
 const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 
@@ -130,7 +131,7 @@ function CanvasObjectNodeComponent({
               type="button"
               className="fpb-handle fpb-handle-rotate"
               tabIndex={-1}
-              aria-label="Rotate table"
+              aria-label={t("Rotate table")}
               onPointerDown={(event) => {
                 event.stopPropagation()
                 onRotatePointerDown?.(event, object)

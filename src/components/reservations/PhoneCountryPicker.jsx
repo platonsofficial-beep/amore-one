@@ -5,6 +5,7 @@ import {
   findPhoneCountryByCode,
   sortPhoneCountriesForDisplay,
 } from '../../lib/phoneCountries'
+import { t } from '../../i18n/i18n'
 import './phoneCountryPicker.css'
 
 const PICKER_Z_INDEX = 12150
@@ -58,7 +59,7 @@ function PhoneCountryOptions({
           className="phone-country-picker-search"
           value={searchQuery}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Search country or code"
+          placeholder={t("Search country or code")}
           autoComplete="off"
           enterKeyHint="search"
         />
@@ -67,7 +68,7 @@ function PhoneCountryOptions({
       <ul id={listId} className="phone-country-picker-list" role="listbox">
         {countries.length === 0 ? (
           <li className="phone-country-picker-empty" role="presentation">
-            No countries found
+            {t("No countries found")}
           </li>
         ) : countries.map((country) => (
           <li key={`${country.iso2}-${country.code}`} role="presentation">
@@ -191,13 +192,13 @@ export function PhoneCountryPicker({
           <button
             type="button"
             className="phone-country-picker-backdrop"
-            aria-label="Close country picker"
+            aria-label={t("Close country picker")}
             onClick={closePicker}
           />
-          <div className="phone-country-picker-sheet" role="dialog" aria-modal="true" aria-label="Choose country code">
+          <div className="phone-country-picker-sheet" role="dialog" aria-modal="true" aria-label={t("Choose country code")}>
             <header className="phone-country-picker-sheet-header">
-              <h3>Country code</h3>
-              <button type="button" className="phone-country-picker-close" onClick={closePicker} aria-label="Close">
+              <h3>{t("Country code")}</h3>
+              <button type="button" className="phone-country-picker-close" onClick={closePicker} aria-label={t("Close")}>
                 ✕
               </button>
             </header>
@@ -227,7 +228,7 @@ export function PhoneCountryPicker({
             className="phone-country-picker-menu"
             style={{ maxHeight: `${menuPosition?.maxHeight ?? 420}px` }}
             role="dialog"
-            aria-label="Choose country code"
+            aria-label={t("Choose country code")}
           >
             <PhoneCountryOptions
               countries={filteredCountries}

@@ -1,39 +1,40 @@
 import { parseTimeToMinutes } from './shiftHoursUtils'
+import { t } from '../i18n/i18n'
 
 export const EMPLOYEE_TODAY_STATUS = Object.freeze({
   on_leave: Object.freeze({
     key: 'on_leave',
-    label: 'On leave today',
+    label: t("On leave today"),
     priority: 1,
   }),
   working_now: Object.freeze({
     key: 'working_now',
-    label: 'Working now',
+    label: t("Working now"),
     priority: 2,
   }),
   scheduled_later: Object.freeze({
     key: 'scheduled_later',
-    label: 'Scheduled later',
+    label: t("Scheduled later"),
     priority: 3,
   }),
   shift_completed: Object.freeze({
     key: 'shift_completed',
-    label: 'Shift completed',
+    label: t("Shift completed"),
     priority: 4,
   }),
   day_off: Object.freeze({
     key: 'day_off',
-    label: 'Day off today',
+    label: t("Day off today"),
     priority: 5,
   }),
   not_scheduled: Object.freeze({
     key: 'not_scheduled',
-    label: 'Not scheduled',
+    label: t("Not scheduled"),
     priority: 6,
   }),
   unavailable: Object.freeze({
     key: 'unavailable',
-    label: 'Unavailable today',
+    label: t("Unavailable today"),
     priority: 7,
   }),
 })
@@ -327,7 +328,7 @@ export function resolveEmployeeTodayStatus(input = {}) {
 
   if (!employeeId || !todayKey) {
     return withStatus(base, 'not_scheduled', {
-      reason: 'Missing employee or workspace date context',
+      reason: t("Missing employee or workspace date context"),
     })
   }
 
@@ -352,7 +353,7 @@ export function resolveEmployeeTodayStatus(input = {}) {
   if (matchingLeave) {
     return withStatus(result, 'on_leave', {
       leave: matchingLeave,
-      reason: 'Approved leave covers today',
+      reason: t("Approved leave covers today"),
     })
   }
 
@@ -376,7 +377,7 @@ export function resolveEmployeeTodayStatus(input = {}) {
       nextShift: buildShiftSnapshot(nextShiftToday),
       startsAt: currentShift?.startTime ?? null,
       endsAt: currentShift?.endTime ?? null,
-      reason: 'Active overnight shift from previous day',
+      reason: t("Active overnight shift from previous day"),
     })
   }
 
@@ -396,7 +397,7 @@ export function resolveEmployeeTodayStatus(input = {}) {
       nextShift: buildShiftSnapshot(nextShiftToday),
       startsAt: currentShift?.startTime ?? null,
       endsAt: currentShift?.endTime ?? null,
-      reason: 'Active published shift',
+      reason: t("Active published shift"),
     })
   }
 
@@ -422,7 +423,7 @@ export function resolveEmployeeTodayStatus(input = {}) {
       completedShift,
       startsAt: nextShift?.startTime ?? null,
       endsAt: nextShift?.endTime ?? null,
-      reason: 'Future published shift today',
+      reason: t("Future published shift today"),
     })
   }
 
@@ -439,18 +440,18 @@ export function resolveEmployeeTodayStatus(input = {}) {
       completedShift,
       startsAt: completedShift?.startTime ?? null,
       endsAt: completedShift?.endTime ?? null,
-      reason: 'All published shifts for today are completed',
+      reason: t("All published shifts for today are completed"),
     })
   }
 
   if (isWeekPublished) {
     return withStatus(result, 'day_off', {
-      reason: 'Published schedule exists with no shift today',
+      reason: t("Published schedule exists with no shift today"),
     })
   }
 
   return withStatus(result, 'not_scheduled', {
-    reason: 'No published schedule for this week',
+    reason: t("No published schedule for this week"),
   })
 }
 

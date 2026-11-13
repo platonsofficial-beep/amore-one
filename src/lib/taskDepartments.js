@@ -1,39 +1,40 @@
+import { t } from '../i18n/i18n'
 export const TASK_PRESET_DEPARTMENTS = [
   {
     key: 'service',
     label: 'Service',
     icon: '🍽️',
-    description: 'Front-of-house service, hosts, and guest-facing operations.',
+    description: t("Front-of-house service, hosts, and guest-facing operations."),
   },
   {
     key: 'bar',
     label: 'Bar',
     icon: '🍸',
-    description: 'Bar prep, service, and beverage execution.',
+    description: t("Bar prep, service, and beverage execution."),
   },
   {
     key: 'bar_manager',
-    label: 'Bar Manager',
+    label: t("Bar Manager"),
     icon: '🥃',
-    description: 'Bar leadership, standards, and shift oversight.',
+    description: t("Bar leadership, standards, and shift oversight."),
   },
   {
     key: 'floor_manager',
-    label: 'Floor Manager',
+    label: t("Floor Manager"),
     icon: '🧭',
-    description: 'Floor flow, section coverage, and service coordination.',
+    description: t("Floor flow, section coverage, and service coordination."),
   },
   {
     key: 'fb',
     label: 'F&B',
     icon: '🏢',
-    description: 'Food and beverage coordination across service and kitchen.',
+    description: t("Food and beverage coordination across service and kitchen."),
   },
   {
     key: 'logistics',
     label: 'Logistics',
     icon: '📦',
-    description: 'Deliveries, storage, prep flow, and back-of-house supply.',
+    description: t("Deliveries, storage, prep flow, and back-of-house supply."),
   },
 ]
 
@@ -42,7 +43,7 @@ const LEGACY_TASK_DEPARTMENTS = [
     key: 'customers',
     label: 'Customers',
     icon: '💬',
-    description: 'Legacy customer-facing department.',
+    description: t("Legacy customer-facing department."),
     hidden: true,
   },
 ]
@@ -109,7 +110,7 @@ const CUSTOM_DEPARTMENT_META = {
   key: CUSTOM_DEPARTMENT_TYPE,
   label: 'Custom',
   icon: CUSTOM_DEPARTMENT_ICON,
-  description: 'User-created department board.',
+  description: t("User-created department board."),
   isCustomType: true,
 }
 

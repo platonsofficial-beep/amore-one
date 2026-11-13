@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { createWorkspaceStorage } from '../../services/workspaceStorageService'
+import { t } from '../../i18n/i18n'
 
 const STORAGE_NAME_MAX_LENGTH = 80
 
@@ -18,7 +19,7 @@ export function validateCreateWorkspaceStorageName(rawName) {
     return {
       ok: false,
       value: '',
-      error: 'Storage name is required.',
+      error: t("Storage name is required."),
     }
   }
   if (trimmed.length > STORAGE_NAME_MAX_LENGTH) {
@@ -84,7 +85,7 @@ export function CreateWorkspaceStorageDialog({
       const created = await createWorkspaceStorage(workspaceId, validation.value)
       onCreated?.(created)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to create storage right now.')
+      setError(submitError?.message || t("Unable to create storage right now."))
     } finally {
       setIsSaving(false)
     }
@@ -105,10 +106,10 @@ export function CreateWorkspaceStorageDialog({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Stock</p>
-            <h3 id={titleId}>Create storage</h3>
+            <p className="eyebrow">{t("Stock")}</p>
+            <h3 id={titleId}>{t("Create storage")}</h3>
             <p className="stock-modal-subtitle">
-              Add a workspace storage location for catalog and import.
+              {t("Add a workspace storage location for catalog and import.")}
             </p>
           </div>
           <button
@@ -116,7 +117,7 @@ export function CreateWorkspaceStorageDialog({
             className="icon-btn"
             onClick={handleDismiss}
             disabled={isSaving}
-            aria-label="Close"
+            aria-label={t("Close")}
           >
             ✕
           </button>
@@ -124,7 +125,7 @@ export function CreateWorkspaceStorageDialog({
 
         <form className="employee-form" onSubmit={handleSubmit}>
           <label htmlFor={inputId}>
-            Storage Name
+            {t("Storage Name")}
             <input
               id={inputId}
               type="text"
@@ -132,7 +133,7 @@ export function CreateWorkspaceStorageDialog({
               maxLength={STORAGE_NAME_MAX_LENGTH}
               autoFocus
               disabled={isSaving}
-              placeholder="e.g. Cellar"
+              placeholder={t("e.g. Cellar")}
               onChange={(event) => {
                 setName(event.target.value)
                 if (error) setError('')
@@ -154,14 +155,14 @@ export function CreateWorkspaceStorageDialog({
               onClick={handleDismiss}
               disabled={isSaving}
             >
-              Cancel
+              {t("Cancel")}
             </button>
             <button
               type="submit"
               className="primary-btn"
               disabled={isSaving}
             >
-              {isSaving ? 'Creating…' : 'Create Storage'}
+              {isSaving ? 'Creating…' : t("Create Storage")}
             </button>
           </div>
         </form>

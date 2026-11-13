@@ -27,6 +27,7 @@ import {
 } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { getStockMovementsWithAuthors } from '../../services/stockMovementService'
+import { t } from '../../i18n/i18n'
 
 function OverviewRow({ label, value, emphasize = false }) {
   return (
@@ -49,7 +50,7 @@ function LocationBalanceRow({ balance, unit }) {
       <dt>
         <span className="stock-location-balance-name">{balance.locationName}</span>
         {balance.storageActive === false ? (
-          <span className="stock-location-balance-inactive-label">Inactive</span>
+          <span className="stock-location-balance-inactive-label">{t("Inactive")}</span>
         ) : null}
       </dt>
       <dd>{formatStockQuantity(balance.quantity, unit)}</dd>
@@ -76,18 +77,18 @@ function MovementTimelineCard({ movement, unit, timeZone = '' }) {
 
       <dl className="stock-product-history-movement-levels">
         <div className="stock-product-history-movement-level">
-          <dt>Before</dt>
+          <dt>{t("Before")}</dt>
           <dd>{formatStockQuantity(movement.quantityBefore, unit)}</dd>
         </div>
         <div className="stock-product-history-movement-level">
-          <dt>After</dt>
+          <dt>{t("After")}</dt>
           <dd>{formatStockQuantity(movement.quantityAfter, unit)}</dd>
         </div>
       </dl>
 
       <div className="stock-product-history-movement-meta">
         <p className="stock-product-history-movement-by">
-          By: <span>{movement.createdByName || 'System'}</span>
+          {t("By:")} <span>{movement.createdByName || 'System'}</span>
         </p>
         <p className="stock-product-history-movement-when">
           {formatStockProductHistoryTimestamp(movement.createdAt, timeZone)}
@@ -96,7 +97,7 @@ function MovementTimelineCard({ movement, unit, timeZone = '' }) {
 
       {movement.note ? (
         <div className="stock-product-history-movement-reason">
-          <span className="stock-product-history-movement-reason-label">Reason:</span>
+          <span className="stock-product-history-movement-reason-label">{t("Reason:")}</span>
           <p className="stock-product-history-movement-reason-text">{movement.note}</p>
         </div>
       ) : null}
@@ -141,7 +142,7 @@ export function StockProductHistoryDrawer({
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError?.message || 'Unable to load product history right now.')
+          setError(loadError?.message || t("Unable to load product history right now."))
         }
       } finally {
         if (isMounted) {
@@ -229,21 +230,21 @@ export function StockProductHistoryDrawer({
             type="button"
             className="icon-btn stock-product-history-close"
             onClick={onClose}
-            aria-label="Close product history"
+            aria-label={t("Close product history")}
           >
             ✕
           </button>
         </header>
 
         <div className="stock-product-history-scroll">
-          {isLoading ? <div className="staff-status-banner">Loading product history…</div> : null}
+          {isLoading ? <div className="staff-status-banner">{t("Loading product history…")}</div> : null}
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
           {!isLoading && !error ? (
             <>
               {productInformationRows.length > 0 ? (
-                <section className="stock-product-history-section" aria-label="Product information">
-                  <h3 className="stock-product-history-section-title">Product information</h3>
+                <section className="stock-product-history-section" aria-label={t("Product information")}>
+                  <h3 className="stock-product-history-section-title">{t("Product information")}</h3>
                   <dl className="stock-product-history-overview">
                     {productInformationRows.map((row) => (
                       <OverviewRow key={row.key} label={row.label} value={row.value} />
@@ -252,11 +253,11 @@ export function StockProductHistoryDrawer({
                 </section>
               ) : null}
 
-              <section className="stock-product-history-section" aria-label="Product overview">
-                <h3 className="stock-product-history-section-title">Product overview</h3>
+              <section className="stock-product-history-section" aria-label={t("Product overview")}>
+                <h3 className="stock-product-history-section-title">{t("Product overview")}</h3>
                 <dl className="stock-product-history-overview">
                   <OverviewRow
-                    label="Current stock"
+                    label={t("Current stock")}
                     value={formatStockQuantity(item.currentQuantity, item.unit)}
                   />
                   <OverviewRow
@@ -266,7 +267,7 @@ export function StockProductHistoryDrawer({
                   <OverviewRow
                     label="Target"
                     value={targetQuantity === null
-                      ? 'Not set'
+                      ? t("Not set")
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
                   {showCost ? (
@@ -279,7 +280,7 @@ export function StockProductHistoryDrawer({
                   ) : null}
                   {showCost ? (
                     <OverviewRow
-                      label="Inventory value"
+                      label={t("Inventory value")}
                       value={hasCost ? formatStockInventoryValue(inventoryValue) : '—'}
                     />
                   ) : null}
@@ -288,10 +289,10 @@ export function StockProductHistoryDrawer({
 
               <section
                 className="stock-product-history-section"
-                aria-label="Location balances"
+                aria-label={t("Location balances")}
                 data-testid="stock-location-balances"
               >
-                <h3 className="stock-product-history-section-title">By location</h3>
+                <h3 className="stock-product-history-section-title">{t("By location")}</h3>
                 {locationBalances.length > 0 ? (
                   <dl className="stock-product-history-overview stock-location-balance-list">
                     {locationBalances.map((balance) => (
@@ -308,13 +309,13 @@ export function StockProductHistoryDrawer({
                   </dl>
                 ) : (
                   <p className="stock-location-balance-empty">
-                    No location balances above zero.
+                    {t("No location balances above zero.")}
                   </p>
                 )}
               </section>
 
-              <section className="stock-product-history-section" aria-label="Product insights">
-                <h3 className="stock-product-history-section-title">This month</h3>
+              <section className="stock-product-history-section" aria-label={t("Product insights")}>
+                <h3 className="stock-product-history-section-title">{t("This month")}</h3>
                 <dl className="stock-product-history-insights">
                   <OverviewRow
                     label="Received"
@@ -329,7 +330,7 @@ export function StockProductHistoryDrawer({
                     value={formatMonthlyMovementStat('adjustments', monthlyInsights.adjustments, item.unit)}
                   />
                   <OverviewRow
-                    label="Last counted"
+                    label={t("Last counted")}
                     value={
                       lastCountedLabel !== 'Never' && isStaleCountLabel(lastCountedLabel)
                         ? `Last counted ${lastCountedLabel}`
@@ -340,13 +341,13 @@ export function StockProductHistoryDrawer({
                 </dl>
               </section>
 
-              <section className="stock-product-history-section" aria-label="Movement timeline">
-                <h3 className="stock-product-history-section-title">Movement timeline</h3>
+              <section className="stock-product-history-section" aria-label={t("Movement timeline")}>
+                <h3 className="stock-product-history-section-title">{t("Movement timeline")}</h3>
 
                 {timeline.length === 0 ? (
                   <div className="stock-product-history-empty panel staff-panel">
-                    <h4>No stock history yet.</h4>
-                    <p>Receive, use or count this item to start tracking.</p>
+                    <h4>{t("No stock history yet.")}</h4>
+                    <p>{t("Receive, use or count this item to start tracking.")}</p>
                   </div>
                 ) : (
                   <div className="stock-product-history-timeline">
@@ -366,15 +367,15 @@ export function StockProductHistoryDrawer({
         </div>
 
         {canManage ? (
-          <footer className="stock-product-history-footer" aria-label="Quick actions">
-            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'primary-btn' : 'ghost-btn'} stock-product-history-action-btn`} onClick={onReceive} aria-label="Receive delivery">
-              Receive
+          <footer className="stock-product-history-footer" aria-label={t("Quick actions")}>
+            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'primary-btn' : 'ghost-btn'} stock-product-history-action-btn`} onClick={onReceive} aria-label={t("Receive delivery")}>
+              {t("Receive")}
             </button>
             <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'ghost-btn' : 'primary-btn'} stock-product-history-action-btn`} onClick={onStockCount}>
-              Count
+              {t("Count")}
             </button>
             <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onEdit}>
-              Edit
+              {t("Edit")}
             </button>
           </footer>
         ) : null}

@@ -7,6 +7,7 @@ import {
   formatSeatingAssignmentDrawerLabels,
 } from './seatingAssignment'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './hostFloorPlanLayout'
+import { t } from '../i18n/i18n'
 
 export function isReservationEligibleForHostTableAssignment(reservation) {
   if (!reservation) return false
@@ -165,7 +166,7 @@ export function buildHostMultiTableSelectionSummary({
 
 export function formatHostAssignmentActionLabel({ draftTableLabels = '', tableLabel = '' } = {}) {
   const labels = `${draftTableLabels || tableLabel || ''}`.trim()
-  return labels ? `Assign ${labels}` : 'Assign table'
+  return labels ? `Assign ${labels}` : t("Assign table")
 }
 
 export function canToggleTableInHostMultiTableSelection({
@@ -181,12 +182,12 @@ export function canToggleTableInHostMultiTableSelection({
 
 export function getHostSeatingAssignmentAdvisory({ hasSelection = false, totals = null } = {}) {
   if (!hasSelection) {
-    return { tone: 'neutral', message: 'No tables selected.' }
+    return { tone: 'neutral', message: t("No tables selected.") }
   }
 
   if (totals?.isOverCapacity) {
-    return { tone: 'warning', message: 'Selected capacity is below party size.' }
+    return { tone: 'warning', message: t("Selected capacity is below party size.") }
   }
 
-  return { tone: 'success', message: 'Capacity fits this party.' }
+  return { tone: 'success', message: t("Capacity fits this party.") }
 }

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 import './dataPending.css'
 
 /**
@@ -20,14 +21,14 @@ export function LoadFailed({ onRetry, message = "Couldn't load", insideButton = 
   return (
     <span className={`data-pending-failed ${className}`.trim()} role="alert">
       <span className="data-pending-failed-text">{message}</span>
-      {insideButton ? <span className="data-pending-retry is-label">Tap to retry</span> : null}
+      {insideButton ? <span className="data-pending-retry is-label">{t("Tap to retry")}</span> : null}
       {!insideButton && typeof onRetry === 'function' ? (
         <button
           type="button"
           className="data-pending-retry"
           onClick={(event) => { event.stopPropagation(); onRetry() }}
         >
-          Retry
+          {t("Retry")}
         </button>
       ) : null}
     </span>

@@ -14,23 +14,24 @@ import {
   presentInsightsAttentionItem,
 } from '../../lib/reportsUtils'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { t } from '../../i18n/i18n'
 
 const EXECUTIVE_OVERVIEW_CARD_COUNT = 6
 const MODULE_FOOTER = 'Powered by live ONE data'
 const MODULE_FOOTER_UNAVAILABLE = 'Numbers appear here after today’s modules load.'
 
 const EMPTY_STATE_GUIDANCE = {
-  reservations: 'Bookings will appear here as guests are scheduled.',
-  tasks: 'Active checklists and tasks will surface here.',
-  stock: 'Add inventory or stock items to track levels and orders.',
-  schedule: 'Draft shifts for this period will show staffing totals here.',
-  suppliers: 'Supplier records will appear once added in Stock.',
+  reservations: t("Bookings will appear here as guests are scheduled."),
+  tasks: t("Active checklists and tasks will surface here."),
+  stock: t("Add inventory or stock items to track levels and orders."),
+  schedule: t("Draft shifts for this period will show staffing totals here."),
+  suppliers: t("Supplier records will appear once added in Stock."),
 }
 
 function ReportMetric({ label, value, emphasize = false }) {
   return (
     <article className={`reports-metric${emphasize ? ' reports-metric-emphasis' : ''}`}>
-      <p className="reports-metric-label">{label}</p>
+      <p className="reports-metric-label">{t(label)}</p>
       <p className="reports-metric-value">{value}</p>
     </article>
   )
@@ -41,7 +42,7 @@ function ReportsLoadingState({ variant = 'overview' }) {
 
   return (
     <div className={`reports-loading${variant === 'section' ? ' reports-loading-section' : ''}`} aria-busy="true">
-      <p className="reports-loading-text">Preparing insights…</p>
+      <p className="reports-loading-text">{t("Preparing insights…")}</p>
       <div className={`reports-loading-grid${variant === 'overview' ? ' reports-overview-grid' : ' reports-section-metrics'}`}>
         {Array.from({ length: placeholderCount }, (_, index) => (
           <div key={index} className="reports-metric reports-metric-skeleton" aria-hidden="true">
@@ -71,9 +72,9 @@ function ReportSection({
         <div>
           <h3 className="reports-section-heading">
             {icon ? <span className="reports-section-icon" aria-hidden="true">{icon}</span> : null}
-            {title}
+            {typeof title === 'string' ? t(title) : title}
           </h3>
-          {note ? <p className="reports-section-note">{note}</p> : null}
+          {note ? <p className="reports-section-note">{typeof note === 'string' ? t(note) : note}</p> : null}
         </div>
         <button type="button" className="ghost-btn reports-view-module-btn" onClick={onViewModule}>
           {viewModuleLabel}
@@ -103,8 +104,8 @@ function ReportSection({
 }
 
 function formatSectionMetric(value, { connected = true, format = 'count', loadFailed = false } = {}) {
-  if (loadFailed) return 'Unavailable'
-  if (!connected) return 'Not connected'
+  if (loadFailed) return t('Unavailable')
+  if (!connected) return t('Not connected')
   if (value === null || value === undefined) return '—'
   if (format === 'currency') return formatReportCurrency(value)
   if (format === 'percent') return formatReportPercent(value)
@@ -125,13 +126,13 @@ function InsightsAttentionPanel({
 }) {
   if (isLoading) {
     return (
-      <section className="reports-attention panel staff-panel" aria-label="Needs attention" aria-busy="true">
+      <section className="reports-attention panel staff-panel" aria-label={t("Needs attention")} aria-busy="true">
         <header className="reports-overview-header">
           <div>
-            <p className="eyebrow">Actionable insights</p>
+            <p className="eyebrow">{t("Actionable insights")}</p>
             <h3 className="reports-section-heading">
               <span className="reports-section-icon" aria-hidden="true">⚠️</span>
-              Needs attention
+              {t("Needs attention")}
             </h3>
           </div>
         </header>
@@ -141,13 +142,13 @@ function InsightsAttentionPanel({
   }
 
   return (
-    <section className="reports-attention panel staff-panel" aria-label="Needs attention">
+    <section className="reports-attention panel staff-panel" aria-label={t("Needs attention")}>
       <header className="reports-overview-header">
         <div>
-          <p className="eyebrow">Actionable insights</p>
+          <p className="eyebrow">{t("Actionable insights")}</p>
           <h3 className="reports-section-heading">
             <span className="reports-section-icon" aria-hidden="true">⚠️</span>
-            Needs attention
+            {t("Needs attention")}
           </h3>
         </div>
       </header>
@@ -155,11 +156,11 @@ function InsightsAttentionPanel({
       {attentionItems.length === 0 && stockRemainders.length === 0 ? (
         <div className="schedule-empty-state reports-section-empty">
           {sourcesFailed ? (
-            <p>Couldn&apos;t tell what needs attention until today&apos;s data loads.</p>
+            <p>{t("Couldn't tell what needs attention until today's data loads.")}</p>
           ) : (
             <>
-              <p>No urgent issues right now.</p>
-              <p className="reports-section-empty-guidance">Operational alerts from tasks, stock, schedule, and service will appear here.</p>
+              <p>{t("No urgent issues right now.")}</p>
+              <p className="reports-section-empty-guidance">{t("Operational alerts from tasks, stock, schedule, and service will appear here.")}</p>
             </>
           )}
         </div>
@@ -275,21 +276,21 @@ export default function ReportsView({
   const stockConnected = reports.stockReport.connected
   const reservationsEmpty = reports.reservationsReport.connected
     && reports.reservationsReport.empty
-    ? 'No reservations for this period.'
+    ? t("No reservations for this period.")
     : null
   const tasksEmpty = reports.tasksReport.connected && reports.tasksReport.empty
-    ? 'No tasks available.'
+    ? t("No tasks available.")
     : null
   const stockEmpty = stockConnected && reports.stockReport.empty
-    ? 'No stock items available.'
+    ? t("No stock items available.")
     : null
   const scheduleEmpty = reports.scheduleReport.connected && reports.scheduleReport.empty
     ? (reports.scheduleReport.usesDraftSchedule
-      ? 'No draft schedule shifts for this period.'
-      : 'No published schedule shifts for this period.')
+      ? t("No draft schedule shifts for this period.")
+      : t("No published schedule shifts for this period."))
     : null
   const suppliersEmpty = reports.suppliersReport.connected && reports.suppliersReport.empty
-    ? 'No suppliers available.'
+    ? t("No suppliers available.")
     : null
 
   const reservationMetrics = [
@@ -320,7 +321,7 @@ export default function ReportsView({
       },
       {
         key: 'seated',
-        label: 'Seated guests',
+        label: t("Seated guests"),
         value: formatSectionMetric(reports.reservationsReport.metrics.seatedGuests, {
           connected: reports.reservationsReport.connected,
         }),
@@ -344,7 +345,7 @@ export default function ReportsView({
     if (reports.reservationsReport.metrics.serviceStatus) {
       reservationMetrics.push({
         key: 'service-status',
-        label: 'Service status',
+        label: t("Service status"),
         value: formatSectionMetric(reports.reservationsReport.metrics.serviceStatus, {
           connected: reports.reservationsReport.connected,
           format: 'text',
@@ -387,28 +388,28 @@ export default function ReportsView({
   const stockMetrics = [
     {
       key: 'items-to-order',
-      label: 'Items to order',
+      label: t("Items to order"),
       value: formatSectionMetric(reports.stockReport.metrics.itemsToOrder, {
         connected: stockConnected,
       }),
     },
     {
       key: 'low-stock',
-      label: 'Low stock',
+      label: t("Low stock"),
       value: formatSectionMetric(reports.stockReport.metrics.lowStock, {
         connected: stockConnected,
       }),
     },
     {
       key: 'out-of-stock',
-      label: 'Out of stock',
+      label: t("Out of stock"),
       value: formatSectionMetric(reports.stockReport.metrics.outOfStock, {
         connected: stockConnected,
       }),
     },
     {
       key: 'stock-value',
-      label: 'Total stock value',
+      label: t("Total stock value"),
       value: formatSectionMetric(reports.stockReport.metrics.totalStockValue, {
         connected: stockConnected,
         format: 'currency',
@@ -423,21 +424,21 @@ export default function ReportsView({
     stockMetrics.push(
       {
         key: 'pending-orders',
-        label: 'Open orders',
+        label: t("Open orders"),
         value: formatSectionMetric(reports.stockReport.metrics.pendingOrders, {
           connected: stockConnected,
         }),
       },
       {
         key: 'orders-to-review',
-        label: 'Orders to review',
+        label: t("Orders to review"),
         value: formatSectionMetric(ordersToReviewCount, {
           connected: stockConnected,
         }),
       },
       {
         key: 'awaiting-delivery',
-        label: 'Awaiting delivery',
+        label: t("Awaiting delivery"),
         value: formatSectionMetric(reports.stockReport.metrics.awaitingDelivery, {
           connected: stockConnected,
         }),
@@ -446,11 +447,11 @@ export default function ReportsView({
   }
 
   const stockOrderNote = reports.stockReport.stockModuleConnected && openOrderCount > 0
-    ? 'Open orders include drafts to review and orders awaiting delivery.'
+    ? t("Open orders include drafts to review and orders awaiting delivery.")
     : null
 
   const scheduleNote = [
-    reports.scheduleReport.usesDraftSchedule ? 'Draft schedule data' : null,
+    reports.scheduleReport.usesDraftSchedule ? t("Draft schedule data") : null,
     reports.scheduleReport.coverageDetail,
   ].filter(Boolean).join(' · ') || null
 
@@ -478,7 +479,7 @@ export default function ReportsView({
     },
     {
       key: 'completed',
-      label: period === REPORT_PERIOD_TODAY ? 'Completed today' : 'Completed',
+      label: period === REPORT_PERIOD_TODAY ? t("Completed today") : 'Completed',
       value: formatSectionMetric(reports.tasksReport.metrics.completed, {
         connected: reports.tasksReport.connected,
       }),
@@ -486,7 +487,7 @@ export default function ReportsView({
     ...(period === REPORT_PERIOD_TODAY
       ? [{
         key: 'completion',
-        label: 'Completion %',
+        label: t("Completion %"),
         value: formatSectionMetric(reports.tasksReport.metrics.completionPercent, {
           connected: reports.tasksReport.connected,
           format: 'percent',
@@ -498,22 +499,22 @@ export default function ReportsView({
   const scheduleMetrics = [
     {
       key: 'scheduled-staff',
-      label: 'Scheduled staff',
+      label: t("Scheduled staff"),
       value: formatSectionMetric(reports.scheduleReport.metrics.scheduledStaff, {
         connected: reports.scheduleReport.connected,
       }),
     },
     {
       key: 'scheduled-hours',
-      label: 'Scheduled hours',
+      label: t("Scheduled hours"),
       value: reports.scheduleReport.connected
         ? `${reports.scheduleReport.metrics.scheduledHoursLabel || '0'}h`
-        : 'Not connected',
+        : t("Not connected"),
     },
     ...(period === REPORT_PERIOD_TODAY
       ? [{
         key: 'issues',
-        label: 'Schedule issues',
+        label: t("Schedule issues"),
         value: formatSectionMetric(reports.scheduleReport.metrics.issues, {
           connected: reports.scheduleReport.connected,
         }),
@@ -524,21 +525,21 @@ export default function ReportsView({
   const supplierMetrics = [
     {
       key: 'total',
-      label: 'Total suppliers',
+      label: t("Total suppliers"),
       value: formatSectionMetric(reports.suppliersReport.metrics.totalSuppliers, {
         connected: reports.suppliersReport.connected,
       }),
     },
     {
       key: 'linked',
-      label: 'Linked to stock',
+      label: t("Linked to stock"),
       value: formatSectionMetric(reports.suppliersReport.metrics.linkedToStock, {
         connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
       }),
     },
     {
       key: 'unlinked',
-      label: 'Without stock items',
+      label: t("Without stock items"),
       value: formatSectionMetric(reports.suppliersReport.metrics.withoutStockItems, {
         connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
       }),
@@ -584,10 +585,10 @@ export default function ReportsView({
       emptyMessage: reports.reservationsReport.loadFailed
         ? "Couldn't load reservations. Check your connection and try again."
         : !reports.reservationsReport.connected
-        ? 'Reservations module is not connected.'
+        ? t("Reservations module is not connected.")
         : reservationsEmpty,
       emptyGuidance: reservationsEmpty ? EMPTY_STATE_GUIDANCE.reservations : null,
-      viewModuleLabel: 'View Reservations →',
+      viewModuleLabel: t("View Reservations →"),
       moduleId: 'reservations',
     },
     {
@@ -598,10 +599,10 @@ export default function ReportsView({
       emptyMessage: reports.tasksReport.loadFailed
         ? "Couldn't load tasks. Check your connection and try again."
         : !reports.tasksReport.connected
-        ? 'Tasks module is not connected.'
+        ? t("Tasks module is not connected.")
         : tasksEmpty,
       emptyGuidance: tasksEmpty ? EMPTY_STATE_GUIDANCE.tasks : null,
-      viewModuleLabel: 'View Tasks →',
+      viewModuleLabel: t("View Tasks →"),
       moduleId: 'tasks',
     },
     {
@@ -613,10 +614,10 @@ export default function ReportsView({
       emptyMessage: reports.stockReport.loadFailed
         ? "Couldn't load stock. Check your connection and try again."
         : !stockConnected
-        ? 'Stock module is not connected.'
+        ? t("Stock module is not connected.")
         : stockEmpty,
       emptyGuidance: stockEmpty ? EMPTY_STATE_GUIDANCE.stock : null,
-      viewModuleLabel: 'View Stock →',
+      viewModuleLabel: t("View Stock →"),
       moduleId: 'stock',
     },
     {
@@ -628,10 +629,10 @@ export default function ReportsView({
       emptyMessage: reports.scheduleReport.loadFailed
         ? "Couldn't load the schedule. Check your connection and try again."
         : !reports.scheduleReport.connected
-        ? 'Schedule module is not connected.'
+        ? t("Schedule module is not connected.")
         : scheduleEmpty,
       emptyGuidance: scheduleEmpty ? EMPTY_STATE_GUIDANCE.schedule : null,
-      viewModuleLabel: 'View Schedule →',
+      viewModuleLabel: t("View Schedule →"),
       moduleId: 'schedule',
     },
     {
@@ -640,10 +641,10 @@ export default function ReportsView({
       icon: '🚚',
       metrics: supplierMetrics,
       emptyMessage: !reports.suppliersReport.connected
-        ? 'Suppliers module is not connected.'
+        ? t("Suppliers module is not connected.")
         : suppliersEmpty,
       emptyGuidance: suppliersEmpty ? EMPTY_STATE_GUIDANCE.suppliers : null,
-      viewModuleLabel: 'View Suppliers →',
+      viewModuleLabel: t("View Suppliers →"),
       moduleId: 'suppliers',
     },
   ].map((section) => {
@@ -674,16 +675,16 @@ export default function ReportsView({
   ) : null
 
   const briefPanel = showBrief ? (
-    <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
+    <section className="reports-overview panel staff-panel" aria-label={t("Manager Brief")}>
       <header className="reports-overview-header">
         <div>
-          <p className="eyebrow">Executive summary</p>
+          <p className="eyebrow">{t("Executive summary")}</p>
           <h3 className="reports-section-heading">
             <span className="reports-section-icon" aria-hidden="true">⚡</span>
-            Manager Brief
+            {t("Manager Brief")}
           </h3>
           <p className="reports-overview-subtitle">
-            {isLoading ? 'Loading operational overview…' : reports.healthSummary}
+            {isLoading ? t("Loading operational overview…") : reports.healthSummary}
           </p>
         </div>
       </header>
@@ -709,7 +710,7 @@ export default function ReportsView({
 
       {showOpenOrderNote ? (
         <p className="reports-overview-note">
-          Open orders include drafts to review and orders awaiting delivery.
+          {t("Open orders include drafts to review and orders awaiting delivery.")}
         </p>
       ) : null}
     </section>
@@ -717,20 +718,20 @@ export default function ReportsView({
 
   return (
     <section className="staff-page reports-page">
-      <div className="reports-period-filters" role="group" aria-label="Report period">
+      <div className="reports-period-filters" role="group" aria-label={t("Report period")}>
         <button
           type="button"
           className={`filter-chip${period === REPORT_PERIOD_TODAY ? ' active' : ''}`}
           onClick={() => setPeriod(REPORT_PERIOD_TODAY)}
         >
-          Today
+          {t("Today")}
         </button>
         <button
           type="button"
           className={`filter-chip${period === REPORT_PERIOD_WEEK ? ' active' : ''}`}
           onClick={() => setPeriod(REPORT_PERIOD_WEEK)}
         >
-          This Week
+          {t("This Week")}
         </button>
       </div>
 
@@ -740,7 +741,7 @@ export default function ReportsView({
 
       {filtering && !anyCards ? (
         <div className="schedule-empty-state reports-section-empty reports-search-empty">
-          <p>No insights match that search.</p>
+          <p>{t("No insights match that search.")}</p>
         </div>
       ) : null}
 

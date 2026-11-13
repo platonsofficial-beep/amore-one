@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { formatReservationDayMonth, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { HostWorkspaceDatePicker } from './HostWorkspaceDatePicker'
 import { ReservationCalendarIcon } from './ReservationCalendarIcon'
+import { t } from '../../i18n/i18n'
 
 const PICKER_Z_INDEX = 1250
 const PICKER_WIDTH = 300
@@ -131,7 +132,7 @@ export function ReservationDateField({
         required={required}
         aria-haspopup="dialog"
         aria-expanded={isPickerOpen}
-        aria-label="Reservation date"
+        aria-label={t("Reservation date")}
         data-date-key={normalizedValue}
       />
 
@@ -143,7 +144,7 @@ export function ReservationDateField({
           aria-haspopup="dialog"
           aria-expanded={isPickerOpen}
           aria-controls={isPickerOpen ? `${fieldId}-calendar` : undefined}
-          aria-label="Open calendar to choose reservation date"
+          aria-label={t("Open calendar to choose reservation date")}
         >
           <ReservationCalendarIcon className={`${className}-calendar-icon`} />
         </button>
