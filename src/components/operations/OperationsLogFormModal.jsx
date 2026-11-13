@@ -66,7 +66,7 @@ export function OperationsLogFormModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save note right now.')
+      setError(submitError?.message || t("Unable to save note right now."))
     }
   }
 
@@ -82,7 +82,7 @@ export function OperationsLogFormModal({
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{t("Shift Notes")}</p>
-            <h3 id="operations-log-form-title">{log ? 'Edit note' : 'Add note'}</h3>
+            <h3 id="operations-log-form-title">{log ? t("Edit note") : t("Add note")}</h3>
           </div>
           <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
@@ -126,7 +126,7 @@ export function OperationsLogFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : log ? 'Save note' : 'Add note'}
+              {isSaving ? 'Saving…' : log ? t("Save note") : t("Add note")}
             </button>
           </div>
         </form>

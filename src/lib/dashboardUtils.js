@@ -1,4 +1,4 @@
-import { uiLocale } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeFormatUtils'
 import { calculateShiftDurationHours, parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
@@ -114,9 +114,9 @@ export function buildLiveFloorState({
   if (todayPublishedShifts.length === 0) {
     return {
       state: 'unpublished',
-      eyebrow: 'Live floor',
-      heading: 'Staff on shift',
-      title: 'No published schedule',
+      eyebrow: t("Live floor"),
+      heading: t("Staff on shift"),
+      title: t("No published schedule"),
       message: "Publish today's schedule to monitor live operations.",
       onShift: [],
       onShiftCount: 0,
@@ -182,9 +182,9 @@ export function buildLiveFloorState({
   if (!isWeekPublished && onShift.length === 0) {
     return {
       state: 'unpublished',
-      eyebrow: 'Live floor',
-      heading: 'Staff on shift',
-      title: 'No published schedule',
+      eyebrow: t("Live floor"),
+      heading: t("Staff on shift"),
+      title: t("No published schedule"),
       message: "Publish today's schedule to monitor live operations.",
       onShift: [],
       onShiftCount: 0,
@@ -203,9 +203,9 @@ export function buildLiveFloorState({
     // say "No more shifts today" at 16:00 when the evening starts at 16:30.
     return {
       state: 'live',
-      eyebrow: 'LIVE FLOOR',
-      heading: 'Staff on shift',
-      title: 'LIVE FLOOR',
+      eyebrow: t("LIVE FLOOR"),
+      heading: t("Staff on shift"),
+      title: t("LIVE FLOOR"),
       message: '',
       onShift,
       onShiftCount: onShift.length,
@@ -216,12 +216,12 @@ export function buildLiveFloorState({
 
   return {
     state: 'idle',
-    eyebrow: 'Live floor',
-    heading: 'Staff on shift',
-    title: 'No active shift',
+    eyebrow: t("Live floor"),
+    heading: t("Staff on shift"),
+    title: t("No active shift"),
     message: nextShiftStartLabel
       ? `Next shift starts at ${nextShiftStartLabel}`
-      : 'No more shifts scheduled today.',
+      : t("No more shifts scheduled today."),
     onShift: [],
     onShiftCount: 0,
     nextShiftStartLabel,
@@ -404,7 +404,7 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
     return {
       count: 0,
       severity: 'info',
-      title: 'All clear',
+      title: t("All clear"),
       message: '',
       tone: 'ready',
     }
@@ -416,7 +416,7 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
     count: issueCount,
     severity,
     title: issueCount === 1 ? '1 issue needs attention' : `${issueCount} issues need attention`,
-    message: severity === 'critical' ? 'Act now.' : 'Review schedule.',
+    message: severity === 'critical' ? t("Act now.") : t("Review schedule."),
     tone: 'attention',
   }
 }
@@ -441,7 +441,7 @@ export function buildExecutiveLabourSummary({
       hoursLabel,
       costConnected: false,
       costDisplay: null,
-      costHint: 'Labour Cost not connected',
+      costHint: t("Labour Cost not connected"),
     }
   }
 
@@ -468,7 +468,7 @@ export function buildExecutiveLabourSummary({
       hoursLabel,
       costConnected: false,
       costDisplay: null,
-      costHint: 'Labour Cost not connected',
+      costHint: t("Labour Cost not connected"),
     }
   }
 
@@ -533,7 +533,7 @@ export function buildBusinessHealthSummary({
       tone: 'critical',
       label: 'Critical',
       icon: '✕',
-      message: 'Immediate attention required.',
+      message: t("Immediate attention required."),
     }
   }
 
@@ -542,7 +542,7 @@ export function buildBusinessHealthSummary({
       tone: 'attention',
       label: 'Attention',
       icon: '⚠',
-      message: 'Minor issues detected.',
+      message: t("Minor issues detected."),
     }
   }
 
@@ -550,7 +550,7 @@ export function buildBusinessHealthSummary({
     tone: 'healthy',
     label: 'Excellent',
     icon: '✓',
-    message: 'All systems operating normally.',
+    message: t("All systems operating normally."),
   }
 }
 
@@ -572,11 +572,11 @@ export function buildDashboardContextMessage({
   const issueCount = Number(snapshot.issues) || 0
 
   if (businessHealth.tone === 'critical') {
-    return 'Immediate attention required before service.'
+    return t("Immediate attention required before service.")
   }
 
   if (issueCount === 1) {
-    return 'One issue needs your attention.'
+    return t("One issue needs your attention.")
   }
 
   if (issueCount > 1) {
@@ -585,7 +585,7 @@ export function buildDashboardContextMessage({
 
   if (liveFloor.state === 'live' && liveFloor.onShiftCount > 0) {
     return liveFloor.onShiftCount === 1
-      ? 'One team member is on the floor now.'
+      ? t("One team member is on the floor now.")
       : `${liveFloor.onShiftCount} team members are on the floor now.`
   }
 
@@ -614,7 +614,7 @@ export function buildDashboardContextMessage({
     return "Publish today's schedule to monitor live operations."
   }
 
-  return 'Everything is running smoothly today.'
+  return t("Everything is running smoothly today.")
 }
 
 function resolveVenueNowMinutes(now = new Date(), timeZone = '') {
@@ -646,7 +646,7 @@ export function buildReservationsContextLine(
   const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
   if (todayReservations.length === 0) {
-    return 'No reservations booked today.'
+    return t("No reservations booked today.")
   }
 
   const nowMinutes = resolveVenueNowMinutes(now, timeZone)
@@ -670,22 +670,22 @@ export function buildReservationsFooter(
   const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
   if (todayReservations.length === 0) {
-    return { type: 'empty', message: 'No upcoming reservations.' }
+    return { type: 'empty', message: t("No upcoming reservations.") }
   }
 
   const nowMinutes = resolveVenueNowMinutes(now, timeZone)
   const upcoming = findNextNotYetArrivedReservation(todayReservations, nowMinutes)
 
   if (!upcoming) {
-    return { type: 'empty', message: 'No upcoming reservations.' }
+    return { type: 'empty', message: t("No upcoming reservations.") }
   }
 
   const timeLabel = formatTime24(normalizeTimeValue(upcoming.time))
   if (!timeLabel) {
-    return { type: 'empty', message: 'No upcoming reservations.' }
+    return { type: 'empty', message: t("No upcoming reservations.") }
   }
 
-  return { type: 'next', label: 'Next reservation', time: timeLabel }
+  return { type: 'next', label: t("Next reservation"), time: timeLabel }
 }
 
 export function buildDashboardOperationalSummary({
@@ -708,13 +708,13 @@ export function buildDashboardOperationalSummary({
 
   if (stockCount > 0) {
     return stockCount === 1
-      ? 'One stock item requires attention before service.'
+      ? t("One stock item requires attention before service.")
       : `${stockCount} stock items require attention before service.`
   }
 
   if (issueCount > 0) {
     return issueCount === 1
-      ? 'One issue needs attention before service.'
+      ? t("One issue needs attention before service.")
       : `${issueCount} issues need attention before service.`
   }
 
@@ -742,5 +742,5 @@ export function buildDashboardOperationalSummary({
     return "Everything is ready for today's evening shift."
   }
 
-  return 'Everything is running smoothly today.'
+  return t("Everything is running smoothly today.")
 }

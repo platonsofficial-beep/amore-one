@@ -147,7 +147,7 @@ export function InventoryOperationalMatchResolution({
                     </p>
                   </div>
                   <span className={`inventory-operational-match-resolution-status ${complete ? 'is-resolved' : 'is-pending'}`}>
-                    {complete ? 'Resolved' : 'Needs decision'}
+                    {complete ? 'Resolved' : t("Needs decision")}
                   </span>
                 </div>
 

@@ -11,7 +11,7 @@ export function SubscriptionLockScreen({
   notice = '',
   showPortal = false,
 }) {
-  const venue = `${venueName ?? ''}`.trim() || 'This venue'
+  const venue = `${venueName ?? ''}`.trim() || t("This venue")
   if (!manager) {
     return (
       <div className="subscription-lock is-staff" data-testid="subscription-lock" role="dialog" aria-modal="true" aria-labelledby="subscription-lock-title">

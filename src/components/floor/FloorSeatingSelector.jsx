@@ -73,16 +73,16 @@ export function FloorSeatingSelector({
             const summaryCount = bookingCertainty === 'unknown'
               ? 'Unverified'
               : bookingCertainty === 'stale'
-                ? 'Last loaded'
+                ? t("Last loaded")
                 : tableAvailability
                   ? formatHostSeatingTableAvailabilityDisplay(tableAvailability)
                   : summary?.bookedCovers != null && summary?.totalCapacity != null
                     ? `${summary.bookedCovers}/${summary.totalCapacity}`
                     : ''
             const summaryAccessibleLabel = bookingCertainty === 'unknown'
-              ? 'Availability unverified'
+              ? t("Availability unverified")
               : bookingCertainty === 'stale'
-                ? 'Last loaded, not rechecked'
+                ? t("Last loaded, not rechecked")
                 : tableAvailability
                   ? formatHostSeatingTableAvailabilityAccessible(tableAvailability)
                   : ''

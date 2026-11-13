@@ -165,7 +165,7 @@ export function StockItemFormModal({
     if (isSaving) return
 
     if (!isWorkspaceReady || !`${workspaceId ?? ''}`.trim()) {
-      setError(workspaceSetupMessage || 'Workspace is still loading. Please wait a moment and try again.')
+      setError(workspaceSetupMessage || t("Workspace is still loading. Please wait a moment and try again."))
       return
     }
 
@@ -198,7 +198,7 @@ export function StockItemFormModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save this item right now. Please try again.')
+      setError(submitError?.message || t("Unable to save this item right now. Please try again."))
     }
   }
 
@@ -223,14 +223,14 @@ export function StockItemFormModal({
           <div>
             <p className="eyebrow">{t("Stock")}</p>
             <h3 id="stock-item-form-title">
-              {isEditing ? 'Edit Stock Item' : isDuplicating ? 'Duplicate Stock Item' : 'New Stock Item'}
+              {isEditing ? t("Edit Stock Item") : isDuplicating ? t("Duplicate Stock Item") : t("New Stock Item")}
             </h3>
             <p className="stock-item-form-subtitle">
               {isEditing
-                ? 'Update product details and stock levels.'
+                ? t("Update product details and stock levels.")
                 : isDuplicating
-                  ? 'Create a similar product. Update the name and starting quantity.'
-                  : 'Add a product to your inventory.'}
+                  ? t("Create a similar product. Update the name and starting quantity.")
+                  : t("Add a product to your inventory.")}
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>
@@ -381,7 +381,7 @@ export function StockItemFormModal({
                   <small className="stock-pack-size-hint">
                     {`${form.packUnit ?? ''}`.trim() && normalizeUnitsPerPack(form.unitsPerPack)
                       ? `Staff can take whole ${formatQuantityWithUnit(2, `${form.packUnit}`.trim()).replace(/^2 /, '')}. Stock is still kept in ${resolvedUnit ? formatQuantityWithUnit(2, resolvedUnit).replace(/^2 /, '') : 'units'}.`
-                      : 'Lets staff take whole cases. Stock is still kept in the unit above.'}
+                      : t("Lets staff take whole cases. Stock is still kept in the unit above.")}
                   </small>
                 </div>
               ) : null}
@@ -521,7 +521,7 @@ export function StockItemFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn stock-item-form-submit" disabled={isSaving || !isWorkspaceReady}>
-              {isSaving ? 'Saving…' : isEditing ? 'Save changes' : isDuplicating ? 'Create duplicate' : '+ Create stock item'}
+              {isSaving ? 'Saving…' : isEditing ? t("Save changes") : isDuplicating ? t("Create duplicate") : '+ Create stock item'}
             </button>
           </div>
         </form>

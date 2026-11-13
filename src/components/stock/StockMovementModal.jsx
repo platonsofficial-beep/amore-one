@@ -277,14 +277,14 @@ export function StockMovementModal({
   }
 
   const title = movementType === 'receive'
-    ? 'Receive stock'
+    ? t("Receive stock")
     : movementType === 'usage'
-      ? 'Record usage'
+      ? t("Record usage")
       : isWaste
         ? 'Waste'
         : movementType === 'stock_count'
-          ? 'Stock count'
-          : 'Adjust stock'
+          ? t("Stock count")
+          : t("Adjust stock")
 
   const handleAdjustmentQuantityChange = (event) => {
     const next = event.target.value
@@ -342,7 +342,7 @@ export function StockMovementModal({
       }
     } else if (movementType === 'usage' || isWaste) {
       if (!Number.isFinite(parsed) || parsed <= 0) {
-        setError(isWaste ? 'Enter a positive quantity.' : 'Enter a positive usage quantity.')
+        setError(isWaste ? t("Enter a positive quantity.") : t("Enter a positive usage quantity."))
         return
       }
       const usageDestination = pickerMode
@@ -398,13 +398,13 @@ export function StockMovementModal({
         try {
           if (typeof onReloadBalances === 'function') await onReloadBalances()
         } catch (reloadError) {
-          setError(reloadError?.message || 'This balance changed, and the refresh failed. Try again.')
+          setError(reloadError?.message || t("This balance changed, and the refresh failed. Try again."))
           return
         }
         setError('This balance changed. The storage quantity was refreshed. Check it and try again.')
         return
       }
-      setError(submitError?.message || 'Unable to save movement right now.')
+      setError(submitError?.message || t("Unable to save movement right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -416,7 +416,7 @@ export function StockMovementModal({
       ? 'stock-adjustment-storage-lock'
       : 'stock-receive-destination-lock')
   const lockLabel = isAdjustment || isWaste ? 'Storage' : 'Destination'
-  const lockNote = isAdjustment || isWaste ? 'Locked' : 'Locked to this storage'
+  const lockNote = isAdjustment || isWaste ? 'Locked' : t("Locked to this storage")
   const saveDisabled = saveBlocked
   const countButtonQuantity = (() => {
     const text = `${quantity ?? ''}`.trim()
@@ -430,8 +430,8 @@ export function StockMovementModal({
     : (pickerMode && isStockCount
       ? `Set ${destinationLabel || 'storage'} to ${countButtonQuantity ?? '…'}`
         : (isStockCount
-        ? 'Save stock count'
-        : (isWaste ? 'Log waste' : (isAdjustment ? 'Apply Adjustment' : 'Save'))))
+        ? t("Save stock count")
+        : (isWaste ? t("Log waste") : (isAdjustment ? t("Apply Adjustment") : 'Save'))))
   const previewOperationLabel = operation === 'remove' ? 'Remove' : 'Add'
 
   return (
@@ -474,9 +474,9 @@ export function StockMovementModal({
                   onClick={() => setPickerOpen(true)}
                 >
                   {storagesLoading
-                    ? 'Loading storages…'
+                    ? t("Loading storages…")
                     : (movementType === 'adjustment' || movementType === 'usage' || isWaste
-                      ? (destinationLabel || 'Choose a storage')
+                      ? (destinationLabel || t("Choose a storage"))
                       : stockMovementStorageActionLabel(movementType, destinationLabel))}
                 </button>
               </div>
@@ -570,7 +570,7 @@ export function StockMovementModal({
           ) : null}
 
           <label>
-            {isStockCount ? 'Counted quantity' : 'Quantity'}
+            {isStockCount ? t("Counted quantity") : 'Quantity'}
             {isAdjustment ? (
               <input
                 type="text"
@@ -652,7 +652,7 @@ export function StockMovementModal({
                 isStockCount
                   ? 'e.g. Monday bar count'
                   : isAdjustment
-                    ? 'Describe why this adjustment was made...'
+                    ? t("Describe why this adjustment was made...")
                     : isWaste
                       ? 'Optional'
                       : 'Optional'
@@ -708,7 +708,7 @@ export function StockMovementModal({
                   return id === storageId
                 })
                 const quantityLabel = balance == null
-                  ? 'No balance'
+                  ? t("No balance")
                   : formatStockQuantity(balance.quantity, item?.unit)
                 const selected = storageId === selectedStorageId
                 return (

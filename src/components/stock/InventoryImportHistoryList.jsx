@@ -47,7 +47,7 @@ export function InventoryImportHistoryList({
       .catch((error) => {
         if (cancelled) return
         setSessions([])
-        setLoadError(error?.message || 'Could not load recent imports.')
+        setLoadError(error?.message || t("Could not load recent imports."))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)

@@ -10,12 +10,12 @@ export function TeamTodayView({
   noticeMessage,
 }) {
   const status = teamStatus ?? {
-    scheduleLabel: 'Working now',
-    scheduleValue: 'No one on shift',
-    nextShiftLabel: 'Next shift',
-    nextShiftValue: 'No more shifts today',
+    scheduleLabel: t("Working now"),
+    scheduleValue: t("No one on shift"),
+    nextShiftLabel: t("Next shift"),
+    nextShiftValue: t("No more shifts today"),
     coverageLabel: 'Coverage',
-    coverageValue: 'All covered',
+    coverageValue: t("All covered"),
     coverageTone: 'ok',
     coverageDetail: '',
   }

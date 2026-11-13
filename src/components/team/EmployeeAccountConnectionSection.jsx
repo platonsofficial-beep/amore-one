@@ -92,7 +92,7 @@ export function EmployeeAccountConnectionSection({
       const nextStatus = await getEmployeeAccountConnectionStatus(normalizedWorkspaceId, employeeId)
       setConnectionStatus(nextStatus)
     } catch (error) {
-      setStatusError(error?.message || 'Unable to load account connection status.')
+      setStatusError(error?.message || t("Unable to load account connection status."))
       setConnectionStatus({
         pendingInvite: null,
         linkedMembership: null,
@@ -131,7 +131,7 @@ export function EmployeeAccountConnectionSection({
 
     try {
       const copied = await copyTextToClipboard(buildInviteUrl(pendingInvite.token))
-      setCopyNotice(copied ? 'Invite link copied.' : 'Unable to copy invite link.')
+      setCopyNotice(copied ? t("Invite link copied.") : t("Unable to copy invite link."))
     } catch {
       setActionError('Unable to copy invite link.')
     }
@@ -148,7 +148,7 @@ export function EmployeeAccountConnectionSection({
       await revokeInvite(pendingInvite.id)
       await loadConnectionStatus()
     } catch (error) {
-      setActionError(error?.message || 'Unable to revoke invite right now.')
+      setActionError(error?.message || t("Unable to revoke invite right now."))
     } finally {
       setIsRevoking(false)
     }
@@ -219,7 +219,7 @@ export function EmployeeAccountConnectionSection({
                   onClick={handleRevokeInvite}
                   disabled={isRevoking}
                 >
-                  {isRevoking ? 'Revoking…' : 'Revoke invite'}
+                  {isRevoking ? 'Revoking…' : t("Revoke invite")}
                 </button>
               </div>
             ) : null}

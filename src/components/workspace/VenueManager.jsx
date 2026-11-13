@@ -89,7 +89,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
       const workspaceId = await createVenue(form)
       await onCreated?.(workspaceId)
     } catch (createError) {
-      setError(createError?.message || 'The venue could not be created.')
+      setError(createError?.message || t("The venue could not be created."))
       setIsSaving(false)
     }
   }

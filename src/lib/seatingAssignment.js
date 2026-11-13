@@ -1,5 +1,6 @@
 import { stripCustomerTypeFromNotes } from './reservationCustomerType'
 import { stripPurposeFromNotes } from './reservationPurpose'
+import { t } from '../i18n/i18n'
 
 export const SEATING_UNIT_TYPES = {
   TABLE: 'table',
@@ -149,7 +150,7 @@ export function formatHostListTableTooltip(reservation) {
   }
 
   const tableNumber = `${reservation?.tableNumber ?? ''}`.trim()
-  return tableNumber || 'No table assigned'
+  return tableNumber || t("No table assigned")
 }
 
 export function formatHostFloorReservationTooltipMeta(reservation, { guestType = 'Regular' } = {}) {

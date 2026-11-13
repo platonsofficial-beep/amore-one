@@ -22,15 +22,15 @@ describe('embedded floor editor layout', () => {
 
   it('shows Tools and Properties toggles only for the collapsing tablet layout', () => {
     expect(editorSource).toMatch(/\{isTabletLayout \? \(/)
-    expect(editorSource).toContain("aria-label={toolsOpen ? 'Hide tools' : 'Show tools'}")
-    expect(editorSource).toContain("aria-label={inspectorOpen ? 'Hide properties' : 'Show properties'}")
+    expect(editorSource).toContain('aria-label={toolsOpen ? t("Hide tools") : t("Show tools")}')
+    expect(editorSource).toContain('aria-label={inspectorOpen ? t("Hide properties") : t("Show properties")}')
     expect(editorSource).toContain("const toolsOpen = isTabletLayout ? toolsPanelOpen : true")
   })
 
   it('keeps one exit path and moves Clear layout into More', () => {
     expect(editorSource).not.toContain('Exit edit')
     expect(editorSource).not.toContain('>Cancel<')
-    expect(editorSource).toContain("state.hasUnsavedChanges ? 'Discard & exit' : 'Exit'")
+    expect(editorSource).toContain('const exitLabel = state.hasUnsavedChanges ? t("Discard & exit") : t(\'Exit\')')
     expect(editorSource).toContain('Clear layout')
     expect(editorSource).toContain('unified-floor-editor-more-menu')
     expect(editorSource).toContain('Save draft')

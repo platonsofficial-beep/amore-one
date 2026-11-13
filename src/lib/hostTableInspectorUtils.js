@@ -1,5 +1,6 @@
 import { isMobileHostSplitViewport } from './mobileHostReservationUtils'
 import { getReservationInServiceSinceTimeLabel } from './hostDiningTimer'
+import { t } from '../i18n/i18n'
 
 export function shouldUseHostTableInspectorDrawer() {
   if (typeof window === 'undefined') return false
@@ -29,8 +30,8 @@ export function buildHostTableInspectorContextStrip(rows = []) {
     if (occupiedRow.availabilityCertainty === 'stale') {
       return {
         kind: 'stale',
-        contextLine: 'Last loaded · not rechecked',
-        contextAccessibleLabel: 'Last loaded booking, not rechecked',
+        contextLine: t("Last loaded · not rechecked"),
+        contextAccessibleLabel: t("Last loaded booking, not rechecked"),
         guestLine: guestName,
       }
     }
@@ -40,7 +41,7 @@ export function buildHostTableInspectorContextStrip(rows = []) {
       contextLine: timeLabel ? `🟢 In service · Since ${timeLabel}` : '🟢 In service',
       contextAccessibleLabel: timeLabel
         ? `Table in service since ${timeLabel}`
-        : 'Table in service',
+        : t("Table in service"),
       guestLine: guestName,
     }
   }
@@ -48,8 +49,8 @@ export function buildHostTableInspectorContextStrip(rows = []) {
   if (safeRows.some((row) => row?.availabilityCertainty === 'unverified')) {
     return {
       kind: 'unverified',
-      contextLine: 'Availability unverified',
-      contextAccessibleLabel: 'Availability unverified',
+      contextLine: t("Availability unverified"),
+      contextAccessibleLabel: t("Availability unverified"),
       guestLine: '',
     }
   }
@@ -59,8 +60,8 @@ export function buildHostTableInspectorContextStrip(rows = []) {
 
   return {
     kind: 'available',
-    contextLine: 'Available now',
-    contextAccessibleLabel: 'Table available now',
+    contextLine: t("Available now"),
+    contextAccessibleLabel: t("Table available now"),
     guestLine: '',
   }
 }
@@ -73,7 +74,7 @@ export function buildHostTableInspectorSummary(rows = []) {
   if (strip.kind === 'occupied') {
     return {
       kind: 'occupied',
-      primary: 'In service',
+      primary: t("In service"),
       secondary: strip.guestLine,
       detail: strip.contextLine.replace('🟢 In service · ', '').replace('🟢 In service', '').trim(),
     }

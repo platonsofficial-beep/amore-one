@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * P8.31.1 / P8.31.2 — Consumable Inventory Unit Product Contract
  *
@@ -255,7 +256,7 @@ function matchLegacyCompositePhysicalUnit(normalized) {
     }
   }
 
-  // Common catalog forms: "Bottle 700ml", "Bottle 1L", "Can 330ml"
+  // Common catalog forms: t("Bottle 700ml"), "Bottle 1L", "Can 330ml"
   const spacedBottle = text.match(
     /^(?:bottle|bottles)\s+(\d+(?:\.\d+)?)\s*(ml|l)$/,
   )

@@ -134,7 +134,7 @@ export function WorkspaceReservationSeatingsSection({
       <div className="panel-heading">
         <div>
           <p className="eyebrow">{t("Manage seatings")}</p>
-          <h3 id={hoursOnly ? 'seating-hours-editor-title' : undefined}>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+          <h3 id={hoursOnly ? 'seating-hours-editor-title' : undefined}>{editingSeatingId ? t("Edit seating") : t("Add seating")}</h3>
         </div>
       </div>
 
@@ -204,7 +204,7 @@ export function WorkspaceReservationSeatingsSection({
             </button>
           ) : null}
           <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-            {isSaving ? 'Saving…' : editingSeatingId ? 'Update seating' : 'Add seating'}
+            {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
           </button>
         </div>
       </form>
@@ -215,7 +215,7 @@ export function WorkspaceReservationSeatingsSection({
     <div className="panel staff-panel workspace-panel" data-testid="seating-hours-list">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">{hoursOnly ? 'Seating hours' : 'Seating list'}</p>
+          <p className="eyebrow">{hoursOnly ? t("Seating hours") : t("Seating list")}</p>
           <h3>{seatings.length} seating{seatings.length === 1 ? '' : 's'}</h3>
         </div>
       </div>
@@ -361,7 +361,7 @@ export function WorkspaceReservationSeatingsSection({
                 className="primary-btn workspace-action-btn reservation-auto-close-save"
                 disabled={isSavingAutoClose}
               >
-                {isSavingAutoClose ? 'Saving…' : 'Save cutoff'}
+                {isSavingAutoClose ? 'Saving…' : t("Save cutoff")}
               </button>
             </div>
           </form>
@@ -397,7 +397,7 @@ export function WorkspaceReservationSeatingsSection({
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage seatings")}</p>
-            <h3>{editingSeatingId ? 'Edit seating' : 'Add seating'}</h3>
+            <h3>{editingSeatingId ? t("Edit seating") : t("Add seating")}</h3>
           </div>
         </div>
 
@@ -465,7 +465,7 @@ export function WorkspaceReservationSeatingsSection({
               </button>
             ) : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : editingSeatingId ? 'Update seating' : 'Add seating'}
+              {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
             </button>
           </div>
         </form>

@@ -105,7 +105,7 @@ export function LeaveHistoryPanel({
     } catch (error) {
       if (historyRequestIdRef.current !== requestId) return
       setRecords([])
-      setErrorMessage(error?.message || 'Unable to load leave history right now.')
+      setErrorMessage(error?.message || t("Unable to load leave history right now."))
     } finally {
       if (historyRequestIdRef.current === requestId) {
         setIsLoading(false)

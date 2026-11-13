@@ -1,4 +1,5 @@
 import { buildProductDisplayName } from './stockProductIdentity'
+import { t } from '../i18n/i18n'
 
 /**
  * Count-list title: Brand + product name + size.
@@ -14,5 +15,5 @@ export function formatInventoryCountItemLabel(item) {
     name: productName,
     size: item?.size,
   })
-  return display || storedName || 'Untitled item'
+  return display || storedName || t("Untitled item")
 }

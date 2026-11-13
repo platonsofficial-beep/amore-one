@@ -28,6 +28,7 @@ import { isChatNotification } from '../../lib/chat'
 import { shouldUseBillingPreviewFixture } from '../../lib/billingPreviewFixture'
 import { NotificationBell, NotificationSettingsPanel } from './NotificationCenter'
 import { ShiftReminderCard } from './ShiftReminderCard'
+import { t } from '../../i18n/i18n'
 
 function readPermission() {
   if (typeof Notification === 'undefined') return 'unsupported'
@@ -91,7 +92,7 @@ export function useNotificationCenter({
       if (!cancelled) {
         // Preview screens have no Supabase. Keep the reminder card, without the raw setup error.
         if (!shouldUseBillingPreviewFixture()) {
-          setMessage(error?.message || 'Unable to load notifications right now.')
+          setMessage(error?.message || t("Unable to load notifications right now."))
         }
         setReady(true)
       }
@@ -224,7 +225,7 @@ export function useNotificationCenter({
       }
       await refreshLists()
     } catch (error) {
-      setMessage(error?.message || 'Unable to save notification settings right now.')
+      setMessage(error?.message || t("Unable to save notification settings right now."))
     } finally {
       setBusy(false)
     }
@@ -286,7 +287,7 @@ export function useNotificationCenter({
       await unregisterPushEndpoint(endpoint)
       await refreshLists()
     } catch (error) {
-      setMessage(error?.message || 'Unable to turn off that device right now.')
+      setMessage(error?.message || t("Unable to turn off that device right now."))
     } finally {
       setBusy(false)
     }
@@ -300,7 +301,7 @@ export function useNotificationCenter({
     try {
       await markNotificationsRead(ids)
     } catch (error) {
-      setMessage(error?.message || 'Unable to mark that as read right now.')
+      setMessage(error?.message || t("Unable to mark that as read right now."))
     }
   }
 
@@ -310,7 +311,7 @@ export function useNotificationCenter({
     try {
       await markNotificationsRead(null)
     } catch (error) {
-      setMessage(error?.message || 'Unable to mark notifications as read right now.')
+      setMessage(error?.message || t("Unable to mark notifications as read right now."))
     }
   }
 

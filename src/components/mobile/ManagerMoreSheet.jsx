@@ -40,8 +40,8 @@ export function ManagerMoreSheet({
               >
                 <span className="manager-more-item-icon" aria-hidden="true">{item.icon}</span>
                 <span className="manager-more-item-copy">
-                  <strong>{item.label}</strong>
-                  {item.subtitle ? <span>{item.subtitle}</span> : null}
+                  <strong>{t(item.label)}</strong>
+                  {item.subtitle ? <span>{t(item.subtitle)}</span> : null}
                 </span>
               </button>
             </li>

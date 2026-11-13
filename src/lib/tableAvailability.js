@@ -10,6 +10,7 @@ import { formatTime24 } from './timeFormatUtils'
 import { collectArrivedFloorTableIds } from './floorTableOccupancy'
 import { countPublishedTablesInScope } from './hostQueueServiceMetrics'
 import { HOST_QUEUE_ALL_AREAS } from './hostQueuePipeline'
+import { t } from '../i18n/i18n'
 
 export { getConflictingUnitIds } from './reservationTableOptions'
 
@@ -209,8 +210,8 @@ export function buildTableSeatingDayIndicators(
       state: unverified ? 'unverified' : (reservation ? hostIndicator : 'empty'),
       reservation,
       ariaLabel: reservation
-        ? `${seating.name} · ${bookingCertainty === 'current' ? 'Reserved' : 'Last loaded'} by ${reservation.guestName || 'Guest'} at ${formatTime24(reservation.time)}`
-        : `${seating.name} · ${unverified ? 'Availability unverified' : 'Available'}`,
+        ? `${seating.name} · ${bookingCertainty === 'current' ? 'Reserved' : t("Last loaded")} by ${reservation.guestName || 'Guest'} at ${formatTime24(reservation.time)}`
+        : `${seating.name} · ${unverified ? t("Availability unverified") : 'Available'}`,
     }
   })
 }

@@ -209,7 +209,7 @@ function StockItemCard({
   const sizeDetail = formatProductSizeDetail(item)
   const needsDelivery = item.status === 'out' || item.status === 'low'
   const level = stockLevelPercent(item)
-  const metaLine = [supplierLabel || 'No supplier', location, staleCount?.label].filter(Boolean).join(' · ')
+  const metaLine = [supplierLabel || t("No supplier"), location, staleCount?.label].filter(Boolean).join(' · ')
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -281,7 +281,7 @@ function StockItemCard({
               }}
             >
               <StockActionIcon name={needsDelivery ? 'box' : 'clipboard'} />
-              <span>{needsDelivery ? 'Receive delivery' : 'Count'}</span>
+              <span>{needsDelivery ? t("Receive delivery") : 'Count'}</span>
             </button>
             <button
               type="button"
@@ -820,7 +820,7 @@ function StockTodayActivitySection({ activityLine }) {
         <h3 className="stock-today-activity-title">{t("What changed today")}</h3>
         <StockMetaSegments
           className="stock-today-activity-line"
-          text={isEmpty ? 'Nothing moved today' : activityLine}
+          text={isEmpty ? t("Nothing moved today") : activityLine}
         />
       </header>
     </section>
@@ -843,12 +843,12 @@ function StockBulkFieldModal({
   const isBusy = isSaving || isSubmitting
 
   const title = field === 'supplier'
-    ? 'Change supplier'
+    ? t("Change supplier")
     : field === 'storageLocation'
-      ? 'Change location'
+      ? t("Change location")
       : field === 'category'
-        ? 'Change category'
-        : 'Change type'
+        ? t("Change category")
+        : t("Change type")
 
   const typeOptions = useMemo(() => getBulkTypeOptionsForItems(selectedItems), [selectedItems])
 
@@ -878,7 +878,7 @@ function StockBulkFieldModal({
       await onSubmit(field, trimmed)
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to update products right now.')
+      setError(submitError?.message || t("Unable to update products right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -958,7 +958,7 @@ function StockBulkFieldModal({
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>{t("Cancel")}</button>
             <button type="submit" className="primary-btn" disabled={isBusy}>
-              {isBusy ? 'Saving…' : 'Apply to selected'}
+              {isBusy ? 'Saving…' : t("Apply to selected")}
             </button>
           </div>
         </form>
@@ -1008,7 +1008,7 @@ function StockItemDeactivateConfirmModal({
     try {
       await onConfirm?.(item)
     } catch (error) {
-      setSubmitError(error?.message || 'Unable to deactivate right now.')
+      setSubmitError(error?.message || t("Unable to deactivate right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -1448,7 +1448,7 @@ export function StockDashboardView({
           <section
             key={group.key || 'all'}
             className="stock-group-section"
-            aria-label={group.label || 'Stock products'}
+            aria-label={group.label || t("Stock products")}
           >
             {group.label ? (
               <header className="stock-group-header">
@@ -1660,7 +1660,7 @@ export function StockDashboardView({
               disabled={!isWorkspaceReady || isStockActionBusy}
             >
               <StockActionIcon name="bag" />
-              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : 'Suggest order')}</span>
+              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : t("Suggest order"))}</span>
             </button>
           ) : null}
           <button
@@ -1713,7 +1713,7 @@ export function StockDashboardView({
                     }}
                     disabled={!isWorkspaceReady || isStockActionBusy}
                   >
-                    {isSavingOrders ? 'Saving…' : 'Create order'}
+                    {isSavingOrders ? 'Saving…' : t("Create order")}
                   </button>
                   <button
                     type="button"
@@ -1808,7 +1808,7 @@ export function StockDashboardView({
               onClick={() => applyKpiStatusFilter('low')}
             />
             <StockSummaryCard
-              label="Out of stock"
+              label={t("Out of stock")}
               value={summary.outOfStock}
               tone={summary.outOfStock > 0 ? 'danger' : 'default'}
               isInteractive
@@ -1816,7 +1816,7 @@ export function StockDashboardView({
               onClick={() => applyKpiStatusFilter('out')}
             />
             <StockSummaryCard
-              label="To order"
+              label={t("To order")}
               value={summary.toOrder}
               tone={summary.toOrder > 0 ? 'warning' : 'default'}
               isInteractive
@@ -1870,7 +1870,7 @@ export function StockDashboardView({
               <h3>{t("To count")}</h3>
               <StockMetaSegments
                 text={toCountTotal === 0
-                  ? 'Nothing waiting'
+                  ? t("Nothing waiting")
                   : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
               />
             </header>
@@ -1945,7 +1945,7 @@ export function StockDashboardView({
             className="ghost-btn stock-selection-bar-btn"
             onClick={toggleSelectAllVisible}
           >
-            {allVisibleSelected ? 'Deselect all' : 'Select all visible'}
+            {allVisibleSelected ? t("Deselect all") : t("Select all visible")}
           </button>
           <span className="stock-selection-bar-count">
             {selectedItems.length} selected

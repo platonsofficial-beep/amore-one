@@ -29,7 +29,7 @@ export const STOCK_SECTIONS = [
 
 export const OPERATIONS_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'tasks', label: 'Task boards' },
+  { id: 'tasks', label: t("Task boards") },
   { id: 'checklists', label: 'Checklists' },
 ]
 
@@ -41,12 +41,12 @@ export const MODULE_LABELS = {
   operations: 'Operations',
   insights: 'Insights',
   settings: 'Settings',
-  attendance: 'Time clock',
-  'time-clock': 'Time clock',
-  'floor-plan-builder': 'Floor Plan Builder',
-  'my-week': 'My week',
+  attendance: t("Time clock"),
+  'time-clock': t("Time clock"),
+  'floor-plan-builder': t("Floor Plan Builder"),
+  'my-week': t("My week"),
   account: 'Profile',
-  clock: 'Clock in/out',
+  clock: t("Clock in/out"),
   notifications: 'Notifications',
   chat: 'Chat',
 }
@@ -88,7 +88,7 @@ export function resolveInsightsModuleLink(moduleId) {
 }
 
 export function getModuleLabel(moduleId) {
-  return MODULE_LABELS[moduleId] || 'This module'
+  return MODULE_LABELS[moduleId] || t("This module")
 }
 
 export function isTodayView(activeView) {

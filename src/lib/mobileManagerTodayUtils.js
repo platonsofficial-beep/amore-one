@@ -6,6 +6,7 @@ import {
 } from './todayViewUtils'
 import { buildOperationsTaskAttentionItems } from './todayAttentionNavigation'
 import { compareOperationsTasksByWorkflow } from './operationsBrowse'
+import { t } from '../i18n/i18n'
 
 export function buildManagerMobileAttentionItems({
   attentionItems = [],
@@ -27,7 +28,7 @@ export function buildManagerMobileAttentionItems({
       tone: 'info',
       priority: 'urgent',
       label: awaiting === 1 ? '1 delivery to receive' : `${awaiting} deliveries to receive`,
-      detail: 'Sent supplier orders waiting',
+      detail: t("Sent supplier orders waiting"),
     })
   }
 
@@ -38,7 +39,7 @@ export function buildManagerMobileAttentionItems({
       tone: 'info',
       priority: 'urgent',
       label: partial === 1 ? '1 partial order open' : `${partial} partial orders open`,
-      detail: 'Continue receiving stock',
+      detail: t("Continue receiving stock"),
     })
   }
 
@@ -49,7 +50,7 @@ export function buildManagerMobileAttentionItems({
       tone: 'warning',
       priority: 'reminder',
       label: drafts === 1 ? '1 order to review' : `${drafts} orders to review`,
-      detail: 'Review before sending to supplier',
+      detail: t("Review before sending to supplier"),
     })
   }
 
@@ -65,7 +66,7 @@ export function buildManagerMobileAttentionItems({
         tone: 'critical',
         priority: 'urgent',
         label: outCount === 1 ? '1 item out of stock' : `${outCount} items out of stock`,
-        detail: 'Check stock levels',
+        detail: t("Check stock levels"),
       })
     } else if (lowCount > 0 && !hasStockAttention && !existingKeys.has('stock-module:low')) {
       items.unshift({
@@ -74,7 +75,7 @@ export function buildManagerMobileAttentionItems({
         tone: 'warning',
         priority: 'reminder',
         label: lowCount === 1 ? '1 low stock item' : `${lowCount} low stock items`,
-        detail: 'Check stock levels',
+        detail: t("Check stock levels"),
       })
     }
   }
@@ -158,7 +159,7 @@ export function buildManagerMobileStockStatusLine(
     + (Number(stockOrdersSummary?.partialCount) || 0)
 
   if (!hasStockModuleData && pendingDeliveries === 0) {
-    return 'No products yet'
+    return t("No products yet")
   }
 
   if (outCount > 0 && lowCount > 0) {
@@ -177,7 +178,7 @@ export function buildManagerMobileStockStatusLine(
     return pendingDeliveries === 1 ? '1 delivery pending' : `${pendingDeliveries} deliveries pending`
   }
 
-  return 'Stock levels OK'
+  return t("Stock levels OK")
 }
 
 function normalizeManagerTaskDateKey(value) {
@@ -304,7 +305,7 @@ export function buildManagerMobileTeamProgress(tasks = [], employees = [], today
     .map((entry) => ({
       employeeId: entry.employeeId,
       name: `${employees.find((employee) => `${employee.id}` === entry.employeeId)?.name ?? ''}`.trim()
-        || 'Team member',
+        || t("Team member"),
       done: entry.done,
       total: entry.total,
     }))

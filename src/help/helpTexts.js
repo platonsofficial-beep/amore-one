@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * Help mode copy, keyed by the stable ids used in data-help.
  *
@@ -10,279 +11,279 @@ export const HELP_DEFAULT_LOCALE = 'en'
 export const HELP_CATALOG = {
   'nav.today': {
     title: { en: 'Today' },
-    body: { en: 'Opens the home screen: who is working, what is booked, and what needs attention right now.' },
+    body: { en: t("Opens the home screen: who is working, what is booked, and what needs attention right now.") },
   },
   'nav.chat': {
     title: { en: 'Chat' },
-    body: { en: 'Opens staff messages. Unread conversations show a badge on this tab.' },
+    body: { en: t("Opens staff messages. Unread conversations show a badge on this tab.") },
   },
   'nav.reservations': {
     title: { en: 'Reservations' },
-    body: { en: 'Opens the booking list and the floor plan for the selected day.' },
+    body: { en: t("Opens the booking list and the floor plan for the selected day.") },
   },
   'nav.team': {
     title: { en: 'Team' },
-    body: { en: 'Opens people, today’s shift status, and the weekly schedule.' },
+    body: { en: t("Opens people, today’s shift status, and the weekly schedule.") },
   },
   'nav.stock': {
     title: { en: 'Stock' },
-    body: { en: 'Opens inventory: what is on hand, what is low, and what to order.' },
+    body: { en: t("Opens inventory: what is on hand, what is low, and what to order.") },
   },
   'nav.operations': {
     title: { en: 'Operations' },
-    body: { en: 'Opens tasks and checklists for the service.' },
+    body: { en: t("Opens tasks and checklists for the service.") },
   },
   'nav.insights': {
     title: { en: 'Insights' },
-    body: { en: 'Opens reports for reservations, labour, and stock.' },
+    body: { en: t("Opens reports for reservations, labour, and stock.") },
   },
   'nav.settings': {
     title: { en: 'Settings' },
-    body: { en: 'Opens venue setup: profile, seatings, positions, and notifications.' },
+    body: { en: t("Opens venue setup: profile, seatings, positions, and notifications.") },
   },
   'nav.time-clock': {
-    title: { en: 'Time clock' },
-    body: { en: 'Opens clock in, clock out, and breaks for people working today.' },
+    title: { en: t("Time clock") },
+    body: { en: t("Opens clock in, clock out, and breaks for people working today.") },
   },
   'nav.my-week': {
-    title: { en: 'My week' },
-    body: { en: 'Opens your own shifts for this week.' },
+    title: { en: t("My week") },
+    body: { en: t("Opens your own shifts for this week.") },
   },
   'nav.account': {
     title: { en: 'Profile' },
-    body: { en: 'Opens your profile, contact details, and account actions.' },
+    body: { en: t("Opens your profile, contact details, and account actions.") },
   },
   'nav.more': {
     title: { en: 'More' },
-    body: { en: 'Opens the rest of the menu, including pages that do not fit in the bottom bar.' },
+    body: { en: t("Opens the rest of the menu, including pages that do not fit in the bottom bar.") },
   },
   'header.notifications': {
     title: { en: 'Notifications' },
-    body: { en: 'Opens alerts such as shift reminders. A number means unread items.' },
+    body: { en: t("Opens alerts such as shift reminders. A number means unread items.") },
   },
   'header.profile': {
-    title: { en: 'Your menu' },
-    body: { en: 'Opens your name, role, profile, and sign-out.' },
+    title: { en: t("Your menu") },
+    body: { en: t("Opens your name, role, profile, and sign-out.") },
   },
   'header.search': {
     title: { en: 'Search' },
-    body: { en: 'Filters the list on this page by the words you type.' },
+    body: { en: t("Filters the list on this page by the words you type.") },
   },
   'header.help': {
-    title: { en: 'Help mode' },
-    body: { en: 'Turns explanations on or off. While it is on, taps describe a control instead of using it.' },
+    title: { en: t("Help mode") },
+    body: { en: t("Turns explanations on or off. While it is on, taps describe a control instead of using it.") },
   },
   'home.reservation': {
-    title: { en: 'Add a reservation' },
-    body: { en: 'Starts a new booking from the home screen.' },
+    title: { en: t("Add a reservation") },
+    body: { en: t("Starts a new booking from the home screen.") },
   },
   'home.task': {
-    title: { en: 'Add a task' },
-    body: { en: 'Creates an operations task for the team.' },
+    title: { en: t("Add a task") },
+    body: { en: t("Creates an operations task for the team.") },
   },
   'home.announcement': {
-    title: { en: 'Add an announcement' },
-    body: { en: 'Posts a note the team can see on Today.' },
+    title: { en: t("Add an announcement") },
+    body: { en: t("Posts a note the team can see on Today.") },
   },
   'home.order': {
-    title: { en: 'Create an order' },
-    body: { en: 'Starts a supplier order from the home screen.' },
+    title: { en: t("Create an order") },
+    body: { en: t("Starts a supplier order from the home screen.") },
   },
   'reservations.lock': {
-    title: { en: 'Lock the map' },
-    body: { en: 'Freezes pan and zoom so the floor stays still. Tap again to unlock. Table taps still open the booking.' },
+    title: { en: t("Lock the map") },
+    body: { en: t("Freezes pan and zoom so the floor stays still. Tap again to unlock. Table taps still open the booking.") },
   },
   'reservations.fit': {
-    title: { en: 'Fit the map' },
-    body: { en: 'Scales the current area so every table fits in the visible plan.' },
+    title: { en: t("Fit the map") },
+    body: { en: t("Scales the current area so every table fits in the visible plan.") },
   },
   'reservations.zoom-in': {
-    title: { en: 'Zoom in' },
-    body: { en: 'Makes the floor plan larger. Locked maps ignore this.' },
+    title: { en: t("Zoom in") },
+    body: { en: t("Makes the floor plan larger. Locked maps ignore this.") },
   },
   'reservations.zoom-out': {
-    title: { en: 'Zoom out' },
-    body: { en: 'Makes the floor plan smaller. Locked maps ignore this.' },
+    title: { en: t("Zoom out") },
+    body: { en: t("Makes the floor plan smaller. Locked maps ignore this.") },
   },
   'reservations.more': {
-    title: { en: 'More floor actions' },
-    body: { en: 'Opens Edit layout and dining timers when they do not fit on the toolbar.' },
+    title: { en: t("More floor actions") },
+    body: { en: t("Opens Edit layout and dining timers when they do not fit on the toolbar.") },
   },
   'reservations.edit-layout': {
-    title: { en: 'Edit layout' },
-    body: { en: 'Opens the floor editor so you can move tables. Publish when the room looks right.' },
+    title: { en: t("Edit layout") },
+    body: { en: t("Opens the floor editor so you can move tables. Publish when the room looks right.") },
   },
   'reservations.timers': {
-    title: { en: 'Dining timers' },
-    body: { en: 'Shows how long seated parties have been at the table.' },
+    title: { en: t("Dining timers") },
+    body: { en: t("Shows how long seated parties have been at the table.") },
   },
   'reservations.walk-in': {
     title: { en: 'Walk-in' },
-    body: { en: 'Seats a guest who does not have a booking. Seat Now saves them as seated.' },
+    body: { en: t("Seats a guest who does not have a booking. Seat Now saves them as seated.") },
   },
   'reservations.add': {
-    title: { en: 'Add reservation' },
-    body: { en: 'Creates a booking for a named guest, time, and table.' },
+    title: { en: t("Add reservation") },
+    body: { en: t("Creates a booking for a named guest, time, and table.") },
   },
   'reservations.legend': {
-    title: { en: 'Table colours' },
-    body: { en: 'Explains the floor colours: available, reserved, seated, and problem tables.' },
+    title: { en: t("Table colours") },
+    body: { en: t("Explains the floor colours: available, reserved, seated, and problem tables.") },
   },
   'reservations.area-next': {
-    title: { en: 'Next area' },
-    body: { en: 'Switches the floor to the next room, such as from Main Dining to the Bar.' },
+    title: { en: t("Next area") },
+    body: { en: t("Switches the floor to the next room, such as from Main Dining to the Bar.") },
   },
   'reservations.area-prev': {
-    title: { en: 'Previous area' },
-    body: { en: 'Switches the floor back to the previous room.' },
+    title: { en: t("Previous area") },
+    body: { en: t("Switches the floor back to the previous room.") },
   },
   'team.today': {
-    title: { en: 'Team today' },
-    body: { en: 'Shows who is working, who is late, and who is still to come.' },
+    title: { en: t("Team today") },
+    body: { en: t("Shows who is working, who is late, and who is still to come.") },
   },
   'team.members': {
     title: { en: 'People' },
-    body: { en: 'Opens the employee list, roles, and contact details.' },
+    body: { en: t("Opens the employee list, roles, and contact details.") },
   },
   'team.schedule': {
     title: { en: 'Schedule' },
-    body: { en: 'Opens the week grid where shifts are assigned and published.' },
+    body: { en: t("Opens the week grid where shifts are assigned and published.") },
   },
   'stock.dashboard': {
-    title: { en: 'Stock dashboard' },
-    body: { en: 'Shows on-hand quantities, low items, and what needs an order.' },
+    title: { en: t("Stock dashboard") },
+    body: { en: t("Shows on-hand quantities, low items, and what needs an order.") },
   },
   'stock.count': {
     title: { en: 'Counts' },
-    body: { en: 'Opens inventory counts so you can record what is actually on the shelf.' },
+    body: { en: t("Opens inventory counts so you can record what is actually on the shelf.") },
   },
   'stock.storages': {
     title: { en: 'Storages' },
-    body: { en: 'Opens each storage location and the products kept there.' },
+    body: { en: t("Opens each storage location and the products kept there.") },
   },
   'stock.suppliers': {
     title: { en: 'Suppliers' },
-    body: { en: 'Opens the supplier list used when you order.' },
+    body: { en: t("Opens the supplier list used when you order.") },
   },
   'stock.orders': {
     title: { en: 'Orders' },
-    body: { en: 'Opens supplier orders from draft through receiving.' },
+    body: { en: t("Opens supplier orders from draft through receiving.") },
   },
   'stock.migration': {
     title: { en: 'Import' },
-    body: { en: 'Brings products in from a spreadsheet.' },
+    body: { en: t("Brings products in from a spreadsheet.") },
   },
   'stock.more-sections': {
-    title: { en: 'More stock sections' },
-    body: { en: 'Shows stock pages that do not fit on the tab row.' },
+    title: { en: t("More stock sections") },
+    body: { en: t("Shows stock pages that do not fit on the tab row.") },
   },
   'stock.count-now': {
     title: { en: 'Count' },
-    body: { en: 'Starts a count so quantities can be checked against the book.' },
+    body: { en: t("Starts a count so quantities can be checked against the book.") },
   },
   'stock.suggest': {
-    title: { en: 'Suggest order' },
-    body: { en: 'Builds a draft order from items that are under their par.' },
+    title: { en: t("Suggest order") },
+    body: { en: t("Builds a draft order from items that are under their par.") },
   },
   'stock.create-order': {
-    title: { en: 'Create order' },
-    body: { en: 'Starts a supplier order and lets you choose the lines.' },
+    title: { en: t("Create order") },
+    body: { en: t("Starts a supplier order and lets you choose the lines.") },
   },
   'stock.exit': {
-    title: { en: 'Exit Stock' },
-    body: { en: 'Leaves the stock workspace and returns to the previous page.' },
+    title: { en: t("Exit Stock") },
+    body: { en: t("Leaves the stock workspace and returns to the previous page.") },
   },
   'operations.dashboard': {
-    title: { en: 'Operations dashboard' },
-    body: { en: 'Shows today’s tasks and checklists in one place.' },
+    title: { en: t("Operations dashboard") },
+    body: { en: t("Shows today’s tasks and checklists in one place.") },
   },
   'operations.tasks': {
-    title: { en: 'Task boards' },
-    body: { en: 'Opens the task list so work can be assigned and completed.' },
+    title: { en: t("Task boards") },
+    body: { en: t("Opens the task list so work can be assigned and completed.") },
   },
   'operations.checklists': {
     title: { en: 'Checklists' },
-    body: { en: 'Opens opening and closing checklists such as Bar Opening.' },
+    body: { en: t("Opens opening and closing checklists such as Bar Opening.") },
   },
   'timeclock.clock-in': {
-    title: { en: 'Clock in' },
-    body: { en: 'Records the start of a shift for the signed-in person.' },
+    title: { en: t("Clock in") },
+    body: { en: t("Records the start of a shift for the signed-in person.") },
   },
   'timeclock.clock-out': {
-    title: { en: 'Clock out' },
-    body: { en: 'Records the end of the shift.' },
+    title: { en: t("Clock out") },
+    body: { en: t("Records the end of the shift.") },
   },
   'timeclock.break': {
     title: { en: 'Break' },
-    body: { en: 'Starts or ends a break without clocking out of the shift.' },
+    body: { en: t("Starts or ends a break without clocking out of the shift.") },
   },
   'chat.new': {
-    title: { en: 'New chat' },
-    body: { en: 'Starts a direct message with someone on the team.' },
+    title: { en: t("New chat") },
+    body: { en: t("Starts a direct message with someone on the team.") },
   },
   'chat.search': {
-    title: { en: 'Search chats' },
-    body: { en: 'Filters the conversation list by a person’s name.' },
+    title: { en: t("Search chats") },
+    body: { en: t("Filters the conversation list by a person’s name.") },
   },
   'chat.back': {
-    title: { en: 'Back to chats' },
-    body: { en: 'Leaves this conversation and returns to the list. The draft stays until you send or clear it.' },
+    title: { en: t("Back to chats") },
+    body: { en: t("Leaves this conversation and returns to the list. The draft stays until you send or clear it.") },
   },
   'chat.info': {
-    title: { en: 'Conversation info' },
-    body: { en: 'Opens members, mute, and other details for this chat.' },
+    title: { en: t("Conversation info") },
+    body: { en: t("Opens members, mute, and other details for this chat.") },
   },
   'chat.mute': {
     title: { en: 'Mute' },
-    body: { en: 'Quiets notifications for this conversation for a while, or until you unmute it.' },
+    body: { en: t("Quiets notifications for this conversation for a while, or until you unmute it.") },
   },
   'chat.emoji': {
     title: { en: 'Emoji' },
-    body: { en: 'Opens the emoji picker and adds the one you tap to the message.' },
+    body: { en: t("Opens the emoji picker and adds the one you tap to the message.") },
   },
   'chat.channel': {
-    title: { en: 'New channel' },
-    body: { en: 'Creates a group channel. Only people who can manage chat see this.' },
+    title: { en: t("New channel") },
+    body: { en: t("Creates a group channel. Only people who can manage chat see this.") },
   },
   'chat.send': {
     title: { en: 'Send' },
-    body: { en: 'Sends the message in the box to the open conversation.' },
+    body: { en: t("Sends the message in the box to the open conversation.") },
   },
   'chat.photo': {
     title: { en: 'Photo' },
-    body: { en: 'Attaches a photo to the conversation.' },
+    body: { en: t("Attaches a photo to the conversation.") },
   },
   'chat.message': {
     title: { en: 'Message' },
-    body: { en: 'The text you will send. It grows as you type.' },
+    body: { en: t("The text you will send. It grows as you type.") },
   },
   'settings.profile': {
-    title: { en: 'Business profile' },
-    body: { en: 'Edits the venue name and the details shown to the team.' },
+    title: { en: t("Business profile") },
+    body: { en: t("Edits the venue name and the details shown to the team.") },
   },
   'settings.positions': {
     title: { en: 'Positions' },
-    body: { en: 'Edits job titles used when you schedule people.' },
+    body: { en: t("Edits job titles used when you schedule people.") },
   },
   'settings.venue': {
-    title: { en: 'Venue setup' },
-    body: { en: 'Edits the address and the hours the venue uses.' },
+    title: { en: t("Venue setup") },
+    body: { en: t("Edits the address and the hours the venue uses.") },
   },
   'settings.reservations': {
     title: { en: 'Seatings' },
-    body: { en: 'Edits service periods such as Brunch, Lunch, and Dinner.' },
+    body: { en: t("Edits service periods such as Brunch, Lunch, and Dinner.") },
   },
   'settings.team': {
-    title: { en: 'Team settings' },
-    body: { en: 'Edits how the team module behaves for this venue.' },
+    title: { en: t("Team settings") },
+    body: { en: t("Edits how the team module behaves for this venue.") },
   },
   'settings.notifications': {
-    title: { en: 'Notification settings' },
-    body: { en: 'Chooses which alerts are sent and the quiet hours.' },
+    title: { en: t("Notification settings") },
+    body: { en: t("Chooses which alerts are sent and the quiet hours.") },
   },
   'settings.system': {
     title: { en: 'System' },
-    body: { en: 'Shows workspace system details.' },
+    body: { en: t("Shows workspace system details.") },
   },
 }
 
@@ -300,11 +301,11 @@ export function getHelpCopy(id, locale = HELP_DEFAULT_LOCALE) {
 export function resolveHelpCopy(id, { label = '', locale = HELP_DEFAULT_LOCALE } = {}) {
   const found = id ? getHelpCopy(id, locale) : null
   if (found) return found
-  const title = `${label ?? ''}`.trim() || 'This control'
+  const title = `${label ?? ''}`.trim() || t("This control")
   return {
     id: `${id ?? ''}`.trim(),
     title,
-    body: 'No help text yet',
+    body: t("No help text yet"),
   }
 }
 

@@ -14,9 +14,9 @@ export function ShiftReminderCard({
       <div className="shift-reminder-card-copy">
         <p className="shift-reminder-card-kicker">
           <span aria-hidden="true">{isGuide ? '📲' : '🔔'}</span>
-          {isGuide ? 'Home Screen' : 'Reminders'}
+          {isGuide ? t("Home Screen") : t('Reminders')}
         </p>
-        <h2>{isGuide ? 'Add ONE to your Home Screen to get reminders' : 'Get shift reminders'}</h2>
+        <h2>{isGuide ? t("Add ONE to your Home Screen to get reminders") : t("Get shift reminders")}</h2>
         {isGuide ? (
           <ol className="shift-reminder-steps">
             <li>{t("Open ONE in Safari")}</li>
@@ -34,7 +34,7 @@ export function ShiftReminderCard({
       <div className="shift-reminder-actions">
         {isGuide ? null : (
           <button type="button" className="primary-btn shift-reminder-btn" onClick={onTurnOn} disabled={busy}>
-            {busy ? 'Turning on…' : 'Turn on'}
+            {busy ? t("Turning on…") : t("Turn on")}
           </button>
         )}
         <button type="button" className="shift-reminder-btn shift-reminder-btn-quiet" onClick={onNotNow} disabled={busy}>

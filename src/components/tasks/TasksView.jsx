@@ -277,7 +277,7 @@ export default function TasksView({
       setIsTaskModalOpen(false)
       setEditingTask(null)
     } catch (error) {
-      setFormError(error?.message || 'Unable to save task right now.')
+      setFormError(error?.message || t("Unable to save task right now."))
     }
   }
 
@@ -342,7 +342,7 @@ export default function TasksView({
       setIsTemplateModalOpen(false)
       setEditingTemplate(null)
     } catch (error) {
-      setTemplateFormError(error?.message || 'Unable to save template right now.')
+      setTemplateFormError(error?.message || t("Unable to save template right now."))
     }
   }
 
@@ -367,8 +367,8 @@ export default function TasksView({
           {!isMobileLayout ? (
             <p className="staff-subtitle">
               {tasksScreen === 'templates'
-                ? 'Build reusable opening, closing, and department routines.'
-                : 'Track daily work by department with clear ownership and due dates.'}
+                ? t("Build reusable opening, closing, and department routines.")
+                : t("Track daily work by department with clear ownership and due dates.")}
             </p>
           ) : null}
         </div>

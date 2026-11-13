@@ -154,7 +154,7 @@ function RecentNoteCard({ log }) {
   const tone = getOperationsLogTypeTone(log.type)
   const headline = getOperationsShiftNoteHeadline(log)
   const authorName = `${log.createdByName ?? ''}`.trim()
-  const authorLabel = authorName && authorName !== 'System' ? authorName : 'Team member'
+  const authorLabel = authorName && authorName !== 'System' ? authorName : t("Team member")
 
   return (
     <li className="mobile-manager-tasks-note-item">
@@ -346,7 +346,7 @@ export function MobileManagerTasksView({
                 <p className="mobile-manager-tasks-empty-message">
                   {completedToday > 0
                     ? `${completedToday} completed today. No open tasks right now.`
-                    : 'No pending tasks today'}
+                    : t("No pending tasks today")}
                 </p>
               </div>
             )}

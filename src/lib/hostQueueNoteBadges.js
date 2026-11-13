@@ -1,11 +1,12 @@
 import { stripCustomerTypeFromNotes } from './reservationCustomerType'
 import { stripPurposeFromNotes } from './reservationPurpose'
 import { stripSeatingAssignmentFromNotes } from './seatingAssignment'
+import { t } from '../i18n/i18n'
 
 const NOTE_BADGE_RULES = [
   { id: 'extra-chair-note', label: '🪑 Extra chair', patterns: [/extra\s+chair/i, /additional\s+chair/i] },
-  { id: 'baby-chair', label: 'Baby chair', patterns: [/high\s+chair/i, /baby\s+chair/i] },
-  { id: 'allergy', label: '⚠ Allergy', patterns: [/allerg/i], sensitive: true, title: 'Sensitive health data' },
+  { id: 'baby-chair', label: t("Baby chair"), patterns: [/high\s+chair/i, /baby\s+chair/i] },
+  { id: 'allergy', label: '⚠ Allergy', patterns: [/allerg/i], sensitive: true, title: t("Sensitive health data") },
   { id: 'birthday', label: '🎂 Birthday', patterns: [/birthday/i] },
   { id: 'anniversary', label: 'Occasion', patterns: [/anniversary/i] },
   { id: 'accessibility', label: '♿ Accessibility', patterns: [/wheelchair/i, /accessibility/i, /accessible/i] },

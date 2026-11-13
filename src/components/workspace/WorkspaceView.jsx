@@ -11,9 +11,9 @@ import { WorkspaceSystemSection } from './WorkspaceSystemSection'
 import { PrivacySettingsSection } from '../privacy/PrivacySections'
 
 const WORKSPACE_SECTIONS = [
-  { id: 'profile', label: 'Business Profile', shortLabel: 'Profile', icon: '🏢' },
+  { id: 'profile', label: t("Business Profile"), shortLabel: 'Profile', icon: '🏢' },
   { id: 'positions', label: 'Positions', shortLabel: 'Positions', icon: '👔' },
-  { id: 'venue', label: 'Venue Setup', shortLabel: 'Venue', icon: '📍' },
+  { id: 'venue', label: t("Venue Setup"), shortLabel: 'Venue', icon: '📍' },
   { id: 'reservations', label: 'Reservations', shortLabel: 'Seatings', icon: '🍽️' },
   { id: 'team', label: 'Team', shortLabel: 'Team', icon: '👥' },
   { id: 'notifications', label: 'Notifications', shortLabel: 'Alerts', icon: '🔔' },
@@ -46,7 +46,7 @@ export function WorkspaceView({
   const sections = (Array.isArray(visibleSectionIds)
     ? WORKSPACE_SECTIONS.filter((section) => visibleSectionIds.includes(section.id))
     : WORKSPACE_SECTIONS
-  ).concat(billingSection ? [{ id: 'billing', label: 'Plans & billing', shortLabel: 'Billing', icon: '✦' }] : [])
+  ).concat(billingSection ? [{ id: 'billing', label: t("Plans & billing"), shortLabel: 'Billing', icon: '✦' }] : [])
   const sectionKey = sections.map((section) => section.id).join('|')
   const sectionIds = new Set(sections.map((section) => section.id))
   const resolvedSection = sectionIds.has(activeSection)

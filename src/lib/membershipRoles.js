@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 export const WORKSPACE_ROLES = [
   'owner',
   'general_manager',
@@ -21,7 +23,7 @@ export function normalizeWorkspaceRole(role, fallback = 'staff') {
 
 export function getWorkspaceRoleLabel(role) {
   const normalized = normalizeWorkspaceRole(role, '')
-  return WORKSPACE_ROLE_LABELS[normalized] || 'Staff'
+  return t(WORKSPACE_ROLE_LABELS[normalized] || 'Staff')
 }
 
 export function isOwnerRole(role) {

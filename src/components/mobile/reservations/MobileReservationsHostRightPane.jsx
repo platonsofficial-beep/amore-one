@@ -32,7 +32,7 @@ export function MobileReservationsHostRightPane({
     return (
       <div className="mobile-host-reservations-right-pane">
         <div className="mobile-host-floor-refreshing" role="status">
-          <p>{layoutMessage || 'Loading published layout…'}</p>
+          <p>{layoutMessage || t("Loading published layout…")}</p>
         </div>
       </div>
     )

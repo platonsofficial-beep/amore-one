@@ -3,12 +3,13 @@ import {
   buildSupplierSearchHaystack,
   isSupplierActive,
 } from './stockSupplierUtils'
+import { t } from '../i18n/i18n'
 
 export const STOCK_SUPPLIER_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'active', label: 'Active' },
   { id: 'inactive', label: 'Inactive' },
-  { id: 'has-open-orders', label: 'Has open orders' },
+  { id: 'has-open-orders', label: t("Has open orders") },
 ]
 
 export function filterStockSuppliers(
@@ -70,46 +71,46 @@ export function sortStockSuppliers(suppliers = [], stockItems = [], stockOrders 
 export function getStockSuppliersEmptyState(statusFilter = 'all', hasAnySuppliers = false) {
   if (!hasAnySuppliers) {
     return {
-      title: 'No suppliers yet',
-      description: 'Add your first supplier to connect products and purchase orders.',
+      title: t("No suppliers yet"),
+      description: t("Add your first supplier to connect products and purchase orders."),
       showCreate: true,
     }
   }
 
   if (statusFilter === 'active') {
     return {
-      title: 'No active suppliers',
-      description: 'Activate a supplier or adjust your filters.',
+      title: t("No active suppliers"),
+      description: t("Activate a supplier or adjust your filters."),
       showCreate: false,
     }
   }
 
   if (statusFilter === 'inactive') {
     return {
-      title: 'No inactive suppliers',
-      description: 'Suppliers you deactivate will appear here.',
+      title: t("No inactive suppliers"),
+      description: t("Suppliers you deactivate will appear here."),
       showCreate: false,
     }
   }
 
   if (statusFilter === 'has-open-orders') {
     return {
-      title: 'No suppliers with open orders',
-      description: 'Draft and sent orders will appear here when suppliers have pending deliveries.',
+      title: t("No suppliers with open orders"),
+      description: t("Draft and sent orders will appear here when suppliers have pending deliveries."),
       showCreate: false,
     }
   }
 
   return {
-    title: 'No suppliers match your search',
-    description: 'Try a different search term or clear filters.',
+    title: t("No suppliers match your search"),
+    description: t("Try a different search term or clear filters."),
     showCreate: false,
   }
 }
 
 export const STOCK_SUPPLIER_SORT_OPTIONS = [
-  { id: 'name-az', label: 'Name A–Z' },
-  { id: 'spend-desc', label: 'Highest spend' },
-  { id: 'orders-desc', label: 'Most open orders' },
-  { id: 'recent-order', label: 'Recent order' },
+  { id: 'name-az', label: t("Name A–Z") },
+  { id: 'spend-desc', label: t("Highest spend") },
+  { id: 'orders-desc', label: t("Most open orders") },
+  { id: 'recent-order', label: t("Recent order") },
 ]

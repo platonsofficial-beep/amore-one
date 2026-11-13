@@ -57,7 +57,7 @@ export function RenameWorkspaceStorageDialog({
     try {
       nextName = normalizeWorkspaceStorageDisplayName(name)
     } catch (validationError) {
-      setError(validationError?.message || 'Storage name is required.')
+      setError(validationError?.message || t("Storage name is required."))
       return
     }
 
@@ -79,7 +79,7 @@ export function RenameWorkspaceStorageDialog({
       setIsSaving(true)
       await onSubmit(nextName)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to rename storage right now.')
+      setError(submitError?.message || t("Unable to rename storage right now."))
       setIsSaving(false)
     }
   }

@@ -106,7 +106,7 @@ function getEmployeePositionsLabel(employee) {
 
   if (names.length > 0) return names.join(' · ')
   if (employee.position) return employee.position
-  return 'No position assigned'
+  return t("No position assigned")
 }
 
 function handleEmployeeCardKeyDown(event, employee, onSelectEmployee) {
@@ -312,7 +312,7 @@ export function TeamPeopleView({
     { isLoading: isTodayStatusLoading },
   )
   const selectedTodayShiftSummary = isTodayStatusLoading && !isSelectedEmployeeOnLeave
-    ? 'Loading today status…'
+    ? t("Loading today status…")
     : formatEmployeeTodayShiftSummary(selectedEmployeeTodayStatus)
 
   return (
@@ -321,7 +321,7 @@ export function TeamPeopleView({
         <div className="team-people-header-copy">
           <p className="eyebrow">{t("People")}</p>
           <h3>{t("Your team")}</h3>
-          <p className="team-people-metrics">{directoryLoadFailed ? 'Team size unavailable' : metricsLine}</p>
+          <p className="team-people-metrics">{directoryLoadFailed ? t("Team size unavailable") : metricsLine}</p>
         </div>
         <div className="team-people-header-actions">
           <button type="button" className="primary-btn team-people-add-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
@@ -385,8 +385,8 @@ export function TeamPeopleView({
       ) : isFilteredEmpty ? (
         <p className="team-people-empty">
           {hasActiveFilter
-            ? 'No team members in this department. Try another filter or add someone new.'
-            : 'No team members match your search.'}
+            ? t("No team members in this department. Try another filter or add someone new.")
+            : t("No team members match your search.")}
         </p>
       ) : (
         <div className="team-people-grid">
@@ -483,32 +483,32 @@ export function TeamPeopleView({
 
           <div className="employee-profile-drawer-body">
             <EmployeeProfileDrawerSection title={t("Profile")}>
-              <EmployeeProfileDrawerField label="Primary position">
+              <EmployeeProfileDrawerField label={t("Primary position")}>
                 {formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Additional positions">
+              <EmployeeProfileDrawerField label={t("Additional positions")}>
                 {formatDrawerFieldValue(getAdditionalPositionsLabel(selectedEmployee))}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label="Department">
                 {formatDrawerFieldValue(selectedEmployee.department)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Employment Status">
+              <EmployeeProfileDrawerField label={t("Employment Status")}>
                 <span className={getEmploymentStatusClassName(selectedEmployee.status)}>
                   {formatDrawerFieldValue(selectedEmployee.status)}
                 </span>
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Today Status">
+              <EmployeeProfileDrawerField label={t("Today Status")}>
                 {isTodayStatusLoading && !isSelectedEmployeeOnLeave
-                  ? 'Loading today status…'
+                  ? t("Loading today status…")
                   : formatDrawerFieldValue(selectedEmployeeTodayStatus?.label)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Today Shift">
+              <EmployeeProfileDrawerField label={t("Today Shift")}>
                 {selectedTodayShiftSummary}
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 
             <EmployeeProfileDrawerSection title={t("Employment")}>
-              <EmployeeProfileDrawerField label="Start date">
+              <EmployeeProfileDrawerField label={t("Start date")}>
                 {formatDrawerFieldValue(selectedEmployee.hireDate)}
               </EmployeeProfileDrawerField>
               {canViewSalary ? (
@@ -516,10 +516,10 @@ export function TeamPeopleView({
                   {formatEmployeeSalaryDisplay(selectedEmployee.salary)}
                 </EmployeeProfileDrawerField>
               ) : null}
-              <EmployeeProfileDrawerField label="Weekly hours">
+              <EmployeeProfileDrawerField label={t("Weekly hours")}>
                 {formatEmployeeWeeklyHoursDisplay(selectedEmployee.weeklyHours)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Preferred Shift">
+              <EmployeeProfileDrawerField label={t("Preferred Shift")}>
                 {formatDrawerFieldValue(selectedEmployee.shift)}
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
@@ -531,7 +531,7 @@ export function TeamPeopleView({
               <EmployeeProfileDrawerField label="Email">
                 {formatDrawerFieldValue(selectedEmployee.email)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Emergency contact">
+              <EmployeeProfileDrawerField label={t("Emergency contact")}>
                 {formatDrawerFieldValue(selectedEmployee.emergencyContact)}
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>

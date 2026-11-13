@@ -43,10 +43,10 @@ import { t } from '../../i18n/i18n'
 
 export const INVENTORY_NEW_PRODUCT_FILTERS = Object.freeze([
   { id: 'all', label: 'All' },
-  { id: 'missing_units', label: 'Missing Units' },
-  { id: 'missing_storage', label: 'Missing Destination' },
-  { id: 'missing_supplier', label: 'Missing Supplier' },
-  { id: 'new_products', label: 'New Products' },
+  { id: 'missing_units', label: t("Missing Units") },
+  { id: 'missing_storage', label: t("Missing Destination") },
+  { id: 'missing_supplier', label: t("Missing Supplier") },
+  { id: 'new_products', label: t("New Products") },
   { id: 'duplicate_products', label: 'Duplicates' },
 ])
 
@@ -569,7 +569,7 @@ export function InventoryNewProductReview({
                         </p>
                       </div>
                       <span className="inventory-new-product-review-badge">
-                        {merged.skipped ? 'Skipped' : 'New Product'}
+                        {merged.skipped ? 'Skipped' : t("New Product")}
                       </span>
                     </div>
 

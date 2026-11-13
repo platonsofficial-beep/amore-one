@@ -2,7 +2,7 @@ import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { t } from '../../i18n/i18n'
 
 function resolveEmployeeLabel(employee) {
-  const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || 'Unnamed employee'
+  const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || t("Unnamed employee")
   const position = `${employee?.primaryPosition ?? employee?.position ?? ''}`.trim()
   return position ? `${name} · ${position}` : name
 }
@@ -53,7 +53,7 @@ export function WorkspaceLinkEmployeeModal({
               disabled={isSaving || sortedEmployees.length === 0}
             >
               <option value="">
-                {sortedEmployees.length === 0 ? 'No employees available' : 'Select employee'}
+                {sortedEmployees.length === 0 ? t("No employees available") : t("Select employee")}
               </option>
               {sortedEmployees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
@@ -78,7 +78,7 @@ export function WorkspaceLinkEmployeeModal({
             onClick={onSave}
             disabled={isSaving || !selectedEmployeeId || sortedEmployees.length === 0}
           >
-            {isSaving ? 'Saving…' : 'Save link'}
+            {isSaving ? 'Saving…' : t("Save link")}
           </button>
         </div>
       </div>

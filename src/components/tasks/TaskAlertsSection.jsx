@@ -5,7 +5,7 @@ import { t } from '../../i18n/i18n'
 
 function formatAlertDueLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
-  return dueTime ? `Due ${dueTime}` : 'No due time'
+  return dueTime ? `Due ${dueTime}` : t("No due time")
 }
 
 function AlertGroup({ title, tasks, tone = 'default', employees = [], compact = false }) {
@@ -51,7 +51,7 @@ export default function TaskAlertsSection({
   alerts,
   employees = [],
   compact = false,
-  title = 'Task alerts',
+  title = t("Task alerts"),
   emptyMessage = 'No task alerts. Operations are clear.',
 }) {
   if (!alerts?.hasAlerts) {

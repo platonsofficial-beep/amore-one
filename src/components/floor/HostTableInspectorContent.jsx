@@ -512,7 +512,7 @@ function TableDayViewRow({
   const { seating, reservation, conflicts, hasConflict, isAvailable, timeWindowLabel, state } = row
   const isAssignmentMode = Boolean(assignmentContext?.reservation)
   const isAssignmentSelected = assignmentContext?.seatingId === seating.id
-  const releaseLabel = tableLabel ? `Release ${tableLabel}` : 'Release table'
+  const releaseLabel = tableLabel ? `Release ${tableLabel}` : t("Release table")
   const guestName = reservation?.guestName || 'Guest'
   const infoItems = buildInspectorDetailItems(reservation, row.assignedTablesLabel, {
     reservationSeatings,
@@ -731,7 +731,7 @@ export function formatTableDayViewCapacity(table) {
   )
 
   if (maxGuests > 0) return `Capacity ${maxGuests}`
-  return 'Capacity varies'
+  return t("Capacity varies")
 }
 
 export function HostTableInspectorContent({
@@ -790,7 +790,7 @@ export function HostTableInspectorContent({
 
   const accessibleTitle = tableLabel
     ? `Table ${tableLabel.replace(/^TABLE\s*/i, '')} details`
-    : 'Table details'
+    : t("Table details")
 
   return (
     <>

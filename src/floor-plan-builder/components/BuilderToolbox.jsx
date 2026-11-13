@@ -192,7 +192,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
         <p className="fpb-toolbox-hint">
           {isEditing
             ? <>{t("Adds a table to the center of")} <strong>{activeFloor?.label}</strong>. Drag to move, tap to edit properties.</>
-            : 'Layout is locked in view mode. Click Edit layout to make changes.'}
+            : t("Layout is locked in view mode. Click Edit layout to make changes.")}
         </p>
       </div>
     </aside>

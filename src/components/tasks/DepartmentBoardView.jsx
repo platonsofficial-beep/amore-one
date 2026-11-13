@@ -92,7 +92,7 @@ export default function DepartmentBoardView({
   const resolveAssigneeName = (task) => {
     const employeeId = getTaskAssigneeId(task)
     if (!employeeId) return ''
-    return employeeNameById.get(String(employeeId)) ?? 'Unknown employee'
+    return employeeNameById.get(String(employeeId)) ?? t("Unknown employee")
   }
 
   return (

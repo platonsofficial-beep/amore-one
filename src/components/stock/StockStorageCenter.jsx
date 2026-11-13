@@ -105,7 +105,7 @@ function StorageSummaryCard({
         <div className="stock-storage-center-card-top">
           <div>
             <strong className="stock-storage-center-card-name">
-              {storage.name || storage.locationKey || 'Unnamed storage'}
+              {storage.name || storage.locationKey || t("Unnamed storage")}
             </strong>
             {departmentName ? (
               <span className="stock-storage-center-card-key">{departmentName}</span>
@@ -259,7 +259,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
   const [name, setName] = useState(initialName)
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const title = mode === 'rename' ? 'Rename department' : 'New department'
+  const title = mode === 'rename' ? t("Rename department") : t("New department")
 
   useEscapeToClose(() => {
     if (!isSaving) onClose?.()
@@ -291,7 +291,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
       setIsSaving(true)
       await onSubmit(validation.value)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save the department right now.')
+      setError(submitError?.message || t("Unable to save the department right now."))
       setIsSaving(false)
     }
   }
@@ -352,7 +352,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save department'}
+              {isSaving ? 'Saving…' : t("Save department")}
             </button>
           </div>
         </form>
@@ -481,7 +481,7 @@ export function StockStorageCenter({
         setDepartmentCatalog(null)
         setSelectedId(null)
         setStatus('error')
-        setErrorMessage(error?.message || 'Unable to load storages right now.')
+        setErrorMessage(error?.message || t("Unable to load storages right now."))
       }
     })()
 
@@ -540,7 +540,7 @@ export function StockStorageCenter({
       setPendingArchiveId(null)
       setReloadToken((token) => token + 1)
     } catch (actionError) {
-      const message = actionError?.message || 'Unable to update departments right now.'
+      const message = actionError?.message || t("Unable to update departments right now.")
       setDepartmentError(message)
       throw actionError
     } finally {
@@ -856,7 +856,7 @@ export function StockStorageCenter({
               <h3 className="stock-storage-center-section-title">{t("Active")}</h3>
               {filteredActiveStorages.length === 0 ? (
                 <p className="stock-storage-center-section-empty">
-                  {`${searchTerm ?? ''}`.trim() ? 'No active storages match this search.' : 'No active storages.'}
+                  {`${searchTerm ?? ''}`.trim() ? t("No active storages match this search.") : t("No active storages.")}
                 </p>
               ) : (
                 <div className="stock-storage-center-grid">

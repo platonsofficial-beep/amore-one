@@ -27,7 +27,7 @@ function getTomorrowKey(todayKey = getTodayKey()) {
 
 function formatTaskDueDateLabel(dueDate, todayKey = getTodayKey()) {
   const normalized = normalizeTaskDateKey(dueDate)
-  if (!normalized) return 'No due date'
+  if (!normalized) return t("No due date")
 
   if (normalized === todayKey) return 'Today'
   if (normalized === getTomorrowKey(todayKey)) return 'Tomorrow'
@@ -180,7 +180,7 @@ export default function TaskCard({
       </div>
 
       <div className="task-card-body">
-        <h4 className="task-card-title">{task?.title || 'Untitled task'}</h4>
+        <h4 className="task-card-title">{task?.title || t("Untitled task")}</h4>
 
         {isCompleted && completedLabel ? (
           <p className="task-card-completed-at">Completed {completedLabel}</p>

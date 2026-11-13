@@ -119,7 +119,7 @@ export function ManagerAvailabilityEditor({
         <div className="modal-actions">
           <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>{t("Cancel")}</button>
           <button type="button" className="primary-btn" onClick={onSave} disabled={isLoading || isSaving || !week}>
-            {isSaving ? 'Saving…' : 'Save availability'}
+            {isSaving ? 'Saving…' : t("Save availability")}
           </button>
         </div>
       </div>

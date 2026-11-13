@@ -1,4 +1,5 @@
 import { isBelowStoragePar, normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
+import { t } from '../i18n/i18n'
 
 export const REFILL_ACTION_LABEL = 'Refill'
 export const TAKE_SELECTED_LABEL = 'Take selected'
@@ -37,7 +38,7 @@ export function parseRefillQuantity(raw) {
     return {
       ok: false,
       value: null,
-      error: 'Enter a quantity greater than zero, with up to 3 decimal places.',
+      error: t("Enter a quantity greater than zero, with up to 3 decimal places."),
     }
   }
   const value = roundQuantity(Number(trimmed))
@@ -45,7 +46,7 @@ export function parseRefillQuantity(raw) {
     return {
       ok: false,
       value: null,
-      error: 'Enter a quantity greater than zero, with up to 3 decimal places.',
+      error: t("Enter a quantity greater than zero, with up to 3 decimal places."),
     }
   }
   return { ok: true, value, error: '' }
@@ -159,7 +160,7 @@ export function buildRefillLines({
     const onHand = Number(product?.quantity)
     lines.push({
       stockItemId,
-      name: `${product?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      name: `${product?.name ?? t("Unknown product")}`.trim() || t("Unknown product"),
       unit: `${product?.unit ?? ''}`.trim(),
       onHand: Number.isFinite(onHand) ? onHand : 0,
       parQuantity: product?.parQuantity,
@@ -274,7 +275,7 @@ export function applyRefillResults(lines = [], results = []) {
     return [{
       ...line,
       selected: true,
-      error: result.error || 'Unable to transfer stock right now.',
+      error: result.error || t("Unable to transfer stock right now."),
     }]
   })
 }
@@ -291,7 +292,7 @@ export function keepFailedRefillLines(freshLines = [], previousLines = [], resul
   const failed = new Map(
     (Array.isArray(results) ? results : [])
       .filter((result) => result && result.ok === false)
-      .map((result) => [result.stockItemId, result.error || 'Unable to transfer stock right now.']),
+      .map((result) => [result.stockItemId, result.error || t("Unable to transfer stock right now.")]),
   )
   const attempted = new Set((Array.isArray(results) ? results : []).map((result) => result.stockItemId))
   const previousById = new Map((Array.isArray(previousLines) ? previousLines : []).map((line) => [line.stockItemId, line]))
@@ -360,7 +361,7 @@ export function listAdHocSupplyChoices({
     const item = itemsById.get(stockItemId)
     items.push({
       stockItemId,
-      name: `${item?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      name: `${item?.name ?? t("Unknown product")}`.trim() || t("Unknown product"),
       unit: `${item?.unit ?? ''}`.trim(),
       storageId,
       quantity: roundQuantity(quantity),
@@ -570,7 +571,7 @@ export function buildTakeRows({
     seen.add(stockItemId)
     const item = catalog.get(stockItemId)
     shelfRows.push(makeRow(stockItemId, {
-      name: `${product?.name ?? item?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      name: `${product?.name ?? item?.name ?? t("Unknown product")}`.trim() || t("Unknown product"),
       unit: `${product?.unit ?? item?.unit ?? ''}`.trim(),
       brand: `${product?.brand ?? item?.brand ?? ''}`.trim(),
     }, true, product))
@@ -583,7 +584,7 @@ export function buildTakeRows({
     if (seen.has(stockItemId)) continue
     const item = catalog.get(stockItemId)
     supplyRows.push(makeRow(stockItemId, {
-      name: `${item?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      name: `${item?.name ?? t("Unknown product")}`.trim() || t("Unknown product"),
       unit: `${item?.unit ?? ''}`.trim(),
       brand: `${item?.brand ?? ''}`.trim(),
     }, false, null))
@@ -753,7 +754,7 @@ export function applyTakeResults(rows = [], results = []) {
     }
     return {
       ...row,
-      error: result.error || 'Unable to transfer stock right now.',
+      error: result.error || t("Unable to transfer stock right now."),
     }
   })
 }
@@ -788,7 +789,7 @@ export function keepFailedTakeRows(freshRows = [], previousRows = [], results = 
     if (result && result.ok === false) {
       return {
         ...row,
-        error: result.error || 'Unable to transfer stock right now.',
+        error: result.error || t("Unable to transfer stock right now."),
       }
     }
     return row

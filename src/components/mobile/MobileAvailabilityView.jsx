@@ -248,7 +248,7 @@ export function MobileAvailabilityView({
 
               <div className="mobile-availability-time-grid">
                 <AvailabilityTimeField
-                  label="Start time (optional)"
+                  label={t("Start time (optional)")}
                   value={entry.startTime}
                   disabled={isSaving}
                   onChange={(next) => handleDayFieldChange(entry.dayOfWeek, {
@@ -256,7 +256,7 @@ export function MobileAvailabilityView({
                   })}
                 />
                 <AvailabilityTimeField
-                  label="End time (optional)"
+                  label={t("End time (optional)")}
                   value={entry.endTime}
                   disabled={isSaving}
                   onChange={(next) => handleDayFieldChange(entry.dayOfWeek, {
@@ -295,7 +295,7 @@ export function MobileAvailabilityView({
             onClick={handleSave}
             disabled={isSaving || !isDirty}
           >
-            {isSaving ? 'Saving…' : 'Save Availability'}
+            {isSaving ? 'Saving…' : t("Save Availability")}
           </button>
         </div>
       ) : null}

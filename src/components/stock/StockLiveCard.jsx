@@ -42,7 +42,7 @@ export function StockLiveCard({
           <div className="stock-live-card-rows">
             {[0, 1, 2].map((row) => (
               <div key={row} className="stock-live-card-row stock-live-card-row-pending" aria-hidden={row > 0 ? 'true' : undefined}>
-                <LoadingLines label="Loading stock" />
+                <LoadingLines label={t("Loading stock")} />
               </div>
             ))}
           </div>
@@ -61,9 +61,9 @@ export function StockLiveCard({
   })
   const sharedHealth = stockSummary ? formatSharedStockHealthLine(stockSummary) : ''
   const belowParLabel = parsStatus === 'loading'
-    ? 'Checking pars…'
+    ? t("Checking pars…")
     : parsStatus === 'error'
-      ? 'Pars could not be loaded'
+      ? t("Pars could not be loaded")
       : facts.belowParLabel
   const healthLabel = sharedHealth || belowParLabel
   const healthTone = sharedHealth

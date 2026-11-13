@@ -38,7 +38,7 @@ export function WorkspacePositionsSection({
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage positions")}</p>
-            <h3>{editingPositionId ? 'Edit position' : 'Add position'}</h3>
+            <h3>{editingPositionId ? t("Edit position") : t("Add position")}</h3>
           </div>
         </div>
 
@@ -61,7 +61,7 @@ export function WorkspacePositionsSection({
           <div className="modal-actions">
             {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : editingPositionId ? 'Update Position' : 'Add Position'}
+              {isSaving ? 'Saving…' : editingPositionId ? t("Update Position") : t("Add Position")}
             </button>
           </div>
         </form>

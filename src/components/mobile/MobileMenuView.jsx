@@ -20,11 +20,11 @@ const MANAGER_WORKSPACE_ORDER = [
 ]
 
 const MANAGER_WORKSPACE_SUBTITLES = {
-  reservations: 'Bookings and guest management',
-  team: 'Staff, shifts and roles',
-  operations: 'Tasks, checklists and handovers',
-  insights: 'Reports and performance',
-  settings: 'Venue preferences',
+  reservations: t("Bookings and guest management"),
+  team: t("Staff, shifts and roles"),
+  operations: t("Tasks, checklists and handovers"),
+  insights: t("Reports and performance"),
+  settings: t("Venue preferences"),
 }
 
 function ManagerNavCard({
@@ -83,7 +83,7 @@ export function MobileMenuView({
   const showSettings = canAccessMobileExpandedModule(role, 'settings')
   const settingsSubtitle = !canAccessModule(role, 'settings') && canConfigureReservationSeatings(role)
     ? LIMITED_SETTINGS_SUBTITLE
-    : 'Venue preferences'
+    : t("Venue preferences")
   const isHostMenu = menuVariant === 'host'
   const allowedModuleIds = useMemo(
     () => new Set(visibleModules.map((item) => item.id)),
@@ -115,7 +115,7 @@ export function MobileMenuView({
     return (
       <div className="mobile-screen mobile-menu mobile-host-menu">
         <header className="mobile-screen-header">
-          <p className="mobile-screen-eyebrow">{roleLabel || 'Host station'}</p>
+          <p className="mobile-screen-eyebrow">{roleLabel || t("Host station")}</p>
           <h1 className="mobile-screen-title">{profileName || 'Account'}</h1>
           {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
         </header>
@@ -156,7 +156,7 @@ export function MobileMenuView({
     || (menuVariant === 'manager'
       ? managerWorkspaceItems.length > 0 || canViewLeaveInbox
       : visibleModules.length > 0 || showSettings)
-  const identityStatusLine = venueName ? 'Venue ready' : 'Venue profile loading'
+  const identityStatusLine = venueName ? t("Venue ready") : t("Venue profile loading")
 
   if (menuVariant === 'manager') {
     return (
@@ -182,7 +182,7 @@ export function MobileMenuView({
                 <ManagerNavCard
                   icon="💬"
                   title={Number(chatUnread) > 0 ? `Chat (${Number(chatUnread) > 9 ? '9+' : chatUnread})` : 'Chat'}
-                  subtitle="Team messages"
+                  subtitle={t("Team messages")}
                   onClick={onOpenChat}
                 />
               ) : null}
@@ -190,7 +190,7 @@ export function MobileMenuView({
                 <ManagerNavCard
                   icon="📅"
                   title={t("Full team schedule")}
-                  subtitle="Weekly shift planning"
+                  subtitle={t("Weekly shift planning")}
                   onClick={onOpenFullSchedule}
                 />
               ) : null}
@@ -198,7 +198,7 @@ export function MobileMenuView({
                 <ManagerNavCard
                   icon="◷"
                   title={t("Leave inbox")}
-                  subtitle="Pending leave requests"
+                  subtitle={t("Pending leave requests")}
                   onClick={onOpenLeaveInbox}
                 />
               ) : null}
@@ -206,7 +206,7 @@ export function MobileMenuView({
                 <ManagerNavCard
                   icon="⏱"
                   title={t("Time clock")}
-                  subtitle="Who is in, late, and hours"
+                  subtitle={t("Who is in, late, and hours")}
                   onClick={onOpenAttendance}
                 />
               ) : null}
@@ -229,14 +229,14 @@ export function MobileMenuView({
             <ManagerNavCard
               icon="👤"
               title={t("Profile")}
-              subtitle="Personal details and account"
+              subtitle={t("Personal details and account")}
               onClick={onOpenProfile}
             />
             {onOpenNotifications ? (
               <ManagerNavCard
                 icon="🔔"
                 title={t("Notifications")}
-                subtitle="Device alerts, quiet hours and this phone"
+                subtitle={t("Device alerts, quiet hours and this phone")}
                 onClick={onOpenNotifications}
               />
             ) : null}
@@ -258,7 +258,7 @@ export function MobileMenuView({
   return (
     <div className="mobile-screen mobile-menu">
       <header className="mobile-screen-header">
-        <p className="mobile-screen-eyebrow">{roleLabel || 'Team member'}</p>
+        <p className="mobile-screen-eyebrow">{roleLabel || t("Team member")}</p>
         <h1 className="mobile-screen-title">{profileName || 'Account'}</h1>
         {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
       </header>
@@ -280,7 +280,7 @@ export function MobileMenuView({
                 onClick={() => onNavigateModule?.(item.id)}
               >
                 <span aria-hidden="true">{item.icon}</span>
-                {item.label}
+                {t(item.label)}
               </button>
             ))}
             {showSettings && !allowedModuleIds.has('settings') ? (

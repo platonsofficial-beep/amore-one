@@ -199,7 +199,7 @@ export function HostReservationEditPanel({
     try {
       await onSave?.()
     } catch (error) {
-      onValidationError?.(error?.message || 'Unable to save reservation right now.')
+      onValidationError?.(error?.message || t("Unable to save reservation right now."))
     }
   }
 
@@ -214,8 +214,8 @@ export function HostReservationEditPanel({
           <button
             type="button"
             className={`host-reservation-edit-save-icon${isSaving ? ' is-saving' : ''}`}
-            aria-label={isSaving ? 'Saving reservation' : 'Save changes'}
-            title={isSaving ? 'Saving…' : 'Save changes'}
+            aria-label={isSaving ? t("Saving reservation") : t("Save changes")}
+            title={isSaving ? 'Saving…' : t("Save changes")}
             disabled={isSaving}
             onClick={handleSave}
           >
@@ -360,7 +360,7 @@ export function HostReservationEditPanel({
                   aria-pressed={isFloorPickActive}
                 >
                   <span className="host-reservation-edit-floor-pick-icon" aria-hidden="true">▦</span>
-                  {isFloorPickActive ? 'Picking…' : 'Pick from floor'}
+                  {isFloorPickActive ? 'Picking…' : t("Pick from floor")}
                 </button>
                 <button type="button" className="host-reservation-edit-link" onClick={handleClearSeating}>
                   {t("Clear")}
@@ -422,7 +422,7 @@ export function HostReservationEditPanel({
                 onClick={() => setNotesExpanded(true)}
                 aria-expanded={notesExpanded}
               >
-                {hasNotes ? 'Show notes' : '+ Add notes'}
+                {hasNotes ? t("Show notes") : '+ Add notes'}
               </button>
             )}
           </div>

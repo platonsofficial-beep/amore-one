@@ -149,7 +149,7 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
             >
               {estimate.total > 0
                 ? `${estimate.missingCostLines > 0 ? '≈ ' : ''}${formatStockPurchasePrice(estimate.total)}`
-                : 'No cost on file'}
+                : t("No cost on file")}
               {estimate.missingCostLines > 0 && estimate.total > 0 ? (
                 <span className="sr-only"> ({formatMissingCostLineNote(estimate.missingCostLines)})</span>
               ) : null}
@@ -324,7 +324,7 @@ export function StockOrdersView({
                 onClick={() => { void onPrepareDrafts() }}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : 'Suggest order')}
+                {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : t("Suggest order"))}
               </button>
             ) : null}
             <button
@@ -333,7 +333,7 @@ export function StockOrdersView({
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!isWorkspaceReady || isActionBusy}
             >
-              {isSaving ? 'Creating…' : 'Create order'}
+              {isSaving ? 'Creating…' : t("Create order")}
             </button>
           </div>
         ) : null}
@@ -402,7 +402,7 @@ export function StockOrdersView({
                   onClick={() => { void onPrepareDrafts() }}
                   disabled={!isWorkspaceReady || isActionBusy}
                 >
-                  {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : 'Suggest order')}
+                  {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : t("Suggest order"))}
                 </button>
               ) : null}
               <button
@@ -411,7 +411,7 @@ export function StockOrdersView({
                 onClick={() => setIsCreateModalOpen(true)}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isSaving ? 'Creating…' : 'Create order'}
+                {isSaving ? 'Creating…' : t("Create order")}
               </button>
             </div>
           ) : null}

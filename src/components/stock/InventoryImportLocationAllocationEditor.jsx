@@ -17,17 +17,17 @@ import { t } from '../../i18n/i18n'
 export function formatLocationAllocationWarningLabel(code) {
   switch (code) {
     case INVENTORY_LOCATION_QUANTITY_BLOCKER.DUPLICATE_LOCATION_DESTINATION:
-      return 'Duplicate destination'
+      return t("Duplicate destination")
     case INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_UNMAPPED:
-      return 'Destination storage missing'
+      return t("Destination storage missing")
     case INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_AMBIGUOUS:
-      return 'Ambiguous destination'
+      return t("Ambiguous destination")
     case INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_QUANTITY_MALFORMED:
-      return 'Invalid quantity'
+      return t("Invalid quantity")
     case INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_QUANTITY_NEGATIVE:
-      return 'Negative quantity'
+      return t("Negative quantity")
     case 'expression_summed':
-      return 'Expression summed'
+      return t("Expression summed")
     default:
       return code
   }

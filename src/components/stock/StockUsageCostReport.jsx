@@ -23,7 +23,7 @@ function countLabel(session, timeZone) {
 
 function moneyLabel(value, quantityMissing) {
   if (quantityMissing) return '—'
-  if (value == null) return 'No cost'
+  if (value == null) return t("No cost")
   return formatStockPurchasePrice(value)
 }
 
@@ -76,7 +76,7 @@ export function StockUsageCostReport({
     }).catch((error) => {
       if (cancelled) return
       setSessions([])
-      setSessionsError(error?.message || 'Unable to load posted counts.')
+      setSessionsError(error?.message || t("Unable to load posted counts."))
       setSessionsLoading(false)
     })
     return () => {
@@ -118,7 +118,7 @@ export function StockUsageCostReport({
     }).catch((error) => {
       if (cancelled) return
       setReport(null)
-      setReportError(error?.message || 'Unable to build this usage report.')
+      setReportError(error?.message || t("Unable to build this usage report."))
       setReportLoading(false)
     })
     return () => {
@@ -193,10 +193,10 @@ export function StockUsageCostReport({
           <div className="stock-usage-report-summary" data-testid="stock-usage-report-summary">
             <span>{summary.productCount} product{summary.productCount === 1 ? '' : 's'}</span>
             <span>
-              Usage cost {summary.hasUsageCost ? formatStockPurchasePrice(summary.usageCost) : 'No cost'}
+              Usage cost {summary.hasUsageCost ? formatStockPurchasePrice(summary.usageCost) : t("No cost")}
             </span>
             <span>
-              Waste cost {summary.hasWasteCost ? formatStockPurchasePrice(summary.wasteCost) : 'No cost'}
+              Waste cost {summary.hasWasteCost ? formatStockPurchasePrice(summary.wasteCost) : t("No cost")}
             </span>
             {summary.missingCountCount > 0 ? (
               <span>{summary.missingCountCount} missing a count</span>
@@ -216,9 +216,9 @@ export function StockUsageCostReport({
               <header>
                 <h4>{category.category}</h4>
                 <p>
-                  {category.hasUsageCost ? `Usage ${formatStockPurchasePrice(category.usageCost)}` : 'No usage cost'}
+                  {category.hasUsageCost ? `Usage ${formatStockPurchasePrice(category.usageCost)}` : t("No usage cost")}
                   {' · '}
-                  {category.hasWasteCost ? `Waste ${formatStockPurchasePrice(category.wasteCost)}` : 'No waste cost'}
+                  {category.hasWasteCost ? `Waste ${formatStockPurchasePrice(category.wasteCost)}` : t("No waste cost")}
                   {category.missingCostCount > 0 ? ` · ${category.missingCostCount} with no cost` : ''}
                   {category.missingCountCount > 0 ? ` · ${category.missingCountCount} missing a count` : ''}
                 </p>

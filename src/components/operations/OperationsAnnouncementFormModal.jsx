@@ -78,7 +78,7 @@ export function OperationsAnnouncementFormModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to publish right now.')
+      setError(submitError?.message || t("Unable to publish right now."))
     }
   }
 
@@ -162,7 +162,7 @@ export function OperationsAnnouncementFormModal({
               onClick={() => setShowMoreOptions((current) => !current)}
               aria-expanded={showMoreOptions}
             >
-              {showMoreOptions ? 'Hide options' : 'More options'}
+              {showMoreOptions ? t("Hide options") : t("More options")}
             </button>
 
             {showMoreOptions ? (

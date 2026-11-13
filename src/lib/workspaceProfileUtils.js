@@ -1,4 +1,5 @@
 import { resolveUserFirstName } from './operationalSnapshotUtils'
+import { t } from '../i18n/i18n'
 
 export function getProfileInitials(name) {
   const trimmed = `${name ?? ''}`.trim()
@@ -37,8 +38,8 @@ export function buildProfileChipDisplay(profile) {
   if (!managerName) {
     return {
       initials: '?',
-      name: 'Profile not set',
-      role: 'Set up in Workspace Settings',
+      name: t("Profile not set"),
+      role: t("Set up in Workspace Settings"),
       logoUrl: '',
       isConfigured: false,
     }
@@ -47,7 +48,7 @@ export function buildProfileChipDisplay(profile) {
   return {
     initials: getProfileInitials(managerName),
     name: managerName,
-    role: managerRole || 'No role set',
+    role: managerRole || t("No role set"),
     logoUrl,
     isConfigured: true,
   }
@@ -64,7 +65,7 @@ export function buildBrandDisplay(profile) {
 
   return {
     businessName,
-    businessNameLabel: businessName || 'Workspace not set',
+    businessNameLabel: businessName || t("Workspace not set"),
     logoUrl,
     mark: logoUrl ? '' : (businessName ? getBrandInitial(businessName) : '?'),
   }
@@ -160,9 +161,9 @@ export function buildWorkspaceIdentityLines({
     primary,
     technicalName: showTechnicalName ? technicalName : '',
     hint: showTechnicalName
-      ? 'Business name is shown across ONE. Update it in Business Profile.'
+      ? t("Business name is shown across ONE. Update it in Business Profile.")
       : (!displayBusinessName && technicalName
-        ? 'Set a business name in Business Profile.'
+        ? t("Set a business name in Business Profile.")
         : ''),
   }
 }

@@ -1,9 +1,10 @@
 import { FLOOR_PLAN_OBJECT_TYPES } from './floorPlanObject'
+import { t } from '../../i18n/i18n'
 
 export const TABLE_TYPES = [
   {
     id: 'round-table',
-    label: 'Round Table',
+    label: t("Round Table"),
     type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
     shape: 'round',
     icon: '○',
@@ -11,7 +12,7 @@ export const TABLE_TYPES = [
   },
   {
     id: 'square-table',
-    label: 'Square Table',
+    label: t("Square Table"),
     type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
     shape: 'square',
     icon: '□',
@@ -19,7 +20,7 @@ export const TABLE_TYPES = [
   },
   {
     id: 'rectangle-table',
-    label: 'Rectangle Table',
+    label: t("Rectangle Table"),
     type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
     shape: 'rectangle',
     icon: '▭',
@@ -27,7 +28,7 @@ export const TABLE_TYPES = [
   },
   {
     id: 'island-table',
-    label: 'Island / Lounge',
+    label: t("Island / Lounge"),
     type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
     shape: 'island',
     icon: '⬭',

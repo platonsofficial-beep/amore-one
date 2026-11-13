@@ -59,7 +59,7 @@ export function VenueClockSettings({
     } catch (locationError) {
       setError(locationError?.code === 'no_location'
         ? 'Location is off. Turn it on in Settings > Safari/Chrome > Location, or type the latitude and longitude.'
-        : 'We could not read this device’s location. Type the latitude and longitude.')
+        : t("We could not read this device’s location. Type the latitude and longitude."))
     } finally {
       setBusy(false)
     }
@@ -91,8 +91,8 @@ export function VenueClockSettings({
         timezone: timeZone || null,
       })
       setMessage(validation.lat == null
-        ? 'Saved. Venue location is still not set.'
-        : 'Venue location saved.')
+        ? t("Saved. Venue location is still not set.")
+        : t("Venue location saved."))
     } catch (saveError) {
       setError(attendanceErrorMessage(saveError))
     } finally {

@@ -99,7 +99,7 @@ export function FloorTableScheduleCard({
             <p className="floor-table-schedule-card-subtitle">
               {safeEntries.length > 0
                 ? `${safeEntries.length} reservation${safeEntries.length === 1 ? '' : 's'} today`
-                : 'No reservations today'}
+                : t("No reservations today")}
             </p>
           </div>
           <button

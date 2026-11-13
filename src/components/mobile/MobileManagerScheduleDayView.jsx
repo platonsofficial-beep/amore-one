@@ -85,7 +85,7 @@ export function MobileManagerScheduleDayView({
       await onUpdateShiftTimes?.(shift.id, { startTime, endTime })
       setEditingId('')
     } catch (error) {
-      setErrorMessage(error?.message || 'Unable to update this shift.')
+      setErrorMessage(error?.message || t("Unable to update this shift."))
     }
   }
 

@@ -27,7 +27,7 @@ function formatProgress(session) {
   // Fallback for older payloads
   const total = Number(session?.totalLocations) || 0
   const completed = Number(session?.completedLocations) || 0
-  if (total <= 0) return 'No locations'
+  if (total <= 0) return t("No locations")
   return `${completed} / ${total} locations`
 }
 
@@ -125,7 +125,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
           </div>
         ) : null}
         <div data-inventory-count-home-timestamp={isReversed ? 'reversed' : 'updated'}>
-          <dt>{isReversed ? 'Reversed on' : 'Last update'}</dt>
+          <dt>{isReversed ? t("Reversed on") : t("Last update")}</dt>
           <dd>{formatSessionDate(isReversed ? session.reversedAt : lastUpdate, timeZone)}</dd>
         </div>
       </dl>
@@ -183,7 +183,7 @@ function InventoryCountDeleteDialog({
             disabled={isDeleting}
             onClick={onConfirm}
           >
-            {isDeleting ? 'Deleting…' : 'Delete Count'}
+            {isDeleting ? 'Deleting…' : t("Delete Count")}
           </button>
         </div>
       </div>
@@ -239,7 +239,7 @@ function InventoryCountSessionCard({
             onClick={() => onPost?.(session)}
             disabled={isBusy}
           >
-            {busyAction === 'post' ? 'Posting…' : 'Post Count'}
+            {busyAction === 'post' ? 'Posting…' : t("Post Count")}
           </button>
           <button
             type="button"
@@ -247,7 +247,7 @@ function InventoryCountSessionCard({
             onClick={() => onCancel?.(session)}
             disabled={isBusy}
           >
-            {busyAction === 'cancel' ? 'Cancelling…' : 'Cancel Count'}
+            {busyAction === 'cancel' ? 'Cancelling…' : t("Cancel Count")}
           </button>
         </div>
         ) : null}
@@ -419,7 +419,7 @@ export function InventoryCountView({
       setActiveSessions([])
       setPausedSessions([])
       setRecentSessions([])
-      setLoadError(error?.message || 'Unable to load inventory count sessions right now.')
+      setLoadError(error?.message || t("Unable to load inventory count sessions right now."))
     } finally {
       setIsLoadingSessions(false)
     }
@@ -621,15 +621,15 @@ export function InventoryCountView({
   const handleCorrectionApplied = ({ message } = {}) => {
     setIsCorrectionReviewOpen(false)
     setPostedReviewNotice(
-      `${message || 'Inventory count corrections applied successfully.'}`.trim()
-      || 'Inventory count corrections applied successfully.',
+      `${message || t("Inventory count corrections applied successfully.")}`.trim()
+      || t("Inventory count corrections applied successfully."),
     )
   }
 
   const handleSessionPosted = ({ message } = {}) => {
     handleExitSession()
-    setPageNotice(`${message || 'Inventory count posted successfully.'}`.trim()
-      || 'Inventory count posted successfully.')
+    setPageNotice(`${message || t("Inventory count posted successfully.")}`.trim()
+      || t("Inventory count posted successfully."))
   }
 
   const handlePostSession = async (session) => {
@@ -659,11 +659,11 @@ export function InventoryCountView({
         sessionId,
       })
 
-      setPageNotice(`${result?.message || 'Inventory count posted successfully.'}`.trim()
-        || 'Inventory count posted successfully.')
+      setPageNotice(`${result?.message || t("Inventory count posted successfully.")}`.trim()
+        || t("Inventory count posted successfully."))
       await loadHomeSessions()
     } catch (error) {
-      setActionError(sessionId, error?.message || 'Unable to post inventory count right now.')
+      setActionError(sessionId, error?.message || t("Unable to post inventory count right now."))
     } finally {
       setBusySessionId('')
       setBusyAction('')
@@ -694,7 +694,7 @@ export function InventoryCountView({
       setPageNotice('Inventory count cancelled.')
       await loadHomeSessions()
     } catch (error) {
-      setActionError(sessionId, error?.message || 'Unable to cancel inventory count right now.')
+      setActionError(sessionId, error?.message || t("Unable to cancel inventory count right now."))
     } finally {
       setBusySessionId('')
       setBusyAction('')
@@ -738,7 +738,7 @@ export function InventoryCountView({
       setPageNotice('Inventory count deleted.')
       await loadHomeSessions()
     } catch (error) {
-      setDeleteDialogError(error?.message || 'Unable to delete inventory count right now.')
+      setDeleteDialogError(error?.message || t("Unable to delete inventory count right now."))
     } finally {
       setBusySessionId('')
       setBusyAction('')
@@ -838,8 +838,8 @@ export function InventoryCountView({
             <InventoryCountSessionPanel
               title={t("Active counts")}
               sessions={visibleActiveSessions}
-              emptyTitle={searchNeedle && activeSessions.length > 0 ? 'No active counts match this search.' : 'No active counts.'}
-              emptyTitle="No active counts."
+              emptyTitle={searchNeedle && activeSessions.length > 0 ? t("No active counts match this search.") : t("No active counts.")}
+              emptyTitle={t("No active counts.")}
               emptyCopy=""
               isLoading={isLoadingSessions}
               onOpenSession={openSession}
@@ -856,7 +856,7 @@ export function InventoryCountView({
             <InventoryCountSessionPanel
               title={t("Paused counts")}
               sessions={visiblePausedSessions}
-              emptyTitle={searchNeedle && pausedSessions.length > 0 ? 'No paused counts match this search.' : 'No paused counts.'}
+              emptyTitle={searchNeedle && pausedSessions.length > 0 ? t("No paused counts match this search.") : t("No paused counts.")}
               emptyCopy=""
               isLoading={isLoadingSessions}
               onOpenSession={openSession}
@@ -872,7 +872,7 @@ export function InventoryCountView({
         <InventoryCountSessionPanel
           title={t("Recent counts")}
           sessions={visibleRecentSessions}
-          emptyTitle={searchNeedle && recentSessions.length > 0 ? 'No completed counts match this search.' : 'No completed counts yet.'}
+          emptyTitle={searchNeedle && recentSessions.length > 0 ? t("No completed counts match this search.") : t("No completed counts yet.")}
           emptyCopy=""
           isLoading={isLoadingSessions}
           onOpenSession={handleOpenHomeCard}

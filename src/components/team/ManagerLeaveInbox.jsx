@@ -31,11 +31,11 @@ function formatDurationLabel(startDate, endDate) {
 
 function resolveEmployeeName(employeeId, employees = []) {
   const normalizedEmployeeId = `${employeeId ?? ''}`.trim()
-  if (!normalizedEmployeeId) return 'Unknown employee'
+  if (!normalizedEmployeeId) return t("Unknown employee")
 
   const employee = employees.find((entry) => `${entry?.id ?? ''}`.trim() === normalizedEmployeeId)
   const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim()
-  return name || 'Unknown employee'
+  return name || t("Unknown employee")
 }
 
 function buildInboxRows(pendingLeave = [], employees = []) {
@@ -94,7 +94,7 @@ export function ManagerLeaveInbox({
     } catch (error) {
       if (pendingLeaveRequestIdRef.current !== requestId) return
       setPendingLeave([])
-      setErrorMessage(error?.message || 'Unable to load pending leave requests right now.')
+      setErrorMessage(error?.message || t("Unable to load pending leave requests right now."))
     } finally {
       if (pendingLeaveRequestIdRef.current === requestId) {
         setIsLoading(false)

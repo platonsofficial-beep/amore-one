@@ -9,32 +9,32 @@ import { t } from '../../i18n/i18n'
 const COUNT_TYPES = [
   {
     id: 'new',
-    title: 'New count',
-    description: 'Complete inventory count for selected locations.',
+    title: t("New count"),
+    description: t("Complete inventory count for selected locations."),
     icon: '▣',
   },
   {
     id: 'quick',
-    title: 'Quick count',
-    description: 'Count only selected inventory items.',
+    title: t("Quick count"),
+    description: t("Count only selected inventory items."),
     icon: '✦',
   },
   {
     id: 'partial',
-    title: 'Partial count',
-    description: 'Count one department or storage location.',
+    title: t("Partial count"),
+    description: t("Count one department or storage location."),
     icon: '◫',
   },
   {
     id: 'scheduled',
-    title: 'Scheduled count',
-    description: 'Create a planned inventory session.',
+    title: t("Scheduled count"),
+    description: t("Create a planned inventory session."),
     icon: '◷',
   },
   {
     id: 'emergency',
-    title: 'Emergency count',
-    description: 'Immediate stock verification.',
+    title: t("Emergency count"),
+    description: t("Immediate stock verification."),
     icon: '◉',
   },
 ]
@@ -44,17 +44,17 @@ const LOCATION_CARD_ICON = '▦'
 const COUNT_VISIBILITY_OPTIONS = [
   {
     id: 'blind',
-    title: 'Blind count',
-    description: 'Hide expected quantities while counting.',
-    helper: 'Recommended for accurate stock counts.',
+    title: t("Blind count"),
+    description: t("Hide expected quantities while counting."),
+    helper: t("Recommended for accurate stock counts."),
     icon: '◌',
     recommended: true,
   },
   {
     id: 'open',
-    title: 'Open count',
-    description: 'Show expected quantities while counting.',
-    helper: 'Useful for training or quick verification.',
+    title: t("Open count"),
+    description: t("Show expected quantities while counting."),
+    helper: t("Useful for training or quick verification."),
     icon: '◎',
     recommended: false,
   },
@@ -64,24 +64,24 @@ const SESSION_NOTE_MAX_LENGTH = 250
 
 const STEP_COPY = {
   1: {
-    label: 'Step 1 of 4',
-    name: 'Count type',
-    subtitle: 'Create a new inventory counting session.',
+    label: t("Step 1 of 4"),
+    name: t("Count type"),
+    subtitle: t("Create a new inventory counting session."),
   },
   2: {
-    label: 'Step 2 of 4',
+    label: t("Step 2 of 4"),
     name: 'Storages',
-    subtitle: 'Select the locations that will be included in this inventory count.',
+    subtitle: t("Select the locations that will be included in this inventory count."),
   },
   3: {
-    label: 'Step 3 of 4',
-    name: 'Count settings',
-    subtitle: 'Configure how this inventory session will be performed.',
+    label: t("Step 3 of 4"),
+    name: t("Count settings"),
+    subtitle: t("Configure how this inventory session will be performed."),
   },
   4: {
-    label: 'Step 4 of 4',
-    name: 'Review & start',
-    subtitle: 'Review the session details before starting.',
+    label: t("Step 4 of 4"),
+    name: t("Review & start"),
+    subtitle: t("Review the session details before starting."),
   },
 }
 
@@ -177,7 +177,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         setAvailableLocations([])
         setSelectedLocations([])
         setLocationsStatus('error')
-        setLocationsError(error?.message || 'Unable to load storage locations right now.')
+        setLocationsError(error?.message || t("Unable to load storage locations right now."))
       })
 
     return undefined
@@ -207,7 +207,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         : isStep4Valid
 
   const primaryActionLabel = step === 4
-    ? (isStartingSession ? 'Starting…' : 'Start count')
+    ? (isStartingSession ? 'Starting…' : t("Start count"))
     : 'Continue'
   const isPrimaryDisabled = !canContinue || isStartingSession
 
@@ -296,7 +296,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
       })
     } catch (error) {
       if (startRequestIdRef.current !== requestId) return
-      setStartError(error?.message || 'Unable to start inventory count session right now.')
+      setStartError(error?.message || t("Unable to start inventory count session right now."))
     } finally {
       if (startRequestIdRef.current === requestId) {
         startInFlightRef.current = false
@@ -373,11 +373,11 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                     </span>
                     <span className="inventory-count-type-card-description">
                       {countType.id === 'new'
-                        ? 'Count every storage.'
-                        : 'Count one storage.'}
+                        ? t("Count every storage.")
+                        : t("Count one storage.")}
                     </span>
                     <span className="inventory-count-door-effort">
-                      {countType.id === 'new' ? 'Takes longer' : 'Usually faster'}
+                      {countType.id === 'new' ? t("Takes longer") : t("Usually faster")}
                     </span>
                   </span>
                 </button>
@@ -432,7 +432,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
 
             {locationsStatus === 'error' ? (
               <div className="staff-status-banner" role="alert">
-                {locationsError || 'Unable to load storage locations right now.'}
+                {locationsError || t("Unable to load storage locations right now.")}
               </div>
             ) : null}
 
@@ -678,7 +678,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       <span className="inventory-count-review-plain">
                         {selectedVisibility.id === 'blind'
                           ? "Counters don't see expected quantities."
-                          : 'Counters see expected quantities.'}
+                          : t("Counters see expected quantities.")}
                       </span>
                     </dd>
                   </div>

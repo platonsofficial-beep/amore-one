@@ -109,7 +109,7 @@ export function SeatingConfirmPanel({
           <div className="host-seating-drawer-section">
             <span className="host-seating-drawer-label">{t("Selected tables")}</span>
             <p className="host-seating-drawer-tables" data-testid="host-assignment-selected-tables">
-              {hasSelection ? drawerLabels : 'Click tables on the floor plan'}
+              {hasSelection ? drawerLabels : t("Click tables on the floor plan")}
             </p>
           </div>
 

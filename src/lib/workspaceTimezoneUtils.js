@@ -1,5 +1,6 @@
 import { getDefaultWorkspaceTimezone } from './workspaceProfileOptions'
 import { normalizeLocationDisplayValue } from './workspaceProfileUtils'
+import { t } from '../i18n/i18n'
 
 export const BROWSER_DEFAULT_TIMEZONE_VALUE = ''
 
@@ -47,11 +48,11 @@ const CURATED_TIMEZONE_GROUPS = [
   },
   {
     id: 'north-america',
-    label: 'North America',
+    label: t("North America"),
     options: [
       {
         value: 'America/New_York',
-        cityLabel: 'New York',
+        cityLabel: t("New York"),
         subtitle: 'Eastern',
         aliases: ['eastern', 'est', 'edt', 'us east', 'new york'],
       },
@@ -69,7 +70,7 @@ const CURATED_TIMEZONE_GROUPS = [
       },
       {
         value: 'America/Los_Angeles',
-        cityLabel: 'Los Angeles',
+        cityLabel: t("Los Angeles"),
         subtitle: 'Pacific',
         aliases: ['pacific', 'pst', 'pdt', 'los angeles', 'la'],
       },
@@ -87,7 +88,7 @@ const CURATED_TIMEZONE_GROUPS = [
   },
   {
     id: 'middle-east-asia',
-    label: 'Middle East & Asia',
+    label: t("Middle East & Asia"),
     options: [
       {
         value: 'Asia/Dubai',
@@ -125,7 +126,7 @@ const EXTENDED_SEARCH_TIMEZONES = [
   { value: 'Pacific/Honolulu', cityLabel: 'Honolulu', aliases: ['hawaii', 'hst'] },
   { value: 'Europe/Amsterdam', cityLabel: 'Amsterdam', aliases: ['netherlands', 'nl'] },
   { value: 'Europe/Zurich', cityLabel: 'Zurich', aliases: ['switzerland', 'ch'] },
-  { value: 'Asia/Hong_Kong', cityLabel: 'Hong Kong', aliases: ['hong kong', 'hk'] },
+  { value: 'Asia/Hong_Kong', cityLabel: t("Hong Kong"), aliases: ['hong kong', 'hk'] },
   { value: 'Asia/Seoul', cityLabel: 'Seoul', aliases: ['korea', 'kr', 'kst'] },
   { value: 'Asia/Kolkata', cityLabel: 'Kolkata', aliases: ['india', 'in', 'ist'] },
 ]
@@ -347,7 +348,7 @@ export function resolveTimezoneDisplay(value, date = new Date()) {
 
     return {
       value: BROWSER_DEFAULT_TIMEZONE_VALUE,
-      cityLabel: 'Browser default',
+      cityLabel: t("Browser default"),
       iana: browserTimeZone,
       offsetLabel: browserOffset,
       secondaryLabel: browserTimeZone
@@ -468,7 +469,7 @@ export function flattenTimezonePickerSections(sections = []) {
 
 export function getTimezoneOptionLabel(option) {
   if (!option) return ''
-  if (option.kind === 'browser-default') return 'Browser default'
+  if (option.kind === 'browser-default') return t("Browser default")
   return option.cityLabel || option.iana || option.value
 }
 

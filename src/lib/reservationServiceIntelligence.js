@@ -11,6 +11,7 @@ import {
   isUpcomingReservationStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
+import { t } from '../i18n/i18n'
 
 export const WAITING_TOO_LONG_MINUTES = 15
 export const TABLE_OCCUPIED_TOO_LONG_MINUTES = 120
@@ -392,80 +393,80 @@ export function getHostListEmptyState({
 
   if (trimmedSearch) {
     return {
-      title: 'No matching reservations',
-      copy: 'Try another guest name, phone number, or table.',
+      title: t("No matching reservations"),
+      copy: t("Try another guest name, phone number, or table."),
     }
   }
 
   if (filter === 'Problems') {
     return {
-      title: 'No current problems',
-      copy: 'Late arrivals, long waits, and other issues will appear here when they need attention.',
+      title: t("No current problems"),
+      copy: t("Late arrivals, long waits, and other issues will appear here when they need attention."),
     }
   }
 
   if (filter === 'Completed') {
     return {
-      title: 'No completed reservations',
+      title: t("No completed reservations"),
       copy: isViewingToday
-        ? 'Checked-out reservations will show here as service progresses.'
-        : 'No completed reservations for this date.',
+        ? t("Checked-out reservations will show here as service progresses.")
+        : t("No completed reservations for this date."),
     }
   }
 
   if (filter === 'Arrived') {
     return {
-      title: 'No arrived guests',
+      title: t("No arrived guests"),
       copy: isViewingToday
-        ? 'Mark guests as arrived from Upcoming when they check in.'
-        : 'No arrived reservations for this date.',
+        ? t("Mark guests as arrived from Upcoming when they check in.")
+        : t("No arrived reservations for this date."),
     }
   }
 
   if (filter === 'Seated' || filter === 'In House') {
     return {
-      title: 'No guests seated',
+      title: t("No guests seated"),
       copy: isViewingToday
-        ? 'Seat an arrival from Upcoming when guests are ready.'
-        : 'No in-house reservations for this date.',
+        ? t("Seat an arrival from Upcoming when guests are ready.")
+        : t("No in-house reservations for this date."),
     }
   }
 
   if (filter === 'Upcoming') {
     if (snapshot?.upcomingArrivals === 0 && isViewingToday) {
       return {
-        title: 'No upcoming arrivals',
+        title: t("No upcoming arrivals"),
         copy: snapshot?.completedTables > 0
-          ? 'Service is winding down. Add a walk-in if more guests arrive.'
-          : 'The board is clear for now. Add a reservation or walk-in when guests arrive.',
+          ? t("Service is winding down. Add a walk-in if more guests arrive.")
+          : t("The board is clear for now. Add a reservation or walk-in when guests arrive."),
       }
     }
 
     return {
-      title: 'No upcoming reservations',
-      copy: 'Future arrivals for this date will appear here.',
+      title: t("No upcoming reservations"),
+      copy: t("Future arrivals for this date will appear here."),
     }
   }
 
   if (snapshot?.activeReservations === 0) {
     return {
-      title: isViewingToday ? 'Quiet service right now' : 'No reservations this day',
+      title: isViewingToday ? t("Quiet service right now") : t("No reservations this day"),
       copy: isViewingToday
-        ? 'No active reservations on the board. Tap + Reservation when guests arrive.'
-        : 'Switch dates or add a reservation to plan service.',
+        ? t("No active reservations on the board. Tap + Reservation when guests arrive.")
+        : t("Switch dates or add a reservation to plan service."),
     }
   }
 
   if (snapshot?.seatedTables > 0 && snapshot?.upcomingArrivals === 0 && isViewingToday) {
     return {
-      title: 'No more arrivals scheduled',
+      title: t("No more arrivals scheduled"),
       copy: `${snapshot.seatedTables} table${snapshot.seatedTables === 1 ? '' : 's'} in service. Watch seated guests for turnover.`,
     }
   }
 
   return {
-    title: 'No reservations in this view',
-    copy: 'Adjust filters or add a reservation to continue.',
+    title: t("No reservations in this view"),
+    copy: t("Adjust filters or add a reservation to continue."),
   }
 }
 
@@ -475,25 +476,25 @@ export function getTimelineEmptyState({
 } = {}) {
   if (snapshot?.activeReservations === 0) {
     return {
-      title: isViewingToday ? 'Quiet service period' : 'No service scheduled',
+      title: isViewingToday ? t("Quiet service period") : t("No service scheduled"),
       copy: isViewingToday
-        ? 'No arrivals on the timeline. The floor is open for walk-ins.'
-        : 'No reservations on this date.',
+        ? t("No arrivals on the timeline. The floor is open for walk-ins.")
+        : t("No reservations on this date."),
       className: 'reservations-empty-state-upcoming',
     }
   }
 
   if (snapshot?.upcomingArrivals === 0 && snapshot?.seatedTables > 0) {
     return {
-      title: 'Arrival board clear',
+      title: t("Arrival board clear"),
       copy: `${snapshot.seatedGuests} guest${snapshot.seatedGuests === 1 ? '' : 's'} currently seated.`,
       className: 'reservations-empty-state-upcoming',
     }
   }
 
   return {
-    title: 'No upcoming reservations',
-    copy: 'Your arrival board is clear for the selected filters.',
+    title: t("No upcoming reservations"),
+    copy: t("Your arrival board is clear for the selected filters."),
     className: '',
   }
 }

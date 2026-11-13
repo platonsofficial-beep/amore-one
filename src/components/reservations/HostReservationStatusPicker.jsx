@@ -22,7 +22,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
     <div className="host-status-count-step" role="group" aria-label={t("How many guests have sat down")}>
       <p className="host-status-count-title">{t("How many have sat down?")}</p>
       <p className="host-status-count-copy">
-        {partySize > 0 ? `Party of ${partySize}. We'll show how many are still to come.` : 'Party size is not set.'}
+        {partySize > 0 ? `Party of ${partySize}. We'll show how many are still to come.` : t("Party size is not set.")}
       </p>
       {options.length > 0 ? (
         <div className="host-status-count-options">
@@ -46,7 +46,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
           {t("‹ Back")}
         </button>
         <button type="button" className="host-status-count-all" disabled={isSaving} onClick={onPickAll}>
-          {partySize > 0 ? `All ${partySize} seated → Seated` : 'Everyone seated → Seated'}
+          {partySize > 0 ? `All ${partySize} seated → Seated` : t("Everyone seated → Seated")}
         </button>
       </div>
     </div>
@@ -225,7 +225,7 @@ export function HostReservationStatusPicker({
             left: `${anchorRect.left}px`,
             width: `${anchorRect.width}px`,
             height: `${anchorRect.height}px`,
-            // Under the picker (t409u: "LATE 42M" sat on top of the options
+            // Under the picker (t409u: t("LATE 42M") sat on top of the options
             // in landscape), above the backdrop so it still shows beside it.
             zIndex: PICKER_Z_INDEX - 1,
             pointerEvents: 'none',

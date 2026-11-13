@@ -27,6 +27,7 @@ import {
   recordPublishBreadcrumb,
 } from './publishFloorPlanDiagnostics'
 import { resolvePublishedLayoutApply } from './hostLoadRecovery'
+import { t } from '../i18n/i18n'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
@@ -203,7 +204,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '', include
 
       return saved
     } catch (error) {
-      const message = error?.message || 'Unable to save floor plan draft right now.'
+      const message = error?.message || t("Unable to save floor plan draft right now.")
       setSaveError(message)
 
       const localSaved = saveLocalDraftFloorPlanLayout(payload, normalizedWorkspaceId)
@@ -232,8 +233,8 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '', include
     const finalizePublish = (saved, { usedFallback = false } = {}) => {
       const transition = applyPublishedLayoutResult(saved, {
         notice: usedFallback
-          ? 'Layout saved locally. Cloud publish is unavailable right now.'
-          : 'Layout published successfully.',
+          ? t("Layout saved locally. Cloud publish is unavailable right now.")
+          : t("Layout published successfully."),
       })
 
       if (!transition.ok) {
@@ -260,7 +261,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '', include
       return transition
     } catch (error) {
       logPublishBreadcrumbsOnError(error, { stage: 'publish-layout' })
-      const message = error?.message || 'Unable to publish floor plan right now.'
+      const message = error?.message || t("Unable to publish floor plan right now.")
       setSaveError(message)
 
       const localSaved = saveLocalFloorPlanLayout({

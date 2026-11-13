@@ -35,6 +35,7 @@ import {
   coerceHydratedWorkspace,
   resolveWorkspaceLoadError,
 } from '../lib/workspaceLoadUtils'
+import { t } from '../i18n/i18n'
 
 const DEV_MOCK_USER = {
   id: 'dev-local-user',
@@ -76,7 +77,7 @@ function buildDevMembership(displayName = '') {
     workspaceId: DEV_MOCK_WORKSPACE.id,
     authUserId: DEV_MOCK_USER.id,
     employeeId: null,
-    displayName: trimmedName || 'Development user',
+    displayName: trimmedName || t("Development user"),
     email: DEV_MOCK_USER.email,
     // Local auth-disabled sessions only. ?devRole=staff previews a non-manager.
     role: resolveDevMockRole(),
@@ -206,7 +207,7 @@ export function AuthProvider({ children }) {
       }
     } catch (inviteBootstrapError) {
       console.error('[AuthContext] resolveWorkspaceInviteOnBootstrap error:', inviteBootstrapError)
-      if (!revalidate) setMembershipLoadError((current) => current || inviteBootstrapError?.message || 'Unable to accept workspace invite.')
+      if (!revalidate) setMembershipLoadError((current) => current || inviteBootstrapError?.message || t("Unable to accept workspace invite."))
     }
 
     try {
@@ -224,7 +225,7 @@ export function AuthProvider({ children }) {
         setMembershipLoadError(null)
       }
     } catch (membershipQueryError) {
-      const message = membershipQueryError?.message || 'Unable to load workspace membership.'
+      const message = membershipQueryError?.message || t("Unable to load workspace membership.")
       console.error('[AuthContext] membership query error:', membershipQueryError)
       membershipQueryFailed = true
       if (!revalidate) setMembershipLoadError((current) => current || message)
@@ -257,7 +258,7 @@ export function AuthProvider({ children }) {
           resolvedMembership = createdMembership
         }
       } catch (createMembershipError) {
-        const message = createMembershipError?.message || 'Unable to create workspace membership.'
+        const message = createMembershipError?.message || t("Unable to create workspace membership.")
         console.error('[AuthContext] createOwnerMembershipIfMissing error:', createMembershipError)
         setMembershipLoadError((current) => current || message)
       }
@@ -288,7 +289,7 @@ export function AuthProvider({ children }) {
           fetchedWorkspace,
         })
       } catch (workspaceError) {
-        const message = workspaceError?.message || 'Unable to load workspace.'
+        const message = workspaceError?.message || t("Unable to load workspace.")
         console.error('[AuthContext] workspace load error:', workspaceError)
         workspaceFetchErrorMessage = message
       }

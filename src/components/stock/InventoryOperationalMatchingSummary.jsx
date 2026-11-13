@@ -18,11 +18,11 @@ export const INVENTORY_OPERATIONAL_MATCHING_PREVIEW_LIMIT = 20
 export function getOperationalMatchStatusPresentation(status) {
   switch (status) {
     case INVENTORY_OPERATIONAL_MATCH_STATUS.EXACT_MATCH:
-      return { symbol: '✓', label: 'Exact Match', className: 'is-exact' }
+      return { symbol: '✓', label: t("Exact Match"), className: 'is-exact' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.POSSIBLE_MATCH:
-      return { symbol: '⚠', label: 'Possible Match', className: 'is-possible' }
+      return { symbol: '⚠', label: t("Possible Match"), className: 'is-possible' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.NEW_PRODUCT:
-      return { symbol: '➕', label: 'New Product', className: 'is-new' }
+      return { symbol: '➕', label: t("New Product"), className: 'is-new' }
     case INVENTORY_OPERATIONAL_MATCH_STATUS.INVALID_SOURCE:
       return { symbol: '✕', label: 'Invalid', className: 'is-invalid' }
     default:

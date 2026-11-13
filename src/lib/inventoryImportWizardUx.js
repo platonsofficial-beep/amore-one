@@ -5,6 +5,7 @@
  */
 
 import { INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION } from './inventoryOperationalImportPreview'
+import { t } from '../i18n/i18n'
 
 export const INVENTORY_IMPORT_MAP_PREVIEW_ROW_LIMIT = 5
 
@@ -23,21 +24,21 @@ const WEEKDAY_NAMES = Object.freeze([
  * `unmapped` clears a column. `ignore` keeps the column out of the import.
  */
 const INVENTORY_IMPORT_COLUMN_FIELD_DEFS = Object.freeze([
-  Object.freeze({ id: 'product_name', oneField: 'Product name', required: true, optional: false, role: 'product_name' }),
+  Object.freeze({ id: 'product_name', oneField: t("Product name"), required: true, optional: false, role: 'product_name' }),
   Object.freeze({ id: 'category', oneField: 'Category', required: false, optional: true, role: 'category' }),
   Object.freeze({ id: 'unit', oneField: 'Unit', required: true, optional: false, role: 'unit' }),
   Object.freeze({ id: 'quantity', oneField: 'Quantity', required: true, optional: false, role: 'quantity' }),
   Object.freeze({ id: 'minimum', oneField: 'Minimum', required: false, optional: true, role: 'minimum' }),
   Object.freeze({ id: 'par', oneField: 'Par', required: false, optional: true, role: 'par' }),
-  Object.freeze({ id: 'cost', oneField: 'Cost price', required: false, optional: true, role: 'cost' }),
+  Object.freeze({ id: 'cost', oneField: t("Cost price"), required: false, optional: true, role: 'cost' }),
   Object.freeze({ id: 'supplier', oneField: 'Supplier', required: false, optional: true, role: 'supplier' }),
-  Object.freeze({ id: 'storage', oneField: 'Storage / location', required: false, optional: true, role: 'storage' }),
+  Object.freeze({ id: 'storage', oneField: t("Storage / location"), required: false, optional: true, role: 'storage' }),
   Object.freeze({ id: 'brand', oneField: 'Brand', required: false, optional: true, role: 'brand' }),
   Object.freeze({ id: 'size', oneField: 'Size', required: false, optional: true, role: 'size' }),
   Object.freeze({ id: 'barcode', oneField: 'Barcode', required: false, optional: true, role: 'barcode' }),
-  Object.freeze({ id: 'bar', oneField: 'Bar quantity', required: false, optional: true, role: 'bar' }),
-  Object.freeze({ id: 'order', oneField: 'Order (evidence)', required: false, optional: true, role: 'order' }),
-  Object.freeze({ id: 'stock_control', oneField: 'Stock Control (evidence)', required: false, optional: true, role: 'stock_control' }),
+  Object.freeze({ id: 'bar', oneField: t("Bar quantity"), required: false, optional: true, role: 'bar' }),
+  Object.freeze({ id: 'order', oneField: t("Order (evidence)"), required: false, optional: true, role: 'order' }),
+  Object.freeze({ id: 'stock_control', oneField: t("Stock Control (evidence)"), required: false, optional: true, role: 'stock_control' }),
   ...WEEKDAY_NAMES.map((day) => Object.freeze({
     id: `weekday_${day}`,
     oneField: `Weekday · ${day.charAt(0).toUpperCase()}${day.slice(1)}`,
@@ -65,9 +66,9 @@ export const INVENTORY_IMPORT_COLUMN_FIELD_OPTIONS = Object.freeze(
 )
 
 const STANDARD_REQUIRED_COLUMN_FIELDS = Object.freeze([
-  Object.freeze({ role: 'product_name', label: 'Product name', message: 'Map a Product name column' }),
-  Object.freeze({ role: 'unit', label: 'Unit', message: 'Map a Unit column' }),
-  Object.freeze({ role: 'quantity', label: 'Quantity', message: 'Map a Quantity column' }),
+  Object.freeze({ role: 'product_name', label: t("Product name"), message: t("Map a Product name column") }),
+  Object.freeze({ role: 'unit', label: 'Unit', message: t("Map a Unit column") }),
+  Object.freeze({ role: 'quantity', label: 'Quantity', message: t("Map a Quantity column") }),
 ])
 
 /** Operational sheets repeat these roles on purpose (several storages, one column per weekday). */
@@ -421,7 +422,7 @@ export function buildStandardInventoryImportRowReview(parseResult, columnMapping
       productName,
       unit,
       quantity,
-      status: issues.length === 0 ? 'Ready' : 'Needs attention',
+      status: issues.length === 0 ? 'Ready' : t("Needs attention"),
       issues,
     }
   })
@@ -440,7 +441,7 @@ export function buildStandardInventoryImportRowReview(parseResult, columnMapping
       groups: [
         {
           id: 'blocked_rows',
-          title: 'Blocked Rows',
+          title: t("Blocked Rows"),
           count: 0,
           items: [],
         },
@@ -492,7 +493,7 @@ export function buildInventoryImportMapSamplePreview(
  */
 function rowProductLabel(row) {
   const name = `${row?.source?.productName ?? row?.productName ?? ''}`.trim()
-  return name || 'Untitled product'
+  return name || t("Untitled product")
 }
 
 /**
@@ -587,13 +588,13 @@ export function buildInventoryImportValidateGroups(preview) {
   }
 
   const groupDefs = [
-    { id: 'missing_units', title: 'Missing Units' },
-    { id: 'missing_storage', title: 'Missing Storage' },
-    { id: 'missing_supplier', title: 'Missing Supplier' },
-    { id: 'unknown_category', title: 'Unknown Category' },
-    { id: 'duplicate_products', title: 'Duplicate Products' },
-    { id: 'blocked_rows', title: 'Blocked Rows' },
-    { id: 'manual_review', title: 'Manual Review' },
+    { id: 'missing_units', title: t("Missing Units") },
+    { id: 'missing_storage', title: t("Missing Storage") },
+    { id: 'missing_supplier', title: t("Missing Supplier") },
+    { id: 'unknown_category', title: t("Unknown Category") },
+    { id: 'duplicate_products', title: t("Duplicate Products") },
+    { id: 'blocked_rows', title: t("Blocked Rows") },
+    { id: 'manual_review', title: t("Manual Review") },
   ]
 
   const groups = groupDefs.map((def) => {
@@ -621,43 +622,43 @@ export function buildInventoryImportValidateGroups(preview) {
 
 const VALIDATE_ASSISTANT_BLOCKER_DEFS = {
   missing_units: {
-    title: 'Products need a unit',
-    explanation: 'Choose a unit for each new product before continuing.',
-    actionHint: 'Confirm units in New Products below.',
+    title: t("Products need a unit"),
+    explanation: t("Choose a unit for each new product before continuing."),
+    actionHint: t("Confirm units in New Products below."),
   },
   missing_storage: {
-    title: 'Products need a storage',
-    explanation: 'Choose a storage for each new product, or set a fallback later in Import Preview.',
-    actionHint: 'Confirm storage in New Products below.',
+    title: t("Products need a storage"),
+    explanation: t("Choose a storage for each new product, or set a fallback later in Import Preview."),
+    actionHint: t("Confirm storage in New Products below."),
   },
   duplicate_products: {
-    title: 'Duplicate existing targets',
-    explanation: 'Multiple rows are set to link to the same existing product.',
-    actionHint: 'Review link decisions before applying.',
+    title: t("Duplicate existing targets"),
+    explanation: t("Multiple rows are set to link to the same existing product."),
+    actionHint: t("Review link decisions before applying."),
   },
   blocked_rows: {
-    title: 'Remaining blocked rows',
-    explanation: 'These products cannot continue until their data is fixed or they are skipped.',
+    title: t("Remaining blocked rows"),
+    explanation: t("These products cannot continue until their data is fixed or they are skipped."),
     actionHint: null,
   },
 }
 
 const VALIDATE_ASSISTANT_WARNING_DEFS = {
   missing_supplier: {
-    title: 'Missing supplier',
-    explanation: 'Supplier is not set. You may continue and assign suppliers later.',
+    title: t("Missing supplier"),
+    explanation: t("Supplier is not set. You may continue and assign suppliers later."),
   },
   unknown_category: {
-    title: 'Category set to Other',
-    explanation: 'ONE could not recognize the source category and used Other as a default.',
+    title: t("Category set to Other"),
+    explanation: t("ONE could not recognize the source category and used Other as a default."),
   },
   matched_item_inactive: {
-    title: 'Existing item inactive',
-    explanation: 'A matched ONE product is inactive. Review before linking.',
+    title: t("Existing item inactive"),
+    explanation: t("A matched ONE product is inactive. Review before linking."),
   },
   source_quantity_evidence: {
-    title: 'Source quantity retained as evidence',
-    explanation: 'Spreadsheet quantities are kept as evidence only until you choose a stock policy.',
+    title: t("Source quantity retained as evidence"),
+    explanation: t("Spreadsheet quantities are kept as evidence only until you choose a stock policy."),
   },
 }
 
@@ -820,7 +821,7 @@ export function buildInventoryImportValidateAssistant({
       headline: attention === 1
         ? '1 product needs attention before this import can continue.'
         : `${attention} products need attention before this import can continue.`,
-      supporting: 'Resolve required units, storage locations, and any invalid product data first.',
+      supporting: t("Resolve required units, storage locations, and any invalid product data first."),
       status: 'Blocked',
     }
   } else if (state === 'decisions_required') {
@@ -828,22 +829,22 @@ export function buildInventoryImportValidateAssistant({
       headline: unresolvedCount === 1
         ? '1 product may already exist in ONE.'
         : `${unresolvedCount} products may already exist in ONE.`,
-      supporting: 'Choose whether to link each row to an existing product, create a new product, or skip it.',
-      status: 'Decisions required',
+      supporting: t("Choose whether to link each row to an existing product, create a new product, or skip it."),
+      status: t("Decisions required"),
     }
   } else if (state === 'warnings_only') {
     const warnCount = Math.max(warningIssueCount, warningRowCount)
     guidance = {
       headline: warnCount === 1
-        ? 'The import is valid, but 1 warning should be reviewed.'
+        ? t("The import is valid, but 1 warning should be reviewed.")
         : `The import is valid, but ${warnCount} warnings should be reviewed.`,
-      supporting: 'You may continue after reviewing supplier or source-data warnings.',
-      status: 'Ready with warnings',
+      supporting: t("You may continue after reviewing supplier or source-data warnings."),
+      status: t("Ready with warnings"),
     }
   } else {
     guidance = {
-      headline: 'All products are ready for preview.',
-      supporting: 'Review what ONE will create, link, and skip before applying the import.',
+      headline: t("All products are ready for preview."),
+      supporting: t("Review what ONE will create, link, and skip before applying the import."),
       status: 'Ready',
     }
   }
@@ -967,7 +968,7 @@ export function buildInventoryImportStepSummary({
         { id: 'ready', label: 'Ready', value: String(ready), tone: 'ok' },
         {
           id: 'attention',
-          label: 'Need Attention',
+          label: t("Need Attention"),
           value: String(needAttention),
           tone: needAttention > 0 ? 'warn' : 'ok',
         },
@@ -992,7 +993,7 @@ export function buildInventoryImportStepSummary({
         { id: 'create', label: 'Create', value: String(create), tone: 'create' },
         { id: 'link', label: 'Link', value: String(link), tone: 'link' },
         { id: 'skip', label: 'Skip', value: String(skip) },
-        { id: 'opening', label: 'Opening Stock', value: openingStock },
+        { id: 'opening', label: t("Opening Stock"), value: openingStock },
         { id: 'storage', label: 'Storage', value: destination },
       ],
     }
@@ -1003,7 +1004,7 @@ export function buildInventoryImportStepSummary({
     const link = Number(readyEligibility?.counts?.link) || 0
     const skip = Number(readyEligibility?.counts?.skip) || 0
     const total = create + link + skip
-    const readyStatus = readyEligibility?.isReady === true ? 'Ready' : 'Not ready'
+    const readyStatus = readyEligibility?.isReady === true ? 'Ready' : t("Not ready")
 
     return {
       stepId: wizardView === 'completed' ? 'completed' : 'ready',
@@ -1012,7 +1013,7 @@ export function buildInventoryImportStepSummary({
         { id: 'create', label: 'Create', value: String(create), tone: 'create' },
         { id: 'link', label: 'Link', value: String(link), tone: 'link' },
         { id: 'skip', label: 'Skip', value: String(skip) },
-        { id: 'opening', label: 'Opening Stock', value: openingStock },
+        { id: 'opening', label: t("Opening Stock"), value: openingStock },
         { id: 'destination', label: 'Destination', value: destination },
         {
           id: 'status',

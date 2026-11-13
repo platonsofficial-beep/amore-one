@@ -205,9 +205,9 @@ export function HostQueueToolbar({
   return (
     <div className="host-queue-toolbar" role="toolbar" aria-label={t("Host queue filters")}>
       <HostQueueToolbarMenu
-        label={`Area · ${selectedArea?.label ?? 'All areas'}`}
+        label={`Area · ${selectedArea?.label ?? t("All areas")}`}
         compactLabel="Area"
-        ariaLabel={`Area filter, ${selectedArea?.label ?? 'All areas'}`}
+        ariaLabel={`Area filter, ${selectedArea?.label ?? t("All areas")}`}
         options={areaOptions}
         selectedId={areaFilterId}
         onSelect={onAreaFilterChange}

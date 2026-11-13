@@ -1,6 +1,7 @@
 import { buildPublishTransitionResult, resolveActiveFloorAreaId } from './publishFloorPlanTransition'
 import { recordPublishBreadcrumb } from './publishFloorPlanDiagnostics'
 import { triggerHostReturnAfterPublishReload } from './hostReturnAfterPublishBoot'
+import { t } from '../i18n/i18n'
 
 export function validatePublishReturnToHostReadiness({
   transition = null,
@@ -16,7 +17,7 @@ export function validatePublishReturnToHostReadiness({
     return {
       ok: false,
       reason: 'missing-published-layout',
-      message: 'Preparing published layout…',
+      message: t("Preparing published layout…"),
     }
   }
 
@@ -26,7 +27,7 @@ export function validatePublishReturnToHostReadiness({
     return {
       ok: false,
       reason: 'missing-zones',
-      message: 'Preparing published layout…',
+      message: t("Preparing published layout…"),
     }
   }
 
@@ -39,7 +40,7 @@ export function validatePublishReturnToHostReadiness({
     return {
       ok: false,
       reason: 'missing-active-area',
-      message: 'Preparing published layout…',
+      message: t("Preparing published layout…"),
     }
   }
 
@@ -53,7 +54,7 @@ export function validatePublishReturnToHostReadiness({
     return {
       ok: false,
       reason: 'host-layout-not-ready',
-      message: 'Preparing published layout…',
+      message: t("Preparing published layout…"),
     }
   }
 

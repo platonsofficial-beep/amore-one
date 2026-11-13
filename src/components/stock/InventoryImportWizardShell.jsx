@@ -86,52 +86,52 @@ const DEFAULT_IMPORT_SESSION_POLICY = Object.freeze({
 
 const IMPORT_ELIGIBILITY_BLOCKER_LABELS = Object.freeze({
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.QUANTITY_POLICY_UNSET]:
-    'Choose a stock quantity policy',
+    t("Choose a stock quantity policy"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_MATCHES]:
-    'Resolve remaining possible matches',
+    t("Resolve remaining possible matches"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.FORBIDDEN_UPDATE_ACTION]:
-    'Metadata updates are not allowed in this import',
+    t("Metadata updates are not allowed in this import"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_CREATE_NAME]:
-    'New products need a product name',
+    t("New products need a product name"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_CREATE_UNIT]:
-    'New products need a unit',
+    t("New products need a unit"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_CREATE_LOCATION]:
-    'Choose a location or fallback for new products',
+    t("Choose a location or fallback for new products"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_LOCATION_FALLBACK]:
-    'Fallback location must be a valid Stock location',
+    t("Fallback location must be a valid Stock location"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_OPENING_QUANTITY]:
-    'Opening stock requires a quantity on every applicable row',
+    t("Opening stock requires a quantity on every applicable row"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_OPENING_QUANTITY]:
-    'Opening stock quantities must be zero or greater',
+    t("Opening stock quantities must be zero or greater"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.EXISTING_QUANTITY_OVERWRITE_UNCONFIRMED]:
-    'Confirm replacing quantities on existing products',
+    t("Confirm replacing quantities on existing products"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.DUPLICATE_EXISTING_TARGET]:
-    'More than one row targets the same existing product',
+    t("More than one row targets the same existing product"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.REMAINING_OPERATIONAL_BLOCKER]:
-    'Resolve remaining review issues',
+    t("Resolve remaining review issues"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_MALFORMED]:
-    'Fix malformed location quantities in the spreadsheet',
+    t("Fix malformed location quantities in the spreadsheet"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_NEGATIVE]:
-    'Location quantities cannot be negative',
+    t("Location quantities cannot be negative"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_BINDING_UNMAPPED]:
-    'Map each quantity column to a workspace storage',
+    t("Map each quantity column to a workspace storage"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_BINDING_AMBIGUOUS]:
-    'Resolve ambiguous storage bindings for quantity columns',
+    t("Resolve ambiguous storage bindings for quantity columns"),
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.DUPLICATE_LOCATION_DESTINATION]:
-    'Two quantity columns cannot target the same storage',
+    t("Two quantity columns cannot target the same storage"),
 })
 
 const IMPORT_ELIGIBILITY_WARNING_LABELS = Object.freeze({
   [INVENTORY_IMPORT_ELIGIBILITY_WARNING.CATEGORY_DEFAULTED_TO_OTHER]:
-    'Some new products use category Other',
+    t("Some new products use category Other"),
   [INVENTORY_IMPORT_ELIGIBILITY_WARNING.EXISTING_LOCATION_CONFLICT]:
-    'Source location differs from an existing product location',
+    t("Source location differs from an existing product location"),
   [INVENTORY_IMPORT_ELIGIBILITY_WARNING.MATCHED_ITEM_INACTIVE]:
-    'Some matched products are inactive',
+    t("Some matched products are inactive"),
   [INVENTORY_IMPORT_ELIGIBILITY_WARNING.SOURCE_QUANTITY_EVIDENCE_ONLY]:
-    'Spreadsheet quantities are kept as evidence only',
+    t("Spreadsheet quantities are kept as evidence only"),
   [INVENTORY_IMPORT_ELIGIBILITY_WARNING.SOURCE_LOCATION_EVIDENCE_ONLY]:
-    'Some source locations still need a fallback',
+    t("Some source locations still need a fallback"),
 })
 
 /**
@@ -186,11 +186,11 @@ export function listInventoryImportPreviewContinueMessages({
 }
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
-  { id: 'upload', label: 'Upload File', number: 1 },
-  { id: 'columns', label: 'Map Columns', number: 2 },
-  { id: 'data', label: 'Validate Import', number: 3 },
-  { id: 'preview', label: 'Import Preview', number: 4 },
-  { id: 'ready', label: 'Ready to Import', number: 5 },
+  { id: 'upload', label: t("Upload File"), number: 1 },
+  { id: 'columns', label: t("Map Columns"), number: 2 },
+  { id: 'data', label: t("Validate Import"), number: 3 },
+  { id: 'preview', label: t("Import Preview"), number: 4 },
+  { id: 'ready', label: t("Ready to Import"), number: 5 },
 ])
 
 export const INVENTORY_IMPORT_ACCEPTED_EXTENSIONS = Object.freeze([
@@ -310,9 +310,9 @@ function isAcceptedInventoryImportExtension(extension) {
  */
 export function getInventoryImportHeaderStatusLabel(header, field = null) {
   if (field?.role === 'ignore') return 'Ignored'
-  if (header?.isBlank) return 'Blank header'
-  if (header?.isDuplicate) return 'Duplicate header'
-  if (field?.duplicate) return 'Duplicate mapping'
+  if (header?.isBlank) return t("Blank header")
+  if (header?.isDuplicate) return t("Duplicate header")
+  if (field?.duplicate) return t("Duplicate mapping")
   if (!field || field.role === 'unmapped' || field.role === 'blank') return 'Unmapped'
   return 'Ready'
 }
@@ -335,12 +335,12 @@ function inventoryImportHeaderStatusPillClass(status) {
  * @returns {string}
  */
 export function formatInventoryImportSourceHeaderDisplay(sourceHeader, isBlank) {
-  if (isBlank) return 'Blank header'
+  if (isBlank) return t("Blank header")
   if (typeof sourceHeader === 'string') return sourceHeader
   if (typeof sourceHeader === 'number' || typeof sourceHeader === 'boolean') {
     return String(sourceHeader)
   }
-  return 'Blank header'
+  return t("Blank header")
 }
 
 /**
@@ -356,7 +356,7 @@ function getSafeProcessErrorMessage(error) {
   ) {
     return error.message
   }
-  return 'Unable to read the selected file.'
+  return t("Unable to read the selected file.")
 }
 
 /**
@@ -507,7 +507,7 @@ export function InventoryImportWizardShell({
     } catch (error) {
       const message = error instanceof inventoryOperationalImportPreview.InventoryOperationalImportPreviewError
         ? error.message
-        : 'Unable to build the operational import preview.'
+        : t("Unable to build the operational import preview.")
       return {
         status: 'error',
         preview: null,
@@ -1623,7 +1623,7 @@ export function InventoryImportWizardShell({
                   </p>
                   <p className="inventory-operational-review-empty-copy">
                     {workspaceStockCatalog.errorMessage
-                      || 'Something went wrong while reading stock items for this workspace.'}
+                      || t("Something went wrong while reading stock items for this workspace.")}
                   </p>
                 </div>
               ) : null}
@@ -2461,7 +2461,7 @@ export function InventoryImportWizardShell({
               disabled={!canApplyImport}
               aria-disabled={!canApplyImport ? 'true' : undefined}
             >
-              {isApplyingImport ? 'Applying…' : 'Apply Import'}
+              {isApplyingImport ? 'Applying…' : t("Apply Import")}
             </button>
           </footer>
         ) : null}

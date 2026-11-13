@@ -1,4 +1,4 @@
-import { uiLocale } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
 import { isWasteNote } from './stockWaste'
 import { getCurrentDateKey } from './currentDateUtils'
@@ -53,10 +53,10 @@ export function resolveStockItemStatus(item) {
 }
 
 export function getStockStatusLabel(status) {
-  if (status === 'out') return 'Out of stock'
+  if (status === 'out') return t("Out of stock")
   if (status === 'low') return 'Low'
   if (status === 'inactive') return 'Inactive'
-  return 'In stock'
+  return t("In stock")
 }
 
 export function getStockStatusShortLabel(status) {
@@ -100,7 +100,7 @@ export function getStockModuleAlertItems(stockItems = [], limit = 5) {
     .map(({ item, status }) => ({
       id: String(item.id),
       name: `${item.name ?? ''}`.trim() || 'Item',
-      status: status === 'out' ? 'Out of Stock' : 'Low Stock',
+      status: status === 'out' ? t("Out of Stock") : t("Low Stock"),
       severity: status === 'out' ? 'critical' : 'low',
       quantity: item.currentQuantity,
       unit: item.unit,
@@ -165,7 +165,7 @@ export function buildTodayStockActivitySummary(stockItems = [], todayKey = getCu
 
 export function formatTodayStockActivityLine(summary) {
   if (!summary?.hasActivity) {
-    return 'No stock updates today'
+    return t("No stock updates today")
   }
 
   const parts = []
@@ -251,7 +251,7 @@ export function formatSharedStockHealthLine(summary = {}) {
   if (outCount > 1) return `${outCount} items out`
   if (lowCount === 1) return '1 item low'
   if (lowCount > 1) return `${lowCount} items low`
-  return 'Stock levels OK'
+  return t("Stock levels OK")
 }
 
 export function formatStockTotalItemsLabel(totalItems) {
@@ -358,7 +358,7 @@ export function getStockMovementLabel(type, note = '') {
   if (resolvedType === 'receive') return 'Receive'
   if (resolvedType === 'usage') return 'Usage'
   if (resolvedType === 'adjustment') return 'Adjustment'
-  if (resolvedType === 'stock_count') return 'Stock count'
+  if (resolvedType === 'stock_count') return t("Stock count")
   return 'Update'
 }
 

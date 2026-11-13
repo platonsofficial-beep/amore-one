@@ -81,7 +81,7 @@ export default function TaskFormModal({
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{t("Task")}</p>
-            <h3 id="task-form-title">{editingTask ? 'Edit task' : 'New task'}</h3>
+            <h3 id="task-form-title">{editingTask ? t("Edit task") : t("New task")}</h3>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close task form")}>
             ✕

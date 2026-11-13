@@ -24,22 +24,22 @@ const WEEKDAY_ORDER = Object.freeze([
 ])
 
 const WARNING_LABELS = Object.freeze({
-  matched_item_inactive: 'Existing ONE product is inactive',
-  category_defaulted_to_other: 'Category will default to Other',
-  source_quantity_requires_policy: 'Source quantities need an import policy',
-  source_location_requires_policy: 'Source location needs an import policy',
-  source_order_unmapped: 'Order value is not mapped',
-  source_stock_control_unmapped: 'Stock Control value is not mapped',
-  source_weekdays_unmapped: 'Weekday values are not mapped',
+  matched_item_inactive: t("Existing ONE product is inactive"),
+  category_defaulted_to_other: t("Category will default to Other"),
+  source_quantity_requires_policy: t("Source quantities need an import policy"),
+  source_location_requires_policy: t("Source location needs an import policy"),
+  source_order_unmapped: t("Order value is not mapped"),
+  source_stock_control_unmapped: t("Stock Control value is not mapped"),
+  source_weekdays_unmapped: t("Weekday values are not mapped"),
 })
 
 const BLOCKER_LABELS = Object.freeze({
-  possible_match_unresolved: 'Match must be resolved',
-  unit_missing: 'Unit is missing',
-  invalid_source_name: 'Product name is invalid',
-  quantity_policy_unset: 'Quantity policy is not set',
-  location_policy_unset: 'Location policy is not set',
-  selected_match_candidate_invalid: 'Selected ONE product is not a valid candidate',
+  possible_match_unresolved: t("Match must be resolved"),
+  unit_missing: t("Unit is missing"),
+  invalid_source_name: t("Product name is invalid"),
+  quantity_policy_unset: t("Quantity policy is not set"),
+  location_policy_unset: t("Location policy is not set"),
+  selected_match_candidate_invalid: t("Selected ONE product is not a valid candidate"),
 })
 
 /**
@@ -106,12 +106,12 @@ export function getOperationalImportPreviewActionPresentation(action) {
  */
 export function getOperationalImportPreviewPolicyLabel(status) {
   if (status === INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS.REQUIRES_POLICY) {
-    return 'Policy required'
+    return t("Policy required")
   }
   if (status === INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS.NOT_APPLICABLE) {
-    return 'Not applicable'
+    return t("Not applicable")
   }
-  return status ? String(status) : 'Not applicable'
+  return status ? String(status) : t("Not applicable")
 }
 
 /**

@@ -23,7 +23,7 @@ import { t } from '../../i18n/i18n'
 export function StockStorageReceiveProductPicker({
   storage,
   products = [],
-  title = 'Receive stock',
+  title = t("Receive stock"),
   subtitlePrefix = 'Destination',
   emptyMessage = 'No products with a balance in this storage yet.',
   testId = 'stock-storage-receive-product-picker',

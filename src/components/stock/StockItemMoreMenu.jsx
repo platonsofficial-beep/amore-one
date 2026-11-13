@@ -9,7 +9,7 @@ const MOBILE_SHEET_QUERY = '(max-width: 900px), (max-height: 520px)'
 
 const MENU_ITEMS = [
   { id: 'label-stock', type: 'label', label: 'Stock' },
-  { id: 'receive', label: 'Receive delivery', group: 'operations' },
+  { id: 'receive', label: t("Receive delivery"), group: 'operations' },
   { id: 'count', label: 'Count', group: 'operations' },
   { id: 'usage', label: 'Usage', group: 'operations' },
   { id: 'waste', label: 'Waste', group: 'operations' },
@@ -17,11 +17,11 @@ const MENU_ITEMS = [
   { id: 'label-product', type: 'label', label: 'Product' },
   { id: 'edit', label: 'Edit', group: 'management' },
   { id: 'duplicate', label: 'Duplicate', group: 'management' },
-  { id: 'history', label: 'History & details', group: 'management' },
+  { id: 'history', label: t("History & details"), group: 'management' },
   { id: 'label-status', type: 'label', label: 'Status' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
   { id: 'sep-delete', type: 'separator' },
-  { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
+  { id: 'permanently_delete', label: t("Delete product"), danger: true, group: 'destructive' },
 ]
 
 function groupMenuSections(items) {

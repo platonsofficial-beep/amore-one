@@ -150,7 +150,7 @@ export function OperationsChecklistTemplateEditor({
         }
       }
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save checklist right now.')
+      setError(submitError?.message || t("Unable to save checklist right now."))
     }
   }
 
@@ -188,7 +188,7 @@ export function OperationsChecklistTemplateEditor({
       setItems((current) => sortChecklistItems([...current, created]))
       setNewItemForm(buildEmptyChecklistItemForm(items.length + 1))
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to add checklist item right now.')
+      setError(submitError?.message || t("Unable to add checklist item right now."))
     }
   }
 
@@ -226,7 +226,7 @@ export function OperationsChecklistTemplateEditor({
     try {
       await onSaveItemOrder?.(nextItems)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to reorder checklist items right now.')
+      setError(submitError?.message || t("Unable to reorder checklist items right now."))
     }
   }
 
@@ -248,7 +248,7 @@ export function OperationsChecklistTemplateEditor({
         .filter((entry) => `${entry.id}` !== `${item.id}`)
         .map((entry, index) => ({ ...entry, orderIndex: index })))
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to delete checklist item right now.')
+      setError(submitError?.message || t("Unable to delete checklist item right now."))
     }
   }
 
@@ -276,7 +276,7 @@ export function OperationsChecklistTemplateEditor({
       <header className="operations-checklist-editor-header">
         <div>
           <p className="eyebrow">{t("Checklist template")}</p>
-          <h3>{isEditing ? 'Edit checklist' : 'Create checklist'}</h3>
+          <h3>{isEditing ? t("Edit checklist") : t("Create checklist")}</h3>
         </div>
         <button type="button" className="ghost-btn operations-checklist-editor-back" onClick={onClose}>
           ← Back
@@ -381,7 +381,7 @@ export function OperationsChecklistTemplateEditor({
             {t("Cancel")}
           </button>
           <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-            {isSaving ? 'Saving…' : isEditing ? 'Save checklist' : 'Create checklist'}
+            {isSaving ? 'Saving…' : isEditing ? t("Save checklist") : t("Create checklist")}
           </button>
         </div>
       </form>

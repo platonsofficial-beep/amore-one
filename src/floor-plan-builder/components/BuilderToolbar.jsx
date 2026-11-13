@@ -143,7 +143,7 @@ export function BuilderToolbar({ onBack, onViewFit }) {
           </>
         )}
         <span className={`fpb-mode-badge${isEditing ? '' : ' is-preview'}`}>
-          {isEditing ? 'Edit mode' : 'View mode'}
+          {isEditing ? t("Edit mode") : t("View mode")}
         </span>
       </div>
     </header>

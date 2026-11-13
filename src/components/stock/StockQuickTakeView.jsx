@@ -197,8 +197,8 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
             <div className="stock-quick-take-empty" role="status">
               <strong>{t("No supply storages yet")}</strong>
               <span>{canManage
-                ? 'Mark the storages staff take from: Stock → Storages → Edit → Supply.'
-                : 'A manager needs to mark which storages you take from.'}</span>
+                ? t("Mark the storages staff take from: Stock → Storages → Edit → Supply.")
+                : t("A manager needs to mark which storages you take from.")}</span>
             </div>
           ) : null}
           <ul className="stock-quick-take-list">
@@ -207,7 +207,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
                 <button type="button" className="stock-quick-take-tile" onClick={() => openStorage(s.id)}>
                   <span>
                     <strong>{s.name}</strong>
-                    <small>{index === 0 && readLocal(LAST_STORAGE_KEY, '') === s.id ? 'Last used · ' : ''}{s.productCount ?? 0} products</small>
+                    <small>{index === 0 && readLocal(LAST_STORAGE_KEY, '') === s.id ? t("Last used · ") : ''}{s.productCount ?? 0} products</small>
                   </span>
                   <span className="stock-quick-take-chevron" aria-hidden="true">›</span>
                 </button>
@@ -220,7 +220,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
           <button type="button" className="stock-quick-take-back" onClick={back}>‹ {category && !search ? storage?.name : 'Storages'}</button>
           <header className="stock-quick-take-head">
             <h2>{category && !search ? category : storage?.name}</h2>
-            <p>{category || search ? 'Tap what you take' : 'Choose a category'}</p>
+            <p>{category || search ? t("Tap what you take") : t("Choose a category")}</p>
           </header>
           <input
             type="search"
@@ -306,7 +306,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
             </p>
             {plan.goesNegative ? (
               <p className="stock-quick-take-warn" role="status">
-                ⚠ {plan.before > 0 ? 'Stock shows only' : 'Stock already shows'} {formatQuantityWithUnit(plan.before, sheet.row.unit)}. You can still take it. It will show {formatQuantityWithUnit(plan.after, sheet.row.unit)} and a manager will see it.
+                ⚠ {plan.before > 0 ? t("Stock shows only") : t("Stock already shows")} {formatQuantityWithUnit(plan.before, sheet.row.unit)}. You can still take it. It will show {formatQuantityWithUnit(plan.after, sheet.row.unit)} and a manager will see it.
               </p>
             ) : null}
             {sheet.error ? <p className="stock-quick-take-error" role="alert">{sheet.error}</p> : null}

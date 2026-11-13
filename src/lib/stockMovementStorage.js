@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * Dashboard stock movements pick one storage, then call the location RPC
  * with that balance's quantity_version.
@@ -131,7 +132,7 @@ export function describeOtherLocationStock(balances, selectedStorageId, formatQu
     : (quantity) => String(quantity)
   if (others.length === 1) {
     const only = others[0]
-    const name = only.locationName || only.locationKey || 'Another storage'
+    const name = only.locationName || only.locationKey || t("Another storage")
     return `${name} keeps ${format(only.quantity, unit)}`
   }
   const total = others.reduce((sum, balance) => sum + balance.quantity, 0)
@@ -144,7 +145,7 @@ export function describeOtherLocationStock(balances, selectedStorageId, formatQu
 
 export function stockMovementStorageActionLabel(movementType, storageName) {
   const name = asText(storageName)
-  if (!name) return 'Choose a storage'
+  if (!name) return t("Choose a storage")
   if (movementType === 'receive') return `Receive into ${name}`
   if (movementType === 'usage') return `Use from ${name}`
   if (movementType === 'waste') return `Waste from ${name}`

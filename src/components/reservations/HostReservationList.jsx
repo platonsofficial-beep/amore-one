@@ -400,7 +400,7 @@ export function HostReservationList({
 
   if (!totalVisible) {
     if (useHostQueuePresentation) {
-      const title = queueEmptyState?.title || 'No reservations match the current filters.'
+      const title = queueEmptyState?.title || t("No reservations match the current filters.")
       const showClearFilters = queueEmptyState
         ? queueEmptyState.showClearFilters
         : Boolean(onClearQueueFilters)

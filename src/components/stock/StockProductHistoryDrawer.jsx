@@ -142,7 +142,7 @@ export function StockProductHistoryDrawer({
         }
       } catch (loadError) {
         if (isMounted) {
-          setError(loadError?.message || 'Unable to load product history right now.')
+          setError(loadError?.message || t("Unable to load product history right now."))
         }
       } finally {
         if (isMounted) {
@@ -257,7 +257,7 @@ export function StockProductHistoryDrawer({
                 <h3 className="stock-product-history-section-title">{t("Product overview")}</h3>
                 <dl className="stock-product-history-overview">
                   <OverviewRow
-                    label="Current stock"
+                    label={t("Current stock")}
                     value={formatStockQuantity(item.currentQuantity, item.unit)}
                   />
                   <OverviewRow
@@ -267,7 +267,7 @@ export function StockProductHistoryDrawer({
                   <OverviewRow
                     label="Target"
                     value={targetQuantity === null
-                      ? 'Not set'
+                      ? t("Not set")
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
                   {showCost ? (
@@ -280,7 +280,7 @@ export function StockProductHistoryDrawer({
                   ) : null}
                   {showCost ? (
                     <OverviewRow
-                      label="Inventory value"
+                      label={t("Inventory value")}
                       value={hasCost ? formatStockInventoryValue(inventoryValue) : '—'}
                     />
                   ) : null}
@@ -330,7 +330,7 @@ export function StockProductHistoryDrawer({
                     value={formatMonthlyMovementStat('adjustments', monthlyInsights.adjustments, item.unit)}
                   />
                   <OverviewRow
-                    label="Last counted"
+                    label={t("Last counted")}
                     value={
                       lastCountedLabel !== 'Never' && isStaleCountLabel(lastCountedLabel)
                         ? `Last counted ${lastCountedLabel}`

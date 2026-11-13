@@ -53,7 +53,7 @@ export function EmployeeDeleteConfirmModal({
             {t("Cancel")}
           </button>
           <button type="button" className="primary-btn" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting…' : 'Delete Employee'}
+            {isDeleting ? 'Deleting…' : t("Delete Employee")}
           </button>
         </div>
       </div>

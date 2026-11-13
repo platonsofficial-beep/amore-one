@@ -88,7 +88,7 @@ export function EmployeeInviteModal({
 
     try {
       const copied = await copyTextToClipboard(inviteLink)
-      setCopyNotice(copied ? 'Link copied.' : 'Unable to copy link.')
+      setCopyNotice(copied ? t("Link copied.") : t("Unable to copy link."))
     } catch {
       setCopyNotice('Unable to copy link.')
     }
@@ -118,7 +118,7 @@ export function EmployeeInviteModal({
       setCreatedInvite(invite)
       onInviteCreated?.(invite)
     } catch (error) {
-      setErrorMessage(error?.message || 'Unable to create invite right now.')
+      setErrorMessage(error?.message || t("Unable to create invite right now."))
     } finally {
       setIsSaving(false)
     }
@@ -137,7 +137,7 @@ export function EmployeeInviteModal({
           <div>
             <p className="eyebrow">{t("Team invite")}</p>
             <h3 id="employee-invite-title">
-              {createdInvite ? 'Invite created' : `Invite ${employee.name}`}
+              {createdInvite ? t("Invite created") : `Invite ${employee.name}`}
             </h3>
           </div>
           <button type="button" className="icon-btn" onClick={handleClose} aria-label={t("Close invite modal")}>
@@ -203,7 +203,7 @@ export function EmployeeInviteModal({
                 {t("Cancel")}
               </button>
               <button type="submit" className="primary-btn" disabled={isSaving}>
-                {isSaving ? 'Creating…' : 'Create invite'}
+                {isSaving ? 'Creating…' : t("Create invite")}
               </button>
             </div>
           </form>

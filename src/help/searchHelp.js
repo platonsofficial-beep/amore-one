@@ -1,5 +1,6 @@
 import { isManagerRole } from '../lib/permissions'
 import { HELP_ARTICLES, helpText } from './helpKnowledge'
+import { t } from '../i18n/i18n'
 
 const MIN_SCORE = 0.55
 
@@ -213,7 +214,7 @@ export function supportMailto({ venueName = '', role = '', screen = '', question
     question || '',
   ].join('\n')
   const params = new URLSearchParams({
-    subject: 'Help with ONE',
+    subject: t("Help with ONE"),
     body,
   })
   return `mailto:info@onehospitality.app?${params.toString()}`

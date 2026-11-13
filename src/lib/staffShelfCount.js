@@ -1,4 +1,5 @@
 import { formatStockQuantity } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 /** Stored on the inventory count session. Manager approval is Post Count. */
 export const STAFF_SHELF_COUNT_NOTE = 'Staff shelf count'
@@ -112,7 +113,7 @@ export function staffShelfCountPresentation(session) {
   if (`${session?.note ?? ''}`.trim() !== STAFF_SHELF_COUNT_NOTE) return null
   const waiting = `${session?.status ?? ''}`.trim() === 'counting_complete'
   return {
-    title: 'Staff shelf count',
+    title: t("Staff shelf count"),
     detail: waiting ? STAFF_SHELF_COUNT_WAITING_MESSAGE : '',
   }
 }

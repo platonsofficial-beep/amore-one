@@ -95,7 +95,7 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true, showCo
             {getSupplierInitials(supplier.companyName)}
           </span>
           <div className="stock-supplier-card-heading">
-            <strong>{supplier.companyName || 'Unnamed supplier'}</strong>
+            <strong>{supplier.companyName || t("Unnamed supplier")}</strong>
             <span className={`stock-supplier-card-contact${supplier.contactPerson ? '' : ' is-muted'}`}>
               {supplier.contactPerson || '\u00a0'}
             </span>
@@ -176,7 +176,7 @@ function StockSupplierDeleteModal({
           <div>
             <p className="eyebrow">{t("Supplier safety")}</p>
             <h3 id="stock-supplier-delete-title">
-              {hasHistory ? 'Deactivate supplier?' : 'Delete supplier?'}
+              {hasHistory ? t("Deactivate supplier?") : t("Delete supplier?")}
             </h3>
           </div>
           <button type="button" className="icon-btn stock-supplier-form-close" onClick={onClose} aria-label={t("Close")}>
@@ -208,7 +208,7 @@ function StockSupplierDeleteModal({
               onClick={() => onConfirmDeactivate?.(supplier)}
               disabled={isSaving}
             >
-              {isSaving ? 'Saving…' : 'Deactivate supplier'}
+              {isSaving ? 'Saving…' : t("Deactivate supplier")}
             </button>
           ) : (
             <button
@@ -217,7 +217,7 @@ function StockSupplierDeleteModal({
               onClick={() => onConfirmDelete?.(supplier)}
               disabled={isSaving}
             >
-              {isSaving ? 'Deleting…' : 'Delete supplier'}
+              {isSaving ? 'Deleting…' : t("Delete supplier")}
             </button>
           )}
         </div>

@@ -158,7 +158,7 @@ function OperationsLogItem({ log, canManage, onEdit, onDelete, compact = false }
   const headline = getOperationsShiftNoteHeadline(log)
   const detail = compact ? '' : getOperationsShiftNoteDetail(log)
   const authorName = `${log.createdByName ?? ''}`.trim()
-  const authorLabel = authorName && authorName !== 'System' ? authorName : 'Team member'
+  const authorLabel = authorName && authorName !== 'System' ? authorName : t("Team member")
 
   return (
     <article className={`operations-shift-note-card panel staff-panel${compact ? ' is-compact' : ''}`}>
@@ -569,9 +569,9 @@ export function OperationsDashboardView({
         </header>
 
         <div className="operations-summary-grid operations-mobile-metrics" aria-label={t("Operations metrics")}>
-          <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
+          <OperationsSummaryCard label={t("Open tasks")} value={mobileMetrics.openTasks} tone="warning" />
           <OperationsSummaryCard
-            label="Past due"
+            label={t("Past due")}
             value={mobileMetrics.overdueTasks}
             tone={mobileMetrics.overdueTasks > 0 ? 'danger' : 'default'}
           />
@@ -770,17 +770,17 @@ export function OperationsDashboardView({
       </div>
 
       <div className="operations-summary-grid" aria-label={t("Today at a glance")}>
-        <OperationsSummaryCard label="Open tasks" value={unavailableFigure(figuresUnavailable, taskSummary.openTasks)} tone="warning" />
+        <OperationsSummaryCard label={t("Open tasks")} value={unavailableFigure(figuresUnavailable, taskSummary.openTasks)} tone="warning" />
         <OperationsSummaryCard
-          label="Past due"
+          label={t("Past due")}
           value={unavailableFigure(figuresUnavailable, taskSummary.overdueTasks)}
           tone={!figuresUnavailable && taskSummary.overdueTasks > 0 ? 'danger' : 'default'}
         />
-        <OperationsSummaryCard label="Completed today" value={unavailableFigure(figuresUnavailable, taskSummary.completedToday)} tone="success" />
-        <OperationsSummaryCard label="Urgent issues" value={unavailableFigure(figuresUnavailable, summary.urgentIssues)} tone="danger" />
-        <OperationsSummaryCard label="Team notes" value={unavailableFigure(figuresUnavailable, summary.teamNotes)} tone="gold" />
+        <OperationsSummaryCard label={t("Completed today")} value={unavailableFigure(figuresUnavailable, taskSummary.completedToday)} tone="success" />
+        <OperationsSummaryCard label={t("Urgent issues")} value={unavailableFigure(figuresUnavailable, summary.urgentIssues)} tone="danger" />
+        <OperationsSummaryCard label={t("Team notes")} value={unavailableFigure(figuresUnavailable, summary.teamNotes)} tone="gold" />
         <OperationsSummaryCard
-          label="Task boards overdue"
+          label={t("Task boards overdue")}
           value={unavailableFigure(figuresUnavailable, boardOverdueCount)}
           tone={!figuresUnavailable && boardOverdueCount > 0 ? 'danger' : 'default'}
           action={onOpenTaskBoards ? (

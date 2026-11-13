@@ -69,7 +69,7 @@ export function OperationsTaskFormModal({
       await onSubmit(buildOperationsTaskSubmitPayload(form))
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save task right now.')
+      setError(submitError?.message || t("Unable to save task right now."))
     }
   }
 
@@ -85,7 +85,7 @@ export function OperationsTaskFormModal({
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{t("Operations task")}</p>
-            <h3 id="operations-task-form-title">{task ? 'Edit task' : 'Create task'}</h3>
+            <h3 id="operations-task-form-title">{task ? t("Edit task") : t("Create task")}</h3>
           </div>
           <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
             ✕
@@ -223,7 +223,7 @@ export function OperationsTaskFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : task ? 'Save task' : 'Create task'}
+              {isSaving ? 'Saving…' : task ? t("Save task") : t("Create task")}
             </button>
           </div>
         </form>

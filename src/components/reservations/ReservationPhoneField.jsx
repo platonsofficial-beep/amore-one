@@ -8,6 +8,7 @@ import {
   subscribeWorkspaceDefaultPhoneCountryCode,
 } from '../../lib/reservationPhoneUtils'
 import { PhoneCountryPicker } from './PhoneCountryPicker'
+import { t } from '../../i18n/i18n'
 
 export function ReservationPhoneField({
   value = '',
@@ -16,7 +17,7 @@ export function ReservationPhoneField({
   className = 'reservation-phone-field',
   inputClassName = '',
   id,
-  placeholder = 'Local number',
+  placeholder = t("Local number"),
   autoComplete = 'tel-national',
   workspaceProfile = null,
 }) {

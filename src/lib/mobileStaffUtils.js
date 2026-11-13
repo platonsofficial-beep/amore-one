@@ -3,6 +3,7 @@ import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isTaskOverdue } from './taskUtils'
 import { compareOperationsTasksByWorkflow, isOperationsTaskOverdue } from './operationsBrowse'
 import { canStaffCompleteTask, getTaskAssigneeId, normalizeOperationsStatus } from './operationsUtils'
+import { t } from '../i18n/i18n'
 
 function normalizeShiftDate(value) {
   if (!value) return ''
@@ -57,8 +58,8 @@ export function buildMobileEmployeeShiftSummary({
   if (!isWeekPublished) {
     return {
       tone: 'neutral',
-      headline: 'Schedule not published',
-      detail: 'Your manager has not published this week yet.',
+      headline: t("Schedule not published"),
+      detail: t("Your manager has not published this week yet."),
     }
   }
 
@@ -84,8 +85,8 @@ export function buildMobileEmployeeShiftSummary({
     const endLabel = formatTime24(normalizeTimeValue(activeShift.endTime))
     return {
       tone: 'live',
-      headline: 'On shift now',
-      detail: endLabel ? `Until ${endLabel}` : 'Currently working',
+      headline: t("On shift now"),
+      detail: endLabel ? `Until ${endLabel}` : t("Currently working"),
     }
   }
 
@@ -99,23 +100,23 @@ export function buildMobileEmployeeShiftSummary({
     const endLabel = formatTime24(normalizeTimeValue(upcomingShift.endTime))
     return {
       tone: 'upcoming',
-      headline: 'Next shift today',
-      detail: startLabel && endLabel ? `${startLabel} - ${endLabel}` : (startLabel || 'Scheduled later'),
+      headline: t("Next shift today"),
+      detail: startLabel && endLabel ? `${startLabel} - ${endLabel}` : (startLabel || t("Scheduled later")),
     }
   }
 
   if (todayShifts.length > 0) {
     return {
       tone: 'completed',
-      headline: 'Shift completed',
-      detail: 'No more shifts scheduled today.',
+      headline: t("Shift completed"),
+      detail: t("No more shifts scheduled today."),
     }
   }
 
   if (liveFloor?.state === 'live' && Number(liveFloor.onShiftCount) > 0 && !employeeKey) {
     return {
       tone: 'live',
-      headline: 'Service is live',
+      headline: t("Service is live"),
       detail: `${liveFloor.onShiftCount} team member${liveFloor.onShiftCount === 1 ? '' : 's'} on shift`,
     }
   }
@@ -123,15 +124,15 @@ export function buildMobileEmployeeShiftSummary({
   if (liveFloor?.nextShiftStartLabel) {
     return {
       tone: 'upcoming',
-      headline: 'Next shift',
+      headline: t("Next shift"),
       detail: liveFloor.nextShiftStartLabel,
     }
   }
 
   return {
     tone: 'neutral',
-    headline: 'No shift today',
-    detail: 'You are not scheduled for today.',
+    headline: t("No shift today"),
+    detail: t("You are not scheduled for today."),
   }
 }
 
@@ -259,8 +260,8 @@ export function getMobileOperationsTaskStatusLabel(task, todayKey = '') {
 
 export function getMobileOperationsStaffOwnershipLabel(task, currentEmployeeId = null) {
   const assigneeId = getTaskAssigneeId(task)
-  if (!assigneeId) return 'Team task'
-  if (currentEmployeeId && `${assigneeId}` === `${currentEmployeeId}`) return 'Assigned to you'
+  if (!assigneeId) return t("Team task")
+  if (currentEmployeeId && `${assigneeId}` === `${currentEmployeeId}`) return t("Assigned to you")
   return 'Assigned'
 }
 
@@ -282,21 +283,21 @@ export function groupMobileStaffPendingTasks(pendingTasks = [], todayKey = '') {
 export function getMobileStaffTaskTabEmptyState(tabId) {
   if (tabId === 'pending') {
     return {
-      title: 'You are caught up',
-      message: 'No tasks need action today.',
+      title: t("You are caught up"),
+      message: t("No tasks need action today."),
     }
   }
 
   if (tabId === 'upcoming') {
     return {
-      title: 'No upcoming tasks',
-      message: 'Future work will appear here when it is scheduled.',
+      title: t("No upcoming tasks"),
+      message: t("Future work will appear here when it is scheduled."),
     }
   }
 
   return {
-    title: 'No completed tasks yet',
-    message: 'Finished work will show up in this list.',
+    title: t("No completed tasks yet"),
+    message: t("Finished work will show up in this list."),
   }
 }
 

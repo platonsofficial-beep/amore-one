@@ -9,14 +9,14 @@ const MODULE_ROWS = [
   { key: 'schedule', label: 'Schedule' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'stock', label: 'Stock' },
-  { key: 'suppliers', label: 'Suppliers', detail: 'Part of Stock' },
+  { key: 'suppliers', label: 'Suppliers', detail: t("Part of Stock") },
   { key: 'reports', label: 'Insights' },
 ]
 
 function resolveModuleStatus(connected) {
   if (connected === true) return { label: 'Connected', tone: 'connected' }
-  if (connected === false) return { label: 'Not connected', tone: 'disconnected' }
-  return { label: 'No live check', tone: 'available' }
+  if (connected === false) return { label: t("Not connected"), tone: 'disconnected' }
+  return { label: t("No live check"), tone: 'available' }
 }
 
 function BuildInfoBadge() {

@@ -78,7 +78,7 @@ export default function TaskDepartmentFields({
             ) : null}
 
           {customDepartments.length > 0 ? (
-            <optgroup label="Custom departments">
+            <optgroup label={t("Custom departments")}>
               {customDepartments.map((name) => (
                 <option key={name} value={buildCustomDepartmentOptionValue(name)}>
                   {`${getCustomDepartmentIcon(name, customDepartmentIcons)} ${name}`}

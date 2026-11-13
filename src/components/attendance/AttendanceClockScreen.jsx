@@ -150,7 +150,7 @@ export function AttendanceClockScreen({
         shift_date: today,
         start_time: '18:00',
         end_time: '23:00',
-        area: 'Main Dining',
+        area: t("Main Dining"),
       }],
     })
     setSettingsLoaded(true)
@@ -321,7 +321,7 @@ export function AttendanceClockScreen({
       if (!result?.ok) {
         setMessage(failureMessage(result))
       } else {
-        setMessage(openBreak ? 'Break ended.' : 'Break started.')
+        setMessage(openBreak ? t("Break ended.") : t("Break started."))
       }
       await reload()
     } catch (error) {
@@ -370,15 +370,15 @@ export function AttendanceClockScreen({
   return (
     <section className="attendance-clock" aria-label={t("Clock in and out")}>
       <header className="attendance-clock-header">
-        <p className="attendance-clock-kicker">⏱ Clock</p>
+        <p className="attendance-clock-kicker">⏱ {t('Clock')}</p>
         <div className="attendance-clock-identity">
           <span className="attendance-avatar" aria-hidden="true">
             <PersonAvatar employeeId={employeeId} memberId={memberId} name={employeeName} />
           </span>
-          <h2 className="attendance-clock-title">{employeeName || 'Your shift'}</h2>
+          <h2 className="attendance-clock-title">{employeeName || t("Your shift")}</h2>
         </div>
         <p className="attendance-clock-shift">
-          {settingsLoaded ? shiftSummary.label : (loadError ? null : <LoadingLines label="Loading your shift" />)}
+          {settingsLoaded ? t(shiftSummary.label) : (loadError ? null : <LoadingLines label={t("Loading your shift")} />)}
         </p>
       </header>
 
@@ -388,8 +388,8 @@ export function AttendanceClockScreen({
           <span>
             You clocked in {formatForgotSince(openEntry.clock_in_at, timeZone)} and never clocked out.{' '}
             {isManager
-              ? 'Clock out, then correct the hours in Time clock.'
-              : 'Clock out, then request a time change so your manager can fix the hours.'}
+              ? t("Clock out, then correct the hours in Time clock.")
+              : t("Clock out, then request a time change so your manager can fix the hours.")}
           </span>
         </div>
       ) : openEntry ? (
@@ -399,7 +399,7 @@ export function AttendanceClockScreen({
       ) : null}
 
       {settingsLoaded && !venueReady && !loadError ? (
-        <p className="attendance-clock-banner" role="status">{NO_VENUE_LOCATION_MESSAGE}</p>
+        <p className="attendance-clock-banner" role="status">{t(NO_VENUE_LOCATION_MESSAGE)}</p>
       ) : null}
       {loadError ? (
         <div className="attendance-clock-banner is-alert" role="alert">
@@ -411,7 +411,7 @@ export function AttendanceClockScreen({
       <div className="attendance-clock-actions">
         {!openEntry ? (
           <button type="button" className="attendance-action attendance-action-in" data-help="timeclock.clock-in" onClick={() => beginClock('in')} disabled={busy || !settingsLoaded}>
-            ▶ Clock in
+            ▶ {t('Clock in')}
           </button>
         ) : (
           <>

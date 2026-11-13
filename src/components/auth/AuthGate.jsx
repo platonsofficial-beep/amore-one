@@ -50,8 +50,8 @@ export function AuthGate({ children }) {
           <OneFullLogo compact />
           <p className="auth-loading-text">
             {isJoiningWorkspace || readPendingInviteToken()
-              ? 'Joining your venue…'
-              : 'Loading your venue…'}
+              ? t("Joining your venue…")
+              : t("Loading your venue…")}
           </p>
         </div>
       </div>

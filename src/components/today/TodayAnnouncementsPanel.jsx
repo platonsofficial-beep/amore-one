@@ -53,7 +53,7 @@ function TodayAnnouncementCard({
             onClick={() => setIsExpanded((current) => !current)}
             aria-expanded={isExpanded}
           >
-            {isExpanded ? 'Show less' : 'Show more'}
+            {isExpanded ? t("Show less") : t("Show more")}
           </button>
         ) : null}
 

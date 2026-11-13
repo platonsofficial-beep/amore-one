@@ -157,7 +157,7 @@ export function GuestPhoneInsight({
       directoryState.remember(saved)
       setNotice('Notes saved.')
     } catch (error) {
-      setNotice(error?.message || 'Could not save the guest notes.')
+      setNotice(error?.message || t("Could not save the guest notes."))
     }
   }
 
@@ -320,7 +320,7 @@ export function GuestDirectory({
             <ul className="guest-booking-list">
               {selected.bookings.map((booking) => (
                 <li key={booking.id} className="guest-booking-row">
-                  <span className="guest-date">{formatGuestDate(booking.date)} · {booking.guests} guests · {booking.tableNumber || 'No table'}</span>
+                  <span className="guest-date">{formatGuestDate(booking.date)} · {booking.guests} guests · {booking.tableNumber || t("No table")}</span>
                   <StatusChip status={booking.status} />
                 </li>
               ))}
@@ -356,7 +356,7 @@ export function GuestDirectory({
               ...selected,
               displayName: selected.guestName,
               blacklisted: true,
-              blacklistReason: reason || 'No reason given',
+              blacklistReason: reason || t("No reason given"),
             })
             setDialogOpen(false)
           }}

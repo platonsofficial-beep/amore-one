@@ -134,7 +134,7 @@ export function LeaveHistoryDetailsModal({
       withdrawInFlightRef.current = false
       setIsWithdrawPending(false)
       setConfirmWithdraw(false)
-      setErrorMessage(error?.message || 'Unable to withdraw the leave request right now.')
+      setErrorMessage(error?.message || t("Unable to withdraw the leave request right now."))
     }
   }
 
@@ -309,7 +309,7 @@ export function LeaveHistoryDetailsModal({
           <section>
             <h5 className="leave-history-details-section-title">{t("Employee note")}</h5>
             <p className={`leave-history-details-note${noteText ? '' : ' is-empty'}`}>
-              {noteText || 'No note provided.'}
+              {noteText || t("No note provided.")}
             </p>
           </section>
 
@@ -347,7 +347,7 @@ export function LeaveHistoryDetailsModal({
               ) : null}
               <h5 className="leave-history-details-section-title">{t("Rejection reason")}</h5>
               <p className={`leave-history-details-note${rejectionReason ? '' : ' is-empty'}`}>
-                {rejectionReason || 'No rejection reason provided.'}
+                {rejectionReason || t("No rejection reason provided.")}
               </p>
             </section>
           ) : null}

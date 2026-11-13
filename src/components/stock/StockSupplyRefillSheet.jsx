@@ -99,7 +99,7 @@ export function StockSupplyRefillSheet({
   transfer = transferStockBetweenLocations,
 } = {}) {
   const destinationId = `${destinationStorage?.id ?? ''}`.trim()
-  const destinationName = destinationStorage?.name || destinationStorage?.locationKey || 'This storage'
+  const destinationName = destinationStorage?.name || destinationStorage?.locationKey || t("This storage")
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'error'} */ ('loading'))
   const [loadError, setLoadError] = useState('')
   const [catalog, setCatalog] = useState(null)
@@ -147,7 +147,7 @@ export function StockSupplyRefillSheet({
       } catch (error) {
         if (cancelled) return
         setStatus('error')
-        setLoadError(error?.message || 'Unable to load supply stock right now.')
+        setLoadError(error?.message || t("Unable to load supply stock right now."))
       }
     })()
     return () => {
@@ -201,7 +201,7 @@ export function StockSupplyRefillSheet({
     } catch (refreshError) {
       setTakeRows(applyTakeResults(takeSnapshot, results))
       setLines(applyRefillResults(refillSnapshot, results))
-      setNotice(`${moved} moved. ${failed} still here. ${refreshError?.message || 'Refresh failed.'}`)
+      setNotice(`${moved} moved. ${failed} still here. ${refreshError?.message || t("Refresh failed.")}`)
       if (moved > 0) await onCompleted?.()
       return
     }
@@ -231,7 +231,7 @@ export function StockSupplyRefillSheet({
         setBusy(false)
       }
     }).catch((error) => {
-      setNotice(error?.message || 'Unable to take from supply right now.')
+      setNotice(error?.message || t("Unable to take from supply right now."))
       setBusy(false)
     })
   }
@@ -363,7 +363,7 @@ export function StockSupplyRefillSheet({
                 />
                 {visibleRows.length === 0 ? (
                   <p className="stock-supply-refill-hint" role="status">
-                    {takeRows.length === 0 ? 'Nothing to take from supply yet.' : 'No matching products.'}
+                    {takeRows.length === 0 ? t("Nothing to take from supply yet.") : t("No matching products.")}
                   </p>
                 ) : (
                   <ul className="stock-take-list">

@@ -53,7 +53,7 @@ export function StockStorageDetailActionBar({
           className="primary-btn stock-storage-detail-action-btn"
           data-storage-action="staff_count"
           disabled={shelfCountDisabled}
-          title={isArchived ? 'Unavailable for archived storage' : undefined}
+          title={isArchived ? t("Unavailable for archived storage") : undefined}
           onClick={() => onCountShelf?.(storage)}
         >
           {t("Count shelf")}
@@ -100,9 +100,9 @@ function ManagerActionBar({
   const isArchived = storage?.active === false
   const fastCountDisabled = isArchived || isLaunchingFastCount
   const unavailableReason = isArchived
-    ? 'Unavailable for archived storage'
+    ? t("Unavailable for archived storage")
     : isLaunchingFastCount
-      ? 'Starting Fast Count…'
+      ? t("Starting Fast Count…")
       : undefined
 
   return (
@@ -121,7 +121,7 @@ function ManagerActionBar({
         title={unavailableReason}
         onClick={() => onStartFastCount?.(storage)}
       >
-        {isLaunchingFastCount ? 'Starting…' : 'Fast Count'}
+        {isLaunchingFastCount ? 'Starting…' : t("Fast Count")}
       </button>
       <button
         type="button"

@@ -56,7 +56,7 @@ export function OperationsTaskCompleteModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Mark complete'}
+              {isSaving ? 'Saving…' : t("Mark complete")}
             </button>
           </div>
         </form>

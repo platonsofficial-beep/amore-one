@@ -1,6 +1,7 @@
 import {
   SELECTABLE_INVENTORY_UNIT_PRESETS,
 } from './inventoryUnitStandard.js'
+import { t } from '../i18n/i18n'
 
 export const INVENTORY_TARGET_STOCK_LABEL = 'Target Stock (PAR)'
 
@@ -103,7 +104,7 @@ export function buildInventoryReorderCopyText(summary) {
     lines.push('')
 
     group.rows.forEach((row) => {
-      lines.push(row.item?.itemName || 'Unnamed item')
+      lines.push(row.item?.itemName || t("Unnamed item"))
       lines.push(formatInventoryOrderQty(row.orderNeeded, row.item?.unit))
       lines.push(`Current: ${row.item?.quantity ?? 0} / Target: ${row.item?.minimumQuantity ?? 0}`)
       lines.push('')
@@ -125,7 +126,7 @@ export function groupInventoryReorderBySupplier(items = []) {
   const groups = new Map()
 
   items.forEach((item) => {
-    const supplier = `${item?.supplier ?? ''}`.trim() || 'No Supplier'
+    const supplier = `${item?.supplier ?? ''}`.trim() || t("No Supplier")
     if (!groups.has(supplier)) {
       groups.set(supplier, [])
     }

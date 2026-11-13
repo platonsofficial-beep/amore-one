@@ -18,17 +18,17 @@ export const PURCHASE_ORDER_CLEANUP_CONFIRM_PHRASE = 'DELETE PURCHASE ORDERS'
 function friendlyCleanupError(error) {
   if (error instanceof StockOrderCleanupError) {
     if (error.code === 'FORBIDDEN') {
-      return 'You do not have permission to delete purchase orders.'
+      return t("You do not have permission to delete purchase orders.")
     }
     if (error.code === 'UNAUTHENTICATED') {
-      return 'Please sign in again to continue.'
+      return t("Please sign in again to continue.")
     }
     if (error.code === 'WORKSPACE_REQUIRED' || error.code === 'WORKSPACE_NOT_FOUND') {
-      return 'This workspace is not ready for cleanup right now.'
+      return t("This workspace is not ready for cleanup right now.")
     }
   }
 
-  return 'Unable to delete purchase orders right now. Please try again.'
+  return t("Unable to delete purchase orders right now. Please try again.")
 }
 
 function PreviewStat({ label, value }) {
@@ -235,7 +235,7 @@ export function StockOrderCleanupDialog({
           <div>
             <p className="eyebrow">{t("Administrative cleanup")}</p>
             <h3 id="stock-order-cleanup-title">
-              {phase === 'success' ? 'Cleanup complete' : 'Delete orders'}
+              {phase === 'success' ? t("Cleanup complete") : t("Delete orders")}
             </h3>
           </div>
           <button
@@ -297,13 +297,13 @@ export function StockOrderCleanupDialog({
                   </p>
 
                   <dl className="stock-order-cleanup-stats" aria-label={t("Purchase order cleanup preview")}>
-                    <PreviewStat label="Total orders" value={preview.totalOrders} />
+                    <PreviewStat label={t("Total orders")} value={preview.totalOrders} />
                     <PreviewStat label="Draft" value={preview.draftOrders} />
                     <PreviewStat label="Sent" value={preview.sentOrders} />
                     <PreviewStat label="Received" value={preview.receivedOrders} />
                     <PreviewStat label="Cancelled" value={preview.cancelledOrders} />
-                    <PreviewStat label="Total order lines" value={preview.totalOrderItems} />
-                    <PreviewStat label="Orders with receive" value={preview.ordersWithReceive} />
+                    <PreviewStat label={t("Total order lines")} value={preview.totalOrderItems} />
+                    <PreviewStat label={t("Orders with receive")} value={preview.ordersWithReceive} />
                   </dl>
 
                   {showReceiveWarning ? (
@@ -381,7 +381,7 @@ export function StockOrderCleanupDialog({
                 className="primary-btn stock-order-cleanup-delete-btn"
                 disabled={!canSubmit || phase === 'empty' || phase === 'loading' || !preview}
               >
-                {phase === 'executing' || isBusy ? 'Deleting…' : 'Delete orders'}
+                {phase === 'executing' || isBusy ? 'Deleting…' : t("Delete orders")}
               </button>
             </div>
           </form>

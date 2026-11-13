@@ -125,7 +125,7 @@ export function StockTransferModal({
         if (cancelled) return
         setDestinations([])
         setDestinationVersions(new Map())
-        setError(loadError?.message || 'Unable to load destination storages.')
+        setError(loadError?.message || t("Unable to load destination storages."))
       } finally {
         if (!cancelled) {
           setIsLoadingDestinations(false)
@@ -190,7 +190,7 @@ export function StockTransferModal({
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to transfer stock right now.')
+      setError(submitError?.message || t("Unable to transfer stock right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -236,7 +236,7 @@ export function StockTransferModal({
               data-testid="stock-transfer-destination-select"
             >
               <option value="">
-                {isLoading ? 'Loading storages…' : 'Select destination'}
+                {isLoading ? t("Loading storages…") : t("Select destination")}
               </option>
               {destinationOptions.map((entry) => (
                 <option

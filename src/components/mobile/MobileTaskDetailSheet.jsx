@@ -152,7 +152,7 @@ export function MobileTaskDetailSheet({
                 {t("Back")}
               </button>
               <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Mark complete'}
+                {isSaving ? 'Saving…' : t("Mark complete")}
               </button>
             </div>
           </form>
@@ -187,7 +187,7 @@ export function MobileTaskDetailSheet({
                 <>
                   <div>
                     <dt>{t("Completed by")}</dt>
-                    <dd>{task.completedByName || 'Team member'}</dd>
+                    <dd>{task.completedByName || t("Team member")}</dd>
                   </div>
                   <div>
                     <dt>{t("Completed")}</dt>

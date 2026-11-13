@@ -3,6 +3,7 @@ import { resolveListedProductName } from './stockProductIdentity'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 import { formatInVenueZone } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 export const STOCK_ORDER_STATUSES = ['draft', 'sent', 'received', 'cancelled']
 
@@ -90,7 +91,7 @@ export function resolveDisplayedLineCost(line, stockItems = []) {
 
 export function formatDisplayedLineCostLabel(line, stockItems = []) {
   const resolved = resolveDisplayedLineCost(line, stockItems)
-  if (resolved.missing) return 'No cost'
+  if (resolved.missing) return t("No cost")
   return formatStockPurchasePrice(resolved.cost)
 }
 
@@ -134,7 +135,7 @@ export function formatDisplayedOrderTotalLabel(order, stockItems = []) {
   const estimate = resolveDisplayedOrderTotal(order, stockItems)
   return {
     ...estimate,
-    label: estimate.total > 0 ? formatStockPurchasePrice(estimate.total) : 'No cost on file',
+    label: estimate.total > 0 ? formatStockPurchasePrice(estimate.total) : t("No cost on file"),
   }
 }
 
@@ -469,8 +470,8 @@ export function getStockOrderNextAction(order) {
 
   if (status === 'draft') {
     return {
-      label: 'Mark sent',
-      hint: 'Review products and send to supplier',
+      label: t("Mark sent"),
+      hint: t("Review products and send to supplier"),
       tone: 'warning',
     }
   }
@@ -478,15 +479,15 @@ export function getStockOrderNextAction(order) {
   if (status === 'sent') {
     if (isOrderPartiallyReceived(order)) {
       return {
-        label: 'Continue receiving',
-        hint: 'Enter quantities for products still waiting',
+        label: t("Continue receiving"),
+        hint: t("Enter quantities for products still waiting"),
         tone: 'info',
       }
     }
 
     return {
-      label: 'Receive delivery',
-      hint: 'Enter quantities as the delivery arrives',
+      label: t("Receive delivery"),
+      hint: t("Enter quantities as the delivery arrives"),
       tone: 'info',
     }
   }
@@ -494,7 +495,7 @@ export function getStockOrderNextAction(order) {
   if (status === 'received') {
     return {
       label: 'Completed',
-      hint: 'All products received',
+      hint: t("All products received"),
       tone: 'success',
     }
   }
@@ -555,7 +556,7 @@ export function buildStockOrderTimeline(order) {
     },
     {
       id: 'sent',
-      label: 'Sent to supplier',
+      label: t("Sent to supplier"),
       isComplete: Boolean(order?.sentAt) || status === 'sent' || status === 'received' || partiallyReceived || fullyReceived,
       timestamp: order?.sentAt ?? null,
       actorName: order?.sentByName ?? null,
@@ -565,7 +566,7 @@ export function buildStockOrderTimeline(order) {
   if (order?.partialReceivedAt || (partiallyReceived && !fullyReceived)) {
     steps.push({
       id: 'partial',
-      label: 'Partially received',
+      label: t("Partially received"),
       isComplete: Boolean(order?.partialReceivedAt) || partiallyReceived,
       timestamp: order?.partialReceivedAt ?? null,
       actorName: order?.partialReceivedByName ?? null,

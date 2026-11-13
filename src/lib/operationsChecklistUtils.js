@@ -1,5 +1,6 @@
 import { normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
 import { formatTimestampTime24 } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 export const CHECKLIST_DEPARTMENTS = ['bar', 'service', 'kitchen', 'management']
 
@@ -55,14 +56,14 @@ export function buildEmptyChecklistItemForm(orderIndex = 0) {
 
 export function validateChecklistTemplateForm(form) {
   if (!`${form.name ?? ''}`.trim()) {
-    return 'Please enter a checklist name.'
+    return t("Please enter a checklist name.")
   }
   return ''
 }
 
 export function validateChecklistItemForm(form) {
   if (!`${form.title ?? ''}`.trim()) {
-    return 'Please enter a task title.'
+    return t("Please enter a task title.")
   }
   return ''
 }
@@ -156,14 +157,14 @@ export function buildChecklistProgressRows(templates = [], tasks = [], todayKey 
 }
 
 export function formatChecklistProgressLabel(row) {
-  if (!row?.started) return 'Not started'
+  if (!row?.started) return t("Not started")
   if (row.status === 'complete') return 'Complete'
   return `${row.completed}/${row.total} done`
 }
 
 export function formatChecklistCompletionMeta(task) {
   if (!task?.completedAt) return null
-  const completedBy = `${task.completedByName ?? ''}`.trim() || 'Team member'
+  const completedBy = `${task.completedByName ?? ''}`.trim() || t("Team member")
   const timeLabel = formatTimestampTime24(task.completedAt, '')
   return timeLabel ? `${completedBy} · ${timeLabel}` : completedBy
 }

@@ -13,14 +13,14 @@ const PLANS = [
   {
     id: 'pro',
     name: 'Pro',
-    detail: 'All features, 1 venue included, up to 40 staff, up to 3 venues',
+    detail: t("All features, 1 venue included, up to 40 staff, up to 3 venues"),
     freeMonth: true,
     recommended: true,
   },
   {
     id: 'group',
     name: 'Group',
-    detail: 'Up to 5 venues included, unlimited staff',
+    detail: t("Up to 5 venues included, unlimited staff"),
     freeMonth: false,
   },
 ]

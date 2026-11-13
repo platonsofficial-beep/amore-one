@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * P8.31.6d — Product metadata display helpers (read-only).
  * Does not compute Display Name. Does not change quantities or units.
@@ -105,11 +106,11 @@ export function buildStockProductInformationRows(item, options = {}) {
   if (size) rows.push({ key: 'size', label: 'Size', value: size })
   if (barcode) rows.push({ key: 'barcode', label: 'Barcode', value: barcode })
   if (packagingNote) {
-    rows.push({ key: 'packagingNote', label: 'Packaging note', value: packagingNote })
+    rows.push({ key: 'packagingNote', label: t("Packaging note"), value: packagingNote })
   }
   if (supplier) rows.push({ key: 'supplier', label: 'Supplier', value: supplier })
-  if (storage) rows.push({ key: 'storage', label: 'Default storage', value: storage })
-  if (unit) rows.push({ key: 'unit', label: 'Inventory unit', value: unit })
+  if (storage) rows.push({ key: 'storage', label: t("Default storage"), value: storage })
+  if (unit) rows.push({ key: 'unit', label: t("Inventory unit"), value: unit })
 
   return rows
 }

@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /**
  * P8.16.25 / P8.16.26c / P8.16.29 — Single product permanent delete confirmation helpers.
  */
@@ -67,10 +68,10 @@ export function buildOpenInventoryCountBlockDetails({
   const name = `${productName ?? ''}`.trim()
   if (!blocker?.sessionId) {
     return {
-      title: 'Blocked by Inventory Count',
+      title: t("Blocked by Inventory Count"),
       fallbackMessage: OPEN_COUNT_FALLBACK,
       fields: null,
-      guidance: 'Finish or cancel that count before permanently deleting this product.',
+      guidance: t("Finish or cancel that count before permanently deleting this product."),
     }
   }
 
@@ -78,7 +79,7 @@ export function buildOpenInventoryCountBlockDetails({
     { label: 'Product', value: name || '—' },
     {
       label: 'Session',
-      value: `${blocker.countTypeLabel || blocker.countType || 'Inventory Count'}`.trim() || '—',
+      value: `${blocker.countTypeLabel || blocker.countType || t("Inventory Count")}`.trim() || '—',
     },
     { label: 'Status', value: `${blocker.statusLabel || blocker.status || '—'}`.trim() || '—' },
     { label: 'Location', value: `${blocker.storageLocation || '—'}`.trim() || '—' },
@@ -87,10 +88,10 @@ export function buildOpenInventoryCountBlockDetails({
   ]
 
   return {
-    title: 'Blocked by Inventory Count',
+    title: t("Blocked by Inventory Count"),
     fallbackMessage: null,
     fields,
-    guidance: 'Finish or cancel this count before permanently deleting this product.',
+    guidance: t("Finish or cancel this count before permanently deleting this product."),
   }
 }
 
@@ -103,29 +104,29 @@ export function friendlyStockItemPermanentDeleteError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
 
   if (code === 'FORBIDDEN' || message.includes('forbidden')) {
-    return 'You do not have permission to permanently delete this product.'
+    return t("You do not have permission to permanently delete this product.")
   }
   if (code === 'UNAUTHENTICATED') {
-    return 'Please sign in again to continue.'
+    return t("Please sign in again to continue.")
   }
   if (code === 'WORKSPACE_REQUIRED' || code === 'WORKSPACE_NOT_FOUND') {
-    return 'This workspace is not ready for permanent delete right now.'
+    return t("This workspace is not ready for permanent delete right now.")
   }
   if (code === 'ITEM_REQUIRED' || code === 'ITEM_NOT_FOUND') {
-    return 'This product could not be found in the current workspace.'
+    return t("This product could not be found in the current workspace.")
   }
   if (code === 'BLOCKED_DRAFT_ORDER') {
-    return 'This product is on a draft purchase order. Remove it from the draft order first.'
+    return t("This product is on a draft purchase order. Remove it from the draft order first.")
   }
   if (code === 'BLOCKED_SENT_ORDER') {
-    return 'This product is on a sent purchase order. Resolve the sent order first.'
+    return t("This product is on a sent purchase order. Resolve the sent order first.")
   }
   if (code === 'BLOCKED_OPEN_COUNT') {
     return OPEN_COUNT_FALLBACK
   }
   if (message.includes('incorrect password') || message.includes('invalid login')) {
-    return 'Incorrect password. Please try again.'
+    return t("Incorrect password. Please try again.")
   }
 
-  return error?.message || 'Unable to permanently delete this product right now. Please try again.'
+  return error?.message || t("Unable to permanently delete this product right now. Please try again.")
 }

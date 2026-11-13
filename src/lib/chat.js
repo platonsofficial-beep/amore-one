@@ -238,9 +238,9 @@ export function clipChatBody(value) {
 
 export function chatErrorMessage(error) {
   const raw = `${error?.message || error?.details || error || ''}`.toLowerCase()
-  if (raw.includes('announcement_only')) return 'Only managers can post in this channel.'
-  if (raw.includes('not_allowed')) return 'You cannot do that in this chat.'
-  if (raw.includes('bad_attachment_path')) return 'That photo could not be sent.'
-  if (raw.includes('photo is still too large')) return 'That photo is still too large. Try another one.'
-  return 'Something went wrong. Try again.'
+  if (raw.includes('announcement_only')) return t("Only managers can post in this channel.")
+  if (raw.includes('not_allowed')) return t("You cannot do that in this chat.")
+  if (raw.includes('bad_attachment_path')) return t("That photo could not be sent.")
+  if (raw.includes('photo is still too large')) return t("That photo is still too large. Try another one.")
+  return t("Something went wrong. Try again.")
 }

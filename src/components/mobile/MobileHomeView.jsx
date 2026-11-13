@@ -57,7 +57,7 @@ export function MobileHomeView({
           </>
         ) : (
           <>
-            <h2 className="mobile-card-headline">{shiftSummary.headline ?? 'Checking schedule…'}</h2>
+            <h2 className="mobile-card-headline">{shiftSummary.headline ?? t("Checking schedule…")}</h2>
             <p className="mobile-card-detail">{shiftSummary.detail ?? ''}</p>
           </>
         )}

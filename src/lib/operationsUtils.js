@@ -3,6 +3,7 @@ import {
   formatTimestampDayAndTime24,
   formatTimestampTime24,
 } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 export const OPERATIONS_CATEGORIES = [
   'opening',
@@ -238,13 +239,13 @@ export function canStaffCompleteTask(task, currentEmployeeId) {
 
 export function validateOperationsTaskForm(form) {
   if (!`${form.title ?? ''}`.trim()) {
-    return 'Please enter a task title.'
+    return t("Please enter a task title.")
   }
   if (
     normalizeOperationsTaskFormSteps(form?.steps).length > 0
     && !normalizeOperationsTaskDate(form?.dueDate)
   ) {
-    return 'Add a due date to save checklist steps.'
+    return t("Add a due date to save checklist steps.")
   }
   return ''
 }
@@ -265,7 +266,7 @@ export function buildOperationsTaskSubmitPayload(form) {
 
 export function validateOperationsLogForm(form) {
   if (!`${form.message ?? ''}`.trim()) {
-    return 'Please share what happened.'
+    return t("Please share what happened.")
   }
   return ''
 }

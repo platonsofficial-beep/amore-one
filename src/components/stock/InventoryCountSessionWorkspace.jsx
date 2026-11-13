@@ -18,7 +18,7 @@ import { t } from '../../i18n/i18n'
 const LOCATION_STATE_LABEL = {
   completed: 'Completed',
   current: 'Current',
-  not_started: 'Not started',
+  not_started: t("Not started"),
 }
 
 const LINE_STATUS_LABEL = {
@@ -125,8 +125,8 @@ function mapItemForDisplay(item) {
 
 export function inventoryCountModeLabel(visibility) {
   const value = `${visibility ?? ''}`.trim().toLowerCase()
-  if (value === 'blind') return 'Blind Count'
-  if (value === 'open') return 'Open count'
+  if (value === 'blind') return t("Blind Count")
+  if (value === 'open') return t("Open count")
   return 'Count'
 }
 
@@ -233,7 +233,7 @@ export function getFinishCountDisabledReason(sessionStatus, locations = []) {
   const status = `${sessionStatus ?? ''}`.trim()
   if (status === 'counting_complete') return ''
   if (status === 'paused') {
-    return 'Resume this count before finishing.'
+    return t("Resume this count before finishing.")
   }
 
   const progress = getSessionProgress(locations)
@@ -248,10 +248,10 @@ export function getFinishCountDisabledReason(sessionStatus, locations = []) {
     if (currentName) {
       return `Complete all locations before finishing this count. Current location: ${currentName}.`
     }
-    return 'Complete all locations before finishing this count.'
+    return t("Complete all locations before finishing this count.")
   }
 
-  return 'Complete all locations before finishing this count.'
+  return t("Complete all locations before finishing this count.")
 }
 
 /**
@@ -279,8 +279,8 @@ export function getFinishPreviewPostingHero(finishPreview) {
   if (finishPreview.canPost) {
     return {
       state: 'ready',
-      title: 'Ready to post',
-      detail: 'No blocking issues were found. Review the summary below and confirm to post this count.',
+      title: t("Ready to post"),
+      detail: t("No blocking issues were found. Review the summary below and confirm to post this count."),
     }
   }
 
@@ -290,18 +290,18 @@ export function getFinishPreviewPostingHero(finishPreview) {
   const primaryMessage = `${primary?.message ?? ''}`.trim()
   const skippedLines = Number(finishPreview.summary?.skippedLines) || 0
 
-  let detail = 'Finish the remaining requirements before posting.'
+  let detail = t("Finish the remaining requirements before posting.")
   if (primaryCode === 'skipped_lines_present' || (skippedLines > 0 && !primaryMessage)) {
-    detail = 'Some items are still skipped.'
+    detail = t("Some items are still skipped.")
   } else if (primaryMessage) {
     detail = primaryMessage
   } else {
-    detail = 'Review required before posting.'
+    detail = t("Review required before posting.")
   }
 
   return {
     state: 'blocked',
-    title: 'Cannot post yet',
+    title: t("Cannot post yet"),
     detail,
   }
 }
@@ -312,20 +312,20 @@ export function getFinishPreviewPostingHero(finishPreview) {
 export function getLocationReadinessLabel(location) {
   if (!location) return ''
   const status = `${location.status ?? ''}`.trim()
-  if (status === 'completed') return 'Location completed'
+  if (status === 'completed') return t("Location completed")
 
   const totalItems = Number(location.totalItems) || 0
   const countedItems = Number(location.countedItems) || 0
   const allItemsCounted = totalItems > 0 && countedItems >= totalItems
 
   if (allItemsCounted && status === 'current') {
-    return 'All items counted · Ready to complete location'
+    return t("All items counted · Ready to complete location")
   }
   if (allItemsCounted && status !== 'current') {
-    return 'All items counted · Waiting to become current'
+    return t("All items counted · Waiting to become current")
   }
 
-  return LOCATION_STATE_LABEL[status] || 'Not started'
+  return LOCATION_STATE_LABEL[status] || t("Not started")
 }
 
 /**
@@ -341,30 +341,30 @@ export function getCompleteLocationDisabledReason({
   phoneLandscapeCopy = false,
   isCompletingLocation = false,
 } = {}) {
-  if (isCompletingLocation) return 'Completing location…'
+  if (isCompletingLocation) return t("Completing location…")
 
   const status = `${sessionStatus ?? ''}`.trim()
   if (status === 'paused') {
-    return 'Resume this count before completing locations.'
+    return t("Resume this count before completing locations.")
   }
   if (status === 'counting_complete') {
-    return 'This location is already complete.'
+    return t("This location is already complete.")
   }
   if (status !== 'in_progress') {
-    return 'Resume this count before completing locations.'
+    return t("Resume this count before completing locations.")
   }
   if (!selectedLocation) {
-    return 'Select a location to complete.'
+    return t("Select a location to complete.")
   }
 
   const locationStatus = `${selectedLocation.status ?? ''}`.trim()
   if (locationStatus === 'completed') {
-    return 'This location is already complete.'
+    return t("This location is already complete.")
   }
   if (locationStatus !== 'current') {
     const name = `${currentLocationName ?? ''}`.trim()
     // S-19 (phone landscape only): no literal placeholder when no location is current.
-    if (!name && phoneLandscapeCopy) return 'Finish the location you’re on first.'
+    if (!name && phoneLandscapeCopy) return t("Finish the location you’re on first.")
     return `Complete “${name || 'the current location'}” first.`
   }
 
@@ -891,7 +891,7 @@ export function InventoryCountSessionWorkspace({
         if (cancelled || loadRequestIdRef.current !== requestId) return
         setLocations([])
         setSelectedLocationId('')
-        setLoadError(error?.message || 'Unable to load inventory count items right now.')
+        setLoadError(error?.message || t("Unable to load inventory count items right now."))
       } finally {
         if (!cancelled && loadRequestIdRef.current === requestId) {
           setIsLoading(false)
@@ -968,7 +968,7 @@ export function InventoryCountSessionWorkspace({
       if (rollback) {
         setLocations((current) => patchItemInLocations(current, itemId, rollback))
       }
-      setSaveError(error?.message || 'Unable to save counted quantity right now.')
+      setSaveError(error?.message || t("Unable to save counted quantity right now."))
       return false
     } finally {
       inFlightRef.current.set(itemId, false)
@@ -1199,13 +1199,13 @@ export function InventoryCountSessionWorkspace({
   const unsavedLabel = isSaving
     ? 'Saving…'
     : saveError
-      ? 'Save failed'
-      : 'All changes saved'
+      ? t("Save failed")
+      : t("All changes saved")
   const sessionStatusLabel = sessionStatus === 'counting_complete'
-    ? 'Counting Complete'
+    ? t("Counting Complete")
     : sessionStatus === 'paused'
       ? 'Paused'
-      : 'In Progress'
+      : t("In Progress")
   const showCountingCompleteBanner = sessionStatus === 'counting_complete'
   const hideExpected = sessionVisibility === 'blind'
   const showPausedBanner = isSessionPaused
@@ -1290,8 +1290,8 @@ export function InventoryCountSessionWorkspace({
     const sessionId = `${sessionIdProp || ''}`.trim()
     if (!workspaceId || !sessionId) {
       setSaveError(shouldPause
-        ? 'Unable to pause inventory count right now.'
-        : 'Unable to resume inventory count right now.')
+        ? t("Unable to pause inventory count right now.")
+        : t("Unable to resume inventory count right now."))
       return
     }
 
@@ -1319,8 +1319,8 @@ export function InventoryCountSessionWorkspace({
     } catch (error) {
       setSaveError(error?.message || (
         shouldPause
-          ? 'Unable to pause inventory count right now.'
-          : 'Unable to resume inventory count right now.'
+          ? t("Unable to pause inventory count right now.")
+          : t("Unable to resume inventory count right now.")
       ))
     } finally {
       setIsTogglingPause(false)
@@ -1379,7 +1379,7 @@ export function InventoryCountSessionWorkspace({
         setSelectedLocationId(result.nextLocationId)
       }
     } catch (error) {
-      setSaveError(error?.message || 'Unable to complete inventory count location right now.')
+      setSaveError(error?.message || t("Unable to complete inventory count location right now."))
     } finally {
       setIsCompletingLocation(false)
     }
@@ -1414,7 +1414,7 @@ export function InventoryCountSessionWorkspace({
       const rawMessage = `${error?.message ?? ''}`.trim()
       const isTechnical = !rawMessage || /empty or invalid|failed to fetch|network|timeout|load failed/i.test(rawMessage)
       setFinishPreviewError(isTechnical
-        ? 'The count summary couldn’t be loaded. Check your connection and try again.'
+        ? t("The count summary couldn’t be loaded. Check your connection and try again.")
         : rawMessage)
       setFinishPreviewLoadFailed(true)
     } finally {
@@ -1498,7 +1498,7 @@ export function InventoryCountSessionWorkspace({
         onExit()
       }
     } catch (error) {
-      setFinishPreviewError(error?.message || 'Unable to post inventory count right now.')
+      setFinishPreviewError(error?.message || t("Unable to post inventory count right now."))
       setIsPostingFinish(false)
       isPostingFinishRef.current = false
     }
@@ -1575,7 +1575,7 @@ export function InventoryCountSessionWorkspace({
               void handleOpenFinishPreview()
             }}
           >
-            {isLoadingFinishPreview ? 'Loading…' : 'Finish Count'}
+            {isLoadingFinishPreview ? 'Loading…' : t("Finish Count")}
           </button>
           ) : null}
           <button
@@ -1868,7 +1868,7 @@ export function InventoryCountSessionWorkspace({
                   void handleCompleteLocation()
                 }}
               >
-                {isCompletingLocation ? 'Completing…' : 'Complete Location'}
+                {isCompletingLocation ? 'Completing…' : t("Complete Location")}
               </button>
             </div>
           </footer>
@@ -2107,14 +2107,14 @@ export function InventoryCountSessionWorkspace({
             <footer className="inventory-count-finish-preview-footer">
               <p className="inventory-count-finish-preview-footer-note">
                 {isPostingFinish
-                  ? 'Posting inventory count…'
+                  ? t("Posting inventory count…")
                   : hasPostedFinish
-                    ? 'Inventory count posted.'
+                    ? t("Inventory count posted.")
                     : finishPreviewLoadFailed
-                      ? 'Load the count summary to continue.'
+                      ? t("Load the count summary to continue.")
                       : finishPreview?.canPost
-                      ? 'Confirm posts stock adjustments and finalizes this count.'
-                      : 'Resolve blocking issues before Confirm Finish Count is available.'}
+                      ? t("Confirm posts stock adjustments and finalizes this count.")
+                      : t("Resolve blocking issues before Confirm Finish Count is available.")}
               </p>
               <div className="inventory-count-finish-preview-footer-actions">
                 <button
@@ -2133,21 +2133,21 @@ export function InventoryCountSessionWorkspace({
                   aria-disabled={!canConfirmFinish}
                   title={
                     hasPostedFinish
-                      ? 'Inventory count already posted'
+                      ? t("Inventory count already posted")
                       : finishPreview?.canPost
-                        ? 'Post inventory count'
-                        : 'Posting unavailable until blockers are resolved'
+                        ? t("Post inventory count")
+                        : t("Posting unavailable until blockers are resolved")
                   }
                   aria-label={
                     isPostingFinish
-                      ? 'Posting inventory count'
-                      : 'Confirm Finish Count'
+                      ? t("Posting inventory count")
+                      : t("Confirm Finish Count")
                   }
                   onClick={() => {
                     void handleConfirmFinishCount()
                   }}
                 >
-                  {isPostingFinish ? 'Posting…' : 'Confirm Finish Count'}
+                  {isPostingFinish ? 'Posting…' : t("Confirm Finish Count")}
                 </button>
               </div>
             </footer>

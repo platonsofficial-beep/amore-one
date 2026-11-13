@@ -559,7 +559,7 @@ export function MobileReservationsHostView({
         ? queueEmptyState
         : getHostListEmptyState({
           filter: activeTab === 'upcoming' ? 'Upcoming'
-            : activeTab === 'in-house' ? 'In House'
+            : activeTab === 'in-house' ? t("In House")
               : activeTab === 'completed' ? 'Completed'
                 : activeTab === 'problems' ? 'Problems'
                   : 'All',

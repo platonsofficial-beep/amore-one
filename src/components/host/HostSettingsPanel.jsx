@@ -37,7 +37,7 @@ export function HostSettingsPanel({
       <div className="host-settings-scroll">
         <section className="host-settings-section">
           <h3>{t("Profile")}</h3>
-          <p><strong>{profile.name || 'Host user'}</strong></p>
+          <p><strong>{profile.name || t("Host user")}</strong></p>
           {profile.email ? <p>{profile.email}</p> : null}
           {profile.phone ? <p>{profile.phone}</p> : null}
           {membership?.employeeName ? <p>Linked employee: {membership.employeeName}</p> : null}

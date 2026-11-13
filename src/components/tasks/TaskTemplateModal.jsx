@@ -109,7 +109,7 @@ export default function TaskTemplateModal({
           <div>
             <p className="eyebrow">{t("Template")}</p>
             <h3 id="task-template-form-title">
-              {editingTemplate ? 'Edit template' : 'New template'}
+              {editingTemplate ? t("Edit template") : t("New template")}
             </h3>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close template form")}>

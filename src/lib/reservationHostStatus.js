@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export const HOST_RESERVATION_STATUSES = [
   {
     id: 'Pending',
@@ -17,7 +18,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: 'Not Confirmed',
+    id: t("Not Confirmed"),
     label: 'Unconfirmed',
     icon: '🕐',
     tone: 'not-confirmed',
@@ -35,7 +36,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'upcoming',
   },
   {
-    id: 'Late Booking',
+    id: t("Late Booking"),
     label: 'Late',
     icon: '☾',
     tone: 'late-booking',
@@ -43,16 +44,16 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'upcoming',
   },
   {
-    id: 'Checked In (Partial)',
+    id: t("Checked In (Partial)"),
     // No seated-guest count is stored, so the partial seat gets a short hint.
-    label: 'Seated · partly',
+    label: t("Seated · partly"),
     icon: '✓',
     tone: 'checked-in-partial',
     groupId: 'in-house',
     pickerGroupId: 'arrived',
   },
   {
-    id: 'Checked In',
+    id: t("Checked In"),
     label: 'Seated',
     icon: '🍽',
     tone: 'checked-in',
@@ -60,7 +61,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: 'Walk In',
+    id: t("Walk In"),
     label: 'Walk-in',
     icon: '→',
     tone: 'walk-in',
@@ -68,7 +69,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'arrived',
   },
   {
-    id: 'Checked Out',
+    id: t("Checked Out"),
     label: 'Finished',
     icon: '✓',
     tone: 'checked-out',
@@ -84,7 +85,7 @@ export const HOST_RESERVATION_STATUSES = [
     pickerGroupId: 'problems',
   },
   {
-    id: 'Not Shown',
+    id: t("Not Shown"),
     label: 'No-show',
     icon: '◌',
     tone: 'not-shown',
@@ -150,17 +151,17 @@ export const HOST_LIST_GROUP_DEFS = [
 const LEGACY_STATUS_ALIASES = {
   Booked: 'Pending',
   Arrived: 'Waiting',
-  Seated: 'Checked In',
-  seated: 'Checked In',
-  in_house: 'Checked In',
-  checked_in: 'Checked In',
-  Dining: 'Checked In',
-  Completed: 'Checked Out',
-  completed: 'Checked Out',
-  finished: 'Checked Out',
-  departed: 'Checked Out',
-  closed: 'Checked Out',
-  'No Show': 'Not Shown',
+  Seated: t("Checked In"),
+  seated: t("Checked In"),
+  in_house: t("Checked In"),
+  checked_in: t("Checked In"),
+  Dining: t("Checked In"),
+  Completed: t("Checked Out"),
+  completed: t("Checked Out"),
+  finished: t("Checked Out"),
+  departed: t("Checked Out"),
+  closed: t("Checked Out"),
+  'No Show': t("Not Shown"),
   pending: 'Pending',
   confirmed: 'Confirmed',
   cancelled: 'Cancelled',
@@ -283,7 +284,7 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   'Not Confirmed': 'Unconfirmed',
   Confirmed: 'Confirmed',
   'Late Booking': 'Late',
-  'Checked In (Partial)': 'Seated · partly',
+  'Checked In (Partial)': t("Seated · partly"),
   'Checked In': 'Seated',
   'Walk In': 'Walk-in',
   'Checked Out': 'Finished',
@@ -309,7 +310,7 @@ export function getPartialSeatCount(reservation) {
 /** "Seated 2/4" when the count is known, otherwise "Seated · partly". */
 export function formatPartialSeatLabel(reservation) {
   const count = getPartialSeatCount(reservation)
-  return count ? `Seated ${count.seated}/${count.party}` : 'Seated · partly'
+  return count ? `Seated ${count.seated}/${count.party}` : t("Seated · partly")
 }
 
 /** "2 to come" when the count is known, otherwise ''. */
@@ -365,7 +366,7 @@ export function getHostListCompactStatusPresentation(
 
 const HOST_FLOOR_SELECTION_STATUS_LABELS = {
   'Checked In': 'Seated',
-  'Checked In (Partial)': 'Seated · partly',
+  'Checked In (Partial)': t("Seated · partly"),
   'Walk In': 'Walk-in',
   'Not Shown': 'No-show',
   'Checked Out': 'Finished',
@@ -426,9 +427,9 @@ export const HOST_STATION_STATUS_MENU_OPTIONS = [
   { status: 'Pending', menuLabel: 'Pending' },
   { status: 'Confirmed', menuLabel: 'Confirmed' },
   { status: 'Waiting', menuLabel: 'Arrived' },
-  { status: 'Checked In', menuLabel: 'Seated' },
-  { status: 'Checked Out', menuLabel: 'Finished' },
-  { status: 'Not Shown', menuLabel: 'No-show' },
+  { status: t("Checked In"), menuLabel: 'Seated' },
+  { status: t("Checked Out"), menuLabel: 'Finished' },
+  { status: t("Not Shown"), menuLabel: 'No-show' },
   { status: 'Cancelled', menuLabel: 'Cancelled' },
 ]
 
@@ -471,11 +472,11 @@ function parseTimeToMinutes(value) {
 
 export function getReservationDisplayStatus(reservation, nowMinutes, todayKey) {
   const status = normalizeReservationStatus(reservation?.status)
-  if (status === 'Late Booking') return 'Late Booking'
+  if (status === 'Late Booking') return t("Late Booking")
   // An Arrived guest is already here: show Arrived, never Late (Platon t447u).
   // Late/waiting counts in the service snapshot are unchanged.
   if (status === 'Waiting') return status
-  if (isReservationLateByTime(reservation, nowMinutes, todayKey)) return 'Late Booking'
+  if (isReservationLateByTime(reservation, nowMinutes, todayKey)) return t("Late Booking")
   return status
 }
 
@@ -587,13 +588,13 @@ export function getHostReservationQuickActions(reservation, { nowMinutes = 0, to
       actions.push({ id: 'arrived', label: 'Arrived', status: 'Waiting', variant: 'primary' })
     }
     if (canSeatReservation(reservation)) {
-      actions.push({ id: 'seat', label: 'Seat', status: 'Checked In', variant: 'primary' })
+      actions.push({ id: 'seat', label: 'Seat', status: t("Checked In"), variant: 'primary' })
     }
     if (canMarkReservationNoShow(reservation)) {
-      actions.push({ id: 'no-show', label: 'No-show', status: 'Not Shown', variant: 'danger' })
+      actions.push({ id: 'no-show', label: 'No-show', status: t("Not Shown"), variant: 'danger' })
     }
   } else if (groupId === 'in-house' && canCompleteReservation(reservation)) {
-    actions.push({ id: 'complete', label: 'Complete', status: 'Checked Out', variant: 'primary' })
+    actions.push({ id: 'complete', label: 'Complete', status: t("Checked Out"), variant: 'primary' })
   }
 
   return actions

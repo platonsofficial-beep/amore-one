@@ -1,4 +1,4 @@
-import { uiLocale } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 
 /** Venue calendar. Asia/Nicosia and Europe/Nicosia are the same zone. */
 export const NICOSIA_TIME_ZONE = 'Asia/Nicosia'
@@ -102,7 +102,7 @@ export function isCurrentWeek(weekStartDate, timeZone = NICOSIA_TIME_ZONE) {
 }
 
 export function formatWeekRange(days) {
-  if (!Array.isArray(days) || days.length === 0) return 'No week selected'
+  if (!Array.isArray(days) || days.length === 0) return t("No week selected")
   return `${days[0].shortDate} – ${days[days.length - 1].shortDate}`
 }
 

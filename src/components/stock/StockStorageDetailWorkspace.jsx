@@ -108,7 +108,7 @@ function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
       await onCommit?.(row, parsed, { nextItemId })
       lastCommitted.current = nextValue
     } catch (commitError) {
-      setError(commitError?.message || 'Unable to save the shelf par.')
+      setError(commitError?.message || t("Unable to save the shelf par."))
     } finally {
       commitLock.current = false
     }
@@ -465,7 +465,7 @@ export function StockStorageDetailWorkspace({
         if (cancelled) return
         setPayload(null)
         setStatus('error')
-        setErrorMessage(error?.message || 'Unable to load storage products right now.')
+        setErrorMessage(error?.message || t("Unable to load storage products right now."))
       }
     })()
 
@@ -528,7 +528,7 @@ export function StockStorageDetailWorkspace({
       setFastCountConfirmOpen(true)
     } catch (error) {
       if (fastCountRequestIdRef.current !== requestId) return
-      setFastCountError(error?.message || 'Unable to check open counts right now.')
+      setFastCountError(error?.message || t("Unable to check open counts right now."))
     } finally {
       if (fastCountRequestIdRef.current === requestId) {
         setIsLaunchingFastCount(false)
@@ -564,7 +564,7 @@ export function StockStorageDetailWorkspace({
       onOpenActiveCountSession?.(sessionId)
     } catch (error) {
       if (fastCountRequestIdRef.current !== requestId) return
-      setFastCountError(error?.message || 'Unable to start Fast Count right now.')
+      setFastCountError(error?.message || t("Unable to start Fast Count right now."))
     } finally {
       if (fastCountRequestIdRef.current === requestId) {
         setIsLaunchingFastCount(false)
@@ -785,7 +785,7 @@ export function StockStorageDetailWorkspace({
       })
     } catch (commitError) {
       pendingParFocusIdRef.current = ''
-      const message = commitError?.message || 'Unable to save the shelf par.'
+      const message = commitError?.message || t("Unable to save the shelf par.")
       setParError(message)
       throw commitError
     } finally {
@@ -868,7 +868,7 @@ export function StockStorageDetailWorkspace({
                 !canManage && !staffTakeReady
                   ? STAFF_REFILL_BLOCKED_MESSAGE
                   : storage?.active === false
-                    ? 'Unavailable for archived storage'
+                    ? t("Unavailable for archived storage")
                     : undefined
               }
               onClick={() => {
@@ -979,8 +979,8 @@ export function StockStorageDetailWorkspace({
           <p className="stock-storage-center-empty-title">{t("No products in this storage.")}</p>
           <p className="stock-storage-center-empty-copy">
             {parsAvailable
-              ? 'Products appear here when they have a balance or a per-shelf par in this location.'
-              : 'Products appear here when they have a balance in this location.'}
+              ? t("Products appear here when they have a balance or a per-shelf par in this location.")
+              : t("Products appear here when they have a balance in this location.")}
           </p>
         </div>
       ) : null}
@@ -1009,7 +1009,7 @@ export function StockStorageDetailWorkspace({
 
       {status === 'ready' && visibleProducts.length === 0 ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-no-matches">
-          {belowParOnly ? 'No products are below storage par on this shelf.' : 'No products match this search.'}
+          {belowParOnly ? t("No products are below storage par on this shelf.") : t("No products match this search.")}
         </div>
       ) : null}
 

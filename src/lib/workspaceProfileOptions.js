@@ -1,9 +1,10 @@
+import { t } from '../i18n/i18n'
 export const WORKSPACE_PROFILE_TIMEZONES = [
   { value: 'Europe/Nicosia', label: 'Nicosia' },
-  { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
-  { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
-  { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },
-  { value: 'America/Los_Angeles', label: 'Pacific Time (US & Canada)' },
+  { value: 'America/New_York', label: t("Eastern Time (US & Canada)") },
+  { value: 'America/Chicago', label: t("Central Time (US & Canada)") },
+  { value: 'America/Denver', label: t("Mountain Time (US & Canada)") },
+  { value: 'America/Los_Angeles', label: t("Pacific Time (US & Canada)") },
   { value: 'America/Toronto', label: 'Toronto' },
   { value: 'America/Vancouver', label: 'Vancouver' },
   { value: 'Europe/London', label: 'London' },
@@ -19,15 +20,15 @@ export const WORKSPACE_PROFILE_TIMEZONES = [
 ]
 
 export const WORKSPACE_PROFILE_CURRENCIES = [
-  { value: 'USD', label: 'USD — US Dollar' },
-  { value: 'EUR', label: 'EUR — Euro' },
-  { value: 'GBP', label: 'GBP — British Pound' },
-  { value: 'CAD', label: 'CAD — Canadian Dollar' },
-  { value: 'AUD', label: 'AUD — Australian Dollar' },
-  { value: 'CHF', label: 'CHF — Swiss Franc' },
-  { value: 'AED', label: 'AED — UAE Dirham' },
-  { value: 'SGD', label: 'SGD — Singapore Dollar' },
-  { value: 'JPY', label: 'JPY — Japanese Yen' },
+  { value: 'USD', label: t("USD — US Dollar") },
+  { value: 'EUR', label: t("EUR — Euro") },
+  { value: 'GBP', label: t("GBP — British Pound") },
+  { value: 'CAD', label: t("CAD — Canadian Dollar") },
+  { value: 'AUD', label: t("AUD — Australian Dollar") },
+  { value: 'CHF', label: t("CHF — Swiss Franc") },
+  { value: 'AED', label: t("AED — UAE Dirham") },
+  { value: 'SGD', label: t("SGD — Singapore Dollar") },
+  { value: 'JPY', label: t("JPY — Japanese Yen") },
 ]
 
 export const MAX_WORKSPACE_LOGO_BYTES = 256 * 1024

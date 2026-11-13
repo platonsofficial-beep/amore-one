@@ -2,7 +2,7 @@ import { t } from '../../i18n/i18n'
 export default function DepartmentPerformanceSummary({
   summaries = [],
   compact = false,
-  title = 'Department performance',
+  title = t("Department performance"),
 }) {
   if (summaries.length === 0) {
     return (

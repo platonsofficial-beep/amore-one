@@ -9,6 +9,7 @@
  */
 
 import { INVENTORY_IMPORT_TABULAR_PARSER_VERSION } from './inventoryImportTabularParser'
+import { t } from '../i18n/i18n'
 
 export const INVENTORY_IMPORT_VALIDATION_VERSION = 'import_validation_structural_v1'
 
@@ -241,7 +242,7 @@ function collectDatasetIssues(parsedTable) {
       code: 'NO_DATA_ROWS',
       severity: 'info',
       scope: 'dataset',
-      message: 'Parsed table has headers but no data rows.',
+      message: t("Parsed table has headers but no data rows."),
     }))
   } else if (
     summary.blankRowCount === summary.sourceRowCount
@@ -251,7 +252,7 @@ function collectDatasetIssues(parsedTable) {
       code: 'ALL_ROWS_BLANK',
       severity: 'warning',
       scope: 'dataset',
-      message: 'Every source data row is blank.',
+      message: t("Every source data row is blank."),
     }))
   }
 

@@ -135,7 +135,7 @@ export function RequestLeaveModal({
       }, 1200)
     } catch (error) {
       submitInFlightRef.current = false
-      setErrorMessage(error?.message || 'Unable to submit the leave request right now.')
+      setErrorMessage(error?.message || t("Unable to submit the leave request right now."))
       setIsSubmitting(false)
     }
   }
@@ -265,7 +265,7 @@ export function RequestLeaveModal({
               className="primary-btn"
               disabled={isSubmitting || Boolean(successMessage)}
             >
-              {isSubmitting ? 'Submitting…' : 'Submit request'}
+              {isSubmitting ? 'Submitting…' : t("Submit request")}
             </button>
           </div>
         </form>

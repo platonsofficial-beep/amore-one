@@ -157,7 +157,7 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           onClick={() => setShowCompleted((current) => !current)}
           aria-expanded={showCompleted}
         >
-          {showCompleted ? 'Hide completed' : `Show completed (${completedCount})`}
+          {showCompleted ? t("Hide completed") : `Show completed (${completedCount})`}
         </button>
       ) : null}
       {showCompleted && completedRows.length > 0 ? (

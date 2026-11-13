@@ -6,6 +6,7 @@ import {
   getReservationDateKey,
 } from '../../lib/floorAssignmentMapping'
 import { getCurrentDateKey, getLocalNow } from '../../lib/currentDateUtils'
+import { t, uiLocale } from '../../i18n/i18n'
 import { normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
 import {
@@ -26,7 +27,6 @@ import {
   buildDailyServiceSnapshot,
   getHostReservationAlertReasons,
 } from '../../lib/reservationServiceIntelligence'
-
 export {
   HOST_LIST_GROUP_DEFS,
   getHostListGroupId,
@@ -100,8 +100,8 @@ export function formatHostWorkspaceShortDateLabel(dateKey = '') {
   if (!normalizedDateKey) return ''
 
   const date = parseLocalDate(normalizedDateKey)
-  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
-  const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  const weekday = date.toLocaleDateString(uiLocale('en-US'), { weekday: 'long' })
+  const monthDay = date.toLocaleDateString(uiLocale('en-US'), { month: 'long', day: 'numeric' })
   return `${weekday} • ${monthDay}`
 }
 
@@ -123,7 +123,7 @@ export function formatHostWorkspaceLongDateLabel(dateKey = '') {
   if (!normalizedDateKey) return ''
 
   const date = parseLocalDate(normalizedDateKey)
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(uiLocale('en-US'), {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -139,9 +139,9 @@ export function formatHostWorkspaceDateNavLabel(
   const longLabel = formatHostWorkspaceLongDateLabel(selected)
 
   if (!selected || !longLabel) return longLabel
-  if (selected === today) return `Today · ${longLabel}`
-  if (selected === shiftHostWorkspaceDateKey(today, -1)) return `Yesterday · ${longLabel}`
-  if (selected === shiftHostWorkspaceDateKey(today, 1)) return `Tomorrow · ${longLabel}`
+  if (selected === today) return `${t('Today')} · ${longLabel}`
+  if (selected === shiftHostWorkspaceDateKey(today, -1)) return `${t('Yesterday')} · ${longLabel}`
+  if (selected === shiftHostWorkspaceDateKey(today, 1)) return `${t('Tomorrow')} · ${longLabel}`
   return longLabel
 }
 
@@ -152,8 +152,8 @@ export function formatHostWorkspaceCompactDateNavLabel(
   const selected = normalizeReservationDateKey(selectedDateKey)
   if (!selected) return ''
   const date = parseLocalDate(selected)
-  const weekday = date.toLocaleDateString('en-US', { weekday: 'short' })
-  const month = date.toLocaleDateString('en-US', { month: 'short' })
+  const weekday = date.toLocaleDateString(uiLocale('en-US'), { weekday: 'short' })
+  const month = date.toLocaleDateString(uiLocale('en-US'), { month: 'short' })
   return `${weekday} ${date.getDate()} ${month}`
 }
 
@@ -181,7 +181,7 @@ export function formatHostWorkspaceMonthLabel(monthKey = '') {
   if (!/^\d{4}-\d{2}$/.test(normalizedMonth)) return ''
 
   const date = parseLocalDate(`${normalizedMonth}-01`)
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(uiLocale('en-US'), {
     month: 'long',
     year: 'numeric',
   })
@@ -387,7 +387,7 @@ export function getHostNameGuestTypeBadgeMeta(reservation, getGuestCustomerType)
   }
 
   if (customerType === 'House Guest') {
-    return { label: 'HOUSE GUEST', className: 'type-house-guest' }
+    return { label: t("HOUSE GUEST"), className: 'type-house-guest' }
   }
 
   return null
@@ -410,7 +410,7 @@ export function getHostListCustomerTypeMeta(reservation, getGuestCustomerType) {
   }
 
   if (customerType === 'House Guest') {
-    return { label: 'HOUSE GUEST', className: 'type-house-guest' }
+    return { label: t("HOUSE GUEST"), className: 'type-house-guest' }
   }
 
   return { label: 'REG', className: 'type-regular' }

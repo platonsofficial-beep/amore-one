@@ -4,6 +4,7 @@ import {
   normalizeReservationTimeValue,
   parseReservationTimeToMinutes,
 } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 function formatMinutesAsTime(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60) % 24
@@ -55,27 +56,27 @@ export function normalizeReservationSeatingInput(record) {
 export function validateReservationSeatingForm(form) {
   const name = `${form?.name ?? ''}`.trim()
   if (!name) {
-    return { ok: false, error: 'Seating name is required.' }
+    return { ok: false, error: t("Seating name is required.") }
   }
 
   const startTime = normalizeReservationTimeValue(form?.startTime ?? form?.start_time ?? '')
   if (!startTime) {
-    return { ok: false, error: 'Start time is required.' }
+    return { ok: false, error: t("Start time is required.") }
   }
 
   const durationMinutes = Number(form?.durationMinutes ?? form?.duration_minutes)
   if (!Number.isFinite(durationMinutes) || durationMinutes < 15 || durationMinutes > 480) {
-    return { ok: false, error: 'Duration must be between 15 and 480 minutes.' }
+    return { ok: false, error: t("Duration must be between 15 and 480 minutes.") }
   }
 
   const rawDays = form?.daysOfWeek ?? form?.days_of_week
   if (!Array.isArray(rawDays) || rawDays.length === 0) {
-    return { ok: false, error: 'Select at least one day of the week.' }
+    return { ok: false, error: t("Select at least one day of the week.") }
   }
 
   const daysOfWeek = normalizeDaysOfWeek(rawDays)
   if (daysOfWeek.length === 0) {
-    return { ok: false, error: 'Select at least one day of the week.' }
+    return { ok: false, error: t("Select at least one day of the week.") }
   }
 
   return {
@@ -486,7 +487,7 @@ export function formatSeatingChipLabel(seating) {
 
 export function formatSeatingDaysLabel(daysOfWeek = []) {
   const normalized = normalizeDaysOfWeek(daysOfWeek)
-  if (normalized.length === ALL_DAYS_OF_WEEK.length) return 'Every day'
+  if (normalized.length === ALL_DAYS_OF_WEEK.length) return t("Every day")
 
   return normalized
     .map((day) => DAY_OF_WEEK_OPTIONS.find((entry) => entry.value === day)?.label ?? '')

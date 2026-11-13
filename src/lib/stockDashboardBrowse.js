@@ -8,6 +8,7 @@ import {
 import { buildProductDisplayNameFromItem } from './stockProductIdentity'
 import { buildStockProductSearchHaystack } from './stockProductMetadataDisplay'
 import { resolveStockItemQuantityStatus } from './stockUtils'
+import { t } from '../i18n/i18n'
 
 export const STOCK_LAYOUT_MODES = [
   { id: 'cards', label: 'Cards', icon: 'grid' },
@@ -26,9 +27,9 @@ export const STOCK_GROUP_BY_OPTIONS = [
 export const STOCK_SORT_OPTIONS = [
   { id: 'name-asc', label: 'A–Z' },
   { id: 'name-desc', label: 'Z–A' },
-  { id: 'low-first', label: 'Low first' },
-  { id: 'out-first', label: 'Out of stock first' },
-  { id: 'recent', label: 'Recently updated' },
+  { id: 'low-first', label: t("Low first") },
+  { id: 'out-first', label: t("Out of stock first") },
+  { id: 'recent', label: t("Recently updated") },
 ]
 
 export const STOCK_VISIBILITY_OPTIONS = [
@@ -143,7 +144,7 @@ function resolveGroupKey(item, groupBy) {
   }
 
   if (groupBy === 'supplier') {
-    return `${item.supplier ?? ''}`.trim() || 'No supplier'
+    return `${item.supplier ?? ''}`.trim() || t("No supplier")
   }
 
   if (groupBy === 'type') {
@@ -239,7 +240,7 @@ export function dismissStockSearchKeyboardOnEnter(event) {
  */
 export function getStockStatusFilterLabel(statusFilter = 'all') {
   if (statusFilter === 'low') return 'Low'
-  if (statusFilter === 'out') return 'Out of stock'
-  if (statusFilter === 'order') return 'To order'
-  return 'All products'
+  if (statusFilter === 'out') return t("Out of stock")
+  if (statusFilter === 'order') return t("To order")
+  return t("All products")
 }

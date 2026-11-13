@@ -2,19 +2,20 @@ import { resolveStockStorageLocation, selectItemsToOrder, computeSuggestedOrder 
 import { filterStockDashboardItems } from './stockDashboardBrowse'
 import { buildStockDashboardSummary, resolveStockItemQuantityStatus } from './stockUtils'
 import { isStockItemSupplierInactive } from './stockOrderUtils'
+import { t } from '../i18n/i18n'
 
 const STALE_COUNT_DAYS = 14
 
 export const STOCK_ATTENTION_GROUPS = [
-  { id: 'out', label: 'Out of stock', tone: 'danger' },
+  { id: 'out', label: t("Out of stock"), tone: 'danger' },
   { id: 'low', label: 'Low', tone: 'warning' },
-  { id: 'count', label: 'Needs count', tone: 'warning' },
-  { id: 'data', label: 'Missing supplier or cost', tone: 'muted' },
+  { id: 'count', label: t("Needs count"), tone: 'warning' },
+  { id: 'data', label: t("Missing supplier or cost"), tone: 'muted' },
 ]
 
 export function getStockAttentionGroupLabel(groupId, canManage = false) {
   if (groupId === 'data') {
-    return canManage ? 'Missing supplier or cost' : 'Missing supplier'
+    return canManage ? t("Missing supplier or cost") : t("Missing supplier")
   }
 
   const group = STOCK_ATTENTION_GROUPS.find((entry) => entry.id === groupId)
@@ -36,11 +37,11 @@ export function getStockItemInsights(item, { canManage = false, now = new Date()
   const daysSinceCount = getDaysSince(lastCount?.createdAt, now)
 
   if (!supplier) {
-    insights.push({ id: 'no-supplier', label: 'No supplier', tone: 'warning' })
+    insights.push({ id: 'no-supplier', label: t("No supplier"), tone: 'warning' })
   }
 
   if (canManage && (!Number.isFinite(costPrice) || costPrice <= 0)) {
-    insights.push({ id: 'no-cost', label: 'No cost price', tone: 'muted' })
+    insights.push({ id: 'no-cost', label: t("No cost price"), tone: 'muted' })
   }
 
   if (!lastCount?.createdAt || daysSinceCount > STALE_COUNT_DAYS) {
@@ -56,12 +57,12 @@ export function getStockItemInsights(item, { canManage = false, now = new Date()
 
 function formatLastCountAgeLabel(daysSinceCount, lastCountCreatedAt) {
   if (!lastCountCreatedAt) {
-    return 'Last count: never'
+    return t("Last count: never")
   }
 
   const days = Math.max(0, Math.floor(daysSinceCount))
-  if (days === 0) return 'Last count: today'
-  if (days === 1) return 'Last count: 1 day ago'
+  if (days === 0) return t("Last count: today")
+  if (days === 1) return t("Last count: 1 day ago")
   return `Last count: ${days} days ago`
 }
 
@@ -130,8 +131,8 @@ export function buildToOrderSupplierGroups(items = [], suppliers = []) {
     const status = quantityStatus(item)
     // S-04: an inactive supplier is not someone to order from.
     const supplier = isStockItemSupplierInactive(item, suppliers)
-      ? 'No supplier'
-      : (`${item.supplier ?? ''}`.trim() || 'No supplier')
+      ? t("No supplier")
+      : (`${item.supplier ?? ''}`.trim() || t("No supplier"))
     const current = groups.get(supplier) ?? { supplier, count: 0, out: 0, low: 0, quantity: 0 }
     current.count += 1
     current.quantity += computeSuggestedOrder(item)
@@ -245,10 +246,10 @@ export function getStockDashboardEmptyState({
 } = {}) {
   if (hasNoItems) {
     return {
-      title: canManage ? 'No products yet' : 'No stock items',
+      title: canManage ? t("No products yet") : t("No stock items"),
       message: canManage
-        ? 'Add your first product to start workspace stock tracking.'
-        : 'Stock levels will appear here once products are added.',
+        ? t("Add your first product to start workspace stock tracking.")
+        : t("Stock levels will appear here once products are added."),
       showAddButton: canManage,
     }
   }
@@ -257,47 +258,47 @@ export function getStockDashboardEmptyState({
 
   if (visibilityFilter === 'inactive') {
     return {
-      title: 'No inactive products found',
-      message: 'Deactivated products will appear here.',
+      title: t("No inactive products found"),
+      message: t("Deactivated products will appear here."),
       showAddButton: false,
     }
   }
 
   if (visibilityFilter === 'active' && hasInactiveProducts) {
     return {
-      title: 'No active products found',
-      message: 'Try switching Visibility to Inactive or All.',
+      title: t("No active products found"),
+      message: t("Try switching Visibility to Inactive or All."),
       showAddButton: false,
     }
   }
 
   if (statusFilter === 'low') {
     return {
-      title: 'No low stock items',
-      message: 'Everything is stocked.',
+      title: t("No low stock items"),
+      message: t("Everything is stocked."),
       showAddButton: false,
     }
   }
 
   if (statusFilter === 'out') {
     return {
-      title: 'No out of stock items',
-      message: 'Everything is stocked.',
+      title: t("No out of stock items"),
+      message: t("Everything is stocked."),
       showAddButton: false,
     }
   }
 
   if (statusFilter === 'order') {
     return {
-      title: 'Nothing to order',
-      message: 'Stock levels look healthy.',
+      title: t("Nothing to order"),
+      message: t("Stock levels look healthy."),
       showAddButton: false,
     }
   }
 
   return {
-    title: 'No products found',
-    message: 'Try changing filters or search.',
+    title: t("No products found"),
+    message: t("Try changing filters or search."),
     showAddButton: false,
   }
 }

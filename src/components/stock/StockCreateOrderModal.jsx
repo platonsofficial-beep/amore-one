@@ -239,7 +239,7 @@ export function StockCreateOrderModal({
     const name = `${itemName ?? ''}`.trim() || 'this product'
     setPendingRemoval({
       title: `Remove ${name} from this order?`,
-      body: 'You can add it again from Stock later.',
+      body: t("You can add it again from Stock later."),
       toast: `Removed ${name}`,
       apply: () => removeItemNow(groupKey, stockItemId),
     })
@@ -300,7 +300,7 @@ export function StockCreateOrderModal({
       await onSubmit(validGroups)
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to create orders right now.')
+      setError(submitError?.message || t("Unable to create orders right now."))
     } finally {
       setIsSubmitting(false)
     }

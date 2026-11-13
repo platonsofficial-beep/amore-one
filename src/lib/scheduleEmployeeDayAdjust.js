@@ -1,5 +1,6 @@
 import { resolveShiftTemplateId } from './shiftIntegrity'
 import { isEmployeeAssignedInCell } from './scheduleDropUtils'
+import { t } from '../i18n/i18n'
 
 function dayKeyOf(shift) {
   return `${shift?.date ?? ''}`.slice(0, 10)
@@ -35,11 +36,11 @@ export function resolveEmployeeShiftAdjust({
   const id = `${employeeId ?? ''}`.trim()
   const day = `${dayKey ?? ''}`.slice(0, 10)
   if (!id || !day || !template || !cell) {
-    return { action: 'error', message: 'Choose an employee and a shift.' }
+    return { action: 'error', message: t("Choose an employee and a shift.") }
   }
 
   if (isEmployeeAssignedInCell(cell, id)) {
-    return { action: 'noop', message: 'This employee is already on this shift.' }
+    return { action: 'noop', message: t("This employee is already on this shift.") }
   }
 
   const mine = shifts.filter((shift) => `${shift?.employeeId ?? ''}` === id)
@@ -52,7 +53,7 @@ export function resolveEmployeeShiftAdjust({
     ?? [...mine].sort((left, right) => `${left.startTime ?? ''}`.localeCompare(`${right.startTime ?? ''}`))[0]
 
   if (dayKeyOf(source) === day && templateKey(source) === templateKey(template)) {
-    return { action: 'noop', message: 'This employee is already on this shift.' }
+    return { action: 'noop', message: t("This employee is already on this shift.") }
   }
 
   return {

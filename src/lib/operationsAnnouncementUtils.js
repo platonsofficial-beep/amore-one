@@ -6,6 +6,7 @@ import {
 } from './timeFormatUtils'
 import { getCurrentDateKey } from './currentDateUtils'
 import { canManageAnnouncements, isManagerRole } from './permissions'
+import { t } from '../i18n/i18n'
 
 export { canManageAnnouncements, isManagerRole }
 
@@ -31,7 +32,7 @@ const PRIORITY_WEIGHT = {
 }
 
 const AUDIENCE_LABELS = {
-  all: 'All staff',
+  all: t("All staff"),
   bar: 'Bar',
   service: 'Service',
   kitchen: 'Kitchen',
@@ -57,7 +58,7 @@ export function getAnnouncementPriorityTone(priority) {
 }
 
 export function getAnnouncementAudienceLabel(audience) {
-  return AUDIENCE_LABELS[normalizeAnnouncementAudience(audience)] ?? 'All staff'
+  return AUDIENCE_LABELS[normalizeAnnouncementAudience(audience)] ?? t("All staff")
 }
 
 export function matchesAnnouncementAudience(audience, { role = '', employeeDepartment = '' } = {}) {
@@ -206,10 +207,10 @@ export function announcementToForm(announcement) {
 
 export function validateAnnouncementForm(form) {
   if (!`${form.title ?? ''}`.trim()) {
-    return 'Please enter a title.'
+    return t("Please enter a title.")
   }
   if (!`${form.message ?? ''}`.trim()) {
-    return 'Please enter a message.'
+    return t("Please enter a message.")
   }
   return ''
 }
@@ -263,5 +264,5 @@ export function formatAnnouncementSeenLabel(readCount = 0, eligibleCount = 0) {
   const eligible = Number(eligibleCount) || 0
   if (eligible > 0) return `Seen ${seen}/${eligible}`
   if (seen > 0) return `Seen ${seen}`
-  return 'Not seen yet'
+  return t("Not seen yet")
 }

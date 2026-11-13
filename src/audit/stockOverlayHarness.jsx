@@ -95,18 +95,18 @@ const ORDER = {
   id: 'order-7',
   orderNumber: 7,
   status: 'draft',
-  supplier: 'MEDITERRANEAN BEVERAGE PARTNERS',
+  supplier: t("MEDITERRANEAN BEVERAGE PARTNERS"),
   supplierId: 'sup-1',
-  notes: 'Leave at the cellar door.',
+  notes: t("Leave at the cellar door."),
   expectedDeliveryDate: '2026-10-28',
   totalCost: 96,
   createdAt: '2026-10-26T00:13:00.000Z',
-  createdByName: 'Platon Sachinis',
+  createdByName: t("Platon Sachinis"),
   items: [
     {
       id: 'line-1',
       stockItemId: 'item-8',
-      itemName: 'Sparkling water',
+      itemName: t("Sparkling water"),
       quantity: 18,
       receivedQuantity: 0,
       unit: 'Bottle',
@@ -154,8 +154,8 @@ const ORDER_GROUPS = SUPPLIERS.map((supplier) => ({
 const SUGGEST_REVIEW = SUPPLIERS.map((supplier, index) => ({
   supplier: supplier.companyName,
   items: [
-    { stockItemId: `s-${index}-a`, itemName: 'House pour', quantity: 6, unit: 'Bottle' },
-    { stockItemId: `s-${index}-b`, itemName: 'Backup case', quantity: 2, unit: 'Case' },
+    { stockItemId: `s-${index}-a`, itemName: t("House pour"), quantity: 6, unit: 'Bottle' },
+    { stockItemId: `s-${index}-b`, itemName: t("Backup case"), quantity: 2, unit: 'Case' },
   ],
 }))
 
@@ -346,7 +346,7 @@ function Screen() {
       <Shell title={t("Shelf")}>
         <StaffShelfCountSheet
           workspaceId="ws-audit"
-          storage={{ id: 'cellar', name: 'Main cellar' }}
+          storage={{ id: 'cellar', name: t("Main cellar") }}
           products={PRODUCTS.map((item) => ({
             stockItemId: item.id,
             displayName: item.name,

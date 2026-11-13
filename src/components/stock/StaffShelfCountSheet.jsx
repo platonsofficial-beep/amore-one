@@ -94,7 +94,7 @@ export function StaffShelfCountSheet({
         setAvailable(false)
         setChecked(true)
       }
-      setError(submitError?.message || 'Unable to submit this shelf count right now.')
+      setError(submitError?.message || t("Unable to submit this shelf count right now."))
     } finally {
       setIsSubmitting(false)
     }
@@ -212,7 +212,7 @@ export function StaffShelfCountSheet({
               disabled={isSubmitting || (checked && !available)}
               onClick={() => { void handleSubmit() }}
             >
-              {isSubmitting ? 'Sending…' : 'Submit for approval'}
+              {isSubmitting ? 'Sending…' : t("Submit for approval")}
             </button>
           ) : null}
         </div>

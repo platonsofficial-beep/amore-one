@@ -10,6 +10,7 @@ import {
 } from './shiftHoursUtils'
 import { getCurrentDateKey, getTimeGreeting } from './currentDateUtils'
 import { getWeekDateKeys, getWeekStartDate } from './weekUtils'
+import { t } from '../i18n/i18n'
 
 function normalizeDate(value) {
   if (!value) return ''
@@ -185,8 +186,8 @@ export function buildOperationalSnapshot({
     issues,
     coverageGaps,
     otherIssueLabels,
-    statusMessage: issues === 0 ? 'Everything is ready.' : 'Needs attention.',
-    closingMessage: issues === 0 ? 'Have a great service!' : '',
+    statusMessage: issues === 0 ? t("Everything is ready.") : t("Needs attention."),
+    closingMessage: issues === 0 ? t("Have a great service!") : '',
   }
 }
 
@@ -282,7 +283,7 @@ function formatTemplateAreaLabel(template) {
   const label = [template?.defaultArea, template?.default_area, template?.name]
     .map((value) => `${value ?? ''}`.trim())
     .find(Boolean)
-  return label || 'No department'
+  return label || t("No department")
 }
 
 export function formatTeamCoverageSummaryLine(gaps = [], { limit = 3 } = {}) {
@@ -307,14 +308,15 @@ export function formatTeamCoverageSummaryLine(gaps = [], { limit = 3 } = {}) {
 
   if (gapCount === 1) {
     const missing = Number(gaps[0]?.missing) || 0
+    if (!areasText) return t('1 uncovered shift')
     return missing > 1
-      ? `1 uncovered shift · ${areasText} needs ${missing}`
-      : `1 uncovered shift · ${areasText}`
+      ? t('1 uncovered shift · {{area}} needs {{missing}}', { area: areasText, missing })
+      : t('1 uncovered shift · {{area}}', { area: areasText })
   }
 
   return areasText
-    ? `${gapCount} uncovered shifts · ${areasText}${overflow}`
-    : `${gapCount} uncovered shifts`
+    ? t('{{count}} uncovered shifts · {{area}}', { count: gapCount, area: `${areasText}${overflow}` })
+    : t('{{count}} uncovered shifts', { count: gapCount })
 }
 
 export function buildTeamTodayCoverageBreakdown({

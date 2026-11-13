@@ -316,7 +316,7 @@ export function StockItemPermanentDeleteDialog({
           <div>
             <p className="eyebrow">{t("Destructive action")}</p>
             <h3 id="stock-item-permanent-delete-title">
-              {phase === 'success' ? 'Product deleted' : 'Delete product'}
+              {phase === 'success' ? t("Product deleted") : t("Delete product")}
             </h3>
             {phase !== 'success' ? (
               <p className="stock-item-permanent-delete-subtitle">
@@ -381,7 +381,7 @@ export function StockItemPermanentDeleteDialog({
 
               {phase === 'preview_error' ? (
                 <p className="staff-status-banner stock-item-permanent-delete-error" role="alert">
-                  {error || 'Permanent delete preview is unavailable.'}
+                  {error || t("Permanent delete preview is unavailable.")}
                 </p>
               ) : null}
 
@@ -560,7 +560,7 @@ export function StockItemPermanentDeleteDialog({
                   className="primary-btn stock-item-permanent-delete-submit"
                   disabled={!canSubmit || phase === 'loading' || phase === 'preview_error'}
                 >
-                  {phase === 'executing' || isBusy ? 'Deleting…' : 'Delete product'}
+                  {phase === 'executing' || isBusy ? 'Deleting…' : t("Delete product")}
                 </button>
               </div>
             </div>

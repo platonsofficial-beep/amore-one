@@ -44,8 +44,8 @@ function deltaToneClass(value) {
 }
 
 const VISIBILITY_LABELS = {
-  blind: 'Blind count',
-  open: 'Open count',
+  blind: t("Blind count"),
+  open: t("Open count"),
 }
 
 function formatSessionDate(value, timeZone = '') {
@@ -107,7 +107,7 @@ function formatNetStockImpact(netDelta) {
     return null
   }
   const numeric = Number(netDelta)
-  if (numeric === 0) return 'Net stock impact 0'
+  if (numeric === 0) return t("Net stock impact 0")
   if (numeric > 0) return `Net stock impact +${numeric}`
   return `Net stock impact −${Math.abs(numeric)}`
 }
@@ -117,8 +117,8 @@ function formatAdjustmentState(line) {
   const hasMovement = Boolean(`${line?.movementId ?? ''}`.trim())
   if (!signed) {
     return hasMovement
-      ? 'Adjustment applied'
-      : 'No stock adjustment recorded'
+      ? t("Adjustment applied")
+      : t("No stock adjustment recorded")
   }
   if (hasMovement) {
     return `${signed} stock adjustment applied`
@@ -314,7 +314,7 @@ export function InventoryCountPostedReview({
       } catch (error) {
         if (cancelled) return
         setReview(null)
-        setLoadError(error?.message || 'Unable to load posted inventory count right now.')
+        setLoadError(error?.message || t("Unable to load posted inventory count right now."))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -429,7 +429,7 @@ export function InventoryCountPostedReview({
       setReverseError('')
       setReloadKey((value) => value + 1)
     } catch (error) {
-      setReverseError(error?.message || 'Unable to reverse inventory count right now.')
+      setReverseError(error?.message || t("Unable to reverse inventory count right now."))
     } finally {
       isReversingRef.current = false
       setIsReversing(false)
@@ -449,7 +449,7 @@ export function InventoryCountPostedReview({
           <p className="inventory-count-posted-review-eyebrow">{t("Posted Count History")}</p>
           <div className="inventory-count-posted-review-title-row">
             <h2 className="inventory-count-posted-review-title">
-              {session?.countTypeLabel || 'Inventory Count'}
+              {session?.countTypeLabel || t("Inventory Count")}
             </h2>
             <span
               className={statusPillClass}
@@ -590,13 +590,13 @@ export function InventoryCountPostedReview({
           {showAuditTimeline ? (
             <section
               className="inventory-count-posted-review-corrections"
-              aria-label={hasCorrections ? 'Correction history' : 'Posted count audit timeline'}
+              aria-label={hasCorrections ? t("Correction history") : t("Posted count audit timeline")}
               data-inventory-count-correction-history={hasCorrections ? 'true' : undefined}
               data-inventory-count-audit-timeline="true"
             >
               <div className="inventory-count-posted-review-corrections-header">
                 <h3 className="inventory-count-posted-review-corrections-title">
-                  {hasCorrections ? 'Correction history' : 'Audit timeline'}
+                  {hasCorrections ? t("Correction history") : t("Audit timeline")}
                 </h3>
                 <p className="inventory-count-posted-review-corrections-order-note">
                   {isAlreadyReversed

@@ -58,7 +58,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       })
       setChooserOpen(false)
     } catch (prepareError) {
-      setError(prepareError?.message || 'Could not prepare that photo.')
+      setError(prepareError?.message || t("Could not prepare that photo."))
     } finally {
       setBusy(false)
       setPhase('')
@@ -104,7 +104,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       setNotice('Photo updated')
     } catch (saveError) {
       directory.setOptimistic(authUserId, null)
-      setError(saveError?.message || 'Could not update your photo. Try again.')
+      setError(saveError?.message || t("Could not update your photo. Try again."))
       return
     } finally {
       setBusy(false)
@@ -132,7 +132,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
       setNotice('Photo removed')
     } catch (removeError) {
       directory.setOptimistic(authUserId, null)
-      setError(removeError?.message || 'Could not update your photo. Try again.')
+      setError(removeError?.message || t("Could not update your photo. Try again."))
       return
     } finally {
       setBusy(false)
@@ -144,7 +144,7 @@ export function ProfilePhotoBlock({ displayName = '' }) {
   return (
     <section className="mobile-card profile-photo-block" aria-label={t("Profile photo")}>
       <p className="mobile-card-label">{t("Profile photo")}</p>
-      <div className="profile-photo-circle" role="img" aria-label={hasPhoto || draft ? 'Profile photo' : 'Profile initials'}>
+      <div className="profile-photo-circle" role="img" aria-label={hasPhoto || draft ? t("Profile photo") : t("Profile initials")}>
         {circleUrl ? <img src={circleUrl} alt="" /> : <span>{initials}</span>}
       </div>
       {draft ? <p className="profile-photo-caption">{t("This is how your photo will look.")}</p> : null}

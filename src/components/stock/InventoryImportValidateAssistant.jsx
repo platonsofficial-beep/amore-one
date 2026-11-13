@@ -162,7 +162,7 @@ export function InventoryImportValidateAssistant({
                 : (decisionTotal === 1
                   ? '1 possible match has been reviewed.'
                   : `${decisionTotal} possible matches have been reviewed.`))
-              : 'Manager choices required for uncertain matches.'}
+              : t("Manager choices required for uncertain matches.")}
           </p>
         </header>
         {hasDecisions ? (

@@ -118,7 +118,7 @@ export function ManagerLeaveDetailsDrawer({
       actionInFlightRef.current = false
       setIsActionPending(false)
       setConfirmAction(null)
-      setErrorMessage(error?.message || 'Unable to approve the leave request right now.')
+      setErrorMessage(error?.message || t("Unable to approve the leave request right now."))
     }
   }
 
@@ -145,7 +145,7 @@ export function ManagerLeaveDetailsDrawer({
       actionInFlightRef.current = false
       setIsActionPending(false)
       setConfirmAction(null)
-      setErrorMessage(error?.message || 'Unable to reject the leave request right now.')
+      setErrorMessage(error?.message || t("Unable to reject the leave request right now."))
     }
   }
 
@@ -321,7 +321,7 @@ export function ManagerLeaveDetailsDrawer({
           <section>
             <h4 className="manager-leave-details-drawer-section-title">{t("Note")}</h4>
             <p className={`manager-leave-details-drawer-note${noteText ? '' : ' is-empty'}`}>
-              {noteText || 'No note provided.'}
+              {noteText || t("No note provided.")}
             </p>
           </section>
 

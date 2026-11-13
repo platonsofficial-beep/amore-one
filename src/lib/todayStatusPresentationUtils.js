@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 function splitSummaryParts(value = '') {
   return `${value}`.split('·').map((part) => part.trim()).filter(Boolean)
 }
@@ -21,7 +22,7 @@ function buildOnShiftCard(onShiftSummary = '') {
   return {
     id: 'on-shift',
     icon: '🟢',
-    title: 'On Shift',
+    title: t("On Shift"),
     primary,
     secondary,
     tone,
@@ -37,8 +38,8 @@ function buildTeamCard(teamScheduledSummary = '') {
       id: 'team',
       icon: '👥',
       title: 'Team',
-      primary: 'No schedule today',
-      secondary: line || 'No shifts scheduled today',
+      primary: t("No schedule today"),
+      secondary: line || t("No shifts scheduled today"),
       tone: 'muted',
     }
   }
@@ -49,7 +50,7 @@ function buildTeamCard(teamScheduledSummary = '') {
     icon: '👥',
     title: 'Team',
     primary: scheduledMatch ? `${scheduledMatch[1]} scheduled` : parts[0],
-    secondary: parts[1] || (parts[0]?.includes('today') ? 'On roster today' : ''),
+    secondary: parts[1] || (parts[0]?.includes('today') ? t("On roster today") : ''),
     tone: /open shift|uncovered shift/i.test(parts[1] ?? '') || parts[1]?.includes('gap') ? 'warning' : 'default',
   }
 }
@@ -75,7 +76,7 @@ function buildReservationsCard(reservationsSummaryLine = '') {
       icon: '🍽',
       title: 'Reservations',
       primary: '0 bookings',
-      secondary: line || 'No reservations today',
+      secondary: line || t("No reservations today"),
       tone: 'muted',
     }
   }
@@ -118,7 +119,7 @@ function buildTasksCard(tasksSummary = '') {
       icon: '✅',
       title: 'Tasks',
       primary: 'Clear',
-      secondary: line || 'No open tasks today',
+      secondary: line || t("No open tasks today"),
       tone: 'default',
     }
   }
@@ -135,7 +136,7 @@ function buildTasksCard(tasksSummary = '') {
       icon: '✅',
       title: 'Tasks',
       primary: `${openCount} Open`,
-      secondary: overduePart || donePart || 'All caught up',
+      secondary: overduePart || donePart || t("All caught up"),
       tone: openCount > 0 || overduePart ? 'warning' : 'default',
     }
   }
@@ -171,7 +172,7 @@ function buildStockCard(stockSummaryLine = '') {
       id: 'stock',
       icon: '📦',
       title: 'Stock',
-      primary: 'No alerts',
+      primary: t("No alerts"),
       secondary: line,
       tone: 'default',
     }

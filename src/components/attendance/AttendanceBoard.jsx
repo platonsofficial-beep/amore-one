@@ -58,8 +58,8 @@ function personName(employees, employeeId, fallback = 'Team member') {
 // hours still say who it was (the employee link is gone after delete).
 export function entryPersonName(entry, employees) {
   const memberName = `${entry?.member?.display_name ?? ''}`.trim()
-  if (entry?.employee_id) return personName(employees, entry.employee_id, memberName || 'Team member')
-  return memberName || 'Team member'
+  if (entry?.employee_id) return personName(employees, entry.employee_id, memberName || t("Team member"))
+  return memberName || t("Team member")
 }
 
 export function AttendanceBoard({
@@ -216,7 +216,7 @@ export function AttendanceBoard({
     setNotice('')
     try {
       await decideException({ exceptionId: exception.id, approve, note })
-      setNotice(approve ? 'Request approved.' : 'Request rejected.')
+      setNotice(approve ? t("Request approved.") : t("Request rejected."))
       await reload()
     } catch (error) {
       setNotice(attendanceErrorMessage(error))

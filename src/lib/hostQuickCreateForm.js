@@ -23,6 +23,7 @@ import {
 } from './reservationTableOptions'
 import { formatSeatingWindowLabel } from './tableDayView'
 import { normalizeReservationDateKey, normalizeReservationTimeValue } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 export const EMPTY_HOST_QUICK_CREATE_FORM = {
   guestName: '',
@@ -69,7 +70,7 @@ export function ensureWalkInNotesMarker(notes) {
 }
 
 export function resolveHostQuickCreateCreateStatus(form) {
-  return form?.walkIn ? 'Walk In' : 'Pending'
+  return form?.walkIn ? t("Walk In") : 'Pending'
 }
 
 export function resolveHostQuickCreateCreateNotes(form) {
@@ -164,7 +165,7 @@ export function formatHostQuickCreateSelectedTableSummary(assignedUnits = []) {
 
 export function formatHostQuickCreateTableSelectionStatus(assignedUnits = []) {
   const summary = formatHostQuickCreateSelectedTableSummary(assignedUnits)
-  if (!summary) return 'No table selected'
+  if (!summary) return t("No table selected")
   if (assignedUnits.length === 1) return `Selected table · ${summary}`
   return `Selected tables · ${summary}`
 }
@@ -264,7 +265,7 @@ export function formatHostQuickCreateTableUnavailableReason(
 ) {
   if (!isTableCapacityCompatible(unit, partySize)) {
     const max = Number(unit?.maxGuestCapacity ?? unit?.seatedCapacity) || 0
-    return max > 0 ? `Capacity ${max}` : 'Capacity mismatch'
+    return max > 0 ? `Capacity ${max}` : t("Capacity mismatch")
   }
 
   if (!conflict) return 'Unavailable'
@@ -362,23 +363,23 @@ export function buildHostQuickCreateTableOptions({
 
 export function getHostQuickCreateTableHelperText(form, tableOptions, seatings = [], { layout = null } = {}) {
   if (!form.time) {
-    return 'Choose a time first'
+    return t("Choose a time first")
   }
 
   if (!form.seatingId) {
     if (getActiveSeatingsForDate(seatings, form.date).length === 0) {
-      return form.seatingAreaId ? '' : 'Choose an area to view available tables'
+      return form.seatingAreaId ? '' : t("Choose an area to view available tables")
     }
-    return 'Choose a seating to view available tables'
+    return t("Choose a seating to view available tables")
   }
 
   if (!form.seatingAreaId) {
-    return 'Choose an area to view available tables'
+    return t("Choose an area to view available tables")
   }
 
   const layoutReady = Boolean(layout?.zones?.length)
   if (!layoutReady || !tableOptions.canSelect) {
-    return 'Checking availability...'
+    return t("Checking availability...")
   }
 
   if (tableOptions.availableCount === 0 && !(form.assignedUnits?.length > 0)) {

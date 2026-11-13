@@ -1,4 +1,5 @@
 import { readSubscriptionPreview } from './subscriptionAccess'
+import { t } from '../i18n/i18n'
 
 /** Local Today stand-in for billing screenshots. Auth-disabled preview only. */
 export function shouldUseBillingPreviewFixture(search) {
@@ -14,6 +15,6 @@ export function applyBillingPreviewToday(summary = {}) {
     teamScheduledSummary: '12 scheduled today',
     reservationsSummaryLine: '6 bookings · 18 covers',
     tasksSummary: '3 open tasks',
-    stockSummaryLine: 'Stock levels OK',
+    stockSummaryLine: t("Stock levels OK"),
   }
 }

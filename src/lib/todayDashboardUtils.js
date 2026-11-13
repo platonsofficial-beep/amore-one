@@ -2,6 +2,7 @@ import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeForma
 import { isTerminalReservationStatus } from './reservationHostStatus'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { getWorkspaceNowMinutes } from './employeeTodayStatusUtils'
+import { t } from '../i18n/i18n'
 
 export function getTimelineNowMinutes(now = new Date(), timeZone = '') {
   const resolved = getWorkspaceNowMinutes(now, timeZone)
@@ -168,7 +169,7 @@ export function formatTimelineEventRow(event, nowMinutes = null) {
         type: event.type,
         timeLabel: '',
         title: event.title,
-        meta: rangeLabel ? `Completed shift · ${rangeLabel}` : 'Completed shift',
+        meta: rangeLabel ? `Completed shift · ${rangeLabel}` : t("Completed shift"),
         status,
         isFinishedShift: true,
         isCompletedItem: true,
@@ -278,7 +279,7 @@ export function groupTimelineEvents(events = []) {
 
 export function formatTodayTimelineCollapsedSummary(events = [], { isLoading = false, now = new Date(), timeZone = '' } = {}) {
   if (isLoading) return 'Loading…'
-  if (!events.length) return 'No events today'
+  if (!events.length) return t("No events today")
 
   const nowMinutes = getTimelineNowMinutes(now, timeZone)
   const shiftEvents = events.filter((event) => event.type === 'shift')
@@ -316,23 +317,23 @@ export function formatTeamTodayCollapsedSummary({
   if (isLoading) return 'Loading…'
 
   const memberCount = groups.reduce((sum, group) => sum + group.members.length, 0)
-  if (memberCount === 0) return 'No shifts scheduled today'
+  if (memberCount === 0) return t("No shifts scheduled today")
 
   const workingMatch = `${teamStatus.scheduleValue ?? ''}`.match(/(\d+)/)
   const workingCount = workingMatch ? Number(workingMatch[1]) : 0
   const workingLabel = workingCount > 0
     ? formatPluralCount(workingCount, 'working now', 'working now')
-    : 'No one on shift yet'
+    : t("No one on shift yet")
 
   const coverageLabel = teamStatus.coverageTone === 'ok'
-    ? 'Service covered'
-    : formatTeamTodayCoverageCopy(teamStatus.coverageDetail || teamStatus.coverageValue || 'Review coverage')
+    ? t("Service covered")
+    : formatTeamTodayCoverageCopy(teamStatus.coverageDetail || teamStatus.coverageValue || t("Review coverage"))
 
   return `${workingLabel} · ${coverageLabel}`
 }
 
 export function formatAttentionCollapsedSummary(items = []) {
-  if (!items.length) return 'All clear for now'
+  if (!items.length) return t("All clear for now")
 
   const urgentCount = items.filter((item) => item.priority === 'urgent' || item.tone === 'critical').length
   const reminderCount = items.length - urgentCount
@@ -345,19 +346,19 @@ export function formatAttentionCollapsedSummary(items = []) {
     parts.push(formatPluralCount(reminderCount, 'reminder', 'reminders'))
   }
 
-  return parts.join(' · ') || 'All clear for now'
+  return parts.join(' · ') || t("All clear for now")
 }
 
 export function formatQuickActionsCollapsedSummary(actions = []) {
   const labels = (actions ?? [])
     .filter((action) => action.available)
     .map((action) => {
-      if (action.id === 'add-reservation') return 'Create reservation'
-      if (action.id === 'add-task') return 'Add task'
+      if (action.id === 'add-reservation') return t("Create reservation")
+      if (action.id === 'add-task') return t("Add task")
       return action.label
     })
 
-  return labels.join(' · ') || 'Quick actions'
+  return labels.join(' · ') || t("Quick actions")
 }
 
 export function hasUrgentAttentionItems(items = []) {
@@ -368,7 +369,7 @@ export const TIMELINE_LEGEND_ITEMS = [
   { key: 'live', label: 'Live', icon: '🟢', tone: 'live' },
   { key: 'upcoming', label: 'Upcoming', icon: '🟡', tone: 'upcoming' },
   { key: 'completed', label: 'Completed', icon: '⚫', tone: 'completed' },
-  { key: 'attention', label: 'Needs attention', icon: '🔴', tone: 'attention' },
+  { key: 'attention', label: t("Needs attention"), icon: '🔴', tone: 'attention' },
 ]
 
 export function filterTimelineEventsForDayFlow(events = []) {

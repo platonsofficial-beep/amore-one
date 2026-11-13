@@ -111,7 +111,7 @@ export function TodayCommandHeader({
                   onClick={() => onQuickAction?.(action.id)}
                 >
                   <span className="today-command-action-plus" aria-hidden="true">+</span>
-                  <span>{action.label}</span>
+                  <span>{t(action.label)}</span>
                 </button>
               ))}
             </div>

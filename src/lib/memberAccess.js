@@ -1,5 +1,6 @@
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from './membershipRoles'
 import { PERMISSION_MODULES, getRolePreset, resolvePermissions } from './permissions'
+import { t } from '../i18n/i18n'
 
 // Live workspace_member_permissions modules. Levels match the database:
 // 0 none, 1 view, 2 manage.
@@ -23,71 +24,71 @@ const PRESET_MODULE_KEYS = new Set(PERMISSION_MODULES)
 export const MEMBER_ACCESS_AREAS = [
   {
     module: 'reservations',
-    label: 'Bookings & floor plan',
-    hint: 'Open bookings, or also book, seat, and edit the floor.',
+    label: t("Bookings & floor plan"),
+    hint: t("Open bookings, or also book, seat, and edit the floor."),
     icon: '▣',
     control: 'level',
   },
   {
     module: 'schedule',
     label: 'Schedule',
-    hint: 'See the rota, or also build and publish it.',
+    hint: t("See the rota, or also build and publish it."),
     icon: '◷',
     control: 'level',
   },
   {
     module: 'leave',
-    label: 'Time off',
-    hint: 'See requests, or also approve and reject them.',
+    label: t("Time off"),
+    hint: t("See requests, or also approve and reject them."),
     icon: '✈',
     control: 'level',
   },
   {
     module: 'tasks',
-    label: 'Tasks & checklists',
-    hint: 'See tasks, or also create, assign, and post announcements.',
+    label: t("Tasks & checklists"),
+    hint: t("See tasks, or also create, assign, and post announcements."),
     icon: '✓',
     control: 'level',
   },
   {
     module: 'stock',
     label: 'Stock',
-    hint: 'Take and count shelves, or also see and manage all of Stock.',
+    hint: t("Take and count shelves, or also see and manage all of Stock."),
     icon: '📦',
     control: 'level',
   },
   {
     module: 'team',
     label: 'Team',
-    hint: 'See the team, or also invite and edit people.',
+    hint: t("See the team, or also invite and edit people."),
     icon: '👥',
     control: 'level',
   },
   {
     module: 'insights',
     label: 'Insights',
-    hint: 'See reports.',
+    hint: t("See reports."),
     icon: '◈',
     control: 'level',
   },
   {
     module: 'attendance',
-    label: 'Clock in/out',
-    hint: 'Timesheets and exceptions.',
+    label: t("Clock in/out"),
+    hint: t("Timesheets and exceptions."),
     icon: '⏱',
     control: 'level',
   },
   {
     module: 'chat',
     label: 'Chat',
-    hint: 'Message the team, or also create channels and pin messages.',
+    hint: t("Message the team, or also create channels and pin messages."),
     icon: '💬',
     control: 'level',
   },
   {
     module: 'private_data',
-    label: 'Salaries & personal data',
-    hint: 'Salary and personal details.',
+    label: t("Salaries & personal data"),
+    hint: t("Salary and personal details."),
     icon: '🔒',
     control: 'toggle',
   },

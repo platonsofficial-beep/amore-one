@@ -56,7 +56,7 @@ function formatTaskDueLabel(task, todayKey = '') {
 }
 
 function formatCompletedCardMeta(task) {
-  const completedBy = `${task?.completedByName ?? ''}`.trim() || 'Team member'
+  const completedBy = `${task?.completedByName ?? ''}`.trim() || t("Team member")
   const completedAt = task?.completedAt ?? task?.completed_at
   if (!completedAt) return `Completed by ${completedBy}`
 
@@ -158,7 +158,7 @@ function PendingTaskSections({
 
   const sections = [
     overdue.length > 0 ? { key: 'overdue', label: 'Overdue', tasks: overdue } : null,
-    dueToday.length > 0 ? { key: 'due-today', label: 'Due today', tasks: dueToday } : null,
+    dueToday.length > 0 ? { key: 'due-today', label: t("Due today"), tasks: dueToday } : null,
   ].filter(Boolean)
 
   if (sections.length <= 1) {

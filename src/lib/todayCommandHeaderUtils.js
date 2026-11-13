@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 export function countOpenOperationsTasksForTodayChip(tasks = [], todayKey = '') {
   const normalizedToday = `${todayKey ?? ''}`.slice(0, 10)
   return (tasks ?? []).filter((task) => {
@@ -22,7 +23,7 @@ function formatTaskChip(boardOpen = 0, operationsOpen = 0) {
   if (operations > 0) parts.push(`${operations} ops`)
 
   return {
-    value: `${total} Open`,
+    value: t('{{count}} Open', { count: total }),
     // One source only: the split repeats the total ("7 Open · 7 ops").
     detail: parts.length > 1 ? parts.join(' · ') : '',
     tone: 'warning',
@@ -59,9 +60,9 @@ export function buildTodayCommandHeaderChips({
   chips.push({
     id: 'on-shift',
     icon: '👥',
-    label: 'On Shift',
+    label: t("On Shift"),
     value: String(onShiftCount),
-    ...(Number.isFinite(clockedInCount) ? { detail: `${clockedInCount} clocked in` } : {}),
+    ...(Number.isFinite(clockedInCount) ? { detail: t('{{count}} clocked in', { count: clockedInCount }) } : {}),
     tone: onShiftCount > 0 ? 'live' : 'muted',
   })
 

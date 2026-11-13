@@ -17,7 +17,7 @@ import { t } from '../../i18n/i18n'
 const PORTRAIT_MODULE_TITLES = {
   team: 'Team',
   settings: 'Settings',
-  'time-clock': 'Time clock',
+  'time-clock': t("Time clock"),
   insights: 'Insights',
 }
 
@@ -193,7 +193,7 @@ export function MobileManagerApp({
         {moduleTitle && portraitModule ? (
           <div className="manager-portrait-module">
             <header className="manager-portrait-module-header">
-              <h1>{moduleTitle}</h1>
+              <h1>{t(moduleTitle)}</h1>
             </header>
             {portraitModule}
           </div>

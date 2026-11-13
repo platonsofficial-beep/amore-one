@@ -39,7 +39,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
     try {
       await onConfirm(value.trim())
     } catch (confirmError) {
-      setError(confirmError?.message || 'Something went wrong.')
+      setError(confirmError?.message || t("Something went wrong."))
       setBusy(false)
     }
   }
@@ -63,7 +63,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         <footer className="venue-sheet-actions">
           <button type="button" className="ghost-btn" disabled={busy} onClick={onClose}>{t("Cancel")}</button>
           <button type="submit" className={danger ? 'privacy-danger' : 'primary-btn'} disabled={busy || !matches}>
-            {busy ? 'Please wait…' : confirmLabel}
+            {busy ? t("Please wait…") : confirmLabel}
           </button>
         </footer>
       </form>
@@ -89,7 +89,7 @@ export function PrivacyAccountSection() {
       downloadJson(data, buildExportFilename('one-my-data'))
       setNotice('Your data downloaded as a JSON file.')
     } catch (error) {
-      setNotice(error?.message || 'The download failed.')
+      setNotice(error?.message || t("The download failed."))
     } finally {
       setIsExporting(false)
     }
@@ -100,7 +100,7 @@ export function PrivacyAccountSection() {
       <p className="mobile-card-label">{t("Privacy")}</p>
       <div className="privacy-actions">
         <button type="button" className="ghost-btn" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? 'Preparing…' : 'Download my data'}
+          {isExporting ? 'Preparing…' : t("Download my data")}
         </button>
         <button type="button" className="ghost-btn privacy-danger-text" onClick={() => setIsDeleteOpen(true)}>
           {t("Delete account")}
@@ -152,7 +152,7 @@ export function VenuePrivacySection() {
       await task()
       if (done) setNotice(done)
     } catch (error) {
-      setNotice(error?.message || 'Something went wrong.')
+      setNotice(error?.message || t("Something went wrong."))
     } finally {
       setIsBusy(false)
     }

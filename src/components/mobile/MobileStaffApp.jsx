@@ -154,7 +154,7 @@ export function MobileStaffApp({
         weekStartDate,
         weekLabel: formatAvailabilityWeekLabel(weekStartDate),
       })
-      setAvailabilityContextError(error?.message || 'Unable to load availability context right now.')
+      setAvailabilityContextError(error?.message || t("Unable to load availability context right now."))
     } finally {
       setIsAvailabilityContextLoading(false)
     }

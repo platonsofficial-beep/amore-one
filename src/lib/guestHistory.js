@@ -1,4 +1,4 @@
-import { uiLocale } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 import { normalizeWorkspaceRole } from './membershipRoles'
 import { isManagerRole } from './permissions'
 import { parseReservationPhone } from './reservationPhoneUtils'
@@ -40,7 +40,7 @@ export function blacklistConfirmState(guest) {
   if (!guest?.blacklisted) return { warning: '', blocked: false }
   const reason = `${guest.blacklistReason ?? ''}`.trim()
   return {
-    warning: reason ? `Blacklisted guest — ${reason}` : 'Blacklisted guest',
+    warning: reason ? `Blacklisted guest — ${reason}` : t("Blacklisted guest"),
     blocked: !canBlacklistGuest(guest.role),
   }
 }

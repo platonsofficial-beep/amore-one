@@ -65,7 +65,7 @@ export function StockSupplierFormModal({
         <div className="drawer-header">
           <div>
             <p className="eyebrow">{t("Supplier")}</p>
-            <h3 id="stock-supplier-form-title">{supplier ? 'Edit supplier' : 'Add supplier'}</h3>
+            <h3 id="stock-supplier-form-title">{supplier ? t("Edit supplier") : t("Add supplier")}</h3>
           </div>
           <button type="button" className="icon-btn stock-supplier-form-close" onClick={onClose} aria-label={t("Close supplier form")}>
             ✕
@@ -147,7 +147,7 @@ export function StockSupplierFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn stock-supplier-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save supplier'}
+              {isSaving ? 'Saving…' : t("Save supplier")}
             </button>
           </div>
         </form>

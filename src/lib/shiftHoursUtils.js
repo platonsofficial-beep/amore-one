@@ -1,4 +1,5 @@
 import { normalizeTimeValue } from './timeFormatUtils'
+import { t } from '../i18n/i18n'
 
 export function parseTimeToMinutes(value) {
   if (!value) return null
@@ -105,7 +106,7 @@ export function getEmployeeHoursTrackerState(scheduledHours, weeklyTarget) {
       status: 'none',
       barWidth: 0,
       primaryLabel: scheduled > 0 ? `${formatHoursLabel(scheduled)}h scheduled` : '0h scheduled',
-      secondaryLabel: 'No weekly target',
+      secondaryLabel: t("No weekly target"),
     }
   }
 
@@ -131,7 +132,7 @@ export function getEmployeeHoursTrackerState(scheduledHours, weeklyTarget) {
       status: 'complete',
       barWidth: 100,
       primaryLabel: `${formatHoursLabel(roundedTarget)}/${formatHoursLabel(roundedTarget)}h`,
-      secondaryLabel: 'Complete ✓',
+      secondaryLabel: t("Complete ✓"),
     }
   }
 

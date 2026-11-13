@@ -94,9 +94,9 @@ export function UserMenu({
 
   const memberDisplayName = resolveUserDisplayName({ membership, employees, user })
     || `${profileChipDisplay?.name ?? ''}`.trim()
-    || 'Profile not set'
+    || t("Profile not set")
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
-    || (isAuthDisabled ? 'Development mode' : 'Signed in')
+    || (isAuthDisabled ? t("Development mode") : t("Signed in"))
   const chipInitials = getProfileInitials(memberDisplayName)
 
   const chipClassName = variant === 'today-compact'
@@ -224,7 +224,7 @@ export function UserMenu({
               onClick={handleSignOut}
               disabled={isSigningOut}
             >
-              {isSigningOut ? 'Signing out…' : 'Logout'}
+              {isSigningOut ? t("Signing out…") : 'Logout'}
             </button>
           ) : null}
         </div>,

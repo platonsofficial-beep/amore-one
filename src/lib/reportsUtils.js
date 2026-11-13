@@ -1,4 +1,4 @@
-import { uiLocale } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 import { selectScheduleIssues } from './operationalSnapshotUtils'
 import {
   getHostStatusGroupId,
@@ -394,7 +394,7 @@ export function presentInsightsAttentionItem(item) {
   if (`${item?.key ?? ''}` !== 'orders:draft') return item
   return {
     ...item,
-    detail: 'Draft, not sent yet. Separate from open orders awaiting delivery.',
+    detail: t("Draft, not sent yet. Separate from open orders awaiting delivery."),
   }
 }
 
@@ -425,7 +425,7 @@ export function buildInsightsStockRemainders(attentionItems = [], stockReport = 
   }
 
   const outTotal = Math.max(0, Number(stockReport.metrics?.outOfStock) || 0)
-  const shownOut = countShownStockRows(attentionItems, { summaryKey: 'stock-module:out', detail: 'Out of stock' })
+  const shownOut = countShownStockRows(attentionItems, { summaryKey: 'stock-module:out', detail: t("Out of stock") })
   const moreOut = shownOut == null ? 0 : Math.max(0, outTotal - shownOut)
   if (moreOut > 0) {
     remainders.push({
@@ -466,7 +466,7 @@ function buildInsightsWeekSummary({ reservationsReport, tasksReport, scheduleRep
   if (reservationsReport?.connected) quiet.push('no bookings')
   if (tasksReport?.connected) quiet.push('no tasks completed')
   if (scheduleReport?.connected) quiet.push('no hours scheduled')
-  if (quiet.length === 0) return 'Weekly overview from connected modules.'
+  if (quiet.length === 0) return t("Weekly overview from connected modules.")
   const sentence = joinEnglishList(quiet)
   return `${sentence.charAt(0).toUpperCase()}${sentence.slice(1)} this week.`
 }
@@ -499,7 +499,7 @@ export function buildInsightsHealthSummary({
   const connectedCount = moduleReports.filter((report) => report?.connected).length
 
   if (connectedCount === 0) {
-    return 'Connect modules to see operational insights.'
+    return t("Connect modules to see operational insights.")
   }
 
   const attentionCount = (attentionItems ?? []).length
@@ -526,7 +526,7 @@ export function buildInsightsHealthSummary({
 
   if (issues.length > 0) return issues.join(' · ')
 
-  return 'Operations look stable for today.'
+  return t("Operations look stable for today.")
 }
 
 export function buildReportsOverview({
@@ -560,14 +560,14 @@ export function buildReportsOverview({
       },
       {
         key: 'tasks-overdue',
-        label: 'Tasks overdue',
+        label: t("Tasks overdue"),
         value: tasksReport?.connected ? tasksReport.metrics.overdue : null,
         connected: tasksReport?.connected,
         format: 'count',
       },
       {
         key: hasPendingOrders ? 'pending-orders' : 'items-to-order',
-        label: hasPendingOrders ? 'Open orders' : 'Items to order',
+        label: hasPendingOrders ? t("Open orders") : t("Items to order"),
         value: stockReport?.connected
           ? (hasPendingOrders
             ? stockReport.metrics.pendingOrders
@@ -578,14 +578,14 @@ export function buildReportsOverview({
       },
       {
         key: 'schedule-issues',
-        label: 'Schedule issues',
+        label: t("Schedule issues"),
         value: scheduleReport?.connected ? scheduleReport.metrics.issues : null,
         connected: scheduleReport?.connected,
         format: 'count',
       },
       {
         key: 'stock-value',
-        label: 'Stock value',
+        label: t("Stock value"),
         value: stockReport?.connected ? stockReport.metrics.totalStockValue : null,
         connected: stockReport?.connected,
         format: 'currency',
@@ -610,28 +610,28 @@ export function buildReportsOverview({
     },
     {
       key: 'tasks-completed',
-      label: 'Tasks completed',
+      label: t("Tasks completed"),
       value: tasksReport?.connected ? tasksReport.metrics.completed : null,
       connected: tasksReport?.connected,
       format: 'count',
     },
     {
       key: 'items-to-order',
-      label: 'Items to order',
+      label: t("Items to order"),
       value: stockReport?.connected ? stockReport.metrics.itemsToOrder : null,
       connected: stockReport?.connected,
       format: 'count',
     },
     {
       key: 'schedule-hours',
-      label: 'Schedule hours',
+      label: t("Schedule hours"),
       value: scheduleReport?.connected ? scheduleReport.metrics.scheduledHoursLabel : null,
       connected: scheduleReport?.connected,
       format: 'hours',
     },
     {
       key: 'stock-value',
-      label: 'Stock value',
+      label: t("Stock value"),
       value: stockReport?.connected ? stockReport.metrics.totalStockValue : null,
       connected: stockReport?.connected,
       format: 'currency',
@@ -669,7 +669,7 @@ function applyOverviewLoadFailures(overview, reportsBySource) {
 
 export function formatReportMetricValue(value, { connected = true, format = 'count', loadFailed = false } = {}) {
   if (loadFailed) return 'Unavailable'
-  if (!connected) return 'Not connected'
+  if (!connected) return t("Not connected")
   if (value === null || value === undefined) return '—'
 
   if (format === 'currency') return formatReportCurrency(value)

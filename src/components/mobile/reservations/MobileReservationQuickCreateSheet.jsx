@@ -587,11 +587,11 @@ export function MobileReservationQuickCreateSheet({
   }
 
   const eyebrowLabel = isEditMode
-    ? 'Edit reservation'
+    ? t("Edit reservation")
     : isWalkInMode
-      ? 'NEW WALK-IN'
-      : 'New reservation'
-  const titleLabel = isEditMode ? editGuestTitle : 'Quick create'
+      ? t("NEW WALK-IN")
+      : t("New reservation")
+  const titleLabel = isEditMode ? editGuestTitle : t("Quick create")
 
   const header = (
     <header className="mobile-host-reservation-panel-header">
@@ -629,7 +629,7 @@ export function MobileReservationQuickCreateSheet({
       reservations={availabilityReservations}
       layout={layout}
       mode={mode}
-      primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
+      primaryActionLabel={isEditMode ? t("Save changes") : isWalkInMode ? t("Seat Now") : t("Save reservation")}
       showPendingHint={!isEditMode && !isWalkInMode}
       workspaceProfile={workspaceProfile}
       role={role}
@@ -641,10 +641,10 @@ export function MobileReservationQuickCreateSheet({
   )
 
   const panelAriaLabel = isEditMode
-    ? 'Edit reservation'
+    ? t("Edit reservation")
     : isWalkInMode
-      ? 'Create walk-in'
-      : 'Create reservation'
+      ? t("Create walk-in")
+      : t("Create reservation")
   const dialogTitleId = isEditMode
     ? 'mobile-host-reservation-edit-title'
     : isWalkInMode

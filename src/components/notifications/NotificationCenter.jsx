@@ -193,16 +193,16 @@ export function NotificationSettingsPanel({
       <section className="panel staff-panel notification-settings-panel" aria-label={t("Push and quiet hours")}>
         <ToggleRow
           icon="🔔"
-          label="Push notifications"
-          detail="Turn this off to stop pushes on every device."
+          label={t("Push notifications")}
+          detail={t("Turn this off to stop pushes on every device.")}
           checked={quiet.pushEnabled}
           disabled={busy}
           onChange={onToggleMaster}
         />
         <ToggleRow
           icon="🌙"
-          label="Quiet hours"
-          detail="Schedule and task alerts wait. Clock-in reminders still come through."
+          label={t("Quiet hours")}
+          detail={t("Schedule and task alerts wait. Clock-in reminders still come through.")}
           checked={quiet.quietEnabled}
           disabled={busy}
           onChange={(enabled) => onQuietChange?.({ ...quiet, quietEnabled: enabled })}
@@ -240,8 +240,8 @@ export function NotificationSettingsPanel({
       <section className="panel staff-panel notification-settings-panel" aria-label={t("This device")}>
         <ToggleRow
           icon="📱"
-          label="This device"
-          detail={thisDeviceOn ? 'Reminders are on for this phone or browser.' : 'Reminders are off for this phone or browser.'}
+          label={t("This device")}
+          detail={thisDeviceOn ? t("Reminders are on for this phone or browser.") : t("Reminders are off for this phone or browser.")}
           checked={thisDeviceOn}
           disabled={busy || (blocked && !thisDeviceOn)}
           onChange={onToggleThisDevice}

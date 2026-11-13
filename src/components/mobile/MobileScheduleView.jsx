@@ -16,7 +16,7 @@ function ScheduleWeekHeader({
       <header className="mobile-screen-header mobile-schedule-header">
         <div className="mobile-schedule-title-block">
           <p className="mobile-screen-eyebrow">{t("My schedule")}</p>
-          <h1 className="mobile-screen-title">{employeeName || 'Your week'}</h1>
+          <h1 className="mobile-screen-title">{employeeName || t("Your week")}</h1>
           {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
           {isWeekUpdating ? (
             <p className="mobile-week-updating" aria-live="polite">{t("Updating…")}</p>

@@ -23,7 +23,7 @@ const LEVEL_OPTIONS = [
 function levelOptionsFor(area) {
   if (area.module !== 'stock') return LEVEL_OPTIONS
   return LEVEL_OPTIONS.map((option) => (
-    option.id === 'view' ? { ...option, label: 'Take & count' } : option
+    option.id === 'view' ? { ...option, label: t("Take & count") } : option
   ))
 }
 
@@ -109,7 +109,7 @@ export function MemberAccessPanel({
       } catch (error) {
         if (cancelled) return
         setStatus('error')
-        setErrorMessage(error?.message || 'Unable to load access right now.')
+        setErrorMessage(error?.message || t("Unable to load access right now."))
       }
     }
 
@@ -157,7 +157,7 @@ export function MemberAccessPanel({
       setNotice(successNotice)
     } catch (error) {
       setStatus('ready')
-      setErrorMessage(error?.message || 'Unable to save access right now.')
+      setErrorMessage(error?.message || t("Unable to save access right now."))
     }
   }
 
@@ -178,7 +178,7 @@ export function MemberAccessPanel({
       {linkedMembership?.role ? <p className="member-access-preset">Preset: {presetName}</p> : null}
 
       {status === 'loading' || status === 'saving' ? (
-        <p className="member-access-status">{status === 'saving' ? 'Saving access…' : 'Loading access…'}</p>
+        <p className="member-access-status">{status === 'saving' ? t("Saving access…") : t("Loading access…")}</p>
       ) : null}
       {status === 'unlinked' ? (
         <p className="member-access-status">{t("No ONE account yet. Invite them before setting access.")}</p>

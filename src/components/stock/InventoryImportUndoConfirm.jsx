@@ -30,7 +30,7 @@ export function InventoryImportUndoConfirm({
           onClick={onConfirm}
           disabled={isUndoing}
         >
-          {isUndoing ? 'Undoing…' : 'Undo import'}
+          {isUndoing ? 'Undoing…' : t("Undo import")}
         </button>
       </div>
     </div>

@@ -44,7 +44,7 @@ function InvoiceReview({
         <h3 id="stock-invoice-review-title">{t("Review invoice")}</h3>
         <p className="stock-invoice-note">
           {draft.scanned
-            ? 'Check these fields before saving. Highlighted lines differ from the order.'
+            ? t("Check these fields before saving. Highlighted lines differ from the order.")
             : 'Scan isn\'t connected. The file will be saved, and you can type the invoice yourself.'}
         </p>
         <p>{files.length} file{files.length === 1 ? '' : 's'} attached.</p>
@@ -119,7 +119,7 @@ function InvoiceReview({
           <button type="button" className="ghost-btn" onClick={() => document.getElementById(cameraId)?.click()}>{t("Add photo")}</button>
           <button type="button" className="ghost-btn" onClick={() => document.getElementById(fileId)?.click()}>{t("Add file")}</button>
           <button type="button" className="primary-btn stock-invoice-save" onClick={onSave} disabled={isSaving}>
-            {isSaving ? 'Saving…' : 'Save invoice'}
+            {isSaving ? 'Saving…' : t("Save invoice")}
           </button>
           <button type="button" className="ghost-btn" onClick={onClose}>{t("Close")}</button>
         </div>
@@ -212,7 +212,7 @@ export function StockInvoiceSection({
       }
       setOpen(true)
     } catch (error) {
-      setNotice(error?.message || 'Could not read that file.')
+      setNotice(error?.message || t("Could not read that file."))
     }
   }
 
@@ -246,7 +246,7 @@ export function StockInvoiceSection({
       setOpen(false)
       onSaved?.()
     } catch (error) {
-      setNotice(error?.message || 'Could not save the invoice.')
+      setNotice(error?.message || t("Could not save the invoice."))
     } finally {
       setIsSaving(false)
     }
@@ -257,7 +257,7 @@ export function StockInvoiceSection({
       <h4>{t("Invoice")}</h4>
       {invoice ? (
         <>
-          <p>{invoice.supplierName || 'Supplier invoice'}{invoice.invoiceNumber ? ` · ${invoice.invoiceNumber}` : ''}</p>
+          <p>{invoice.supplierName || t("Supplier invoice")}{invoice.invoiceNumber ? ` · ${invoice.invoiceNumber}` : ''}</p>
           <dl className="stock-invoice-totals">
             <div><dt>{t("Subtotal")}</dt><dd>{money(invoice.subtotal)}</dd></div>
             <div><dt>{t("VAT")}</dt><dd>{money(invoice.vat)}</dd></div>
@@ -313,7 +313,7 @@ export function StockInvoiceSection({
       {viewer ? createPortal(
         <div className="stock-invoice-viewer" role="dialog" aria-modal="true" aria-label={t("Invoice file")}>
           {viewer.contentType === 'application/pdf' ? (
-            <iframe title={viewer.fileName || 'Invoice PDF'} src={viewer.previewUrl} />
+            <iframe title={viewer.fileName || t("Invoice PDF")} src={viewer.previewUrl} />
           ) : (
             <img src={viewer.previewUrl} alt={viewer.fileName || 'Invoice'} />
           )}

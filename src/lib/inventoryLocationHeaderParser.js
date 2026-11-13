@@ -1,8 +1,9 @@
+import { t } from '../i18n/i18n'
 /**
  * P8.29.15 — Operator-qualified location header parser.
  *
  * Separates canonical location type from counter/operator suffix.
- * Example: "Storage Tasos" → locationKey "Storage", operatorLabel "Tasos".
+ * Example: t("Storage Tasos") → locationKey "Storage", operatorLabel "Tasos".
  * Pure, deterministic. No UI / network / SQL.
  */
 
@@ -11,10 +12,10 @@
  * Display forms are the bindable location keys.
  */
 export const INVENTORY_LOCATION_HEADER_PREFIXES = Object.freeze([
-  Object.freeze({ normalized: 'coffee station', locationKey: 'Coffee Station', sourceField: 'coffee_station' }),
-  Object.freeze({ normalized: 'water storage', locationKey: 'Water Storage', sourceField: 'water_storage' }),
-  Object.freeze({ normalized: 'wine storage', locationKey: 'Wine Storage', sourceField: 'wine_storage' }),
-  Object.freeze({ normalized: 'main storage', locationKey: 'Main Storage', sourceField: 'main_storage' }),
+  Object.freeze({ normalized: 'coffee station', locationKey: t("Coffee Station"), sourceField: 'coffee_station' }),
+  Object.freeze({ normalized: 'water storage', locationKey: t("Water Storage"), sourceField: 'water_storage' }),
+  Object.freeze({ normalized: 'wine storage', locationKey: t("Wine Storage"), sourceField: 'wine_storage' }),
+  Object.freeze({ normalized: 'main storage', locationKey: t("Main Storage"), sourceField: 'main_storage' }),
   Object.freeze({ normalized: 'storage', locationKey: 'Storage', sourceField: 'storage' }),
   Object.freeze({ normalized: 'kitchen', locationKey: 'Kitchen', sourceField: 'kitchen' }),
   Object.freeze({ normalized: 'freezer', locationKey: 'Freezer', sourceField: 'freezer' }),

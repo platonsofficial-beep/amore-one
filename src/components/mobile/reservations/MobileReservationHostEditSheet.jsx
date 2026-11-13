@@ -46,7 +46,7 @@ export function MobileReservationHostEditSheet({
       <div className="mobile-host-reservation-panel-header-copy">
         <p className="mobile-screen-eyebrow">{t("Reservation")}</p>
         <h2 className="mobile-host-reservation-panel-title">
-          {reservation.guestName || 'Edit reservation'}
+          {reservation.guestName || t("Edit reservation")}
         </h2>
       </div>
       <button
@@ -125,7 +125,7 @@ export function MobileReservationHostEditSheet({
           <div className="mobile-sheet-header-copy">
             <p className="mobile-screen-eyebrow">{t("Reservation")}</p>
             <h2 id="mobile-host-reservation-edit-title" className="mobile-sheet-title">
-              {reservation.guestName || 'Edit reservation'}
+              {reservation.guestName || t("Edit reservation")}
             </h2>
           </div>
           <button

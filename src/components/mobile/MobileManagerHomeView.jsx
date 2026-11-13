@@ -191,7 +191,7 @@ export function MobileManagerHomeView({
           <h2 className="mobile-manager-block-title">{t("Today overview")}</h2>
           <div className="mobile-manager-status-grid">
             <MobileManagerStatusCard
-              label="On shift"
+              label={t("On shift")}
               value={statusSummary.onShiftSummary || '—'}
               status={statusOf('schedule')}
               onRetry={retry('schedule')}
@@ -318,7 +318,7 @@ export function MobileManagerHomeView({
                   onClick={() => setShowAllAttention((current) => !current)}
                   aria-expanded={showAllAttention}
                 >
-                  {showAllAttention ? 'Show less' : 'View all attention'}
+                  {showAllAttention ? t("Show less") : t("View all attention")}
                 </button>
               ) : null}
             </>

@@ -38,7 +38,7 @@ export class HostStationErrorBoundary extends Component {
     return (
       <div className="host-station-error-boundary" role="alert">
         <h3>{t("Couldn't load")}</h3>
-        <p>{formatHostLoadError(error?.message) || 'Something went wrong while loading the host floor.'}</p>
+        <p>{formatHostLoadError(error?.message) || t("Something went wrong while loading the host floor.")}</p>
         <div className="host-station-error-actions">
           <button type="button" className="host-station-error-retry" onClick={this.handleRetry}>
             {t("Retry")}

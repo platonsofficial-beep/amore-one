@@ -48,7 +48,7 @@ export function MobileProfileView({
       })
       setSaveNotice('Profile updated.')
     } catch (error) {
-      setLocalError(error?.message || 'Unable to save profile right now.')
+      setLocalError(error?.message || t("Unable to save profile right now."))
     }
   }
 
@@ -83,7 +83,7 @@ export function MobileProfileView({
           </div>
           <div className="mobile-profile-detail-row">
             <dt>{t("Linked employee")}</dt>
-            <dd>{linkedEmployeeName || 'Not linked'}</dd>
+            <dd>{linkedEmployeeName || t("Not linked")}</dd>
           </div>
         </dl>
       </section>
@@ -127,7 +127,7 @@ export function MobileProfileView({
         {saveNotice ? <p className="mobile-profile-notice">{saveNotice}</p> : null}
 
         <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
-          {isSaving ? 'Saving…' : 'Save changes'}
+          {isSaving ? 'Saving…' : t("Save changes")}
         </button>
       </form>
 

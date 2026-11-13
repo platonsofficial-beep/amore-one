@@ -867,7 +867,7 @@ function getEmployeeWorkloadStatus(scheduledHours, weeklyTarget) {
   }
 
   if (tracker.status === 'complete' || (tracker.hasTarget && tracker.barWidth >= 85)) {
-    return { label: 'Near Limit', tone: 'near-limit', icon: '🟡' }
+    return { label: t("Near Limit"), tone: 'near-limit', icon: '🟡' }
   }
 
   return { label: 'Available', tone: 'available', icon: '🟢' }
@@ -959,7 +959,7 @@ function buildScheduleGridTemplates(shiftTemplates = [], visibleWeekShifts = [])
 
     if (derived.has(key)) return
 
-    const name = `${shift.role ?? shift.area ?? ''}`.trim() || 'Scheduled shift'
+    const name = `${shift.role ?? shift.area ?? ''}`.trim() || t("Scheduled shift")
     derived.set(key, {
       id: templateId ? `supabase-${templateId}` : `derived-${derived.size + 1}`,
       templateId: templateId ?? null,
@@ -1015,7 +1015,7 @@ function formatStaffingNotice(requiredCount, assignedCount) {
   if (assigned < required) {
     return `Assigned successfully. Missing ${required - assigned}.`
   }
-  return 'Assigned successfully. ✓ Covered.'
+  return t("Assigned successfully. ✓ Covered.")
 }
 
 function getUniqueTemplateAreas(shiftTemplates = []) {
@@ -1529,7 +1529,7 @@ function employeePositionOptionValuesMatch(left, right) {
 }
 
 const EMPLOYEE_SHIFT_OPTIONS = [
-  { value: 'Flexible / Rotating', label: 'Flexible / Rotating' },
+  { value: t("Flexible / Rotating"), label: t("Flexible / Rotating") },
   { value: 'Morning', label: 'Morning' },
   { value: 'Evening', label: 'Evening' },
   { value: 'Night', label: 'Night' },
@@ -1538,7 +1538,7 @@ const EMPLOYEE_SHIFT_OPTIONS = [
 const EMPLOYEE_STATUS_OPTIONS = [
   { value: 'Working', label: 'Working' },
   { value: 'Break', label: 'Break' },
-  { value: 'Day Off', label: 'Day Off' },
+  { value: t("Day Off"), label: t("Day Off") },
   { value: 'Leave', label: 'Leave' },
 ]
 
@@ -1705,7 +1705,7 @@ function EmployeePremiumDateField({
         aria-label={t("Start date")}
       >
         <span className={`employee-premium-date-value${displayLabel ? '' : ' is-placeholder'}`}>
-          {displayLabel || 'Select start date'}
+          {displayLabel || t("Select start date")}
         </span>
         <ReservationCalendarIcon className="employee-premium-date-icon" />
       </button>
@@ -1910,7 +1910,7 @@ function EmployeePremiumPositionField({
   openMenuId,
   setOpenMenuId,
   id,
-  placeholder = 'Select primary position',
+  placeholder = t("Select primary position"),
   valuesMatch = (left, right) => left === right,
 }) {
   const isOpen = openMenuId === menuId
@@ -2399,7 +2399,7 @@ function EmployeePremiumAdditionalPositionsField({
     try {
       const result = await onConfirmRemoveCustomPosition(removePending)
       if (result?.blocked) {
-        setRemoveBlockNotice(result.message || 'Unable to remove this custom position right now.')
+        setRemoveBlockNotice(result.message || t("Unable to remove this custom position right now."))
         setRemovePending(null)
         return
       }
@@ -2412,7 +2412,7 @@ function EmployeePremiumAdditionalPositionsField({
 
       setRemovePending(null)
     } catch (error) {
-      setRemoveError(error?.message || 'Unable to remove custom position right now.')
+      setRemoveError(error?.message || t("Unable to remove custom position right now."))
     }
   }, [onConfirmRemoveCustomPosition, removePending])
 
@@ -2788,16 +2788,16 @@ function EmployeePremiumIdentitySection({
 
 function buildEmployeeForm(employee = null) {
   const normalizeProfileShift = (shift) => {
-    if (!shift) return 'Flexible / Rotating'
+    if (!shift) return t("Flexible / Rotating")
 
     const normalized = `${shift}`.trim().toLowerCase()
     if (normalized === 'day') return 'Morning'
     if (normalized === 'morning') return 'Morning'
     if (normalized === 'evening') return 'Evening'
     if (normalized === 'night') return 'Night'
-    if (normalized.includes('flexible') || normalized.includes('rotating')) return 'Flexible / Rotating'
+    if (normalized.includes('flexible') || normalized.includes('rotating')) return t("Flexible / Rotating")
 
-    return 'Flexible / Rotating'
+    return t("Flexible / Rotating")
   }
 
   const availablePositionNames = Array.isArray(employee?.positions)
@@ -2837,11 +2837,11 @@ function buildEmployeeForm(employee = null) {
 }
 
 function formatScheduleHeaderWeekRange(days) {
-  if (!Array.isArray(days) || days.length === 0) return 'No week selected'
+  if (!Array.isArray(days) || days.length === 0) return t("No week selected")
 
   const formatDay = (dateKey) => {
     const date = parseLocalDate(dateKey)
-    return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+    return date.toLocaleDateString(uiLocale('en-GB'), { weekday: 'long', day: 'numeric', month: 'short' })
   }
 
   return `${formatDay(days[0].key)} – ${formatDay(days[days.length - 1].key)}`
@@ -3575,7 +3575,7 @@ function ScheduleView({
       setShiftTemplatePendingDelete(null)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to delete shift template right now.')
+      setAssignmentError(error?.message || t("Unable to delete shift template right now."))
     }
   }
 
@@ -3600,7 +3600,7 @@ function ScheduleView({
       setShiftTemplateRenameName('')
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to rename shift template right now.')
+      setAssignmentError(error?.message || t("Unable to rename shift template right now."))
     }
   }
 
@@ -3615,7 +3615,7 @@ function ScheduleView({
       await onDuplicateShiftTemplate(template)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to duplicate shift template right now.')
+      setAssignmentError(error?.message || t("Unable to duplicate shift template right now."))
     }
   }
 
@@ -3647,7 +3647,7 @@ function ScheduleView({
       setAssignmentError('')
       setPublishError('')
     } catch (error) {
-      const message = error?.message || 'Unable to publish this week right now.'
+      const message = error?.message || t("Unable to publish this week right now.")
       setPublishError(message)
       setAssignmentError(message)
       console.error('[ScheduleView] publish failed:', error)
@@ -3664,7 +3664,7 @@ function ScheduleView({
       setIsUnpublishConfirmOpen(false)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to unpublish this week right now.')
+      setAssignmentError(error?.message || t("Unable to unpublish this week right now."))
     } finally {
       setIsPublishing(false)
     }
@@ -3679,7 +3679,7 @@ function ScheduleView({
       setIsCopyThisWeekModalOpen(false)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy this week right now.')
+      setAssignmentError(error?.message || t("Unable to copy this week right now."))
     }
   }
 
@@ -3741,7 +3741,7 @@ function ScheduleView({
     try {
       await onCopyDay({ sourceDate, targetDate, overwrite })
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy this day right now.')
+      setAssignmentError(error?.message || t("Unable to copy this day right now."))
     }
   }
 
@@ -3755,7 +3755,7 @@ function ScheduleView({
     try {
       await onClearDay(dateKey)
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to clear this day right now.')
+      setAssignmentError(error?.message || t("Unable to clear this day right now."))
     }
   }
 
@@ -3793,7 +3793,7 @@ function ScheduleView({
       setCopyWeekTargetDate('')
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy week right now.')
+      setAssignmentError(error?.message || t("Unable to copy week right now."))
     }
   }
 
@@ -3813,7 +3813,7 @@ function ScheduleView({
       setIsClearWeekModalOpen(false)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to clear this week right now.')
+      setAssignmentError(error?.message || t("Unable to clear this week right now."))
     }
   }
 
@@ -3863,7 +3863,7 @@ function ScheduleView({
       try {
         await onUpdateTemplateDefaultRequired(template, draftRequired)
       } catch (error) {
-        setAssignmentError(error?.message || 'Day saved, but template default could not be updated.')
+        setAssignmentError(error?.message || t("Day saved, but template default could not be updated."))
         return
       }
     }
@@ -3907,7 +3907,7 @@ function ScheduleView({
       sourceShifts: cell.shifts,
       strategy: 'merge',
     }).catch((error) => {
-      setAssignmentError(error?.message || 'Unable to copy shift to next day.')
+      setAssignmentError(error?.message || t("Unable to copy shift to next day."))
     })
   }
 
@@ -3946,7 +3946,7 @@ function ScheduleView({
       sourceShifts: cell.shifts,
       strategy: 'merge',
     }).catch((error) => {
-      setAssignmentError(error?.message || 'Unable to copy shift to rest of week.')
+      setAssignmentError(error?.message || t("Unable to copy shift to rest of week."))
     })
   }
 
@@ -3977,7 +3977,7 @@ function ScheduleView({
       }
       setCellCopyPending(null)
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy shift.')
+      setAssignmentError(error?.message || t("Unable to copy shift."))
     }
   }
 
@@ -4006,7 +4006,7 @@ function ScheduleView({
         await onCopyShiftToNextDay(shift)
       }
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to duplicate shift assignments.')
+      setAssignmentError(error?.message || t("Unable to duplicate shift assignments."))
     }
   }
 
@@ -4028,7 +4028,7 @@ function ScheduleView({
       setClearCellPending(null)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to clear this shift right now.')
+      setAssignmentError(error?.message || t("Unable to clear this shift right now."))
     }
   }
 
@@ -4067,7 +4067,7 @@ function ScheduleView({
       setIsAutoFillModalOpen(false)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to auto fill week right now.')
+      setAssignmentError(error?.message || t("Unable to auto fill week right now."))
     }
   }
 
@@ -4097,7 +4097,7 @@ function ScheduleView({
       setSaveWeekTemplateName('')
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to save weekly template right now.')
+      setAssignmentError(error?.message || t("Unable to save weekly template right now."))
     }
   }
 
@@ -4133,7 +4133,7 @@ function ScheduleView({
       setIsLoadWeekTemplateModalOpen(false)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to load weekly template right now.')
+      setAssignmentError(error?.message || t("Unable to load weekly template right now."))
     }
   }
 
@@ -4169,7 +4169,7 @@ function ScheduleView({
       setRenameTemplateName('')
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to rename weekly template right now.')
+      setAssignmentError(error?.message || t("Unable to rename weekly template right now."))
     }
   }
 
@@ -4184,7 +4184,7 @@ function ScheduleView({
       setSelectedWeeklyTemplateId('')
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to delete weekly template right now.')
+      setAssignmentError(error?.message || t("Unable to delete weekly template right now."))
     }
   }
 
@@ -4306,8 +4306,8 @@ function ScheduleView({
   }), [employees, visibleWeekShifts, weekSummary.totalHours])
 
   const schedulePublicationLabel = isWeekPublished
-    ? (hasUnpublishedChanges ? 'Draft changes' : 'Published')
-    : 'Draft schedule'
+    ? (hasUnpublishedChanges ? t("Draft changes") : t('Published'))
+    : t("Draft schedule")
 
   const employeeWeekScheduleView = useMemo(
     () => buildEmployeeWeekScheduleView({
@@ -4590,7 +4590,7 @@ function ScheduleView({
     const hoursWarnings = (scheduleIssueNotice.weeklyHoursLabels ?? []).map((label) => ({
       id: `weekly-hours-${label}`,
       label: label.replace(/ is over weekly hours$/, ''),
-      detail: 'Over weekly hours',
+      detail: t("Over weekly hours"),
     }))
     return [...hoursWarnings, ...scheduleDayWarnings]
   }, [scheduleDayWarnings, scheduleIssueNotice])
@@ -4927,7 +4927,7 @@ function ScheduleView({
         ...current,
         [key]: currentRequired,
       }))
-      setAssignmentError(error?.message || 'Unable to update required staffing right now.')
+      setAssignmentError(error?.message || t("Unable to update required staffing right now."))
       return false
     } finally {
       setCapacitySavingKey('')
@@ -4975,7 +4975,7 @@ function ScheduleView({
       }))
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to save area to template right now.')
+      setAssignmentError(error?.message || t("Unable to save area to template right now."))
     }
   }
 
@@ -4984,7 +4984,7 @@ function ScheduleView({
 
     const template = scheduleGridTemplates.find((item) => item.id === assignmentDraft.templateId)
     if (!template) {
-      setAssignmentFieldErrors({ shift_template_id: 'Shift template is missing.' })
+      setAssignmentFieldErrors({ shift_template_id: t("Shift template is missing.") })
       setAssignmentMissingFields(['shift_template_id'])
       setAssignmentError('Cannot save assignment.')
       return
@@ -5117,7 +5117,7 @@ function ScheduleView({
             skippedMessages.push(`Skipped ${name} because this overlaps with another shift.`)
             continue
           }
-          skippedMessages.push(`Skipped ${name} due to: ${error?.message || 'Unknown error.'}`)
+          skippedMessages.push(`Skipped ${name} due to: ${error?.message || t("Unknown error.")}`)
         }
       }
 
@@ -5131,7 +5131,7 @@ function ScheduleView({
 
       handleCloseAssignmentModal()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unknown error while saving assignment.')
+      setAssignmentError(error?.message || t("Unknown error while saving assignment."))
     }
   }
 
@@ -5225,7 +5225,7 @@ function ScheduleView({
       setAssignmentTimeEdit(null)
       setAssignmentError('')
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to update assignment time right now.')
+      setAssignmentError(error?.message || t("Unable to update assignment time right now."))
     }
   }
 
@@ -5239,7 +5239,7 @@ function ScheduleView({
       await onCopyShiftToNextDay(editingAssignmentShift)
       handleCloseAssignmentActions()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy this shift to the next day.')
+      setAssignmentError(error?.message || t("Unable to copy this shift to the next day."))
     }
   }
 
@@ -5250,7 +5250,7 @@ function ScheduleView({
       await onCopyShiftToRestOfWeek(editingAssignmentShift)
       handleCloseAssignmentActions()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy this shift to the rest of the week.')
+      setAssignmentError(error?.message || t("Unable to copy this shift to the rest of the week."))
     }
   }
 
@@ -5267,7 +5267,7 @@ function ScheduleView({
       await onRemoveGridShift(shiftPendingDelete.id)
       setShiftPendingDelete(null)
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to delete this shift right now.')
+      setAssignmentError(error?.message || t("Unable to delete this shift right now."))
     }
   }
 
@@ -5396,7 +5396,7 @@ function ScheduleView({
       }
       setFocusedEmployeeId(null)
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to assign this employee right now.')
+      setAssignmentError(error?.message || t("Unable to assign this employee right now."))
     }
   }
 
@@ -5448,7 +5448,7 @@ function ScheduleView({
         return {
           ...current,
           isLoading: false,
-          error: error?.message || 'Unable to load availability right now.',
+          error: error?.message || t("Unable to load availability right now."),
         }
       })
     }
@@ -5485,7 +5485,7 @@ function ScheduleView({
       setAvailabilityEditor((current) => ({
         ...current,
         isSaving: false,
-        error: error?.message || 'Unable to save availability right now.',
+        error: error?.message || t("Unable to save availability right now."),
       }))
       return null
     }
@@ -5543,7 +5543,7 @@ function ScheduleView({
       })
       handleCloseShiftDropPrompt()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to move this shift right now.')
+      setAssignmentError(error?.message || t("Unable to move this shift right now."))
     }
   }
 
@@ -5569,7 +5569,7 @@ function ScheduleView({
       })
       handleCloseShiftDropPrompt()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to copy this shift right now.')
+      setAssignmentError(error?.message || t("Unable to copy this shift right now."))
     }
   }
 
@@ -5621,7 +5621,7 @@ function ScheduleView({
             cellShifts: cell.shifts ?? [],
           })
         } catch (error) {
-          setAssignmentError(error?.message || 'Unable to copy this shift right now.')
+          setAssignmentError(error?.message || t("Unable to copy this shift right now."))
         }
         return
       }
@@ -5691,7 +5691,7 @@ function ScheduleView({
           currentAssignedCount: cell.assignedCount ?? 0,
         })
       } catch (error) {
-        setAssignmentError(error?.message || 'Unable to assign this employee right now.')
+        setAssignmentError(error?.message || t("Unable to assign this employee right now."))
       }
     }
   }
@@ -5725,7 +5725,7 @@ function ScheduleView({
         aria-expanded={isShiftTemplatesOpen}
         aria-controls="schedule-templates-panel"
       >
-        {isShiftTemplatesOpen ? 'Hide Templates' : 'Templates'}
+        {isShiftTemplatesOpen ? t("Hide Templates") : t('Templates')}
       </button>
     )
   }
@@ -5789,7 +5789,7 @@ function ScheduleView({
               }}
               disabled={isSaving || isPublishing}
             >
-              {hasUnpublishedChanges ? 'Publish changes' : 'Publish schedule'}
+              {hasUnpublishedChanges ? t("Publish changes") : t("Publish schedule")}
             </button>
           ) : (
             <button
@@ -5896,7 +5896,7 @@ function ScheduleView({
             }}
             disabled={isSaving || isPublishing}
           >
-            {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+            {hasUnpublishedChanges ? t("Publish changes") : 'Publish'}
           </button>
         ) : canEditSchedule ? (
           <button
@@ -5957,9 +5957,9 @@ function ScheduleView({
       {canEditSchedule && scheduleIssueNotice.count > 0 ? (
         <div className="staff-status-banner schedule-workspace-banner schedule-issue-banner" role="status">
           {scheduleIssueNotice.count === 1
-            ? 'Schedule issue'
-            : `${scheduleIssueNotice.count} schedule issues`}
-          {scheduleIssueNotice.detail ? `: ${scheduleIssueNotice.detail}` : ''}
+            ? t("Schedule issue")
+            : t('{{count}} schedule issues', { count: scheduleIssueNotice.count })}
+          {scheduleIssueNotice.detail ? `: ${t(scheduleIssueNotice.detail)}` : ''}
         </div>
       ) : null}
 
@@ -5997,7 +5997,7 @@ function ScheduleView({
                   <select value={filters.position} onChange={(event) => setFilters((current) => ({ ...current, position: event.target.value }))}>
                     {positionFilterOptions.map((option) => (
                       <option key={`schedule-position-filter-${option}`} value={option}>
-                        {option === 'All' ? 'All positions' : option}
+                        {option === 'All' ? t("All positions") : option}
                       </option>
                     ))}
                   </select>
@@ -6019,8 +6019,8 @@ function ScheduleView({
                     {visibleStaffMembers.length === 0 ? (
                       <p className="schedule-staff-strip-empty">
                         {activeStaffMembers.length === 0
-                          ? 'No active employees available.'
-                          : 'No employees match these filters.'}
+                          ? t("No active employees available.")
+                          : t("No employees match these filters.")}
                       </p>
                     ) : (
                       visibleStaffMembers.map((employee) => {
@@ -6061,7 +6061,7 @@ function ScheduleView({
                                 event.stopPropagation()
                                 handleEmployeeChipFocusToggle(employee.id)
                               }}
-                              aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${chipStatusLabel}, ${hoursTracker.primaryLabel}${hoursTracker.status === 'over' ? ', over weekly hours' : ''}, ${positionLabel}`}
+                              aria-label={`${isEmployeeFocused ? t("Clear focus for") : 'Focus'} ${employeeName}, ${chipStatusLabel}, ${hoursTracker.primaryLabel}${hoursTracker.status === 'over' ? ', over weekly hours' : ''}, ${positionLabel}`}
                               aria-pressed={isEmployeeFocused}
                             >
                               <span className="schedule-staff-chip-identity">
@@ -6365,7 +6365,10 @@ function ScheduleView({
                       ) : (
                       <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} of ${cell.requiredCount} staff scheduled`}>
                         <span className="schedule-shift-staff-ratio-value schedule-shift-staff-ratio-full">
-                          {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount} scheduled
+                          {t('{{assigned}} / {{required}} scheduled', {
+                            assigned: cell.assignedCount,
+                            required: isCapacitySaving ? '…' : cell.requiredCount,
+                          })}
                         </span>
                         <span className="schedule-shift-staff-ratio-value schedule-shift-staff-ratio-compact" aria-hidden="true">
                           {cell.assignedCount}/{isCapacitySaving ? '…' : cell.requiredCount}
@@ -6427,7 +6430,7 @@ function ScheduleView({
                                     }}
                                     title={[
                                       employeeName,
-                                      isOverWeeklyHours ? 'Over weekly hours' : '',
+                                      isOverWeeklyHours ? t("Over weekly hours") : '',
                                       isAssignedUnavailable ? 'Unavailable' : '',
                                       customTimeLabel ? `Custom ${customTimeLabel}` : '',
                                     ].filter(Boolean).join(' · ')}
@@ -6653,7 +6656,7 @@ function ScheduleView({
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">{t("Labour Cost")}</p>
               <p className={`schedule-weekly-stat-value ${weekLabourSummary.costConnected ? 'tone-gold' : 'tone-muted'}`}>
-                {weekLabourSummary.costConnected ? weekLabourSummary.costDisplay : 'Not Connected'}
+                {weekLabourSummary.costConnected ? weekLabourSummary.costDisplay : t("Not Connected")}
               </p>
             </article>
             <article className="schedule-weekly-stat">
@@ -6825,7 +6828,7 @@ function ScheduleView({
 
           <div className="schedule-insights-block">
             <h4 className="schedule-insights-block-title">
-              {selectedDay ? `${weekDays.find((day) => day.key === selectedDay)?.label ?? 'Day'} coverage` : 'Coverage analysis'}
+              {selectedDay ? `${weekDays.find((day) => day.key === selectedDay)?.label ?? 'Day'} coverage` : t("Coverage analysis")}
             </h4>
         {filteredDayShifts.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
@@ -6849,7 +6852,7 @@ function ScheduleView({
                   {group.shifts.map((shift) => {
                     const indicator = getShiftIndicator(shift)
                     const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
-                    const employeePosition = shift.role || shift.employeeRecord?.position || 'Team member'
+                    const employeePosition = shift.role || shift.employeeRecord?.position || t("Team member")
 
                     return (
                       <button key={shift.id} type="button" className="roster-shift-card" onClick={() => handleOpenShiftDetails(shift)}>
@@ -6867,7 +6870,7 @@ function ScheduleView({
                         </div>
                         <div className="roster-shift-meta">
                           <span>{formatTimeRange24(shift.startTime, shift.endTime, ' – ')}</span>
-                          <span>{shift.area || 'Guest floor'}</span>
+                          <span>{shift.area || t("Guest floor")}</span>
                         </div>
                         <div className="roster-shift-footer">
                           <span className={`status-pill ${getShiftStatusClass(shift.status)}`}>{shift.status || 'Scheduled'}</span>
@@ -6925,7 +6928,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>{t("Cancel")}</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save as weekly template'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : t("Save as weekly template")}</button>
               </div>
             </form>
           </div>
@@ -6997,7 +7000,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setRenamingTemplateId(null)}>{t("Cancel")}</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Rename Template'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : t("Rename Template")}</button>
               </div>
             </form>
           </div>
@@ -7135,7 +7138,7 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsCopyDayModalOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmCopyDay} disabled={isSaving || !copyDayTargetKey}>
-                {copyDayWillReplaceTarget ? 'Replace & Copy' : 'Copy Day'}
+                {copyDayWillReplaceTarget ? t("Replace & Copy") : t("Copy Day")}
               </button>
             </div>
           </div>
@@ -7190,12 +7193,12 @@ function ScheduleView({
             {copyWeekTargetDate ? (
               <p className="template-delete-copy">
                 {isCopyWeekTargetCurrentWeek
-                  ? 'Select a different week than the one you are viewing.'
+                  ? t("Select a different week than the one you are viewing.")
                   : isCopyWeekTargetLoading
-                    ? 'Checking target week…'
+                    ? t("Checking target week…")
                     : copyWeekTargetShiftCount > 0
                       ? `${copyWeekTargetShiftCount} assignment${copyWeekTargetShiftCount === 1 ? '' : 's'} already exist in the target week. Copying will replace them. Draft only — nothing will be published.`
-                      : 'All assignments will be copied as draft shifts. Nothing will be published automatically.'}
+                      : t("All assignments will be copied as draft shifts. Nothing will be published automatically.")}
               </p>
             ) : (
               <p className="template-delete-copy">{t("Pick any date in the week you want to copy into.")}</p>
@@ -7211,7 +7214,7 @@ function ScheduleView({
                 onClick={handleConfirmCopyWeek}
                 disabled={isSaving || !copyWeekTargetDate || isCopyWeekTargetCurrentWeek || isCopyWeekTargetLoading}
               >
-                {copyWeekTargetShiftCount > 0 ? 'Replace & Copy Week' : 'Copy Week'}
+                {copyWeekTargetShiftCount > 0 ? t("Replace & Copy Week") : t("Copy Week")}
               </button>
             </div>
           </div>
@@ -7356,8 +7359,8 @@ function ScheduleView({
 
             <p className="template-delete-copy">
               {cellCopyPending.mode === 'next-day'
-                ? 'The next day already has assignments for this shift. Choose how to continue.'
-                : 'Some later days already have assignments for this shift. Choose how to continue.'}
+                ? t("The next day already has assignments for this shift. Choose how to continue.")
+                : t("Some later days already have assignments for this shift. Choose how to continue.")}
             </p>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
@@ -7424,7 +7427,7 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsAutoFillModalOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmAutoFillWeek} disabled={isSaving}>
-                {autoFillReplaceExisting ? 'Replace & Fill' : 'Auto Fill'}
+                {autoFillReplaceExisting ? t("Replace & Fill") : t("Auto Fill")}
               </button>
             </div>
           </div>
@@ -7455,7 +7458,7 @@ function ScheduleView({
                   <div className="assignment-context-row">
                     <span>{t("Date")}</span>
                     <strong className={assignmentFieldErrors.shift_date ? 'invalid' : ''}>
-                      {assignmentContext?.dayLabel || 'No day selected'}
+                      {assignmentContext?.dayLabel || t("No day selected")}
                     </strong>
                   </div>
                   <div className="assignment-context-row">
@@ -7485,7 +7488,7 @@ function ScheduleView({
                   <p>
                     {assignmentDraft.area
                       ? `No area saved. Using ${assignmentDraft.area} for this assignment.`
-                      : 'No area saved. Choose one to continue.'}
+                      : t("No area saved. Choose one to continue.")}
                   </p>
 
                   <label className="form-field">
@@ -7566,7 +7569,7 @@ function ScheduleView({
                   >
                     {positionFilterOptions.map((option) => (
                       <option key={`assignment-position-filter-${option}`} value={option}>
-                        {option === 'All' ? 'All positions' : option}
+                        {option === 'All' ? t("All positions") : option}
                       </option>
                     ))}
                   </select>
@@ -7583,7 +7586,7 @@ function ScheduleView({
                     const alreadyAssigned = assignmentContext?.cell
                       ? isEmployeeAssignedInCell(assignmentContext.cell, employee.id)
                       : false
-                    const positionLabel = getEmployeePrimaryPosition(employee) || 'Team member'
+                    const positionLabel = getEmployeePrimaryPosition(employee) || t("Team member")
                     const dayAvailability = resolveScheduleAvailabilityDayIndicator({
                       dayOfWeek: getAvailabilityDayOfWeekFromDateKey(assignmentDraft.shiftDate),
                       employeeAvailability: scheduleAvailabilityOverlay.byEmployeeId[employeeId] ?? null,
@@ -7687,8 +7690,8 @@ function ScheduleView({
 
             <div className="quick-actions-list">
               <button type="button" className="quick-action-item" onClick={handleQuickEditShift}>{t("Edit Shift")}</button>
-              <button type="button" className="quick-action-item" onClick={handleQuickCopyToNextDay} disabled={isSaving}>{isSaving ? 'Saving…' : 'Copy to Next Day'}</button>
-              <button type="button" className="quick-action-item" onClick={handleQuickCopyToRestOfWeek} disabled={isSaving}>{isSaving ? 'Saving…' : 'Copy to Rest of Week'}</button>
+              <button type="button" className="quick-action-item" onClick={handleQuickCopyToNextDay} disabled={isSaving}>{isSaving ? 'Saving…' : t("Copy to Next Day")}</button>
+              <button type="button" className="quick-action-item" onClick={handleQuickCopyToRestOfWeek} disabled={isSaving}>{isSaving ? 'Saving…' : t("Copy to Rest of Week")}</button>
               <button type="button" className="quick-action-item danger" onClick={handleRequestDeleteShift}>{t("Delete Shift")}</button>
             </div>
 
@@ -7828,7 +7831,7 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setShiftPendingDelete(null)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmDeleteShift} disabled={isSaving}>
-                {isSaving ? 'Deleting…' : 'Delete Shift'}
+                {isSaving ? 'Deleting…' : t("Delete Shift")}
               </button>
             </div>
           </div>
@@ -7859,7 +7862,7 @@ function ScheduleView({
                 />
               </div>
               <div>
-                <strong>{selectedShift.role || selectedShift.employeeRecord?.position || 'Team member'}</strong>
+                <strong>{selectedShift.role || selectedShift.employeeRecord?.position || t("Team member")}</strong>
                 <p>{selectedShift.employeeRecord?.department || 'Service'}</p>
               </div>
             </div>
@@ -7873,7 +7876,7 @@ function ScheduleView({
 
             <div className="drawer-notes">
               <p className="eyebrow">{t("Notes")}</p>
-              <p>{selectedShift.notes || 'No notes for this shift.'}</p>
+              <p>{selectedShift.notes || t("No notes for this shift.")}</p>
             </div>
 
             <div className="action-group" style={{ marginTop: '16px' }}>
@@ -7893,9 +7896,9 @@ function ScheduleView({
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
             <div className="drawer-header">
               <div>
-                <p className="eyebrow">{hasUnpublishedChanges ? 'Publish changes?' : 'Publish schedule?'}</p>
+                <p className="eyebrow">{hasUnpublishedChanges ? t("Publish changes?") : t("Publish schedule?")}</p>
                 <h3>{hasUnpublishedChanges
-                  ? 'Employees will see your latest draft.'
+                  ? t("Employees will see your latest draft.")
                   : 'Employees will see this week\'s schedule. You can keep editing the draft afterward.'}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => {
@@ -7913,7 +7916,7 @@ function ScheduleView({
                 setIsPublishConfirmOpen(false)
               }}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handlePublishConfirm} disabled={isPublishing}>
-                {isPublishing ? 'Publishing…' : hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+                {isPublishing ? 'Publishing…' : hasUnpublishedChanges ? t("Publish changes") : 'Publish'}
               </button>
             </div>
           </div>
@@ -7946,12 +7949,12 @@ function ScheduleView({
 
 
 const HOST_LIST_SORTS = [
-  { id: 'service', label: 'Service order' },
+  { id: 'service', label: t("Service order") },
   { id: 'time', label: 'Time' },
   { id: 'table', label: 'Table' },
-  { id: 'guest', label: 'Guest name' },
+  { id: 'guest', label: t("Guest name") },
   { id: 'status', label: 'Status' },
-  { id: 'party', label: 'Guest count' },
+  { id: 'party', label: t("Guest count") },
 ]
 const RESERVATION_WORKSPACE_VIEWS = [
   { id: 'operations', label: 'Operations' },
@@ -8440,16 +8443,16 @@ function ReservationsWorkspaceSegmentControl({ value, onChange }) {
 }
 
 const COMMAND_PALETTE_ACTIONS = [
-  { id: 'create-reservation', label: 'Create reservation', subtitle: 'Open full reservation form', icon: '＋', keywords: ['new reservation', 'add reservation', 'book'] },
-  { id: 'create-walk-in', label: 'Create walk-in', subtitle: 'Seat a walk-in party now', icon: '🚶', keywords: ['walk in', 'walk-in', 'walkin'] },
-  { id: 'seat-guest', label: 'Seat guest', subtitle: 'Mark selected or matched guest as seated', icon: '🪑', keywords: ['seat', 'seat guest', 'seat table'] },
-  { id: 'move-guest', label: 'Move guest', subtitle: 'Reassign to another table', icon: '↔', keywords: ['move', 'transfer', 'reassign'] },
-  { id: 'edit-reservation', label: 'Edit reservation', subtitle: 'Update reservation details', icon: '✏', keywords: ['edit', 'update reservation'] },
-  { id: 'call-guest', label: 'Call guest', subtitle: 'Dial guest phone number', icon: '📞', keywords: ['call', 'phone', 'dial'] },
-  { id: 'add-note', label: 'Add note', subtitle: 'Add internal service note', icon: '📝', keywords: ['note', 'add note', 'comment'] },
-  { id: 'merge-tables', label: 'Merge tables', subtitle: 'Open floor plan · Shift + click two tables', icon: '⊕', keywords: ['merge', 'merge tables', 'combine'] },
-  { id: 'split-tables', label: 'Split tables', subtitle: 'Open floor plan · Right-click merged table', icon: '⊖', keywords: ['split', 'split tables', 'unmerge'] },
-  { id: 'find-available-table', label: 'Find available table', subtitle: 'Jump to the next open table', icon: '◎', keywords: ['available', 'open table', 'find table'] },
+  { id: 'create-reservation', label: t("Create reservation"), subtitle: t("Open full reservation form"), icon: '＋', keywords: ['new reservation', 'add reservation', 'book'] },
+  { id: 'create-walk-in', label: t("Create walk-in"), subtitle: t("Seat a walk-in party now"), icon: '🚶', keywords: ['walk in', 'walk-in', 'walkin'] },
+  { id: 'seat-guest', label: t("Seat guest"), subtitle: t("Mark selected or matched guest as seated"), icon: '🪑', keywords: ['seat', 'seat guest', 'seat table'] },
+  { id: 'move-guest', label: t("Move guest"), subtitle: t("Reassign to another table"), icon: '↔', keywords: ['move', 'transfer', 'reassign'] },
+  { id: 'edit-reservation', label: t("Edit reservation"), subtitle: t("Update reservation details"), icon: '✏', keywords: ['edit', 'update reservation'] },
+  { id: 'call-guest', label: t("Call guest"), subtitle: t("Dial guest phone number"), icon: '📞', keywords: ['call', 'phone', 'dial'] },
+  { id: 'add-note', label: t("Add note"), subtitle: t("Add internal service note"), icon: '📝', keywords: ['note', 'add note', 'comment'] },
+  { id: 'merge-tables', label: t("Merge tables"), subtitle: t("Open floor plan · Shift + click two tables"), icon: '⊕', keywords: ['merge', 'merge tables', 'combine'] },
+  { id: 'split-tables', label: t("Split tables"), subtitle: t("Open floor plan · Right-click merged table"), icon: '⊖', keywords: ['split', 'split tables', 'unmerge'] },
+  { id: 'find-available-table', label: t("Find available table"), subtitle: t("Jump to the next open table"), icon: '◎', keywords: ['available', 'open table', 'find table'] },
 ]
 
 function commandPaletteFuzzyScore(needle, haystack) {
@@ -8656,7 +8659,7 @@ function buildCommandPaletteItems({
       id: 'intent-walk-in',
       kind: 'intent',
       label: `Create walk-in · ${guestCount} guests`,
-      subtitle: 'Quick walk-in reservation for right now',
+      subtitle: t("Quick walk-in reservation for right now"),
       icon: '⚡',
       score: 300,
       intent,
@@ -9020,9 +9023,9 @@ const FLOOR_TABLE_STATUS_META = {
   arrived: { label: 'Arrived', tone: 'arrived' },
   seated: { label: 'Seated', tone: 'seated' },
   'checked-in': { label: 'Seated', tone: 'checked-in' },
-  'checked-in-partial': { label: 'Seated · partly', tone: 'checked-in-partial' },
+  'checked-in-partial': { label: t("Seated · partly"), tone: 'checked-in-partial' },
   dining: { label: 'Dining', tone: 'dining' },
-  cleaning: { label: 'Needs Cleaning', tone: 'cleaning' },
+  cleaning: { label: t("Needs Cleaning"), tone: 'cleaning' },
 }
 
 const FLOOR_PLAN_VIEW_MODES = [
@@ -9033,8 +9036,8 @@ const FLOOR_PLAN_VIEW_MODES = [
 const FLOOR_HEATMAP_PERIODS = [
   { id: 'today', label: 'Today' },
   { id: 'yesterday', label: 'Yesterday' },
-  { id: 'last-7-days', label: 'Last 7 Days' },
-  { id: 'last-30-days', label: 'Last 30 Days' },
+  { id: 'last-7-days', label: t("Last 7 Days") },
+  { id: 'last-30-days', label: t("Last 30 Days") },
   { id: 'custom', label: 'Custom' },
 ]
 
@@ -9072,14 +9075,14 @@ function getFloorHeatmapDateRange(periodId, todayKey, customRange = {}) {
         startKey: addDaysToDateKey(todayKey, -6),
         endKey: todayKey,
         dayCount: 7,
-        label: 'Last 7 Days',
+        label: t("Last 7 Days"),
       }
     case 'last-30-days':
       return {
         startKey: addDaysToDateKey(todayKey, -29),
         endKey: todayKey,
         dayCount: 30,
-        label: 'Last 30 Days',
+        label: t("Last 30 Days"),
       }
     case 'custom': {
       const startKey = customRange.startKey || todayKey
@@ -9635,7 +9638,7 @@ function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder 
           role="menuitem"
           disabled={!mergedGroup}
           onClick={onSplitPlaceholder}
-          title={mergedGroup ? 'Split merged tables' : 'Select merged tables first'}
+          title={mergedGroup ? t("Split merged tables") : t("Select merged tables first")}
         >
           {t("Split table")}
         </button>
@@ -10874,8 +10877,8 @@ function FloorPlanView({
         || tableState.operational?.hostIndicator === 'seated'
       )).length
       setFloorLockToast(next
-        ? (seatedCount > 0 ? 'Timers on' : 'Timers on — they show when guests are seated')
-        : 'Timers off')
+        ? (seatedCount > 0 ? t("Timers on") : t("Timers on — they show when guests are seated"))
+        : t("Timers off"))
       return next
     })
   }, [])
@@ -11775,7 +11778,7 @@ function FloorPlanView({
   if (floorLayoutStatus === 'loading') {
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
-        <p>{isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…'}</p>
+        <p>{isRefreshingPublishedLayout ? t("Updating published layout…") : t("Loading published layout…")}</p>
       </div>
     )
   }
@@ -11932,13 +11935,13 @@ function FloorPlanView({
                   setFloorInteractionLocked((current) => {
                     const next = !current
                     writeHostFloorLockPreference(next)
-                    setFloorLockToast(next ? 'Floor locked' : 'Floor unlocked')
+                    setFloorLockToast(next ? t("Floor locked") : t("Floor unlocked"))
                     return next
                   })
                 }}
                 aria-pressed={floorInteractionLocked}
-                aria-label={floorInteractionLocked ? 'Map locked. Tap to unlock the floor plan' : 'Map unlocked. Tap to lock the floor plan'}
-                title={floorInteractionLocked ? 'Map locked' : 'Map unlocked'}
+                aria-label={floorInteractionLocked ? t("Map locked. Tap to unlock the floor plan") : t("Map unlocked. Tap to lock the floor plan")}
+                title={floorInteractionLocked ? t("Map locked") : t("Map unlocked")}
                 data-testid="host-floor-interaction-lock"
                 data-help="reservations.lock"
               >
@@ -12168,7 +12171,7 @@ function FloorPlanView({
         <p className="floor-plan-footnote">
           {isHeatmap
             ? `${heatmapPeriodRange.label} utilization · Darker gold indicates higher table turnover`
-            : 'Drag reservations between tables to reassign · Shift + click to merge · Right-click to split'}
+            : t("Drag reservations between tables to reassign · Shift + click to merge · Right-click to split")}
           {isSaving ? ' · Saving…' : ''}
         </p>
       ) : null}
@@ -12589,7 +12592,7 @@ function MobileReservationsHostShellBody({
     loadError: publishedLayoutLoadError,
   })
   const floorLayoutMessage = floorLayoutStatus === 'loading'
-    ? (isRefreshingPublishedLayout ? 'Updating published layout…' : 'Loading published layout…')
+    ? (isRefreshingPublishedLayout ? t("Updating published layout…") : t("Loading published layout…"))
     : floorLayoutStatus === 'error'
       ? "Couldn't load"
       : ''
@@ -12793,7 +12796,7 @@ function getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey) {
   const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
   const arrivalMinutes = parseTimeToMinutes(reservation.time)
 
-  if (displayStatus === 'Checked Out') return 'CHECKED OUT'
+  if (displayStatus === 'Checked Out') return t("CHECKED OUT")
   if (['Cancelled', 'Not Shown', 'Rejected'].includes(displayStatus)) return statusLabel
 
   if (reservationDate !== todayKey || arrivalMinutes === null) {
@@ -12812,7 +12815,7 @@ function getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey) {
 
   if (diff > 15) return `${statusLabel} • ${diff} min`
   if (diff > 0) return `ARRIVING • ETA ${diff} min`
-  if (diff >= -5) return 'ARRIVING • NOW'
+  if (diff >= -5) return t("ARRIVING • NOW")
 
   return statusLabel
 }
@@ -12873,11 +12876,11 @@ function getReservationPriority(reservation, allReservations) {
   }
 
   if (Number(reservation.guests) >= LARGE_PARTY_GUEST_THRESHOLD) {
-    return { label: 'Large Party', tone: 'large-party' }
+    return { label: t("Large Party"), tone: 'large-party' }
   }
 
   if (isReturningGuest(reservation, allReservations)) {
-    return { label: 'Returning Guest', tone: 'returning' }
+    return { label: t("Returning Guest"), tone: 'returning' }
   }
 
   return { label: 'Regular', tone: 'regular' }
@@ -13019,7 +13022,7 @@ function buildServiceInsights(todayReservations, nowMinutes, todayKey, _allReser
     insights.push({
       id: 'walk-in-capacity',
       tone: 'capacity',
-      text: 'Walk-in capacity available · unassigned tables remain tonight',
+      text: t("Walk-in capacity available · unassigned tables remain tonight"),
     })
   }
 
@@ -13058,8 +13061,8 @@ function getGuestIntelligenceBadges(reservation, allReservations) {
   if (isReservationVip(reservation)) badges.push({ label: 'VIP', tone: 'vip' })
   if (notesLower.includes('birthday')) badges.push({ label: 'Birthday', tone: 'occasion' })
   if (notesLower.includes('anniversary')) badges.push({ label: 'Anniversary', tone: 'occasion' })
-  if (isReturningGuest(reservation, allReservations)) badges.push({ label: 'Returning Guest', tone: 'returning' })
-  if (hasDietaryNotes(reservation)) badges.push({ label: 'Dietary Notes', tone: 'dietary' })
+  if (isReturningGuest(reservation, allReservations)) badges.push({ label: t("Returning Guest"), tone: 'returning' })
+  if (hasDietaryNotes(reservation)) badges.push({ label: t("Dietary Notes"), tone: 'dietary' })
 
   return badges
 }
@@ -13086,7 +13089,7 @@ function isReservationVvip(reservation) {
 }
 
 function getGuestCustomerType(reservation) {
-  if (reservation?.customerType === 'House Guest') return 'House Guest'
+  if (reservation?.customerType === 'House Guest') return t("House Guest")
   if (reservation?.customerType === 'VVIP') return 'VVIP'
   if (reservation?.customerType === 'VIP') return 'VIP'
   if (isReservationVvip(reservation)) return 'VVIP'
@@ -13266,7 +13269,7 @@ function parseGuestProfileFromNotes(allNotes) {
   const notesLower = notes.toLowerCase()
 
   const birthday = notesLower.includes('birthday')
-    ? (notes.match(/birthday[:\s]+([^.\n]+)/i)?.[1]?.trim() || 'On file')
+    ? (notes.match(/birthday[:\s]+([^.\n]+)/i)?.[1]?.trim() || t("On file"))
     : null
 
   const dietaryMatch = notes.match(/\b(vegan|vegetarian|gluten[- ]?free|halal|kosher|pescatarian|dairy[- ]?free)\b/i)
@@ -13279,7 +13282,7 @@ function parseGuestProfileFromNotes(allNotes) {
   const drinkMatch = notes.match(/(?:favorite|prefers?)\s+drink[:\s]+([^.\n]+)/i)
   const drinks = drinkMatch
     ? drinkMatch[1].trim()
-    : (/wine|champagne|cocktail|martini|negroni|whiskey/i.test(notesLower) ? 'Wine · Classic cocktails' : null)
+    : (/wine|champagne|cocktail|martini|negroni|whiskey/i.test(notesLower) ? t("Wine · Classic cocktails") : null)
 
   return { birthday, dietary, allergies, drinks }
 }
@@ -13304,10 +13307,10 @@ function buildGuestProfileInsights(reservation, allReservations) {
     averageSpend: avgSpend,
     favoriteTable,
     favoriteArea,
-    favoriteServer: visitCount > 2 ? 'Marco R.' : '—',
+    favoriteServer: visitCount > 2 ? t("Marco R.") : '—',
     favoriteDrinks: parsedNotes.drinks || '—',
     birthday: parsedNotes.birthday || '—',
-    dietaryRestrictions: parsedNotes.dietary || (hasDietaryNotes(reservation) ? 'On file in notes' : '—'),
+    dietaryRestrictions: parsedNotes.dietary || (hasDietaryNotes(reservation) ? t("On file in notes") : '—'),
     allergies: parsedNotes.allergies || '—',
     internalNotes: `${reservation.notes ?? ''}`.trim() || history.find((entry) => entry.notes)?.notes || '—',
     history,
@@ -13394,10 +13397,10 @@ function buildArrivalWaves(todayReservations, nowMinutes, todayKey) {
 
     waves.push({
       id: waveKey,
-      label: 'Heavy Arrival',
+      label: t("Heavy Arrival"),
       windowLabel: `${formatTimelineSlotLabel(startMinutes)}–${formatTimelineSlotLabel(lastMinutes)}`,
       count: inWindow.length,
-      message: 'Prepare front desk.',
+      message: t("Prepare front desk."),
       tone: 'heavy',
       reservationIds: inWindow.map((entry) => entry.id),
       reservations: inWindow,
@@ -13428,14 +13431,14 @@ function getReservationConfidence(reservation, allReservations) {
   score = Math.min(98, Math.max(41, score))
 
   if (score >= 90) {
-    return { percent: score, label: 'Likely to arrive', tone: 'likely' }
+    return { percent: score, label: t("Likely to arrive"), tone: 'likely' }
   }
 
   if (score >= 70) {
     return { percent: score, label: 'Expected', tone: 'expected' }
   }
 
-  return { percent: score, label: 'Possible no-show', tone: 'risk' }
+  return { percent: score, label: t("Possible no-show"), tone: 'risk' }
 }
 
 function getReservationTypeLabel(reservation) {
@@ -13463,7 +13466,7 @@ function getSeatedDurationLabel(reservation, nowMinutes, todayKey) {
   if (arrivalMinutes === null || nowMinutes < arrivalMinutes) return null
 
   const minutesSeated = nowMinutes - arrivalMinutes
-  if (minutesSeated < 1) return 'Just seated'
+  if (minutesSeated < 1) return t("Just seated")
   if (minutesSeated < 60) return `${minutesSeated}m seated`
 
   const hours = Math.floor(minutesSeated / 60)
@@ -13765,7 +13768,7 @@ function GuestProfileDrawer({
           <span className="reservation-card-avatar guest-profile-avatar">{getInitials(guestName)}</span>
           <div>
             <strong>{guestName}</strong>
-            <p>{reservation.phone || 'No phone on file'}</p>
+            <p>{reservation.phone || t("No phone on file")}</p>
             <ReservationAutoClosedBadge
               reservation={reservation}
               canUndo={canUndoAutoClose}
@@ -14286,8 +14289,8 @@ function ServiceTimelinePanel({
       {filteredCount === 0 && !isLoading ? (
         <div className={`reservations-empty-state${timelineEmptyState?.className ? ` ${timelineEmptyState.className}` : ''}`}>
           <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
-          <h4>{timelineEmptyState?.title ?? 'No upcoming reservations'}</h4>
-          <p>{timelineEmptyState?.copy ?? 'Your arrival board is clear for the selected filters.'}</p>
+          <h4>{timelineEmptyState?.title ?? t("No upcoming reservations")}</h4>
+          <p>{timelineEmptyState?.copy ?? t("Your arrival board is clear for the selected filters.")}</p>
         </div>
       ) : (
         <div
@@ -14600,7 +14603,7 @@ function ReservationsUnifiedCanvas({
           <span className={`host-timeline-chevron${isTimelineCollapsed ? '' : ' is-expanded'}`} aria-hidden="true">
             {isTimelineCollapsed ? '▲' : '▼'}
           </span>
-          <span>{isTimelineCollapsed ? 'Open timeline' : 'Close timeline'}</span>
+          <span>{isTimelineCollapsed ? t("Open timeline") : t("Close timeline")}</span>
           {isTimelineCollapsed && nextArrivalHint ? (
             <span className="host-timeline-next-hint">{nextArrivalHint}</span>
           ) : null}
@@ -15308,7 +15311,7 @@ function ReservationsWorkspaceContent({
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={onCloseAddNote}>{t("Cancel")}</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>
-                  {isSaving ? 'Saving…' : 'Save note'}
+                  {isSaving ? 'Saving…' : t("Save note")}
                 </button>
               </div>
             </form>
@@ -15493,7 +15496,7 @@ function App() {
     time: '',
     guests: '2',
     tableNumber: '',
-    area: 'Main Dining',
+    area: t("Main Dining"),
     seatingAreaId: '',
     status: 'Pending',
     notes: '',
@@ -15801,7 +15804,7 @@ function App() {
   const [displayedMobileSchedule, setDisplayedMobileSchedule] = useState({
     weekStart: '',
     days: [],
-    employeeName: 'Your week',
+    employeeName: t("Your week"),
     isWeekPublished: false,
   })
 
@@ -15858,7 +15861,7 @@ function App() {
   const stockWorkspaceSetupMessage = useMemo(() => {
     if (isStockWorkspaceReady) return ''
     if (isAuthLoading || isAuthBootstrapping) {
-      return 'Loading your venue…'
+      return t("Loading your venue…")
     }
     if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
     return USER_WORKSPACE_LOADING_MESSAGE
@@ -15925,7 +15928,7 @@ function App() {
   const operationsWorkspaceSetupMessage = useMemo(() => {
     if (isOperationsWorkspaceReady) return ''
     if (isAuthLoading || isAuthBootstrapping) {
-      return 'Loading your venue…'
+      return t("Loading your venue…")
     }
     if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
     return USER_WORKSPACE_LOADING_MESSAGE
@@ -15936,7 +15939,7 @@ function App() {
     const withAttendance = !canManageAttendance(permissionAccess)
       ? items
       : (() => {
-        const attendanceItem = { id: 'time-clock', label: 'Time clock', icon: '⏱' }
+        const attendanceItem = { id: 'time-clock', label: t("Time clock"), icon: '⏱' }
         const settingsIndex = items.findIndex((item) => item.id === 'settings')
         if (settingsIndex < 0) return [...items, attendanceItem]
         return [
@@ -16756,7 +16759,7 @@ function App() {
     setDisplayedMobileSchedule({
       weekStart: mobileWeekStart,
       days: mobileEmployeeWeekSchedule?.days ?? [],
-      employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
+      employeeName: mobileEmployeeWeekSchedule?.employeeName ?? t("Your week"),
       isWeekPublished: isMobileWeekPublished,
     })
   }, [
@@ -16769,7 +16772,7 @@ function App() {
   const mobileScheduleDisplay = isMobileWeekLoading ? displayedMobileSchedule : {
     weekStart: mobileWeekStart,
     days: mobileEmployeeWeekSchedule?.days ?? [],
-    employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
+    employeeName: mobileEmployeeWeekSchedule?.employeeName ?? t("Your week"),
     isWeekPublished: isMobileWeekPublished,
   }
 
@@ -16782,8 +16785,8 @@ function App() {
     if (!mobileEmployeeId) {
       return {
         tone: 'neutral',
-        headline: 'Employee profile required',
-        detail: 'Link your employee profile to view your shift.',
+        headline: t("Employee profile required"),
+        detail: t("Link your employee profile to view your shift."),
         needsEmployeeLink: true,
       }
     }
@@ -17156,7 +17159,7 @@ function App() {
     if (liveFloorState.state === 'live') {
       const count = liveFloorState.onShiftCount
       return {
-        chipLabel: 'On Shift',
+        chipLabel: t("On Shift"),
         chipValue: String(count),
         chipStatus: count === 1 ? 'team member live' : 'team members live',
         tone: 'live',
@@ -17165,7 +17168,7 @@ function App() {
 
     if (liveFloorState.state === 'idle' && liveFloorState.nextShiftStartLabel) {
       return {
-        chipLabel: 'Next Shift',
+        chipLabel: t("Next Shift"),
         chipValue: liveFloorState.nextShiftStartLabel,
         chipStatus: 'Standby',
         tone: 'standby',
@@ -17176,7 +17179,7 @@ function App() {
       return {
         chipLabel: 'Schedule',
         chipValue: 'Draft',
-        chipStatus: 'Publish to go live',
+        chipStatus: t("Publish to go live"),
         tone: 'draft',
       }
     }
@@ -17184,7 +17187,7 @@ function App() {
     return {
       chipLabel: 'Status',
       chipValue: 'Standby',
-      chipStatus: 'No active shift',
+      chipStatus: t("No active shift"),
       tone: 'standby',
     }
   }, [liveFloorState])
@@ -17900,8 +17903,8 @@ function App() {
         if (summary?.failedCount > 0) {
           setReportsLoadError(
             summary.failedCount === summary.totalCount
-              ? presentLoadFailure(summary.message || 'Unable to prepare insights.', 'insights')
-              : 'Some insights could not be loaded. Showing what is available.',
+              ? presentLoadFailure(summary.message || t("Unable to prepare insights."), 'insights')
+              : t("Some insights could not be loaded. Showing what is available."),
           )
         } else {
           setReportsLoadError('')
@@ -17992,10 +17995,10 @@ function App() {
       setWorkspaceProfile(savedProfile)
       setWorkspaceProfileDraft(savedProfile)
       setWorkspaceProfileNotice(savedProfile.reservationAutoClosePending
-        ? 'Workspace profile saved. The auto-close cutoff applies after the database update is approved.'
-        : 'Workspace profile saved.')
+        ? t("Workspace profile saved. The auto-close cutoff applies after the database update is approved.")
+        : t("Workspace profile saved."))
     } catch (error) {
-      setWorkspaceProfileNotice(error.message || 'Unable to save workspace profile right now.')
+      setWorkspaceProfileNotice(error.message || t("Unable to save workspace profile right now."))
     } finally {
       setIsSavingWorkspaceProfile(false)
     }
@@ -18770,7 +18773,7 @@ function App() {
   )
 
   const employeeIdentityPreviewEmployee = useMemo(() => ({
-    name: mergeEmployeeFullName(employeeForm.firstName, employeeForm.lastName) || 'New employee',
+    name: mergeEmployeeFullName(employeeForm.firstName, employeeForm.lastName) || t("New employee"),
     identityColor: employeeForm.identityColor ?? null,
   }), [employeeForm.firstName, employeeForm.lastName, employeeForm.identityColor])
 
@@ -18885,7 +18888,7 @@ function App() {
       setReservationSeatingForm(createDefaultSeatingForm())
     } catch (error) {
       console.error('[App] handleReservationSeatingSubmit error:', error)
-      setReservationSeatingsNotice(error.message || 'Unable to save seating right now.')
+      setReservationSeatingsNotice(error.message || t("Unable to save seating right now."))
     } finally {
       setIsSavingReservationSeating(false)
     }
@@ -18923,7 +18926,7 @@ function App() {
       setReservationSeatingsNotice('Seating order updated.')
       await refreshReservationSeatings()
     } catch (error) {
-      setReservationSeatingsNotice(error.message || 'Unable to reorder seatings right now.')
+      setReservationSeatingsNotice(error.message || t("Unable to reorder seatings right now."))
       await refreshReservationSeatings()
     }
   }
@@ -18950,9 +18953,9 @@ function App() {
       setReservationSeatings((current) => current.map((entry) => (
         entry.id === updatedSeating.id ? updatedSeating : entry
       )))
-      setReservationSeatingsNotice(updatedSeating.isActive ? 'Seating activated.' : 'Seating deactivated.')
+      setReservationSeatingsNotice(updatedSeating.isActive ? t("Seating activated.") : t("Seating deactivated."))
     } catch (error) {
-      setReservationSeatingsNotice(error.message || 'Unable to update seating right now.')
+      setReservationSeatingsNotice(error.message || t("Unable to update seating right now."))
     } finally {
       setIsSavingReservationSeating(false)
     }
@@ -18982,7 +18985,7 @@ function App() {
       }
       await refreshReservationSeatings()
     } catch (error) {
-      setReservationSeatingsNotice(error.message || 'Unable to delete seating right now.')
+      setReservationSeatingsNotice(error.message || t("Unable to delete seating right now."))
     } finally {
       setIsSavingReservationSeating(false)
     }
@@ -19039,7 +19042,7 @@ function App() {
       setEditingPositionId(null)
       setPositionForm({ name: '', department: 'Other' })
     } catch (error) {
-      setPositionsNotice(error.message || 'Unable to save position right now.')
+      setPositionsNotice(error.message || t("Unable to save position right now."))
     } finally {
       setIsSavingPosition(false)
     }
@@ -19077,7 +19080,7 @@ function App() {
       setPositionsNotice('Position order updated.')
       await refreshPositions()
     } catch (error) {
-      setPositionsNotice(error.message || 'Unable to reorder positions right now.')
+      setPositionsNotice(error.message || t("Unable to reorder positions right now."))
       await refreshPositions()
     }
   }
@@ -19095,7 +19098,7 @@ function App() {
     try {
       await deletePosition(activeWorkspaceId, positionPendingDelete.id)
       setPositions((current) => current.filter((position) => position.id !== positionPendingDelete.id))
-      setPositionsNotice(usage > 0 ? 'Position deleted. Employees will need reassignment.' : 'Position deleted.')
+      setPositionsNotice(usage > 0 ? t("Position deleted. Employees will need reassignment.") : t("Position deleted."))
       setPositionPendingDelete(null)
       if (editingPositionId === positionPendingDelete.id) {
         handleCancelEditPosition()
@@ -19103,7 +19106,7 @@ function App() {
       await refreshPositions()
       await refreshStaffEmployees()
     } catch (error) {
-      setPositionsNotice(error.message || 'Unable to delete position right now.')
+      setPositionsNotice(error.message || t("Unable to delete position right now."))
     } finally {
       setIsSavingPosition(false)
     }
@@ -19143,7 +19146,7 @@ function App() {
       return state
     } catch (error) {
       console.error('[App] refreshSchedulePublication failed:', error)
-      setScheduleNotice(error?.message || 'Unable to refresh published schedule status.')
+      setScheduleNotice(error?.message || t("Unable to refresh published schedule status."))
       return null
     }
   }
@@ -19194,10 +19197,10 @@ function App() {
         ])
       }
 
-      setScheduleNotice(result.publication.status === 'published' ? 'Schedule published for employees.' : 'Schedule updated.')
+      setScheduleNotice(result.publication.status === 'published' ? t("Schedule published for employees.") : t("Schedule updated."))
       return result
     } catch (error) {
-      const message = error?.message || 'Unable to publish this week right now.'
+      const message = error?.message || t("Unable to publish this week right now.")
       setScheduleNotice(message)
       throw error
     }
@@ -19343,14 +19346,14 @@ function App() {
         setScheduleNotice('Template archived. Existing scheduled shifts were kept.')
         return
       } catch (error) {
-        throw new Error(error?.message || 'This template is used by existing shifts. Remove those shifts first or archive the template.')
+        throw new Error(error?.message || t("This template is used by existing shifts. Remove those shifts first or archive the template."))
       }
     }
 
     try {
       await deleteShiftTemplate(template.templateId)
     } catch (error) {
-      throw new Error(error?.message || 'Unable to delete shift template right now.')
+      throw new Error(error?.message || t("Unable to delete shift template right now."))
     }
 
     await refreshShiftTemplates()
@@ -19543,7 +19546,7 @@ function App() {
       await refreshScheduleViewData()
       setScheduleNotice(`Weekly template loaded (${created.length} shift${created.length === 1 ? '' : 's'} created).`)
     } catch (error) {
-      const message = error?.message || 'Unable to load weekly template right now.'
+      const message = error?.message || t("Unable to load weekly template right now.")
       setScheduleNotice(message)
       throw new Error(message)
     } finally {
@@ -20036,7 +20039,7 @@ function App() {
       setScheduleNotice(`Auto filled ${created.length} assignment${created.length === 1 ? '' : 's'} from template.`)
       return created
     } catch (error) {
-      const message = error?.message || 'Unable to auto fill week right now.'
+      const message = error?.message || t("Unable to auto fill week right now.")
       setScheduleNotice(message)
       throw new Error(message)
     } finally {
@@ -20142,7 +20145,7 @@ function App() {
   const handleAddCustomPositionToEmployee = async () => {
     const customName = `${employeeForm.customPositionName ?? ''}`.trim()
     if (!customName) {
-      const message = 'Enter a custom position name before adding.'
+      const message = t("Enter a custom position name before adding.")
       setSaveError(message)
       setStaffNotice(message)
       return
@@ -20150,7 +20153,7 @@ function App() {
 
     const canonicalEntry = findPosition(customName)
     if (canonicalEntry) {
-      const message = 'This position already exists in the standard catalog.'
+      const message = t("This position already exists in the standard catalog.")
       setSaveError(message)
       setStaffNotice(message)
 
@@ -20194,7 +20197,7 @@ function App() {
     ))
 
     if (existingWorkspaceCustom) {
-      const message = 'This custom position already exists.'
+      const message = t("This custom position already exists.")
       setSaveError(message)
       setStaffNotice(message)
 
@@ -20278,7 +20281,7 @@ function App() {
 
       setStaffNotice('Custom position added.')
     } catch (error) {
-      const message = error?.message || 'Unable to add custom position right now.'
+      const message = error?.message || t("Unable to add custom position right now.")
       setSaveError(message)
       setStaffNotice(message)
     } finally {
@@ -20322,7 +20325,7 @@ function App() {
     if (otherUsage > 0) {
       return {
         success: true,
-        message: 'Removed from this employee. The position remains available because it is used elsewhere.',
+        message: t("Removed from this employee. The position remains available because it is used elsewhere."),
       }
     }
 
@@ -20335,7 +20338,7 @@ function App() {
 
     return {
       success: true,
-      message: 'The position will be removed from the workspace catalog after the employee is saved.',
+      message: t("The position will be removed from the workspace catalog after the employee is saved."),
     }
   }
 
@@ -20385,35 +20388,35 @@ function App() {
     const mergedFullName = mergeEmployeeFullName(employeeForm.firstName, employeeForm.lastName)
 
     if (!mergedFullName.trim()) {
-      const message = 'Full Name is required.'
+      const message = t("Full Name is required.")
       setSaveError(message)
       setStaffNotice(message)
       return
     }
 
     if (!`${employeeForm.primaryPosition ?? ''}`.trim()) {
-      const message = 'Primary Position is required.'
+      const message = t("Primary Position is required.")
       setSaveError(message)
       setStaffNotice(message)
       return
     }
 
     if (!isValidEmail(employeeForm.email.trim())) {
-      const message = 'Please enter a valid email address.'
+      const message = t("Please enter a valid email address.")
       setSaveError(message)
       setStaffNotice(message)
       return
     }
 
     if (canAssignManagerInviteRoleFlag && !isNumericOrEmpty(employeeForm.salary)) {
-      const message = 'Salary must be numeric or empty.'
+      const message = t("Salary must be numeric or empty.")
       setSaveError(message)
       setStaffNotice(message)
       return
     }
 
     if (!isNumericOrEmpty(employeeForm.weeklyHours)) {
-      const message = 'Weekly hours must be numeric or empty.'
+      const message = t("Weekly hours must be numeric or empty.")
       setSaveError(message)
       setStaffNotice(message)
       return
@@ -20424,7 +20427,7 @@ function App() {
     const identityColorChanged = identityColorDraft !== identityColorBaseline
 
     if (identityColorDraft !== null && !isPaletteColorId(identityColorDraft)) {
-      const message = 'This color is not available in the ONE identity palette.'
+      const message = t("This color is not available in the ONE identity palette.")
       setSaveError(message)
       setStaffNotice(message)
       return
@@ -20474,9 +20477,9 @@ function App() {
         canViewSalary: canAssignManagerInviteRoleFlag,
         formSalary: employeeForm.salary,
       }),
-      emergencyContact: employeeForm.emergencyContact.trim() || 'Not provided',
+      emergencyContact: employeeForm.emergencyContact.trim() || t("Not provided"),
       weeklyHours: normalizeNumericValue(employeeForm.weeklyHours),
-      notes: employeeForm.notes.trim() || 'No notes yet.',
+      notes: employeeForm.notes.trim() || t("No notes yet."),
       shift: employeeForm.shift,
       status: statusPlan.payloadStatus,
       department: employeeForm.department,
@@ -20533,7 +20536,7 @@ function App() {
           setEmployees((current) => applyIdentityColor(current))
           setScheduleEmployees((current) => applyIdentityColor(current))
         } catch (identityError) {
-          const identityMessage = identityError.message || 'Unable to update the employee color. Please try again.'
+          const identityMessage = identityError.message || t("Unable to update the employee color. Please try again.")
           const combinedMessage = `Employee saved, but ${identityMessage.charAt(0).toLowerCase()}${identityMessage.slice(1)}`
 
           setStaffNotice(combinedMessage)
@@ -20567,11 +20570,11 @@ function App() {
       if (cleanupFailureCount > 0) {
         setStaffNotice(
           cleanupFailureCount === 1
-            ? 'Employee saved, but one custom position could not be removed from the workspace catalog.'
+            ? t("Employee saved, but one custom position could not be removed from the workspace catalog.")
             : `Employee saved, but ${cleanupFailureCount} custom positions could not be removed from the workspace catalog.`,
         )
       } else if (!(wasCreating && canManageEmployeeInvitesRole)) {
-        setStaffNotice(editingEmployee ? 'Employee updated successfully.' : 'Employee added successfully.')
+        setStaffNotice(editingEmployee ? t("Employee updated successfully.") : t("Employee added successfully."))
       }
 
       if (wasCreating && canManageEmployeeInvitesRole) {
@@ -20581,7 +20584,7 @@ function App() {
       skipEmployeeCloseConfirmRef.current = true
       handleCloseEmployeeModal()
     } catch (error) {
-      const message = error.message || 'Unable to save employee right now. Please try again.'
+      const message = error.message || t("Unable to save employee right now. Please try again.")
       setStaffNotice(message)
       setSaveError(message)
     } finally {
@@ -20608,7 +20611,7 @@ function App() {
       if (selectedEmployee?.id === employee.id) setSelectedEmployee(nextSelected)
       setStaffNotice(enable ? `${employee.name} is enabled again.` : `${employee.name} is disabled. History is kept; you can enable them any time.`)
     } catch (error) {
-      setStaffNotice(error.message || 'Unable to change access right now.')
+      setStaffNotice(error.message || t("Unable to change access right now."))
     } finally {
       setTogglingEmployeeId('')
     }
@@ -20639,7 +20642,7 @@ function App() {
       setStaffNotice('Employee removed successfully.')
       handleCloseDeleteEmployeeModal()
     } catch (error) {
-      const message = error.message || 'Unable to delete employee right now. Please try again.'
+      const message = error.message || t("Unable to delete employee right now. Please try again.")
       // Show it inside the dialog; the page notice sits behind it.
       setDeleteEmployeeError(message)
       setStaffNotice(message)
@@ -20657,7 +20660,7 @@ function App() {
   }
 
   const getSupabaseErrorMessage = (error) => {
-    if (!error) return 'Unknown Supabase error.'
+    if (!error) return t("Unknown Supabase error.")
     if (typeof error === 'string' && error.trim()) return error.trim()
 
     const parts = [
@@ -20670,7 +20673,7 @@ function App() {
       return parts.join(' | ')
     }
 
-    return 'Unknown Supabase error.'
+    return t("Unknown Supabase error.")
   }
 
   const getShiftSegments = (startMinutes, endMinutes) => {
@@ -21283,7 +21286,7 @@ function App() {
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
         ? `Shift moved. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
-        : 'Shift moved successfully. ✓ Covered.')
+        : t("Shift moved successfully. ✓ Covered."))
       return savedShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -21386,7 +21389,7 @@ function App() {
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
         ? `Shift copied. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
-        : 'Shift copied successfully. ✓ Covered.')
+        : t("Shift copied successfully. ✓ Covered."))
       return createdShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -21627,7 +21630,7 @@ function App() {
       const parts = []
       if (result.copied > 0) parts.push(`${result.copied} assignment${result.copied === 1 ? '' : 's'} copied`)
       if (result.skipped > 0) parts.push(`${result.skipped} skipped`)
-      setScheduleNotice(parts.length > 0 ? `${parts.join(', ')} to next day.` : 'Shift copied to next day.')
+      setScheduleNotice(parts.length > 0 ? `${parts.join(', ')} to next day.` : t("Shift copied to next day."))
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
@@ -21912,7 +21915,7 @@ function App() {
         : await createShift(activeWorkspaceId, payload, legacyShiftOptions)
 
       await refreshScheduleViewData()
-      setScheduleNotice(editingShift ? 'Shift updated successfully.' : 'Shift created successfully.')
+      setScheduleNotice(editingShift ? t("Shift updated successfully.") : t("Shift created successfully."))
       handleCloseShiftModal()
     } catch (error) {
       setScheduleNotice(getSupabaseErrorMessage(error))
@@ -22006,7 +22009,7 @@ function App() {
       await refreshShiftTemplates()
       setTemplateNotice('Template order updated.')
     } catch (error) {
-      setTemplateNotice(error.message || 'Unable to reorder templates right now.')
+      setTemplateNotice(error.message || t("Unable to reorder templates right now."))
     } finally {
       setIsReorderingTemplates(false)
     }
@@ -22152,7 +22155,7 @@ function App() {
       }
 
     } catch (error) {
-      setTemplateNotice(error.message || 'Unable to delete template right now.')
+      setTemplateNotice(error.message || t("Unable to delete template right now."))
     } finally {
       setIsDeletingTemplate(false)
     }
@@ -22221,11 +22224,11 @@ function App() {
         })
       }
 
-      setTemplateNotice(editingTemplate ? 'Template updated.' : 'Template created.')
+      setTemplateNotice(editingTemplate ? t("Template updated.") : t("Template created."))
       setEditingTemplate(null)
       setTemplateForm(buildTemplateForm(null, shiftTemplates))
     } catch (error) {
-      setTemplateNotice(error.message || 'Unable to save template right now.')
+      setTemplateNotice(error.message || t("Unable to save template right now."))
     } finally {
       setIsSavingTemplate(false)
     }
@@ -22262,7 +22265,7 @@ function App() {
     const defaultZone = layout?.zones?.[0]
     let assignedUnits = []
     let seatingAreaId = defaultZone?.id ?? ''
-    let area = defaultZone?.label ?? 'Main Dining'
+    let area = defaultZone?.label ?? t("Main Dining")
 
     if (table) {
       assignedUnits = [toSeatingUnitFromLayoutUnit(table)]
@@ -22591,7 +22594,7 @@ function App() {
       time: normalizeReservationTimeValue(reservation.time),
       guests: `${reservation.guests ?? 2}`,
       tableNumber: reservation.tableNumber ?? '',
-      area: reservation.area ?? 'Main Dining',
+      area: reservation.area ?? t("Main Dining"),
       seatingAreaId: resolveAreaIdForReservation(layout, reservation, assignment.assignedUnits),
       status: reservation.status ?? 'Pending',
       notes: reservation.notes ?? '',
@@ -22613,7 +22616,7 @@ function App() {
       time: '',
       guests: '2',
       tableNumber: '',
-      area: 'Main Dining',
+      area: t("Main Dining"),
       seatingAreaId: '',
       status: 'Pending',
       notes: '',
@@ -22685,7 +22688,7 @@ function App() {
           : false,
       }
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to update reservation right now.')
+      setReservationNotice(error.message || t("Unable to update reservation right now."))
       return { saved: false }
     } finally {
       isSavingReservationRef.current = false
@@ -22709,7 +22712,7 @@ function App() {
       setReservationNotice('Reservation removed.')
       return true
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to delete reservation right now.')
+      setReservationNotice(error.message || t("Unable to delete reservation right now."))
       return false
     } finally {
       isSavingReservationRef.current = false
@@ -22724,7 +22727,7 @@ function App() {
       await reloadTodayReservations()
       setReservationNotice('Reservation removed.')
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to delete reservation right now.')
+      setReservationNotice(error.message || t("Unable to delete reservation right now."))
     }
   }
 
@@ -22736,7 +22739,7 @@ function App() {
     setIsSavingReservation(true)
     upsertReservationInState({
       ...reservation,
-      status: 'Checked In',
+      status: t("Checked In"),
       autoClosedAt: null,
     })
 
@@ -22747,7 +22750,7 @@ function App() {
       setReservationNotice('Auto-close undone. Reservation is seated again.')
     } catch (error) {
       upsertReservationInState(reservation)
-      setReservationNotice(error.message || 'Unable to undo the auto-close right now.')
+      setReservationNotice(error.message || t("Unable to undo the auto-close right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22780,7 +22783,7 @@ function App() {
       setReservationNotice(`Reservation marked ${getHostListStatusLabel(status)}.`)
     } catch (error) {
       upsertReservationInState(reservation)
-      setReservationNotice(error.message || 'Unable to update reservation right now.')
+      setReservationNotice(error.message || t("Unable to update reservation right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22805,7 +22808,7 @@ function App() {
       await reloadTodayReservations()
       setReservationNotice('Guest note saved.')
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to save guest note right now.')
+      setReservationNotice(error.message || t("Unable to save guest note right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22836,7 +22839,7 @@ function App() {
       await reloadTodayReservations()
       setReservationNotice(`Moved to table ${tableNumber}.`)
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to reassign table right now.')
+      setReservationNotice(error.message || t("Unable to reassign table right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22860,7 +22863,7 @@ function App() {
         `Assigned ${formatReservationGuestName(reservation.guestName)} to ${formatSeatingAssignmentSummary(payload.seatingAssignment, reservation.guests)}.`,
       )
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to assign tables right now.')
+      setReservationNotice(error.message || t("Unable to assign tables right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22919,10 +22922,10 @@ function App() {
 
       upsertReservationInState(savedReservation)
       await reloadTodayReservations()
-      setReservationNotice(editingReservation ? 'Reservation updated.' : 'Reservation created.')
+      setReservationNotice(editingReservation ? t("Reservation updated.") : t("Reservation created."))
       handleCloseReservationModal()
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to save reservation right now.')
+      setReservationNotice(error.message || t("Unable to save reservation right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22957,7 +22960,7 @@ function App() {
         guests: Number(quickReservationForm.guests) || 2,
         tableNumber: quickReservationForm.tableNumber.trim()
           || (profile?.favoriteTable && profile.favoriteTable !== '—' ? profile.favoriteTable : ''),
-        area: profile?.favoriteArea && profile.favoriteArea !== '—' ? profile.favoriteArea : 'Main Dining',
+        area: profile?.favoriteArea && profile.favoriteArea !== '—' ? profile.favoriteArea : t("Main Dining"),
         status: 'Pending',
         notes: `${match?.notes ?? ''}`.trim(),
       }, user?.id ?? null)
@@ -22967,7 +22970,7 @@ function App() {
       setReservationNotice('Quick reservation created.')
       handleCloseQuickReservation()
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to create quick reservation right now.')
+      setReservationNotice(error.message || t("Unable to create quick reservation right now."))
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -22976,7 +22979,7 @@ function App() {
 
   const handleCreateStockItem = async (payload, extras = {}) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to add stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to add stock items."))
     }
     if (isSavingStockItemRef.current) return null
 
@@ -22997,14 +23000,14 @@ function App() {
             parInput,
           })
         } catch (parError) {
-          notice = `Stock item added. ${parError?.message || 'The shelf par still needs to be saved from Storages.'}`
+          notice = `Stock item added. ${parError?.message || t("The shelf par still needs to be saved from Storages.")}`
         }
       }
       await refreshStockItems()
       setStockItemsNotice(notice)
       return created
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to add stock item right now.')
+      setStockItemsNotice(error.message || t("Unable to add stock item right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23014,7 +23017,7 @@ function App() {
 
   const handleUpdateStockItem = async (itemId, payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update stock items."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23027,7 +23030,7 @@ function App() {
       await refreshStockItems()
       setStockItemsNotice('Stock item updated.')
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      setStockItemsNotice(error.message || t("Unable to update stock item right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23037,7 +23040,7 @@ function App() {
 
   const handleDeactivateStockItem = async (itemId) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update stock items."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23050,7 +23053,7 @@ function App() {
       await refreshStockItems()
       setStockItemsNotice('Stock item updated.')
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      setStockItemsNotice(error.message || t("Unable to update stock item right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23060,7 +23063,7 @@ function App() {
 
   const handleReactivateStockItem = async (itemId) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update stock items."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23073,7 +23076,7 @@ function App() {
       await refreshStockItems()
       setStockItemsNotice('Stock item updated.')
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      setStockItemsNotice(error.message || t("Unable to update stock item right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23083,7 +23086,7 @@ function App() {
 
   const handleBulkUpdateStockItems = async (updates = []) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update stock items."))
     }
 
     if (!updates.length) return
@@ -23100,7 +23103,7 @@ function App() {
       await refreshStockItems()
       setStockItemsNotice(`${updates.length} product${updates.length === 1 ? '' : 's'} updated.`)
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to update products right now.')
+      setStockItemsNotice(error.message || t("Unable to update products right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23110,7 +23113,7 @@ function App() {
 
   const handleImportStockItems = async (plan) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to import stock items.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to import stock items."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23137,7 +23140,7 @@ function App() {
       setStockItemsNotice(`Import complete: ${created} created, ${updated} updated, ${skipped} skipped.`)
       return { created, updated, skipped }
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to import products right now.')
+      setStockItemsNotice(error.message || t("Unable to import products right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23154,7 +23157,7 @@ function App() {
     expectedQuantityVersion = null,
   }) => {
     if (!activeWorkspaceId || !item?.id) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock movements.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace and item are required for stock movements."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23181,9 +23184,9 @@ function App() {
       })
       await refreshStockItems()
       const recordedWaste = `${note ?? ''}`.startsWith('Waste · ')
-      setStockItemsNotice(recordedWaste ? 'Waste recorded.' : 'Stock movement recorded.')
+      setStockItemsNotice(recordedWaste ? t("Waste recorded.") : t("Stock movement recorded."))
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to record stock movement right now.')
+      setStockItemsNotice(error.message || t("Unable to record stock movement right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23201,7 +23204,7 @@ function App() {
     expectedDestinationQuantityVersion,
   }) => {
     if (!activeWorkspaceId || !item?.id) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock transfers.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace and item are required for stock transfers."))
     }
     if (isSavingStockItemRef.current) return
 
@@ -23223,7 +23226,7 @@ function App() {
       await refreshStockItems()
       setStockItemsNotice('Stock transfer recorded.')
     } catch (error) {
-      setStockItemsNotice(error.message || 'Unable to transfer stock right now.')
+      setStockItemsNotice(error.message || t("Unable to transfer stock right now."))
       throw error
     } finally {
       isSavingStockItemRef.current = false
@@ -23233,7 +23236,7 @@ function App() {
 
   const handleCreateStockOrders = async (groups) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to create orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to create orders."))
     }
     if (isCreatingStockOrdersRef.current) return
 
@@ -23250,7 +23253,7 @@ function App() {
       handleStockSectionChange('orders')
       setStockOrdersNotice(`Created ${createdOrders.length} order${createdOrders.length === 1 ? '' : 's'}.`)
     } catch (error) {
-      setStockOrdersNotice(error.message || 'Unable to create orders right now.')
+      setStockOrdersNotice(error.message || t("Unable to create orders right now."))
       throw error
     } finally {
       isCreatingStockOrdersRef.current = false
@@ -23278,7 +23281,7 @@ function App() {
 
   const handlePrepareSupplyOrderDrafts = async () => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to prepare orders."))
     }
     if (isCreatingStockOrdersRef.current || isPreparingSupplyDrafts) return
 
@@ -23317,7 +23320,7 @@ function App() {
       }
       setSupplyDraftPreview({ ...preview, loading: false })
     } catch (error) {
-      const message = error.message || 'Unable to prepare order drafts right now.'
+      const message = error.message || t("Unable to prepare order drafts right now.")
       setStockOrdersNotice(message)
       setStockItemsNotice(message)
       setMobileNotice(message)
@@ -23337,7 +23340,7 @@ function App() {
 
   const handleConfirmSupplyOrderDrafts = async (review) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to prepare orders."))
     }
     if (isCreatingStockOrdersRef.current) return
 
@@ -23367,7 +23370,7 @@ function App() {
         }
       }
     } catch (error) {
-      const message = error.message || 'Unable to prepare order drafts right now.'
+      const message = error.message || t("Unable to prepare order drafts right now.")
       setStockOrdersNotice(message)
       setStockItemsNotice(message)
       setMobileNotice(message)
@@ -23380,7 +23383,7 @@ function App() {
 
   const handleSaveStockOrderDraft = async (orderId, payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update orders."))
     }
 
     setIsSavingStockOrder(true)
@@ -23391,7 +23394,7 @@ function App() {
       await refreshStockOrders()
       setStockOrdersNotice('Order draft saved.')
     } catch (error) {
-      setStockOrdersNotice(error.message || 'Unable to save order right now.')
+      setStockOrdersNotice(error.message || t("Unable to save order right now."))
       throw error
     } finally {
       setIsSavingStockOrder(false)
@@ -23400,7 +23403,7 @@ function App() {
 
   const handleMarkStockOrderSent = async (orderId) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update orders."))
     }
 
     setIsSavingStockOrder(true)
@@ -23413,7 +23416,7 @@ function App() {
       await refreshStockOrders()
       setStockOrdersNotice('Order marked as sent.')
     } catch (error) {
-      setStockOrdersNotice(error.message || 'Unable to update order right now.')
+      setStockOrdersNotice(error.message || t("Unable to update order right now."))
       throw error
     } finally {
       setIsSavingStockOrder(false)
@@ -23422,7 +23425,7 @@ function App() {
 
   const handleReceiveStockOrder = async (orderId, { receiveItems, workspaceStorageId }) => {
     if (!activeWorkspaceId) {
-      const message = stockWorkspaceSetupMessage || 'Workspace is required to receive orders.'
+      const message = stockWorkspaceSetupMessage || t("Workspace is required to receive orders.")
       throw new Error(message)
     }
     if (isReceivingStockOrderRef.current) return
@@ -23456,13 +23459,13 @@ function App() {
       await refreshStockItems()
       setStockOrdersNotice(
         updatedOrder?.status === 'received'
-          ? 'Order completed and stock updated.'
-          : 'Partial delivery recorded and stock updated.',
+          ? t("Order completed and stock updated.")
+          : t("Partial delivery recorded and stock updated."),
       )
       return updatedOrder
     } catch (error) {
       console.error('[App] Receive failed:', error)
-      setStockOrdersNotice(error.message || 'Unable to receive order right now.')
+      setStockOrdersNotice(error.message || t("Unable to receive order right now."))
       throw error
     } finally {
       isReceivingStockOrderRef.current = false
@@ -23472,7 +23475,7 @@ function App() {
 
   const handleCancelStockOrder = async (orderId) => {
     if (!activeWorkspaceId) {
-      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+      throw new Error(stockWorkspaceSetupMessage || t("Workspace is required to update orders."))
     }
 
     setIsSavingStockOrder(true)
@@ -23483,7 +23486,7 @@ function App() {
       await refreshStockOrders()
       setStockOrdersNotice('Order cancelled.')
     } catch (error) {
-      setStockOrdersNotice(error.message || 'Unable to cancel order right now.')
+      setStockOrdersNotice(error.message || t("Unable to cancel order right now."))
       throw error
     } finally {
       setIsSavingStockOrder(false)
@@ -23492,7 +23495,7 @@ function App() {
 
   const handleCreateOperationsTask = async (payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create tasks.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to create tasks."))
     }
 
     setIsSavingOperations(true)
@@ -23517,10 +23520,10 @@ function App() {
       }
       await refreshOperationsTasks()
       setOperationsNotice(hadSteps && !stepsSaved
-        ? 'Task created. Checklist steps could not be saved yet, so they were not stored.'
-        : 'Task created.')
+        ? t("Task created. Checklist steps could not be saved yet, so they were not stored.")
+        : t("Task created."))
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to create task right now.')
+      setOperationsNotice(error.message || t("Unable to create task right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23529,7 +23532,7 @@ function App() {
 
   const handleUpdateOperationsTask = async (taskId, payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update tasks.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to update tasks."))
     }
 
     setIsSavingOperations(true)
@@ -23559,7 +23562,7 @@ function App() {
         setOperationsNotice('Task updated.')
       }
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update task right now.')
+      setOperationsNotice(error.message || t("Unable to update task right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23568,7 +23571,7 @@ function App() {
 
   const handleCompleteOperationsTask = async (task, { completionNote = '', silent = false } = {}) => {
     if (!activeWorkspaceId || !task?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and task are required."))
     }
 
     setIsSavingOperations(true)
@@ -23584,14 +23587,14 @@ function App() {
         isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
       ])
       if (!silent) {
-        const successMessage = task.checklistRun ? 'Checklist completed.' : 'Task completed.'
+        const successMessage = task.checklistRun ? t("Checklist completed.") : t("Task completed.")
         setOperationsNotice(successMessage)
         if (isMobileViewport) {
           setMobileNotice(successMessage)
         }
       }
     } catch (error) {
-      const errorMessage = error.message || 'Unable to complete task right now.'
+      const errorMessage = error.message || t("Unable to complete task right now.")
       setOperationsNotice(errorMessage)
       if (isMobileViewport) {
         setMobileNotice(errorMessage)
@@ -23604,7 +23607,7 @@ function App() {
 
   const handleReopenOperationsTask = async (task, { silent = false } = {}) => {
     if (!activeWorkspaceId || !task?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and task are required."))
     }
 
     setIsSavingOperations(true)
@@ -23618,7 +23621,7 @@ function App() {
       ])
       if (!silent) setOperationsNotice('Task reopened.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to reopen task right now.')
+      setOperationsNotice(error.message || t("Unable to reopen task right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23627,7 +23630,7 @@ function App() {
 
   const handleDeleteOperationsTask = async (task) => {
     if (!activeWorkspaceId || !task?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and task are required."))
     }
 
     setIsSavingOperations(true)
@@ -23638,7 +23641,7 @@ function App() {
       await refreshOperationsTasks()
       setOperationsNotice('Task deleted.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to delete task right now.')
+      setOperationsNotice(error.message || t("Unable to delete task right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23647,7 +23650,7 @@ function App() {
 
   const handleCreateOperationsLog = async (payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to add log entries.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to add log entries."))
     }
 
     setIsSavingOperations(true)
@@ -23658,7 +23661,7 @@ function App() {
       await refreshOperationsLogs()
       setOperationsNotice('Note added.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to add note right now.')
+      setOperationsNotice(error.message || t("Unable to add note right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23667,7 +23670,7 @@ function App() {
 
   const handleUpdateOperationsLog = async (logId, payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update log entries.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to update log entries."))
     }
 
     setIsSavingOperations(true)
@@ -23678,7 +23681,7 @@ function App() {
       await refreshOperationsLogs()
       setOperationsNotice('Note updated.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update note right now.')
+      setOperationsNotice(error.message || t("Unable to update note right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23687,7 +23690,7 @@ function App() {
 
   const handleDeleteOperationsLog = async (log) => {
     if (!activeWorkspaceId || !log?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and log entry are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and log entry are required."))
     }
 
     setIsSavingOperations(true)
@@ -23698,7 +23701,7 @@ function App() {
       await refreshOperationsLogs()
       setOperationsNotice('Note deleted.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to delete note right now.')
+      setOperationsNotice(error.message || t("Unable to delete note right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23710,7 +23713,7 @@ function App() {
       throw new Error('Only owners and managers can create announcements.')
     }
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to publish announcements.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to publish announcements."))
     }
 
     setIsSavingOperations(true)
@@ -23721,7 +23724,7 @@ function App() {
       await refreshOperationsAnnouncements()
       setOperationsNotice('Announcement published.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to publish right now.')
+      setOperationsNotice(error.message || t("Unable to publish right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23733,7 +23736,7 @@ function App() {
       throw new Error('Only owners and managers can edit announcements.')
     }
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update announcements.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to update announcements."))
     }
 
     setIsSavingOperations(true)
@@ -23744,7 +23747,7 @@ function App() {
       await refreshOperationsAnnouncements()
       setOperationsNotice('Announcement updated.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update announcement right now.')
+      setOperationsNotice(error.message || t("Unable to update announcement right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23756,7 +23759,7 @@ function App() {
       throw new Error('Only owners and managers can hide announcements.')
     }
     if (!activeWorkspaceId || !announcement?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and announcement are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and announcement are required."))
     }
 
     setIsSavingOperations(true)
@@ -23767,7 +23770,7 @@ function App() {
       await refreshOperationsAnnouncements()
       setOperationsNotice('Announcement hidden.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to hide announcement right now.')
+      setOperationsNotice(error.message || t("Unable to hide announcement right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23779,7 +23782,7 @@ function App() {
       throw new Error('Only owners and managers can publish announcements.')
     }
     if (!activeWorkspaceId || !announcement?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and announcement are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and announcement are required."))
     }
 
     setIsSavingOperations(true)
@@ -23798,7 +23801,7 @@ function App() {
       await refreshOperationsAnnouncements()
       setOperationsNotice('Announcement published.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to publish announcement right now.')
+      setOperationsNotice(error.message || t("Unable to publish announcement right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23817,7 +23820,7 @@ function App() {
       await refreshOperationsAnnouncements()
     } catch (error) {
       if (activeView === 'operations') {
-        setOperationsNotice(error.message || 'Unable to mark announcement as seen right now.')
+        setOperationsNotice(error.message || t("Unable to mark announcement as seen right now."))
       }
       throw error
     } finally {
@@ -23827,7 +23830,7 @@ function App() {
 
   const handleCreateOperationsChecklistTemplate = async (payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create checklists.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to create checklists."))
     }
 
     setIsSavingOperations(true)
@@ -23839,7 +23842,7 @@ function App() {
       setOperationsNotice('Checklist template created.')
       return created
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to create checklist template right now.')
+      setOperationsNotice(error.message || t("Unable to create checklist template right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23848,7 +23851,7 @@ function App() {
 
   const handleUpdateOperationsChecklistTemplate = async (templateId, payload) => {
     if (!activeWorkspaceId) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update checklists.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to update checklists."))
     }
 
     setIsSavingOperations(true)
@@ -23860,7 +23863,7 @@ function App() {
       setOperationsNotice('Checklist template updated.')
       return updated
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update checklist template right now.')
+      setOperationsNotice(error.message || t("Unable to update checklist template right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23869,7 +23872,7 @@ function App() {
 
   const handleDeleteOperationsChecklistTemplate = async (template) => {
     if (!activeWorkspaceId || !template?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and checklist are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and checklist are required."))
     }
 
     setIsSavingOperations(true)
@@ -23880,7 +23883,7 @@ function App() {
       await refreshOperationsChecklistTemplates()
       setOperationsNotice('Checklist template deleted.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to delete checklist template right now.')
+      setOperationsNotice(error.message || t("Unable to delete checklist template right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23896,7 +23899,7 @@ function App() {
       await refreshOperationsChecklistTemplates()
       return created
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to add checklist item right now.')
+      setOperationsNotice(error.message || t("Unable to add checklist item right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23912,7 +23915,7 @@ function App() {
       await refreshOperationsChecklistTemplates()
       return updated
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update checklist item right now.')
+      setOperationsNotice(error.message || t("Unable to update checklist item right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23927,7 +23930,7 @@ function App() {
       await deleteOperationsChecklistItem(itemId)
       await refreshOperationsChecklistTemplates()
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to delete checklist item right now.')
+      setOperationsNotice(error.message || t("Unable to delete checklist item right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23942,7 +23945,7 @@ function App() {
       await saveOperationsChecklistItemOrder(items)
       await refreshOperationsChecklistTemplates()
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to reorder checklist items right now.')
+      setOperationsNotice(error.message || t("Unable to reorder checklist items right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -23951,7 +23954,7 @@ function App() {
 
   const handleStartOperationsChecklist = async (template) => {
     if (!activeWorkspaceId || !template?.id) {
-      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and checklist are required.')
+      throw new Error(operationsWorkspaceSetupMessage || t("Workspace and checklist are required."))
     }
 
     setIsSavingOperations(true)
@@ -23972,7 +23975,7 @@ function App() {
           : `${template.name} started for today.`,
       )
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to start checklist right now.')
+      setOperationsNotice(error.message || t("Unable to start checklist right now."))
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -24086,7 +24089,7 @@ function App() {
       setSuppliersNotice('Supplier removed.')
       setSupplierPendingDelete(null)
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to delete supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to delete supplier right now."))
     } finally {
       setIsDeletingSupplier(false)
     }
@@ -24109,7 +24112,7 @@ function App() {
       await refreshSuppliers()
       setSuppliersNotice('Supplier created.')
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to create supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to create supplier right now."))
       throw error
     } finally {
       setIsSavingSupplier(false)
@@ -24146,7 +24149,7 @@ function App() {
       await refreshSuppliers()
       setSuppliersNotice('Supplier updated.')
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to update supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to update supplier right now."))
       throw error
     } finally {
       setIsSavingSupplier(false)
@@ -24170,7 +24173,7 @@ function App() {
       await refreshSuppliers()
       setSuppliersNotice('Supplier removed.')
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to delete supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to delete supplier right now."))
       throw error
     } finally {
       setIsSavingSupplier(false)
@@ -24200,9 +24203,9 @@ function App() {
         existingWorkspaceId: supplier.workspaceId ?? null,
       })
       await refreshSuppliers()
-      setSuppliersNotice(nextActive ? 'Supplier activated.' : 'Supplier deactivated.')
+      setSuppliersNotice(nextActive ? t("Supplier activated.") : t("Supplier deactivated."))
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to update supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to update supplier right now."))
       throw error
     } finally {
       setIsSavingSupplier(false)
@@ -24264,7 +24267,7 @@ function App() {
       setSuppliersNotice('Supplier updated.')
       handleCloseSupplierModal()
     } catch (error) {
-      setSuppliersNotice(error.message || 'Unable to save supplier right now.')
+      setSuppliersNotice(error.message || t("Unable to save supplier right now."))
     } finally {
       setIsSavingSupplier(false)
     }
@@ -24283,7 +24286,7 @@ function App() {
 
   const handleCreateTask = async (payload) => {
     if (!activeWorkspaceId) {
-      const error = new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create tasks.')
+      const error = new Error(operationsWorkspaceSetupMessage || t("Workspace is required to create tasks."))
       setTasksNotice(error.message)
       throw error
     }
@@ -24300,7 +24303,7 @@ function App() {
       await refreshOperationsTaskSurfaces()
       setTasksNotice('Task created successfully.')
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to create task right now.')
+      setTasksNotice(error?.message || t("Unable to create task right now."))
       throw error
     } finally {
       setIsSavingTask(false)
@@ -24315,7 +24318,7 @@ function App() {
       const operationsTask = findOperationsTaskById(taskId)
       if (operationsTask) {
         if (!activeWorkspaceId) {
-          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update tasks.')
+          throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to update tasks."))
         }
         await updateOperationsTask(
           activeWorkspaceId,
@@ -24329,7 +24332,7 @@ function App() {
       }
       setTasksNotice('Task updated successfully.')
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to update task right now.')
+      setTasksNotice(error?.message || t("Unable to update task right now."))
       throw error
     } finally {
       setIsSavingTask(false)
@@ -24343,7 +24346,7 @@ function App() {
     try {
       if (findOperationsTaskById(taskId)) {
         if (!activeWorkspaceId) {
-          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to delete tasks.')
+          throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to delete tasks."))
         }
         await deleteOperationsTask(activeWorkspaceId, taskId)
         await refreshOperationsTaskSurfaces()
@@ -24353,7 +24356,7 @@ function App() {
       }
       setTasksNotice('Task deleted.')
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to delete task right now.')
+      setTasksNotice(error?.message || t("Unable to delete task right now."))
     } finally {
       setIsSavingTask(false)
     }
@@ -24367,7 +24370,7 @@ function App() {
       const operationsTask = findOperationsTaskById(taskId)
       if (operationsTask) {
         if (!activeWorkspaceId) {
-          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to complete tasks.')
+          throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to complete tasks."))
         }
         await completeOperationalWorkItem(activeWorkspaceId, operationsTask, {
           completedBy: user?.id ?? null,
@@ -24379,7 +24382,7 @@ function App() {
       }
       setTasksNotice('Task marked complete.')
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to complete this task right now.')
+      setTasksNotice(error?.message || t("Unable to complete this task right now."))
     } finally {
       setIsSavingTask(false)
     }
@@ -24393,7 +24396,7 @@ function App() {
       const operationsTask = findOperationsTaskById(taskId)
       if (operationsTask) {
         if (!activeWorkspaceId) {
-          throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to reopen tasks.')
+          throw new Error(operationsWorkspaceSetupMessage || t("Workspace is required to reopen tasks."))
         }
         await reopenOperationalWorkItem(activeWorkspaceId, operationsTask)
         await refreshOperationsTaskSurfaces()
@@ -24403,7 +24406,7 @@ function App() {
       }
       setTasksNotice('Task reopened.')
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to reopen this task right now.')
+      setTasksNotice(error?.message || t("Unable to reopen this task right now."))
     } finally {
       setIsSavingTask(false)
     }
@@ -24440,7 +24443,7 @@ function App() {
           : `Department "${trimmed}" deleted.`,
       )
     } catch (error) {
-      setTasksNotice(error?.message || 'Unable to delete department right now.')
+      setTasksNotice(error?.message || t("Unable to delete department right now."))
       throw error
     } finally {
       setIsSavingTask(false)
@@ -24461,7 +24464,7 @@ function App() {
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template created successfully.')
     } catch (error) {
-      setTaskTemplatesNotice(error?.message || 'Unable to create template right now.')
+      setTaskTemplatesNotice(error?.message || t("Unable to create template right now."))
       throw error
     } finally {
       setIsSavingTaskTemplate(false)
@@ -24479,7 +24482,7 @@ function App() {
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template updated successfully.')
     } catch (error) {
-      setTaskTemplatesNotice(error?.message || 'Unable to update template right now.')
+      setTaskTemplatesNotice(error?.message || t("Unable to update template right now."))
       throw error
     } finally {
       setIsSavingTaskTemplate(false)
@@ -24495,7 +24498,7 @@ function App() {
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template deleted.')
     } catch (error) {
-      setTaskTemplatesNotice(error?.message || 'Unable to delete template right now.')
+      setTaskTemplatesNotice(error?.message || t("Unable to delete template right now."))
     } finally {
       setIsSavingTaskTemplate(false)
     }
@@ -24525,7 +24528,7 @@ function App() {
         setTaskTemplatesNotice(`${createdLabel}. ${skippedLabel}.`)
       }
     } catch (error) {
-      setTaskTemplatesNotice(error?.message || 'Unable to generate tasks right now.')
+      setTaskTemplatesNotice(error?.message || t("Unable to generate tasks right now."))
     } finally {
       setIsGeneratingTasksFromTemplates(false)
     }
@@ -24554,7 +24557,7 @@ function App() {
       await toggleChecklistItem(itemId, isCompleted)
     } catch (error) {
       await refreshTasks()
-      setTasksNotice(error?.message || 'Unable to update checklist item right now.')
+      setTasksNotice(error?.message || t("Unable to update checklist item right now."))
     }
   }
 
@@ -24580,7 +24583,7 @@ function App() {
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection, stockSection)
 
   const mobileExpandedTitle = useMemo(() => {
-    if (mobileExpandedView === 'full-schedule') return 'Team schedule'
+    if (mobileExpandedView === 'full-schedule') return t("Team schedule")
     if (mobileExpandedView === 'workspace') return moduleTitle
     return ''
   }, [mobileExpandedView, moduleTitle])
@@ -24946,7 +24949,7 @@ function App() {
       setReservationNotice('Reservation created.')
       return true
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to create reservation right now.')
+      setReservationNotice(error.message || t("Unable to create reservation right now."))
       return false
     } finally {
       isSavingReservationRef.current = false
@@ -25047,7 +25050,7 @@ function App() {
       await signOut()
     } catch (error) {
       console.warn('[App] mobile signOut error:', error)
-      setMobileNotice(error?.message || 'Unable to sign out right now.')
+      setMobileNotice(error?.message || t("Unable to sign out right now."))
     }
   }
 
@@ -25341,7 +25344,7 @@ function App() {
   } : {
     seatings: [],
     isLoading: false,
-    noticeMessage: 'Reservation management permission is required to configure seatings.',
+    noticeMessage: t("Reservation management permission is required to configure seatings."),
     form: createDefaultSeatingForm(),
     isSaving: false,
     editingSeatingId: null,
@@ -25442,7 +25445,7 @@ function App() {
       {subscriptionUi.locked ? (
           <SubscriptionLockScreen
           manager={subscriptionUi.manager}
-          venueName={workspace?.name || 'This venue'}
+          venueName={workspace?.name || t("This venue")}
           notice={subscriptionNotice}
           showPortal={subscriptionUi.hasStripeCustomer}
           onCheckout={handleSubscriptionCheckout}
@@ -25552,7 +25555,7 @@ function App() {
               workspaceId={activeWorkspaceId}
               memberId={membership?.id ?? ''}
               employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId ?? '')}
-              employeeName={billingPreviewActive ? 'Alex Costa' : (mobileLinkedEmployee?.name ?? '')}
+              employeeName={billingPreviewActive ? t("Alex Costa") : (mobileLinkedEmployee?.name ?? '')}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
               previewMode={billingPreviewActive}
@@ -26919,7 +26922,7 @@ function App() {
               <div className="drawer-header employee-premium-form-header">
                 <div>
                   <p className="eyebrow">{t("Employee")}</p>
-                  <h3>{editingEmployee ? 'Edit employee' : 'Add employee'}</h3>
+                  <h3>{editingEmployee ? t("Edit employee") : t("Add employee")}</h3>
                 </div>
                 <button type="button" className="icon-btn employee-premium-form-close" onClick={handleCloseEmployeeModal} aria-label={t("Close employee form")}>✕</button>
               </div>
@@ -27194,7 +27197,7 @@ function App() {
           <div className="employee-modal-backdrop" onClick={handleCloseShiftModal}>
             <div className="employee-modal schedule-compact-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header schedule-compact-modal-header">
-                <h3>{editingShift ? 'Edit shift' : 'Add shift'}</h3>
+                <h3>{editingShift ? t("Edit shift") : t("Add shift")}</h3>
                 <button type="button" className="icon-btn" onClick={handleCloseShiftModal} aria-label={t("Close")}>✕</button>
               </div>
 
@@ -27375,7 +27378,7 @@ function App() {
                       </button>
                       <div className="schedule-template-list-main">
                         <strong>{formatScheduleShiftDisplayName(template.name)}</strong>
-                        <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · {template.defaultArea || 'No area'} · Staff {getTemplateDefaultRequiredCount(template)}</p>
+                        <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · {template.defaultArea || t("No area")} · Staff {getTemplateDefaultRequiredCount(template)}</p>
                       </div>
                       <div className="action-group schedule-template-list-actions">
                         <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)} disabled={isReorderingTemplates}>{t("Edit")}</button>
@@ -27480,7 +27483,7 @@ function App() {
               <div className="drawer-header">
                 <div>
                   <p className="eyebrow">{t("Smart reservation")}</p>
-                  <h3>{editingReservation ? 'Edit reservation' : 'Add reservation'}</h3>
+                  <h3>{editingReservation ? t("Edit reservation") : t("Add reservation")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseReservationModal}>✕</button>
               </div>
@@ -27735,7 +27738,7 @@ function App() {
               <div className="drawer-header">
                 <div>
                   <p className="eyebrow">{t("Supplier form")}</p>
-                  <h3>{editingSupplier ? 'Edit supplier' : 'Add supplier'}</h3>
+                  <h3>{editingSupplier ? t("Edit supplier") : t("Add supplier")}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseSupplierModal}>✕</button>
               </div>
@@ -27830,7 +27833,7 @@ function App() {
                 </button>
                 {!supplierDeleteHasHistory ? (
                   <button type="button" className="primary-btn supplier-delete-confirm-btn supplier-modal-action-btn" onClick={handleConfirmDeleteSupplier} disabled={isDeletingSupplier}>
-                    {isDeletingSupplier ? 'Deleting…' : 'Delete Supplier'}
+                    {isDeletingSupplier ? 'Deleting…' : t("Delete Supplier")}
                   </button>
                 ) : null}
               </div>
@@ -27869,7 +27872,7 @@ function App() {
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setPositionPendingDelete(null)}>{t("Cancel")}</button>
                 <button type="button" className="primary-btn" onClick={handleConfirmDeletePosition} disabled={isSavingPosition}>
-                  {isSavingPosition ? 'Deleting…' : 'Delete Position'}
+                  {isSavingPosition ? 'Deleting…' : t("Delete Position")}
                 </button>
               </div>
             </div>
@@ -27894,7 +27897,7 @@ function App() {
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setReservationSeatingPendingDelete(null)}>{t("Cancel")}</button>
                 <button type="button" className="primary-btn" onClick={handleConfirmDeleteReservationSeating} disabled={isSavingReservationSeating}>
-                  {isSavingReservationSeating ? 'Deleting…' : 'Delete seating'}
+                  {isSavingReservationSeating ? 'Deleting…' : t("Delete seating")}
                 </button>
               </div>
             </div>

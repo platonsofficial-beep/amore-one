@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 /** Local invoice screens for auth-disabled screenshots. Never used when auth is on. */
 
 const PREVIEW_MODES = new Set(['add', 'review', 'saved', 'list'])
@@ -22,17 +23,17 @@ export function buildStockInvoicePreviewOrders() {
     workspaceId: 'dev-workspace-id',
     orderNumber: 18,
     status: 'sent',
-    supplier: 'Harbour Wines',
+    supplier: t("Harbour Wines"),
     supplierId: 'preview-supplier',
     notes: '',
     expectedDeliveryDate: '2026-11-14',
     totalCost: 86,
     createdAt: '2026-11-12T09:00:00.000Z',
-    createdByName: 'Development user',
+    createdByName: t("Development user"),
     hasInvoice: false,
     items: [
       { id: 'line-cola', itemName: 'Cola', quantity: 12, receivedQuantity: 0, unit: 'Can', costPrice: 1.2, totalPrice: 14.4 },
-      { id: 'line-wine', itemName: 'House red', quantity: 6, receivedQuantity: 0, unit: 'Btl', costPrice: 8, totalPrice: 48 },
+      { id: 'line-wine', itemName: t("House red"), quantity: 6, receivedQuantity: 0, unit: 'Btl', costPrice: 8, totalPrice: 48 },
     ],
   }
   const received = {
@@ -40,17 +41,17 @@ export function buildStockInvoicePreviewOrders() {
     workspaceId: 'dev-workspace-id',
     orderNumber: 17,
     status: 'received',
-    supplier: 'Harbour Wines',
+    supplier: t("Harbour Wines"),
     notes: '',
     expectedDeliveryDate: '2026-11-10',
     totalCost: 86,
     createdAt: '2026-11-10T09:00:00.000Z',
     receivedAt: '2026-11-11T15:00:00.000Z',
-    receivedByName: 'Development user',
+    receivedByName: t("Development user"),
     hasInvoice: true,
     items: [
       { id: 'line-cola-r', itemName: 'Cola', quantity: 12, receivedQuantity: 12, unit: 'Can', costPrice: 1.2, totalPrice: 14.4 },
-      { id: 'line-wine-r', itemName: 'House red', quantity: 6, receivedQuantity: 6, unit: 'Btl', costPrice: 8, totalPrice: 48 },
+      { id: 'line-wine-r', itemName: t("House red"), quantity: 6, receivedQuantity: 6, unit: 'Btl', costPrice: 8, totalPrice: 48 },
     ],
   }
   return [sent, received]
@@ -63,12 +64,12 @@ export function previewInvoiceThumb() {
 
 export function buildPreviewInvoiceDraft() {
   return {
-    supplierName: 'Harbour Wines',
+    supplierName: t("Harbour Wines"),
     invoiceNumber: 'HW-2041',
     invoiceDate: '2026-11-13',
     lines: [
       { name: 'Cola', quantity: 10, unitPrice: 1.2 },
-      { name: 'House red', quantity: 6, unitPrice: 9 },
+      { name: t("House red"), quantity: 6, unitPrice: 9 },
     ],
     subtotal: 66,
     vat: 12.54,
@@ -80,7 +81,7 @@ export function buildPreviewInvoiceDraft() {
 export function buildPreviewSavedInvoice() {
   return {
     id: 'preview-invoice',
-    supplierName: 'Harbour Wines',
+    supplierName: t("Harbour Wines"),
     invoiceNumber: 'HW-2041',
     invoiceDate: '2026-11-13',
     subtotal: 66,

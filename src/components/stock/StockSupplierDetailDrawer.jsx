@@ -79,7 +79,7 @@ export function StockSupplierDetailDrawer({
               <p className="stock-order-detail-eyebrow">{t("Supplier")}</p>
               <div className="stock-product-history-title-row">
                 <h2 id="stock-supplier-detail-title" className="stock-product-history-title">
-                  {supplier?.companyName || 'Unnamed supplier'}
+                  {supplier?.companyName || t("Unnamed supplier")}
                 </h2>
                 <span className={`stock-order-status-badge tone-${statusTone}`}>
                   {formatSupplierStatusLabel(supplier)}
@@ -101,7 +101,7 @@ export function StockSupplierDetailDrawer({
           <section className="stock-product-history-section" aria-label={t("Contact")}>
             <h3 className="stock-product-history-section-title">{t("Contact")}</h3>
             <dl className="stock-supplier-detail-list">
-              <DetailRow label="Contact person" value={supplier?.contactPerson} />
+              <DetailRow label={t("Contact person")} value={supplier?.contactPerson} />
               {canManage ? <DetailRow label="Phone" value={supplier?.phone} /> : null}
               {canManage ? <DetailRow label="Email" value={supplier?.email} /> : null}
               <DetailRow label="Address" value={supplier?.address} />

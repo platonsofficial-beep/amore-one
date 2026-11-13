@@ -23,7 +23,7 @@ import { t } from '../../i18n/i18n'
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
   const quantity = line.quantity > 0 ? line.quantity : 1
-  const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
+  const supplier = `${item.supplier ?? ''}`.trim() || t("No supplier")
 
   return [{
     supplier,
@@ -284,14 +284,14 @@ export function MobileManagerStockView({
     if (statusFilter === 'low' && hasNoMatches) {
       return {
         ...base,
-        message: 'Everything looks good',
+        message: t("Everything looks good"),
       }
     }
 
     if (statusFilter === 'out' && hasNoMatches) {
       return {
         ...base,
-        message: 'Everything looks good',
+        message: t("Everything looks good"),
       }
     }
 

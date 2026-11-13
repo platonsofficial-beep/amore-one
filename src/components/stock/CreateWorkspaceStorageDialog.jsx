@@ -19,7 +19,7 @@ export function validateCreateWorkspaceStorageName(rawName) {
     return {
       ok: false,
       value: '',
-      error: 'Storage name is required.',
+      error: t("Storage name is required."),
     }
   }
   if (trimmed.length > STORAGE_NAME_MAX_LENGTH) {
@@ -85,7 +85,7 @@ export function CreateWorkspaceStorageDialog({
       const created = await createWorkspaceStorage(workspaceId, validation.value)
       onCreated?.(created)
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to create storage right now.')
+      setError(submitError?.message || t("Unable to create storage right now."))
     } finally {
       setIsSaving(false)
     }
@@ -162,7 +162,7 @@ export function CreateWorkspaceStorageDialog({
               className="primary-btn"
               disabled={isSaving}
             >
-              {isSaving ? 'Creating…' : 'Create Storage'}
+              {isSaving ? 'Creating…' : t("Create Storage")}
             </button>
           </div>
         </form>

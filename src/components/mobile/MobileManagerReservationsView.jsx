@@ -169,7 +169,7 @@ export function MobileManagerReservationsView({
   const loadFailed = isHostLoadFailureMessage(noticeMessage)
   const summaryUnavailable = loadFailed && dayReservations.length === 0
   const daySummary = useMemo(() => (
-    summaryUnavailable ? 'Bookings unavailable' : summarizePortraitDay(dayReservations)
+    summaryUnavailable ? t("Bookings unavailable") : summarizePortraitDay(dayReservations)
   ), [dayReservations, summaryUnavailable])
   // Same emoji + word metrics as the landscape header, for the whole day.
   const dayMetrics = useMemo(() => buildHostQueueServiceMetrics(dayReservations, {
@@ -374,8 +374,8 @@ export function MobileManagerReservationsView({
             <p>{loadFailed
               ? "Couldn't load reservations"
               : searchTerm.trim() || problemsOnly || selectedSeating
-                ? 'No bookings match.'
-                : 'No bookings for this day.'}</p>
+                ? t("No bookings match.")
+                : t("No bookings for this day.")}</p>
             {loadFailed ? <p>{t("Retry to load the queue. An empty list is not confirmed.")}</p> : null}
             {canManage && !loadFailed && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
               <div className="manager-portrait-create-actions">

@@ -149,7 +149,7 @@ export default function TaskTemplatesView({
             onClick={onGenerateToday}
             disabled={isGenerating || isSaving || tableUnavailable || activeTemplateCount === 0}
           >
-            {isGenerating ? 'Generating…' : 'Generate Today'}
+            {isGenerating ? 'Generating…' : t("Generate Today")}
           </button>
           <button
             type="button"

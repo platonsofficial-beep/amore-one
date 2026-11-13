@@ -8,6 +8,7 @@ import {
   getSeatingWindowTimeOptions,
   normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
+import { t } from '../../i18n/i18n'
 
 export function ReservationTimeSelect({
   value,
@@ -15,7 +16,7 @@ export function ReservationTimeSelect({
   required = false,
   className = 'reservation-time-select',
   id,
-  placeholder = 'Select time',
+  placeholder = t("Select time"),
   seating = null,
 }) {
   const normalizedValue = normalizeReservationTimeValue(value)

@@ -1,6 +1,7 @@
+import { t } from '../i18n/i18n'
 export function formatTodayAnnouncementsCollapsedSummary(announcements = []) {
   const items = announcements ?? []
-  if (items.length === 0) return 'No announcements'
+  if (items.length === 0) return t("No announcements")
 
   const unreadCount = items.filter((announcement) => !announcement?.isRead).length
   if (unreadCount === 1) return '1 unread announcement'

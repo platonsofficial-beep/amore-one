@@ -229,7 +229,7 @@ function ApplyCorrectionsConfirmDialog({
             disabled={isApplying}
             onClick={onConfirm}
           >
-            {isApplying ? 'Applying…' : 'Apply Corrections'}
+            {isApplying ? 'Applying…' : t("Apply Corrections")}
           </button>
         </div>
       </div>
@@ -389,7 +389,7 @@ export function InventoryCountCorrectionReview({
         if (cancelled) return
         setSession(null)
         setDraftRows([])
-        setLoadError(error?.message || 'Unable to load posted inventory count for correction right now.')
+        setLoadError(error?.message || t("Unable to load posted inventory count for correction right now."))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -450,7 +450,7 @@ export function InventoryCountCorrectionReview({
         lineCount: result?.lineCount,
       })
     } catch (error) {
-      setApplyError(error?.message || 'Unable to apply inventory count corrections right now.')
+      setApplyError(error?.message || t("Unable to apply inventory count corrections right now."))
     } finally {
       setIsApplying(false)
     }
@@ -469,7 +469,7 @@ export function InventoryCountCorrectionReview({
           <p className="inventory-count-correction-review-eyebrow">{t("Correction Review")}</p>
           <div className="inventory-count-correction-review-title-row">
             <h2 className="inventory-count-correction-review-title">
-              {session?.countTypeLabel || 'Inventory Count'} — Suggest Correction
+              {session?.countTypeLabel || t("Inventory Count")} — Suggest Correction
             </h2>
             <span className="inventory-count-session-pill is-status is-posted">
               {session?.statusLabel || 'Posted'}

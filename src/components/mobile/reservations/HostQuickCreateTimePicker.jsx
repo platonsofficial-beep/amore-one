@@ -10,7 +10,7 @@ const TIME_TABS = [
   { id: 'morning', label: 'Morning', start: '07:00', end: '13:45', spansMidnight: false },
   { id: 'afternoon', label: 'Afternoon', start: '15:00', end: '19:45', spansMidnight: false },
   { id: 'night', label: 'Night', start: '20:00', end: '00:45', spansMidnight: true },
-  { id: 'all-day', label: 'All Day', start: '07:00', end: '00:45', spansMidnight: true },
+  { id: 'all-day', label: t("All Day"), start: '07:00', end: '00:45', spansMidnight: true },
 ]
 
 function parseTimeToMinutes(value) {
@@ -82,7 +82,7 @@ const TAB_SLOTS = Object.fromEntries(
 export function HostQuickCreateTimePicker({
   value,
   onChange,
-  placeholder = 'Select time',
+  placeholder = t("Select time"),
   disabled = false,
 }) {
   const fieldId = useId()
@@ -164,7 +164,7 @@ export function HostQuickCreateTimePicker({
         <div
           className="host-quick-create-time-picker-slots"
           role="listbox"
-          aria-label={`${TIME_TABS.find((tab) => tab.id === activeTabId)?.label ?? 'All Day'} times`}
+          aria-label={`${TIME_TABS.find((tab) => tab.id === activeTabId)?.label ?? t("All Day")} times`}
         >
           <div className="host-quick-create-time-picker-grid">
             {activeSlots.map((time) => (

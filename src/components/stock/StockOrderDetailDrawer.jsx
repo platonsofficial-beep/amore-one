@@ -55,10 +55,10 @@ import { t } from '../../i18n/i18n'
 function receiveDestinationHint(storages = []) {
   const supplyCount = storages.filter((storage) => storage?.isSupply === true).length
   if (supplyCount === 1) {
-    return 'This delivery is received into the supply storage. Choose another shelf only when it belongs somewhere else.'
+    return t("This delivery is received into the supply storage. Choose another shelf only when it belongs somewhere else.")
   }
-  if (supplyCount > 1) return 'Choose which supply storage should receive this delivery.'
-  return 'Choose where this delivery should be stored.'
+  if (supplyCount > 1) return t("Choose which supply storage should receive this delivery.")
+  return t("Choose where this delivery should be stored.")
 }
 
 function presentOrderLine(item, stockItems = []) {
@@ -67,11 +67,11 @@ function presentOrderLine(item, stockItems = []) {
   const name = resolveListedProductName(item, catalog) || item?.itemName || 'Product'
   const resolved = resolveDisplayedLineCost(item, stockItems)
   const quantity = Math.max(0, Number(item?.quantity) || 0)
-  const costLabel = resolved.missing ? 'No cost' : formatDisplayedLineCostLabel(item, stockItems)
+  const costLabel = resolved.missing ? t("No cost") : formatDisplayedLineCostLabel(item, stockItems)
   return {
     name,
     costLabel,
-    totalLabel: resolved.missing ? 'No cost' : formatStockPurchasePrice(quantity * resolved.cost),
+    totalLabel: resolved.missing ? t("No cost") : formatStockPurchasePrice(quantity * resolved.cost),
     headline: resolved.missing
       ? `${formatStockQuantity(quantity, item?.unit)} · No cost`
       : `${quantity} x ${costLabel}`,
@@ -184,7 +184,7 @@ function DraftOrderItem({
               onClick={() => onToggleReplace(item.id)}
               aria-expanded={isReplaceOpen}
             >
-              {isReplaceOpen ? 'Cancel replace' : 'Replace product'}
+              {isReplaceOpen ? t("Cancel replace") : t("Replace product")}
             </button>
           </div>
           {isReplaceOpen ? (
@@ -224,7 +224,7 @@ function DraftOrderItem({
           aria-label={`Quantity for ${lineName}`}
         />
         <span className="stock-order-detail-line-cost">
-          {costLabel === 'No cost' ? 'No cost' : `x ${costLabel}`}
+          {costLabel === 'No cost' ? t("No cost") : `x ${costLabel}`}
         </span>
         {costLabel === 'No cost' && totalLabel === 'No cost' ? null : (
           <span className="stock-order-detail-line-total">{totalLabel}</span>
@@ -616,7 +616,7 @@ export function StockOrderDetailDrawer({
         items: validItems,
       })
     } catch (saveError) {
-      setError(saveError?.message || 'Unable to save order right now.')
+      setError(saveError?.message || t("Unable to save order right now."))
     }
   }
 
@@ -628,14 +628,14 @@ export function StockOrderDetailDrawer({
     )
 
     if (!hasReceiveNow) {
-      const message = 'Enter at least one quantity to receive.'
+      const message = t("Enter at least one quantity to receive.")
       console.warn('[StockOrderDetailDrawer] Receive blocked:', message)
       setError(message)
       return
     }
 
     if (!`${workspaceStorageId ?? ''}`.trim()) {
-      const message = 'Choose a destination storage.'
+      const message = t("Choose a destination storage.")
       console.warn('[StockOrderDetailDrawer] Receive blocked:', message)
       setError(message)
       return
@@ -666,7 +666,7 @@ export function StockOrderDetailDrawer({
       setIsReceiveConfirmOpen(false)
     } catch (receiveError) {
       console.error('[StockOrderDetailDrawer] Receive failed:', receiveError)
-      setError(receiveError?.message || 'Unable to receive stock right now.')
+      setError(receiveError?.message || t("Unable to receive stock right now."))
     }
   }
 
@@ -691,7 +691,7 @@ export function StockOrderDetailDrawer({
       }
       if (action === 'cancel') await onCancel()
     } catch (actionError) {
-      setError(actionError?.message || 'Unable to update order right now.')
+      setError(actionError?.message || t("Unable to update order right now."))
     }
   }
 
@@ -841,7 +841,7 @@ export function StockOrderDetailDrawer({
                     disabled={isSaving || isLoadingStorages}
                     onChange={(event) => setWorkspaceStorageId(event.target.value)}
                   >
-                    <option value="">{isLoadingStorages ? 'Loading storages…' : 'Select storage'}</option>
+                    <option value="">{isLoadingStorages ? t("Loading storages…") : t("Select storage")}</option>
                     {destinationStorages.map((storage) => (
                       <option key={storage.id} value={storage.id}>
                         {formatReceiveDestinationLabel(storage)}
@@ -890,7 +890,7 @@ export function StockOrderDetailDrawer({
                         aria-label={t("Expected delivery date")}
                       />
                     ) : (
-                      deliveryLabel || 'Not set'
+                      deliveryLabel || t("Not set")
                     )}
                   </dd>
                 </div>
@@ -919,7 +919,7 @@ export function StockOrderDetailDrawer({
 
             <section className="stock-product-history-section" aria-label={t("Order summary")}>
               <h3 className="stock-product-history-section-title">
-                {isReceived ? 'Final summary' : 'Summary'}
+                {isReceived ? t("Final summary") : 'Summary'}
               </h3>
               <dl className="stock-product-history-overview">
                 <div className="stock-product-history-overview-row">
@@ -934,11 +934,11 @@ export function StockOrderDetailDrawer({
                 ) : null}
                 {canManage ? (
                   <div className="stock-product-history-overview-row">
-                    <dt>{isReceived ? 'Final total' : 'Estimated total'}</dt>
+                    <dt>{isReceived ? t("Final total") : t("Estimated total")}</dt>
                     <dd>
                       {displayedEstimate.total > 0
                         ? formatStockPurchasePrice(displayedEstimate.total)
-                        : 'No cost on file'}
+                        : t("No cost on file")}
                     </dd>
                   </div>
                 ) : null}
@@ -965,7 +965,7 @@ export function StockOrderDetailDrawer({
 
             <section className="stock-product-history-section" aria-label={t("Products")}>
               <h3 className="stock-product-history-section-title">
-                {isReceived ? 'Received products' : 'Products'}
+                {isReceived ? t("Received products") : 'Products'}
               </h3>
               <div className="stock-order-detail-lines">
                 {displayItems.length === 0 ? (
@@ -1035,7 +1035,7 @@ export function StockOrderDetailDrawer({
                 </label>
               ) : (
                 <p className="stock-order-detail-notes-readonly">
-                  {order.notes?.trim() ? order.notes : 'No notes added.'}
+                  {order.notes?.trim() ? order.notes : t("No notes added.")}
                 </p>
               )}
             </section>
@@ -1143,7 +1143,7 @@ export function StockOrderDetailDrawer({
                           onClick={handleSaveDraft}
                           disabled={isSaving}
                         >
-                          {isSaving ? 'Saving…' : 'Save order'}
+                          {isSaving ? 'Saving…' : t("Save order")}
                         </button>
                         <button
                           type="button"
@@ -1152,7 +1152,7 @@ export function StockOrderDetailDrawer({
                           onClick={() => handleStatusAction('cancel')}
                           disabled={isSaving || !canCancelStockOrder(order)}
                         >
-                          {isSaving ? 'Saving…' : 'Cancel order'}
+                          {isSaving ? 'Saving…' : t("Cancel order")}
                         </button>
                       </div>
                     ) : null}
@@ -1163,7 +1163,7 @@ export function StockOrderDetailDrawer({
                     onClick={() => handleStatusAction('sent')}
                     disabled={isSaving || !canMarkStockOrderSent(order) || displayItems.length === 0}
                   >
-                    {isSaving ? 'Saving…' : 'Mark sent'}
+                    {isSaving ? 'Saving…' : t("Mark sent")}
                   </button>
                 </div>
               ) : null}

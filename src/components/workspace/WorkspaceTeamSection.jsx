@@ -116,7 +116,7 @@ export function WorkspaceTeamSection({
   const totalStaff = employees.length
   const activeStaff = countActiveStaff(employees)
   const trimmedManager = `${managerName ?? ''}`.trim()
-  const memberDisplayName = `${membership?.displayName ?? ''}`.trim() || trimmedManager || 'Not set'
+  const memberDisplayName = `${membership?.displayName ?? ''}`.trim() || trimmedManager || t("Not set")
   const resolvedRoleLabel = roleLabel || getWorkspaceRoleLabel(role)
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
   const linkedEmployee = resolveDisplayedLinkedEmployee(employees, {
@@ -169,7 +169,7 @@ export function WorkspaceTeamSection({
       setLinkedEmployeeId(nextEmployeeId)
       setIsLinkModalOpen(false)
     } catch (error) {
-      setLinkEmployeeError(error?.message || 'Unable to link employee right now.')
+      setLinkEmployeeError(error?.message || t("Unable to link employee right now."))
     } finally {
       setIsSavingEmployeeLink(false)
     }
@@ -217,7 +217,7 @@ export function WorkspaceTeamSection({
             <dt>{t("Linked employee")}</dt>
             <dd>
               <div className="workspace-member-linked-value">
-                <span>{linkedEmployeeName || 'Not linked'}</span>
+                <span>{linkedEmployeeName || t("Not linked")}</span>
                 {linkedEmployee.matchedByName ? (
                   <span className="workspace-member-meta">Name match · not saved</span>
                 ) : null}
@@ -227,7 +227,7 @@ export function WorkspaceTeamSection({
                     className="ghost-btn workspace-link-employee-btn"
                     onClick={handleOpenLinkModal}
                   >
-                    {linkedEmployee.persisted ? 'Change link' : 'Link employee'}
+                    {linkedEmployee.persisted ? t("Change link") : t("Link employee")}
                   </button>
                 ) : null}
               </div>
@@ -268,7 +268,7 @@ export function WorkspaceTeamSection({
         <article className="workspace-stat-card panel staff-panel workspace-stat-card-wide">
           <p className="workspace-stat-label">{t("Manager")}</p>
           <p className="workspace-stat-value workspace-stat-value-text">
-            {trimmedManager || 'Not set — configure in Business Profile'}
+            {trimmedManager || t("Not set — configure in Business Profile")}
           </p>
         </article>
       </div>

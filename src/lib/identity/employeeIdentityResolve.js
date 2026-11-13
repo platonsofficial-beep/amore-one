@@ -1,5 +1,6 @@
 import { getEmployeeInitials } from './employeeInitials'
 import { getEmployeeIdentityColor } from './employeeIdentityColor'
+import { t } from '../../i18n/i18n'
 
 export const EMPLOYEE_IDENTITY_MODES = Object.freeze({
   PHOTO: 'photo',
@@ -72,12 +73,12 @@ export function resolveEmployeeIdentityPresentation(employee) {
       initials: '',
       photoUrl: '',
       color,
-      ariaLabel: 'Unknown employee',
+      ariaLabel: t("Unknown employee"),
     })
   }
 
   if (photoUrl) {
-    const ariaLabel = name ? `${name} profile photo` : 'Employee profile photo'
+    const ariaLabel = name ? `${name} profile photo` : t("Employee profile photo")
     return Object.freeze({
       mode: EMPLOYEE_IDENTITY_MODES.PHOTO,
       name,
@@ -110,6 +111,6 @@ export function resolveEmployeeIdentityPresentation(employee) {
     initials: '',
     photoUrl: '',
     color,
-    ariaLabel: name ? `${name}, unknown employee` : 'Unknown employee',
+    ariaLabel: name ? `${name}, unknown employee` : t("Unknown employee"),
   })
 }

@@ -117,7 +117,7 @@ export function SupplyOrderDraftPreviewDialog({
             onClick={() => onConfirm?.(usingReview ? groups : undefined)}
             disabled={isSaving || isLoading || (usingReview ? groups.length === 0 : lines.length === 0)}
           >
-            {isSaving ? 'Saving…' : 'Save order'}
+            {isSaving ? 'Saving…' : t("Save order")}
           </button>
         </div>
       </section>
