@@ -621,6 +621,7 @@ import { MobileReservationQuickCreateSheet } from './components/mobile/reservati
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { HelpModeChrome, HelpModeToggle } from './help/HelpMode'
+import { HelpAssistantRoot } from './help/HelpAssistant'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
 import {
@@ -17205,9 +17206,11 @@ function App() {
     overdueTaskCount: unifiedOperationalTaskCounts.pastDueCount,
     hasScheduleGaps: (Number(operationalSnapshot?.coverageGaps) || 0) > 0
       || todayAttentionItems.some((item) => item.key === 'schedule-issues'),
-    reservationsTodayCount: isReservationsModuleConnected
-      ? Number(todayReservationsSummary?.bookings) || 0
-      : 0,
+    reservationsTodayCount: billingPreviewActive
+      ? 6
+      : (isReservationsModuleConnected
+        ? Number(todayReservationsSummary?.bookings) || 0
+        : 0),
     firstShiftStartLabel: liveFloorState.nextShiftStartLabel,
     isServiceInProgress: liveFloorState.state === 'live',
     hasStockProblems: canAccessStockModule && hasTodayStockProblems({
@@ -17217,6 +17220,7 @@ function App() {
     }),
     dataStatus: todayDataStatus.attention,
   }), [
+    billingPreviewActive,
     todayDataStatus.attention,
     todayAttentionItems,
     unifiedOperationalTaskCounts.pastDueCount,
@@ -17235,11 +17239,15 @@ function App() {
     dashboardLiveStatus,
     scheduleIssueCount: operationalSnapshot.issues,
     todayStatusSummary: shownTodayStatusSummary,
-    dashboardTaskOverview: { active: unifiedOperationalTaskCounts.boardOpen },
-    operationsOpenCount,
-    todayReservationsSummary,
-    reservationsConnected: isReservationsModuleConnected,
-    liveFloorState,
+    dashboardTaskOverview: { active: billingPreviewActive ? 0 : unifiedOperationalTaskCounts.boardOpen },
+    operationsOpenCount: billingPreviewActive ? 3 : operationsOpenCount,
+    todayReservationsSummary: billingPreviewActive
+      ? { ...todayReservationsSummary, bookings: 6, covers: 18 }
+      : todayReservationsSummary,
+    reservationsConnected: billingPreviewActive || isReservationsModuleConnected,
+    liveFloorState: billingPreviewActive
+      ? { ...liveFloorState, state: 'live', onShiftCount: 4 }
+      : liveFloorState,
     // Stock shows once on Today: the Stock live card below the header (D5).
     showStock: canAccessStockModule && !canAccessModule(permissionAccess, 'stock'),
     clockedInCount: clockedInNowCount,
@@ -17249,6 +17257,7 @@ function App() {
     operationalSnapshot.issues,
     shownTodayStatusSummary,
     unifiedOperationalTaskCounts.boardOpen,
+    billingPreviewActive,
     operationsOpenCount,
     todayReservationsSummary,
     isReservationsModuleConnected,
@@ -25486,6 +25495,18 @@ function App() {
       ) : null}
       <GuestPreviewStage />
       <HelpModeChrome />
+      <HelpAssistantRoot
+        role={role}
+        venueName={workspace?.name || ''}
+        screenLabel={moduleTitle}
+        onNavigate={(target) => {
+          if (!target?.view) return
+          handleActiveViewChange(target.view)
+          if (target.settingsSection) handleSettingsSectionChange(target.settingsSection)
+          if (target.teamSection) handleTeamSectionChange(target.teamSection)
+          if (target.stockSection) handleStockSectionChange(target.stockSection)
+        }}
+      />
       {/* The owner's landscape Reservations screen hides the topbar that
           normally holds the bell, so it floats here like on the phone shell. */}
       {useReservationsHostDedicatedShell && !useDedicatedShell && hideStandardTopbar && notificationBell ? (
@@ -26386,8 +26407,8 @@ function App() {
                       stockSummary: managerMobileStockSummary,
                       stockOrdersSummary: managerMobileOrdersSummary,
                       hasStockModuleData: stockItems.length > 0,
-                      isReservationsConnected: isReservationsModuleConnected,
-                      isTasksConnected: isTasksModuleConnected,
+                      isReservationsConnected: billingPreviewActive || isReservationsModuleConnected,
+                      isTasksConnected: billingPreviewActive || isTasksModuleConnected,
                       canOpenStock: canAccessMobileExpandedModule(permissionAccess, 'stock'),
                       canReceiveDeliveries: canAccessMobileExpandedModule(permissionAccess, 'stock'),
                       canOpenTasks: canAccessMobileExpandedModule(permissionAccess, 'operations'),

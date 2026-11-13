@@ -6,6 +6,7 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { HelpModeChrome } from './HelpMode'
+import { closeHelpAssistant, isHelpAssistantOpen } from './helpAssistantStore'
 
 function render(node) {
   const container = document.createElement('div')
@@ -24,38 +25,19 @@ function render(node) {
 }
 
 describe('help mode', () => {
-  it('blocks the clicked action and shows a popover that can be dismissed', () => {
+  it('opens the help sheet from the question mark', () => {
     sessionStorage.clear()
-    let ran = 0
-    const { container, cleanup } = render(createElement('div', null,
-      createElement(HelpModeChrome),
-      createElement('button', {
-        type: 'button',
-        'data-help': 'reservations.add',
-        onClick: () => { ran += 1 },
-      }, 'Add reservation'),
-    ))
-
-    const toggle = container.querySelector('[data-testid="help-mode-toggle"]')
+    closeHelpAssistant()
+    const { container, cleanup } = render(createElement(HelpModeChrome))
+    const toggle = container.querySelector('[data-testid="help-assistant-open"]')
+    expect(toggle.textContent).toBe('?')
+    expect(toggle.getAttribute('aria-label')).toBe('Help')
     act(() => {
       toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(document.body.textContent).toContain('Help mode — tap anything to see what it does')
-
-    const action = container.querySelector('[data-help="reservations.add"]')
-    act(() => {
-      action.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))
-      action.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }))
-    })
-    expect(ran).toBe(0)
-    const popover = document.body.querySelector('.help-mode-popover')
-    expect(popover?.textContent).toContain('Add reservation')
-    expect(action.classList.contains('help-mode-target')).toBe(true)
-
-    act(() => {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
-    })
-    expect(document.body.querySelector('.help-mode-banner')).toBeNull()
+    expect(isHelpAssistantOpen()).toBe(true)
+    expect(document.body.textContent).not.toContain('Help mode — tap anything')
     cleanup()
+    closeHelpAssistant()
   })
 })

@@ -25,6 +25,7 @@ import {
   upsertNotificationPreference,
 } from '../../services/pushNotificationService'
 import { isChatNotification } from '../../lib/chat'
+import { shouldUseBillingPreviewFixture } from '../../lib/billingPreviewFixture'
 import { NotificationBell, NotificationSettingsPanel } from './NotificationCenter'
 import { ShiftReminderCard } from './ShiftReminderCard'
 
@@ -88,7 +89,10 @@ export function useNotificationCenter({
     setReady(false)
     refreshLists().catch((error) => {
       if (!cancelled) {
-        setMessage(error?.message || 'Unable to load notifications right now.')
+        // Preview screens have no Supabase. Keep the reminder card, without the raw setup error.
+        if (!shouldUseBillingPreviewFixture()) {
+          setMessage(error?.message || 'Unable to load notifications right now.')
+        }
         setReady(true)
       }
     })
