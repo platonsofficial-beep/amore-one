@@ -6,8 +6,13 @@
 .stock-invoice-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   margin: 12px 0;
+}
+
+.stock-invoice-section h4,
+.stock-invoice-section p {
+  margin: 0;
 }
 
 .stock-invoice-actions,
