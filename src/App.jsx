@@ -585,6 +585,11 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { PlansBillingSection } from './components/billing/PlansBillingSection'
+import { SubscriptionBanner } from './components/billing/SubscriptionBanner'
+import { SubscriptionLockScreen } from './components/billing/SubscriptionLockScreen'
+import { useSubscriptionUi } from './components/billing/useSubscriptionUi'
+import { startSubscriptionCheckout, startSubscriptionPortal } from './services/billingService'
 import { LIMITED_SETTINGS_SECTION_IDS } from './lib/settingsSections'
 import { VenueSwitcher } from './components/workspace/VenueManager'
 import { AttendanceBoard } from './components/attendance/AttendanceBoard'
@@ -25349,13 +25354,77 @@ function App() {
     onOpen: openNotification,
   })
 
+  const subscriptionUi = useSubscriptionUi({
+    role,
+    workspaceId: workspace?.id ?? '',
+    isAuthDisabled,
+  })
+  const [subscriptionNotice, setSubscriptionNotice] = useState('')
+  const openSubscriptionBilling = useCallback(() => {
+    setSubscriptionNotice('')
+    setActiveView('settings')
+    setSettingsSection('billing')
+    persistNavigation({
+      activeView: 'settings',
+      settingsSection: 'billing',
+      teamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [teamSection, stockSection, operationsSection])
+  const handleSubscriptionCheckout = useCallback(async (plan, interval) => {
+    if (isAuthDisabled) {
+      setSubscriptionNotice('Checkout opens when Stripe is connected.')
+      return
+    }
+    try {
+      const url = await startSubscriptionCheckout({
+        plan,
+        interval,
+        workspaceId: workspace?.id ?? '',
+      })
+      window.location.assign(url)
+    } catch (error) {
+      setSubscriptionNotice(error?.message || "Billing isn't connected yet.")
+    }
+  }, [isAuthDisabled, workspace?.id])
+  const handleSubscriptionPortal = useCallback(async () => {
+    if (isAuthDisabled) {
+      setSubscriptionNotice('Billing opens when Stripe is connected.')
+      return
+    }
+    try {
+      const url = await startSubscriptionPortal({ workspaceId: workspace?.id ?? '' })
+      window.location.assign(url)
+    } catch (error) {
+      setSubscriptionNotice(error?.message || "Billing isn't connected yet.")
+    }
+  }, [isAuthDisabled, workspace?.id])
+
   return (
     <PublishedFloorPlanProvider
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+    <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      {subscriptionUi.showBanner ? (
+        <SubscriptionBanner
+          message={subscriptionUi.bannerMessage}
+          action={subscriptionUi.bannerAction}
+          onAction={openSubscriptionBilling}
+        />
+      ) : null}
+      {subscriptionUi.locked ? (
+        <SubscriptionLockScreen
+          manager={subscriptionUi.manager}
+          venueName={workspace?.name || 'This venue'}
+          notice={subscriptionNotice}
+          onCheckout={handleSubscriptionCheckout}
+          onPortal={handleSubscriptionPortal}
+          onSignOut={signOut}
+        />
+      ) : null}
       <HelpModeChrome />
       {/* The owner's landscape Reservations screen hides the topbar that
           normally holds the bell, so it floats here like on the phone shell. */}
@@ -26209,6 +26278,14 @@ function App() {
               moduleConnections: workspaceModuleConnections,
             }}
             notificationSettings={notificationSettingsPanel}
+            billingSection={subscriptionUi.enabled && subscriptionUi.manager ? (
+              <PlansBillingSection
+                venueName={workspace?.name || ''}
+                notice={subscriptionNotice}
+                onCheckout={handleSubscriptionCheckout}
+                onPortal={handleSubscriptionPortal}
+              />
+            ) : null}
           />
         ) : null}
             </>

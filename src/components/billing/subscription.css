@@ -1,0 +1,148 @@
+.subscription-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--one-surface-2);
+  color: var(--one-text);
+  border-bottom: 1px solid var(--one-gold-a45);
+  box-sizing: border-box;
+}
+
+.subscription-banner-copy {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.subscription-banner-action,
+.subscription-plan-card button,
+.subscription-portal,
+.subscription-sign-out,
+.subscription-intervals button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.subscription-banner-action,
+.subscription-plan-card button {
+  background: var(--one-gold);
+  color: var(--one-on-gold);
+  border: 0;
+}
+
+.subscription-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  overflow: auto;
+  background: var(--one-bg);
+  color: var(--one-text);
+  padding: 24px 16px 48px;
+  box-sizing: border-box;
+}
+
+.subscription-lock-card {
+  width: min(920px, 100%);
+  margin: 0 auto;
+}
+
+.subscription-lock-kicker {
+  margin: 0 0 8px;
+  color: var(--one-gold-text);
+  letter-spacing: 0.14em;
+  font-size: 12px;
+}
+
+.subscription-lock h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.subscription-plans-header h2,
+.subscription-plan-card h3 {
+  margin: 0;
+}
+
+.subscription-intervals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+
+.subscription-intervals button,
+.subscription-portal,
+.subscription-sign-out {
+  background: var(--one-surface-3);
+  color: var(--one-text);
+  border: 1px solid var(--one-gold-line);
+}
+
+.subscription-intervals button.is-selected {
+  background: var(--one-gold);
+  color: var(--one-on-gold);
+  border-color: var(--one-gold);
+}
+
+.subscription-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.subscription-plan-card {
+  background: var(--one-surface);
+  border: 1px solid var(--one-gold-line);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.subscription-plan-price {
+  margin: 8px 0;
+  color: var(--one-gold-text);
+  font-size: 28px;
+}
+
+.subscription-plan-card p,
+.subscription-vat,
+.subscription-notice {
+  color: var(--one-text-muted);
+}
+
+.subscription-plan-card button,
+.subscription-portal,
+.subscription-sign-out {
+  margin-top: 12px;
+}
+
+.app-shell.has-subscription-banner {
+  padding-top: 72px;
+}
+
+@media (max-width: 800px) {
+  .subscription-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .subscription-plan-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell.has-subscription-banner {
+    padding-top: 108px;
+  }
+}
