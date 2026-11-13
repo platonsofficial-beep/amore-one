@@ -188,7 +188,7 @@ export function formatTodayStockActivityLine(summary) {
 
   if (parts.length === 0) {
     const count = Number(summary.itemsTouched) || 0
-    return count === 1 ? '1 item updated today' : `${count} items updated today`
+    return t('{{count}} item updated today', { count })
   }
 
   return parts.join(' · ')
@@ -277,13 +277,20 @@ export function formatStockActiveCountWord(totalItems) {
 export function formatStockBrowseResultCount(visibleCount, matchCount, visibilityFilter = 'active') {
   const visible = Math.max(0, Number(visibleCount) || 0)
   const total = Math.max(0, Number(matchCount) || 0)
-  const products = total === 1 ? 'product' : 'products'
-  const scope = visibilityFilter === 'inactive'
-    ? 'inactive'
-    : visibilityFilter === 'all'
-      ? 'active and inactive'
-      : 'active'
-  return `Showing ${visible} of ${total} ${scope} ${products}`
+  const many = total !== 1
+  if (visibilityFilter === 'all') {
+    return t(many
+      ? 'Showing {{visible}} of {{total}} active and inactive products'
+      : 'Showing {{visible}} of {{total}} active and inactive product', { visible, total })
+  }
+  if (visibilityFilter === 'inactive') {
+    return t(many
+      ? 'Showing {{visible}} of {{total}} inactive products'
+      : 'Showing {{visible}} of {{total}} inactive product', { visible, total })
+  }
+  return t(many
+    ? 'Showing {{visible}} of {{total}} active products'
+    : 'Showing {{visible}} of {{total}} active product', { visible, total })
 }
 
 export function getStockCategoryFilters(items = []) {

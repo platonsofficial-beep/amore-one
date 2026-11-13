@@ -27,9 +27,9 @@ export const STOCK_GROUP_BY_OPTIONS = [
 export const STOCK_SORT_OPTIONS = [
   { id: 'name-asc', label: 'A–Z' },
   { id: 'name-desc', label: 'Z–A' },
-  { id: 'low-first', label: t("Low first") },
-  { id: 'out-first', label: t("Out of stock first") },
-  { id: 'recent', label: t("Recently updated") },
+  { id: 'low-first', label: 'Low first' },
+  { id: 'out-first', label: 'Out of stock first' },
+  { id: 'recent', label: 'Recently updated' },
 ]
 
 export const STOCK_VISIBILITY_OPTIONS = [

@@ -332,12 +332,10 @@ export function buildReservationAttentionItems({
       category: 'reservation',
       tone: snapshot.lateCount > 0 ? 'critical' : 'warning',
       priority: 'urgent',
-      label: snapshot.waitingLateCount === 1
-        ? '1 guest needs attention'
-        : `${snapshot.waitingLateCount} guests need attention`,
+      label: t('{{count}} guest needs attention', { count: snapshot.waitingLateCount }),
       detail: snapshot.lateCount > 0
-        ? `${snapshot.lateCount} late · ${snapshot.waitingCount} waiting`
-        : `${snapshot.waitingCount} waiting in lobby`,
+        ? t('{{late}} late · {{waiting}} waiting', { late: snapshot.lateCount, waiting: snapshot.waitingCount })
+        : t('{{count}} waiting in lobby', { count: snapshot.waitingCount }),
     })
   }
 

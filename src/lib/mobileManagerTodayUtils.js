@@ -27,7 +27,7 @@ export function buildManagerMobileAttentionItems({
       category: 'stock',
       tone: 'info',
       priority: 'urgent',
-      label: awaiting === 1 ? '1 delivery to receive' : `${awaiting} deliveries to receive`,
+      label: t('{{count}} delivery awaiting receipt', { count: awaiting }),
       detail: t("Sent supplier orders waiting"),
     })
   }
@@ -38,7 +38,7 @@ export function buildManagerMobileAttentionItems({
       category: 'stock',
       tone: 'info',
       priority: 'urgent',
-      label: partial === 1 ? '1 partial order open' : `${partial} partial orders open`,
+      label: t('{{count}} partial order open', { count: partial }),
       detail: t("Continue receiving stock"),
     })
   }
@@ -49,7 +49,7 @@ export function buildManagerMobileAttentionItems({
       category: 'stock',
       tone: 'warning',
       priority: 'reminder',
-      label: drafts === 1 ? '1 order to review' : `${drafts} orders to review`,
+      label: t('{{count}} order to review', { count: drafts }),
       detail: t("Review before sending to supplier"),
     })
   }

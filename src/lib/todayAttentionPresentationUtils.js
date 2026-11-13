@@ -84,7 +84,7 @@ export function groupTodayAttentionItems(items = []) {
 }
 
 export function getTodayAttentionRowBadge(item) {
-  if (`${item?.priority ?? ''}` === 'urgent') return 'Urgent'
-  if (`${item?.tone ?? ''}` === 'critical') return 'Critical'
+  if (`${item?.priority ?? ''}` === 'urgent') return t('Urgent')
+  if (`${item?.tone ?? ''}` === 'critical') return t('Critical')
   return ''
 }

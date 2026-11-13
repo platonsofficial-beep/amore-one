@@ -452,10 +452,10 @@ function buildInsightsWeekSummary({ reservationsReport, tasksReport, scheduleRep
   const hoursLabel = `${scheduleReport?.metrics?.scheduledHoursLabel ?? ''}`.trim()
 
   if (reservationsReport?.connected && bookings > 0) {
-    parts.push(bookings === 1 ? '1 booking' : `${bookings} bookings`)
+    parts.push(t('{{count}} booking', { count: bookings }))
   }
   if (tasksReport?.connected && completed > 0) {
-    parts.push(completed === 1 ? '1 task completed' : `${completed} tasks completed`)
+    parts.push(t('{{count}} task completed', { count: completed }))
   }
   if (scheduleReport?.connected && hours > 0) {
     parts.push(`${hoursLabel || hours}h scheduled`)
@@ -504,9 +504,7 @@ export function buildInsightsHealthSummary({
 
   const attentionCount = (attentionItems ?? []).length
   if (attentionCount > 0) {
-    return attentionCount === 1
-      ? '1 item needs attention today'
-      : `${attentionCount} items need attention today`
+    return t('{{count}} item needs attention today', { count: attentionCount })
   }
 
   if (reservationsReport?.connected && serviceSnapshot?.overallStatus) {
@@ -515,13 +513,13 @@ export function buildInsightsHealthSummary({
 
   const issues = []
   if (tasksReport?.connected && Number(tasksReport.metrics.overdue) > 0) {
-    issues.push(`${tasksReport.metrics.overdue} overdue task${tasksReport.metrics.overdue === 1 ? '' : 's'}`)
+    issues.push(t('{{count}} overdue task', { count: Number(tasksReport.metrics.overdue) }))
   }
   if (stockReport?.connected && Number(stockReport.metrics.outOfStock) > 0) {
-    issues.push(`${stockReport.metrics.outOfStock} out of stock`)
+    issues.push(t('{{count}} out of stock', { count: Number(stockReport.metrics.outOfStock) }))
   }
   if (scheduleReport?.connected && Number(scheduleReport.metrics.issues) > 0) {
-    issues.push(`${scheduleReport.metrics.issues} schedule issue${scheduleReport.metrics.issues === 1 ? '' : 's'}`)
+    issues.push(t('{{count}} schedule issue', { count: Number(scheduleReport.metrics.issues) }))
   }
 
   if (issues.length > 0) return issues.join(' · ')

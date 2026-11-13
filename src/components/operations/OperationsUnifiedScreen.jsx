@@ -23,7 +23,7 @@ export function OperationsUnifiedScreen({
               className={`operations-unified-tab${active === entry.id ? ' is-active' : ''}`}
               onClick={() => onSectionChange?.(entry.id)}
             >
-              {entry.label}
+              {t(entry.label)}
             </button>
           ))}
         </div>

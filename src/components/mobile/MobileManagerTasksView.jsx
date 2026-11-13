@@ -40,7 +40,7 @@ function normalizeTaskDateKey(value) {
 
 function formatTaskDueTimeLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
-  return dueTime ? `Due ${dueTime}` : ''
+  return dueTime ? t('Due {{time}}', { time: dueTime }) : ''
 }
 
 function getTaskStatusLabel(task, todayKey = '') {
@@ -142,7 +142,7 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
             <span className="mobile-manager-today-task-due" aria-hidden="true" />
           )}
           <span className={`mobile-manager-today-task-status${isDone ? ' is-done' : ''}${isOverdue ? ' is-overdue' : ''}`}>
-            {statusLabel}
+            {t(statusLabel)}
           </span>
         </div>
       </button>

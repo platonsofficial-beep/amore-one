@@ -159,7 +159,7 @@ export function buildChecklistProgressRows(templates = [], tasks = [], todayKey 
 export function formatChecklistProgressLabel(row) {
   if (!row?.started) return t("Not started")
   if (row.status === 'complete') return 'Complete'
-  return `${row.completed}/${row.total} done`
+  return t('{{done}}/{{total}} completed', { done: row.completed, total: row.total })
 }
 
 export function formatChecklistCompletionMeta(task) {

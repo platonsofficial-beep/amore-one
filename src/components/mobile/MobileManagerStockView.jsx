@@ -181,13 +181,13 @@ function MobileStockPendingOrdersBanner({
 
   let message = ''
   if (awaitingCount > 0 && partialCount > 0) {
-    message = `${awaitingCount} awaiting delivery · ${partialCount} partial`
+    message = `${t('{{count}} awaiting delivery', { count: awaitingCount })} · ${t('{{count}} partial', { count: partialCount })}`
   } else if (awaitingCount > 0) {
-    message = awaitingCount === 1 ? '1 delivery awaiting receipt' : `${awaitingCount} deliveries awaiting receipt`
+    message = t('{{count}} delivery awaiting receipt', { count: awaitingCount })
   } else if (partialCount > 0) {
-    message = partialCount === 1 ? '1 partial order open' : `${partialCount} partial orders open`
+    message = t('{{count}} partial order open', { count: partialCount })
   } else if (draftCount > 0) {
-    message = draftCount === 1 ? '1 order to review' : `${draftCount} orders to review`
+    message = t('{{count}} order to review', { count: draftCount })
   }
 
   return (
@@ -403,7 +403,7 @@ export function MobileManagerStockView({
             <>
               <span aria-hidden="true">·</span>
               <span className="tone-info">
-                <strong>{isLoading ? '0' : pendingOrders}</strong> {pendingOrders === 1 ? 'order' : 'orders'} pending
+                <strong>{isLoading ? '0' : pendingOrders}</strong> {t('order pending', { count: pendingOrders })}
               </span>
             </>
           ) : null}

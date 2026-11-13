@@ -29,7 +29,7 @@ export const STOCK_SECTIONS = [
 
 export const OPERATIONS_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'tasks', label: t("Task boards") },
+  { id: 'tasks', label: 'Task boards' },
   { id: 'checklists', label: 'Checklists' },
 ]
 

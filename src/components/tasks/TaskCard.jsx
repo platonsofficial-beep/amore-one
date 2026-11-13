@@ -95,7 +95,7 @@ function TaskChecklist({
   return (
     <div className="task-card-checklist">
       <div className="task-card-checklist-summary">
-        <span className="task-card-checklist-count">{completedCount}/{totalCount} completed</span>
+        <span className="task-card-checklist-count">{t('{{done}}/{{total}} completed', { done: completedCount, total: totalCount })}</span>
         <div className="task-checklist-progress" aria-hidden="true">
           <span className="task-checklist-progress-fill" style={{ width: `${progressPercent}%` }} />
         </div>

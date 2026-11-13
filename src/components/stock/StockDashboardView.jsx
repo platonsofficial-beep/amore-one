@@ -130,9 +130,9 @@ function StockSortDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
-        title={selectedOption?.label}
+        title={t(selectedOption?.label ?? '')}
       >
-        <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
+        <span className="stock-sort-dropdown-value">{t(selectedOption?.label ?? '')}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
@@ -150,7 +150,7 @@ function StockSortDropdown({
                   setIsOpen(false)
                 }}
               >
-                {option.label}
+                {t(option.label)}
               </button>
             </li>
           ))}
@@ -1587,7 +1587,7 @@ export function StockDashboardView({
                   className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
                   onClick={() => setVisibilityFilter(option.id)}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </button>
               ))}
             </div>
@@ -1607,12 +1607,12 @@ export function StockDashboardView({
                 type="button"
                 className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
                 aria-pressed={layoutMode === mode.id}
-                aria-label={mode.label}
-                title={mode.label}
+                aria-label={t(mode.label)}
+                title={t(mode.label)}
                 onClick={() => setLayoutMode(mode.id)}
               >
                 <StockLayoutModeIcon icon={mode.icon} />
-                <span>{mode.label}</span>
+                <span>{t(mode.label)}</span>
               </button>
             ))}
           </div>

@@ -40,7 +40,7 @@ export default function DepartmentPerformanceSummary({
             </div>
 
             <p className="tasks-dept-performance-ratio">
-              {summary.completedToday}/{summary.totalToday} completed
+              {t('{{done}}/{{total}} completed', { done: summary.completedToday, total: summary.totalToday })}
             </p>
 
             <div className="tasks-dept-performance-progress" aria-hidden="true">

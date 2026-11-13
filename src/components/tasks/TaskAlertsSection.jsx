@@ -5,7 +5,7 @@ import { t } from '../../i18n/i18n'
 
 function formatAlertDueLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
-  return dueTime ? `Due ${dueTime}` : t("No due time")
+  return dueTime ? t('Due {{time}}', { time: dueTime }) : t("No due time")
 }
 
 function AlertGroup({ title, tasks, tone = 'default', employees = [], compact = false }) {
