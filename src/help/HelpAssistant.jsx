@@ -1,33 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { helpAiEnabled, helpArticlesForModel } from './helpAi'
 import { helpText } from './helpKnowledge'
 import {
   closeHelpAssistant,
   isHelpAssistantOpen,
-  openHelpAssistant,
   subscribeHelpAssistant,
 } from './helpAssistantStore'
-import { searchHelp, supportMailto } from './searchHelp'
+import { helpSectionsForRole, searchHelp, supportMailto } from './searchHelp'
 import './helpAssistant.css'
 
 function useHelpOpen() {
   return useSyncExternalStore(subscribeHelpAssistant, isHelpAssistantOpen, () => false)
-}
-
-export function HelpAssistantButton({ className = '' }) {
-  return (
-    <button
-      type="button"
-      className={`help-assistant-open${className ? ` ${className}` : ''}`}
-      data-testid="help-assistant-open"
-      data-help-chrome=""
-      aria-label="Help"
-      onClick={() => openHelpAssistant()}
-    >
-      Help
-    </button>
-  )
 }
 
 function localeFromNavigator() {
@@ -47,6 +30,7 @@ export function HelpAssistant({
 }) {
   const [locale, setLocale] = useState(localeFromNavigator)
   const [query, setQuery] = useState('')
+  const [sectionId, setSectionId] = useState('')
   const [articleId, setArticleId] = useState('')
   const [supportOpen, setSupportOpen] = useState(false)
   const [keyboardInset, setKeyboardInset] = useState(0)
@@ -85,6 +69,11 @@ export function HelpAssistant({
     () => searchHelp(query, { role, locale }),
     [query, role, locale],
   )
+  const sections = useMemo(
+    () => helpSectionsForRole(role, locale),
+    [role, locale],
+  )
+  const sectionArticles = sections.find((section) => section.id === sectionId)?.articles ?? []
   const article = result.matches.find((item) => item.article.id === articleId)?.article
     || null
   const mailto = supportMailto({
@@ -98,10 +87,10 @@ export function HelpAssistant({
     if (!open) return undefined
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    document.body.classList.add('help-assistant-open')
+    document.body.classList.add('is-help-assistant-open')
     return () => {
       document.body.style.overflow = previous
-      document.body.classList.remove('help-assistant-open')
+      document.body.classList.remove('is-help-assistant-open')
     }
   }, [open])
 
@@ -154,7 +143,6 @@ export function HelpAssistant({
         aria-modal="true"
         aria-labelledby="help-assistant-title"
         data-testid="help-assistant"
-        style={{ paddingBottom: `calc(16px + env(safe-area-inset-bottom, 0px) + ${keyboardInset}px)` }}
       >
         <header className="help-assistant-header">
           <div className="help-assistant-heading">
@@ -185,6 +173,7 @@ export function HelpAssistant({
             onChange={(event) => {
               setQuery(event.target.value)
               setArticleId('')
+              setSectionId('')
               setSupportOpen(false)
               setAiAnswer('')
             }}
@@ -193,7 +182,10 @@ export function HelpAssistant({
             <button type="submit" className="help-assistant-ask" disabled={aiBusy}>{copy.ask}</button>
           ) : null}
         </form>
-        <div className="help-assistant-body">
+        <div
+          className="help-assistant-body"
+          style={{ paddingBottom: `calc(24px + env(safe-area-inset-bottom, 0px) + ${keyboardInset}px)` }}
+        >
           {article ? (
             <article className="help-assistant-article" data-testid="help-assistant-article">
               <p>{helpText(article.summary, locale)}</p>
@@ -229,15 +221,39 @@ export function HelpAssistant({
             </ul>
           ) : null}
           {!article && !query.trim() ? (
-            <ul className="help-assistant-suggestions">
-              {result.suggestions.map((item) => (
-                <li key={item.articleId}>
-                  <button type="button" onClick={() => { setQuery(item.question); setArticleId(item.articleId) }}>
-                    {item.question}
+            <>
+              <div className="help-assistant-topics" role="group" aria-label={locale === 'el' ? 'Θέματα' : 'Topics'}>
+                {sections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={sectionId === section.id ? 'is-selected' : ''}
+                    aria-pressed={sectionId === section.id}
+                    onClick={() => setSectionId((current) => (current === section.id ? '' : section.id))}
+                  >
+                    {section.label}
                   </button>
-                </li>
-              ))}
-            </ul>
+                ))}
+              </div>
+              <ul className="help-assistant-suggestions">
+                {sectionId
+                  ? sectionArticles.map((item) => (
+                    <li key={item.id}>
+                      <button type="button" onClick={() => setArticleId(item.id)}>
+                        <strong>{helpText(item.title, locale)}</strong>
+                        <span>{helpText(item.summary, locale)}</span>
+                      </button>
+                    </li>
+                  ))
+                  : result.suggestions.map((item) => (
+                    <li key={item.articleId}>
+                      <button type="button" onClick={() => { setQuery(item.question); setArticleId(item.articleId) }}>
+                        {item.question}
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </>
           ) : null}
           {staffBilling && !showSupport ? <p className="help-assistant-note">{copy.managers}</p> : null}
           {aiAnswer ? <p className="help-assistant-ai" data-testid="help-assistant-ai">{aiAnswer}</p> : null}
@@ -249,10 +265,12 @@ export function HelpAssistant({
             </div>
           ) : null}
           {aiError ? <p className="help-assistant-note">{aiError}</p> : null}
+          {showSupport ? null : (
+            <button type="button" className="help-assistant-still" onClick={() => setSupportOpen(true)}>
+              {copy.still}
+            </button>
+          )}
         </div>
-        <footer className="help-assistant-footer">
-          <button type="button" onClick={() => setSupportOpen(true)}>{copy.still}</button>
-        </footer>
       </section>
     </div>
   )
@@ -261,16 +279,11 @@ export function HelpAssistant({
 export function HelpAssistantRoot(props) {
   const open = useHelpOpen()
   return (
-    <>
-      <div className="help-assistant-launcher" data-help-chrome="">
-        <HelpAssistantButton />
-      </div>
-      <HelpAssistant
-        {...props}
-        open={open}
-        aiEnabled={props.aiEnabled ?? helpAiEnabled()}
-        onClose={closeHelpAssistant}
-      />
-    </>
+    <HelpAssistant
+      {...props}
+      open={open}
+      aiEnabled={props.aiEnabled ?? helpAiEnabled()}
+      onClose={closeHelpAssistant}
+    />
   )
 }

@@ -1,55 +1,5 @@
-.help-assistant-open {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid var(--one-gold-line);
-  background: var(--one-surface-2);
-  color: var(--one-gold-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.app-shell.is-mobile-shell .topbar .help-assistant-open,
-.app-shell.is-mobile-shell .today-command-header .help-assistant-open {
-  display: none;
-}
-
-.help-assistant-launcher {
-  display: none;
-}
-
-.app-shell.is-mobile-shell .help-assistant-launcher {
-  display: inline-flex;
-  position: fixed;
-  z-index: 45;
-  top: var(--one-top-buttons-top, max(8px, var(--one-safe-top-chrome)));
-  right: calc(104px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
-}
-
-.app-shell.is-mobile-shell .help-assistant-launcher {
-  right: calc(112px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
-}
-
-.app-shell.is-mobile-shell .help-assistant-launcher .help-assistant-open {
-  display: inline-flex;
-}
-
-.app-shell.is-reservations-host-mode .help-assistant-launcher,
-.app-shell.is-reservations-dedicated-shell .help-assistant-launcher,
-.app-shell:has(.unified-floor-editor) .help-assistant-launcher {
-  display: none !important;
-}
-
-body.help-assistant-open {
+body.is-help-assistant-open {
   overflow: hidden;
-  touch-action: none;
 }
 
 .help-assistant-root {
@@ -58,6 +8,9 @@ body.help-assistant-open {
   z-index: 14000;
   display: flex;
   justify-content: flex-end;
+  align-items: stretch;
+  height: 100dvh;
+  max-height: 100dvh;
   pointer-events: none;
 }
 
@@ -78,7 +31,8 @@ body.help-assistant-open {
   flex-direction: column;
   width: min(440px, 100%);
   height: 100%;
-  max-height: 100%;
+  max-height: 100dvh;
+  min-height: 0;
   box-sizing: border-box;
   padding-top: max(8px, env(safe-area-inset-top, 0px));
   background: var(--one-bg);
@@ -116,8 +70,7 @@ body.help-assistant-open {
   overflow: hidden;
 }
 
-.help-assistant-lang button,
-.help-assistant-footer button {
+.help-assistant-lang button {
   min-width: 44px;
   min-height: 44px;
   border: 0;
@@ -178,8 +131,33 @@ body.help-assistant-open {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
+  padding: 16px 16px 24px;
   -webkit-overflow-scrolling: touch;
+}
+
+.help-assistant-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.help-assistant-topics button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--one-border);
+  background: var(--one-surface);
+  color: var(--one-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.help-assistant-topics button.is-selected {
+  background: var(--one-gold);
+  color: var(--one-on-gold);
+  border-color: var(--one-gold);
 }
 
 .help-assistant-results,
@@ -211,6 +189,7 @@ body.help-assistant-open {
 }
 
 .help-assistant-results span,
+.help-assistant-suggestions span,
 .help-assistant-note,
 .help-assistant-article p,
 .help-assistant-support p {
@@ -232,20 +211,25 @@ body.help-assistant-open {
 }
 
 .help-assistant-go,
-.help-assistant-mail {
+.help-assistant-mail,
+.help-assistant-still {
   align-self: flex-start;
   margin-top: 8px;
 }
 
-.help-assistant-footer {
-  flex: none;
-  padding: 8px 16px 0;
-}
-
-.help-assistant-footer button {
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+.help-assistant-still {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--one-border-strong);
+  background: var(--one-surface-2);
+  color: var(--one-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 @media (max-width: 700px) {
@@ -255,5 +239,16 @@ body.help-assistant-open {
 
   .help-assistant-sheet {
     width: 100%;
+    box-shadow: none;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .help-assistant-root {
+    justify-content: flex-end;
+  }
+
+  .help-assistant-sheet {
+    width: min(440px, calc(100% - 24px));
   }
 }

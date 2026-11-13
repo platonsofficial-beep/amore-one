@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HELP_ARTICLES } from './helpKnowledge'
-import { helpArticlesForRole, searchHelp, supportMailto } from './searchHelp'
+import { helpArticlesForRole, helpSectionsForRole, searchHelp, supportMailto } from './searchHelp'
 
 describe('help search', () => {
   it('finds a walk-in from a fuzzy question', () => {
@@ -23,10 +23,11 @@ describe('help search', () => {
   it('hides plan prices from staff and shows them to a manager', () => {
     const staff = searchHelp('how do I choose a plan', { role: 'staff' })
     const manager = searchHelp('how do I choose a plan', { role: 'owner' })
-    expect(staff.matches.some((item) => item.article.id === 'billing-plans')).toBe(false)
-    expect(staff.matches.some((item) => item.article.id === 'floor-plan')).toBe(false)
+    expect(staff.matches.map((item) => item.article.id)).toEqual(['billing-staff'])
     expect(staff.matches.some((item) => /€|VAT|€29/.test(JSON.stringify(item.article.steps)))).toBe(false)
     expect(manager.matches[0]?.article.id).toBe('billing-plans')
+    expect(manager.matches.every((item) => item.article.id.startsWith('billing'))).toBe(true)
+    expect(searchHelp('how do I use the floor plan', { role: 'staff' }).matches[0]?.article.id).toBe('floor-plan')
     expect(helpArticlesForRole('staff').some((article) => article.audience === 'managers')).toBe(false)
     expect(helpArticlesForRole('general_manager').some((article) => article.id === 'billing-grace')).toBe(true)
   })
@@ -47,6 +48,22 @@ describe('help search', () => {
     expect(body).toContain('staff')
     expect(body).toContain('Today')
     expect(body).toContain('zzzz quantum pottery')
+  })
+
+  it('offers role-aware topics and Greek copy for every article', () => {
+    const owner = helpSectionsForRole('owner', 'en').map((section) => section.id)
+    const staff = helpSectionsForRole('staff', 'en').map((section) => section.id)
+    expect(owner).toContain('billing')
+    expect(owner).toEqual(expect.arrayContaining(['reservations', 'schedule', 'stock', 'tasks', 'chat', 'settings']))
+    expect(staff).not.toContain('billing')
+    expect(staff).not.toContain('stock')
+    for (const article of HELP_ARTICLES) {
+      expect(article.title.el, article.id).toBeTruthy()
+      expect(article.summary.el, article.id).toBeTruthy()
+      expect(article.questions.el?.length, article.id).toBeGreaterThan(0)
+      expect(article.steps.el?.length, article.id).toBeGreaterThan(0)
+    }
+    expect(helpSectionsForRole('owner', 'el').find((section) => section.id === 'reservations')?.label).toBe('Κρατήσεις')
   })
 
   it('keeps the knowledge base pointed at real screens', () => {

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { readCssPx } from '../lib/safeInline'
+import { openHelpAssistant } from './helpAssistantStore'
 import { resolveHelpCopy } from './helpTexts'
 import './helpMode.css'
 
@@ -70,17 +71,18 @@ function placePopover(rect, width) {
 }
 
 export function HelpModeToggle({ className = '' }) {
-  const on = useHelpModeEnabled()
   return (
     <button
       type="button"
-      className={`help-mode-toggle${on ? ' is-on' : ''}${className ? ` ${className}` : ''}`}
+      className={`help-mode-toggle${className ? ` ${className}` : ''}`}
       data-help-chrome=""
       data-help="header.help"
-      data-testid="help-mode-toggle"
-      aria-pressed={on}
-      aria-label={on ? 'Turn help mode off' : 'Help mode'}
-      onClick={() => setEnabled(!on)}
+      data-testid="help-assistant-open"
+      aria-label="Help"
+      onClick={() => {
+        setEnabled(false)
+        openHelpAssistant()
+      }}
     >
       ?
     </button>

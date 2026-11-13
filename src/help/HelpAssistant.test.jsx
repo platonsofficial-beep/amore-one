@@ -35,7 +35,7 @@ const base = {
 }
 
 afterEach(() => {
-  document.body.classList.remove('help-assistant-open')
+  document.body.classList.remove('is-help-assistant-open')
   document.body.style.overflow = ''
 })
 
@@ -45,7 +45,7 @@ describe('help assistant', () => {
       ...base,
       role: 'owner',
     }))
-    expect(document.body.classList.contains('help-assistant-open')).toBe(true)
+    expect(document.body.classList.contains('is-help-assistant-open')).toBe(true)
     const input = view.container.querySelector('[data-testid="help-assistant-query"]')
     act(() => {
       input.value = 'walk-in'
@@ -60,7 +60,7 @@ describe('help assistant', () => {
     act(() => suggestion.click())
     expect(view.container.querySelector('[data-testid="help-assistant-article"]').textContent).toMatch(/Walk-in/)
     view.unmount()
-    expect(document.body.classList.contains('help-assistant-open')).toBe(false)
+    expect(document.body.classList.contains('is-help-assistant-open')).toBe(false)
   })
 
   it('shows the email handoff when nothing matches', () => {
@@ -79,7 +79,7 @@ describe('help assistant', () => {
     })
     const support = view.container.querySelector('[data-testid="help-assistant-support"]')
     if (!support) {
-      const still = [...view.container.querySelectorAll('button')].find((button) => button.textContent === 'Still need help')
+      const still = view.container.querySelector('.help-assistant-still')
       act(() => still.click())
     }
     const mail = view.container.querySelector('[data-testid="help-assistant-support"] a')

@@ -3,6 +3,65 @@ import { HELP_ARTICLES, helpText } from './helpKnowledge'
 
 const MIN_SCORE = 0.55
 
+export const HELP_SECTIONS = [
+  {
+    id: 'reservations',
+    label: { en: 'Reservations', el: 'Κρατήσεις' },
+    articleIds: ['reservation-new', 'walk-in', 'floor-plan', 'guest-history', 'seatings'],
+  },
+  {
+    id: 'schedule',
+    label: { en: 'Schedule', el: 'Πρόγραμμα' },
+    articleIds: ['schedule-assign', 'availability', 'clock'],
+  },
+  {
+    id: 'stock',
+    label: { en: 'Stock', el: 'Stock' },
+    articleIds: ['stock-orders', 'stock-invoice'],
+  },
+  {
+    id: 'tasks',
+    label: { en: 'Tasks', el: 'Εργασίες' },
+    articleIds: ['tasks'],
+  },
+  {
+    id: 'chat',
+    label: { en: 'Chat', el: 'Chat' },
+    articleIds: ['chat'],
+  },
+  {
+    id: 'settings',
+    label: { en: 'Settings', el: 'Ρυθμίσεις' },
+    articleIds: ['settings', 'insights', 'roles'],
+  },
+  {
+    id: 'billing',
+    managersOnly: true,
+    label: { en: 'Billing', el: 'Χρέωση' },
+    articleIds: ['billing-plans', 'billing-grace', 'billing-lock', 'billing-staff'],
+  },
+]
+
+export function helpSectionsForRole(role, locale = 'en', articles = HELP_ARTICLES) {
+  const visible = new Set(helpArticlesForRole(role, articles).map((article) => article.id))
+  return HELP_SECTIONS.filter((section) => {
+    if (section.managersOnly && !isManagerRole(role)) return false
+    return section.articleIds.some((id) => visible.has(id))
+  }).map((section) => ({
+    id: section.id,
+    label: helpText(section.label, locale),
+    articles: articles.filter((article) => section.articleIds.includes(article.id) && visible.has(article.id)),
+  }))
+}
+
+function queryIsBilling(query) {
+  const folded = foldHelpText(query)
+  if (!folded) return false
+  if (/\b(billing|subscription|subscribe|price)\b/.test(folded)) return true
+  if (/πλαν|χρεω|συνδρομ/.test(folded)) return true
+  return /\bplans?\b/.test(folded) && !/\bfloor\b/.test(folded)
+}
+
 export function helpArticlesForRole(role, articles = HELP_ARTICLES) {
   const manager = isManagerRole(role)
   return articles.filter((article) => article.audience !== 'managers' || manager)
@@ -117,13 +176,31 @@ export function searchHelp(query, { role = 'staff', locale = 'en', articles = HE
   if (!folded) {
     return { matches: [], suggestions: suggestedHelpQuestions(role, locale, articles) }
   }
+  const suggestions = suggestedHelpQuestions(role, locale, articles)
+  if (queryIsBilling(folded) && !isManagerRole(role)) {
+    const staffArticle = visible.find((article) => article.id === 'billing-staff')
+    return {
+      matches: staffArticle ? [{ article: staffArticle, score: 1 }] : [],
+      suggestions,
+    }
+  }
   const ranked = visible
     .map((article) => ({ article, score: scoreHelpArticle(article, query, locale) }))
     .filter((item) => item.score >= MIN_SCORE)
     .sort((left, right) => right.score - left.score || left.article.id.localeCompare(right.article.id))
   const best = ranked[0]?.score ?? 0
-  const matches = ranked.filter((item) => item.score >= best - 0.12)
-  return { matches, suggestions: suggestedHelpQuestions(role, locale, articles) }
+  let matches = ranked.filter((item) => item.score >= best - 0.12)
+  if (queryIsBilling(folded)) {
+    const billing = matches.filter((item) => item.article.id.startsWith('billing'))
+    if (billing.length) {
+      matches = billing.sort((left, right) => {
+        if (left.article.id === 'billing-plans') return -1
+        if (right.article.id === 'billing-plans') return 1
+        return right.score - left.score || left.article.id.localeCompare(right.article.id)
+      })
+    }
+  }
+  return { matches, suggestions }
 }
 
 export function supportMailto({ venueName = '', role = '', screen = '', question = '' } = {}) {

@@ -1,7 +1,6 @@
 import { LoadingLines } from '../common/DataPending'
 import { UserMenu } from '../auth/UserMenu'
 import { HelpModeToggle } from '../../help/HelpMode'
-import { HelpAssistantButton } from '../../help/HelpAssistant'
 
 export function TodayCommandHeader({
   greeting = '',
@@ -53,7 +52,6 @@ export function TodayCommandHeader({
             </div>
 
             <div className="today-command-header-aside">
-              <HelpAssistantButton />
               <HelpModeToggle />
               {notificationBell}
               <UserMenu
