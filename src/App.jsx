@@ -621,6 +621,7 @@ import { MobileReservationQuickCreateSheet } from './components/mobile/reservati
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { HelpModeChrome, HelpModeToggle } from './help/HelpMode'
+import { HelpAssistantButton, HelpAssistantRoot } from './help/HelpAssistant'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
 import {
@@ -25486,6 +25487,18 @@ function App() {
       ) : null}
       <GuestPreviewStage />
       <HelpModeChrome />
+      <HelpAssistantRoot
+        role={role}
+        venueName={workspace?.name || ''}
+        screenLabel={moduleTitle}
+        onNavigate={(target) => {
+          if (!target?.view) return
+          handleActiveViewChange(target.view)
+          if (target.settingsSection) handleSettingsSectionChange(target.settingsSection)
+          if (target.teamSection) handleTeamSectionChange(target.teamSection)
+          if (target.stockSection) handleStockSectionChange(target.stockSection)
+        }}
+      />
       {/* The owner's landscape Reservations screen hides the topbar that
           normally holds the bell, so it floats here like on the phone shell. */}
       {useReservationsHostDedicatedShell && !useDedicatedShell && hideStandardTopbar && notificationBell ? (
@@ -26914,6 +26927,7 @@ function App() {
                         />
                       </label>
                       ) : null}
+                      <HelpAssistantButton />
                       <HelpModeToggle />
                       {notificationBell}
                       <div className="date-pill">{currentDateLabel}</div>
