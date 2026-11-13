@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ONE subscription mockups</title>
+  <style>
+    :root {
+      --bg: #0a1628;
+      --card: #18283d;
+      --card-2: #122033;
+      --line: rgba(169, 192, 214, 0.18);
+      --text: #f7f4ee;
+      --muted: #a9c0d6;
+      --gold: #d4af37;
+      --gold-2: #f3d27a;
+      --ink: #0a1628;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, "Segoe UI", Roboto, sans-serif; }
+    body { min-height: 100vh; }
+    .screen { display: none; min-height: 100vh; padding: 28px 20px 32px; }
+    body[data-screen="trial"] .trial,
+    body[data-screen="plans"] .plans,
+    body[data-screen="owner"] .owner,
+    body[data-screen="staff"] .staff { display: block; }
+    .wide .screen { padding: 36px 48px 40px; }
+    .mark { display: flex; align-items: center; gap: 10px; color: var(--gold-2); letter-spacing: 0.14em; font-size: 12px; }
+    .logo {
+      width: 28px; height: 22px;
+      background: linear-gradient(135deg, #f3d27a, #d4af37 55%, #a9832a);
+      clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    }
+    h1 { font-size: 28px; font-weight: 600; margin: 18px 0 8px; }
+    .wide h1 { font-size: 36px; }
+    p { color: var(--muted); line-height: 1.45; }
+    .banner {
+      margin-top: 22px;
+      background: #21344c;
+      border: 1px solid rgba(212, 175, 55, 0.45);
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+    .banner strong { color: var(--gold-2); display: block; font-size: 16px; }
+    .banner span { color: var(--muted); font-size: 13px; }
+    .chip {
+      border: 0; border-radius: 999px; padding: 10px 14px;
+      background: linear-gradient(135deg, #f3d27a, #d4af37);
+      color: var(--ink); font-weight: 700; font-size: 13px;
+    }
+    .today {
+      margin-top: 18px; background: var(--card); border-radius: 18px; padding: 16px;
+      border: 1px solid var(--line);
+    }
+    .today h2 { margin: 0 0 6px; font-size: 18px; }
+    .row { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+    .toggle { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    .toggle button, .ghost {
+      background: var(--card-2); color: var(--text); border: 1px solid var(--line);
+      border-radius: 999px; padding: 8px 12px; font-size: 13px;
+    }
+    .toggle button.on { background: var(--gold); color: var(--ink); border-color: transparent; font-weight: 700; }
+    .cards { display: grid; gap: 12px; }
+    .wide .cards { grid-template-columns: repeat(3, 1fr); align-items: stretch; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px;
+    }
+    .card.pick { border-color: rgba(212, 175, 55, 0.7); }
+    .card h3 { margin: 0; font-size: 18px; }
+    .price { font-size: 32px; margin: 8px 0 0; color: var(--text); }
+    .price small { font-size: 14px; color: var(--muted); font-weight: 500; }
+    .card ul { margin: 10px 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; }
+    .pay {
+      width: 100%; border: 0; border-radius: 12px; padding: 12px;
+      background: linear-gradient(135deg, #f3d27a, #d4af37); color: var(--ink); font-weight: 700;
+    }
+    .note { font-size: 13px; margin-top: 14px; }
+    .lock { max-width: 560px; margin: 8vh auto 0; text-align: left; }
+    .wide .lock { margin-top: 10vh; }
+    .lock h1 { font-size: 34px; }
+    .gold { color: var(--gold-2); }
+  </style>
+</head>
+<body>
+  <section class="screen trial">
+    <div class="mark"><span class="logo"></span> ONE</div>
+    <h1>Today</h1>
+    <p>AMORE.NICOSIA · Thursday 13 Nov</p>
+    <div class="banner">
+      <div>
+        <strong>12 days left on your free month</strong>
+        <span>Start plan · no card yet. Ends 13 Dec, 02:21 (Nicosia).</span>
+      </div>
+      <button class="chip" type="button">Plans</button>
+    </div>
+    <div class="today">
+      <h2>Good afternoon</h2>
+      <div class="row"><span>On shift</span><span>6</span></div>
+      <div class="row"><span>Reservations</span><span>18</span></div>
+      <div class="row"><span>Needs attention</span><span>1</span></div>
+    </div>
+  </section>
+
+  <section class="screen plans">
+    <div class="mark"><span class="logo"></span> ONE · SETTINGS</div>
+    <h1>Plans &amp; billing</h1>
+    <p>Prices exclude VAT. Extra venues get the same discount as the period you pick.</p>
+    <div class="toggle">
+      <button type="button">Monthly</button>
+      <button type="button">3 months · −10%</button>
+      <button type="button" class="on">6 months · −20%</button>
+      <button type="button">Yearly · −25%</button>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <h3>Start</h3>
+        <p class="price">€139 <small>/ 6 months</small></p>
+        <ul>
+          <li>1 venue</li>
+          <li>Up to 15 staff</li>
+          <li>1 free month, no card</li>
+        </ul>
+        <button class="pay" type="button">Continue on Start</button>
+      </article>
+      <article class="card pick">
+        <h3>Pro</h3>
+        <p class="price">€283 <small>/ 6 months</small></p>
+        <ul>
+          <li>All features · 1 venue included</li>
+          <li>Up to 40 staff</li>
+          <li>Extra venue €96 / 6 months, up to 3</li>
+          <li>1 free month, no card</li>
+        </ul>
+        <button class="pay" type="button">Continue on Pro</button>
+      </article>
+      <article class="card">
+        <h3>Group</h3>
+        <p class="price">€619 <small>/ 6 months</small></p>
+        <ul>
+          <li>5 venues included</li>
+          <li>Unlimited staff</li>
+          <li>Extra venue €72 / 6 months after 5</li>
+          <li>No free month</li>
+        </ul>
+        <button class="pay" type="button">Pay for Group</button>
+      </article>
+    </div>
+    <p class="note">Monthly is €29 / €59 / €129. Three months is €78 / €159 / €348. A year is €261 / €531 / €1,161. VAT is added only if your business is VAT-registered.</p>
+  </section>
+
+  <section class="screen owner">
+    <div class="lock">
+      <div class="mark"><span class="logo"></span> ONE</div>
+      <h1>AMORE.NICOSIA is paused</h1>
+      <p>Your free month has ended. Your data is still here. Choose a plan to continue.</p>
+      <div class="cards" style="margin-top: 18px;">
+        <article class="card pick">
+          <h3>Pro</h3>
+          <p class="price">€59 <small>/ month</small></p>
+          <ul>
+            <li>All features, up to 40 staff</li>
+            <li>1 venue included</li>
+          </ul>
+          <button class="pay" type="button">Pay and continue</button>
+        </article>
+      </div>
+      <p class="note">Prices exclude VAT. You can switch to Start (€29) or Group (€129) before you pay.</p>
+    </div>
+  </section>
+
+  <section class="screen staff">
+    <div class="lock">
+      <div class="mark"><span class="logo"></span> ONE</div>
+      <h1>Ask your manager</h1>
+      <p class="gold">Your venue’s subscription needs renewing.</p>
+      <p>AMORE.NICOSIA is paused until a manager chooses a plan. Your shifts and profile are kept. You don’t need to pay anything yourself.</p>
+      <button class="ghost" type="button" style="margin-top: 18px;">Sign out</button>
+    </div>
+  </section>
+  <script>
+    const screen = new URLSearchParams(location.search).get('screen') || 'trial';
+    document.body.dataset.screen = screen;
+    if (location.search.includes('wide=1')) document.body.classList.add('wide');
+  </script>
+</body>
+</html>

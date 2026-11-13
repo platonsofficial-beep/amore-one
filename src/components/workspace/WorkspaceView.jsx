@@ -37,12 +37,14 @@ export function WorkspaceView({
   teamProps,
   systemProps,
   notificationSettings = null,
+  billingSection = null,
   visibleSectionIds = null,
   limitedAccess = false,
 }) {
-  const sections = Array.isArray(visibleSectionIds)
+  const sections = (Array.isArray(visibleSectionIds)
     ? WORKSPACE_SECTIONS.filter((section) => visibleSectionIds.includes(section.id))
     : WORKSPACE_SECTIONS
+  ).concat(billingSection ? [{ id: 'billing', label: 'Plans & billing', shortLabel: 'Billing', icon: '✦' }] : [])
   const sectionKey = sections.map((section) => section.id).join('|')
   const sectionIds = new Set(sections.map((section) => section.id))
   const resolvedSection = sectionIds.has(activeSection)
@@ -174,6 +176,7 @@ export function WorkspaceView({
             <WorkspaceSystemSection {...systemProps} />
           ) : null}
           {resolvedSection === 'privacy' ? <PrivacySettingsSection /> : null}
+          {resolvedSection === 'billing' ? billingSection : null}
         </div>
       </div>
     </section>

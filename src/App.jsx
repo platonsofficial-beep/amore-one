@@ -586,6 +586,12 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { applyBillingPreviewToday, shouldUseBillingPreviewFixture } from './lib/billingPreviewFixture'
+import { PlansBillingSection } from './components/billing/PlansBillingSection'
+import { SubscriptionBanner } from './components/billing/SubscriptionBanner'
+import { SubscriptionLockScreen } from './components/billing/SubscriptionLockScreen'
+import { useSubscriptionUi } from './components/billing/useSubscriptionUi'
+import { startSubscriptionCheckout, startSubscriptionPortal } from './services/billingService'
 import { LIMITED_SETTINGS_SECTION_IDS } from './lib/settingsSections'
 import { VenueSwitcher } from './components/workspace/VenueManager'
 import { AttendanceBoard } from './components/attendance/AttendanceBoard'
@@ -16842,7 +16848,18 @@ function App() {
   const clockedInNowCount = useClockedInNow(activeWorkspaceId, workspaceTimeZone, canManageAttendanceRole)
   // Which Today data has actually arrived: cards show a neutral placeholder
   // (never "OK"/zero) until then, and "Couldn't load" + Retry on failure.
+  const billingPreviewActive = shouldUseBillingPreviewFixture()
   const todayDataStatus = useMemo(() => {
+    if (billingPreviewActive) {
+      return {
+        schedule: 'ready',
+        announcements: 'ready',
+        stock: 'ready',
+        tasks: 'ready',
+        reservations: 'ready',
+        attention: 'ready',
+      }
+    }
     const schedule = isViewingTodayWeekInScheduler ? loadStatuses.schedule : loadStatuses.todayWeek
     const stock = combineLoadStatus(loadStatuses.stockItems, loadStatuses.stockOrders, stockLiveLoadStatus(stockLiveSnapshot.status))
     const tasks = combineLoadStatus(loadStatuses.tasks, loadStatuses.operationsTasks)
@@ -16855,7 +16872,7 @@ function App() {
       reservations,
       attention: combineLoadStatus(schedule, stock, tasks, reservations),
     }
-  }, [isViewingTodayWeekInScheduler, loadStatuses, stockLiveSnapshot.status])
+  }, [billingPreviewActive, isViewingTodayWeekInScheduler, loadStatuses, stockLiveSnapshot.status])
 
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
@@ -16892,6 +16909,10 @@ function App() {
     stockLiveSnapshot.belowParCount,
     stockLiveSnapshot.parsReady,
   ])
+  const shownTodayStatusSummary = useMemo(
+    () => (billingPreviewActive ? applyBillingPreviewToday(todayStatusSummary) : todayStatusSummary),
+    [billingPreviewActive, todayStatusSummary],
+  )
 
   const teamTodayShiftSource = useMemo(() => (
     isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts
@@ -17213,7 +17234,7 @@ function App() {
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
     scheduleIssueCount: operationalSnapshot.issues,
-    todayStatusSummary,
+    todayStatusSummary: shownTodayStatusSummary,
     dashboardTaskOverview: { active: unifiedOperationalTaskCounts.boardOpen },
     operationsOpenCount,
     todayReservationsSummary,
@@ -17226,7 +17247,7 @@ function App() {
     clockedInNowCount,
     dashboardLiveStatus,
     operationalSnapshot.issues,
-    todayStatusSummary,
+    shownTodayStatusSummary,
     unifiedOperationalTaskCounts.boardOpen,
     operationsOpenCount,
     todayReservationsSummary,
@@ -25379,13 +25400,90 @@ function App() {
     onOpen: openNotification,
   })
 
+  const subscriptionUi = useSubscriptionUi({
+    role,
+    workspaceId: workspace?.id ?? '',
+    isAuthDisabled,
+  })
+  const [subscriptionNotice, setSubscriptionNotice] = useState('')
+  const closeSubscriptionBilling = useCallback(() => {
+    setSubscriptionNotice('')
+    setActiveView('today')
+    setMobileExpandedView(null)
+    persistNavigation({
+      activeView: 'today',
+      settingsSection: 'profile',
+      teamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [teamSection, stockSection, operationsSection])
+  const openSubscriptionBilling = useCallback(() => {
+    setSubscriptionNotice('')
+    setActiveView('settings')
+    setSettingsSection('billing')
+    persistNavigation({
+      activeView: 'settings',
+      settingsSection: 'billing',
+      teamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [teamSection, stockSection, operationsSection])
+  const handleSubscriptionCheckout = useCallback(async (plan, interval) => {
+    if (isAuthDisabled) {
+      setSubscriptionNotice('Checkout opens when Stripe is connected.')
+      return
+    }
+    try {
+      const url = await startSubscriptionCheckout({
+        plan,
+        interval,
+        workspaceId: workspace?.id ?? '',
+      })
+      window.location.assign(url)
+    } catch (error) {
+      setSubscriptionNotice(error?.message || "Billing isn't connected yet.")
+    }
+  }, [isAuthDisabled, workspace?.id])
+  const handleSubscriptionPortal = useCallback(async () => {
+    if (isAuthDisabled) {
+      setSubscriptionNotice('Billing opens when Stripe is connected.')
+      return
+    }
+    try {
+      const url = await startSubscriptionPortal({ workspaceId: workspace?.id ?? '' })
+      window.location.assign(url)
+    } catch (error) {
+      setSubscriptionNotice(error?.message || "Billing isn't connected yet.")
+    }
+  }, [isAuthDisabled, workspace?.id])
+
   return (
     <PublishedFloorPlanProvider
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+    <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      {subscriptionUi.showBanner ? (
+        <SubscriptionBanner
+          message={subscriptionUi.bannerMessage}
+          action={subscriptionUi.bannerAction}
+          onAction={openSubscriptionBilling}
+        />
+      ) : null}
+      {subscriptionUi.locked ? (
+          <SubscriptionLockScreen
+          manager={subscriptionUi.manager}
+          venueName={workspace?.name || 'This venue'}
+          notice={subscriptionNotice}
+          showPortal={subscriptionUi.hasStripeCustomer}
+          onCheckout={handleSubscriptionCheckout}
+          onPortal={handleSubscriptionPortal}
+          onSignOut={signOut}
+        />
+      ) : null}
       <GuestPreviewStage />
       <HelpModeChrome />
       {/* The owner's landscape Reservations screen hides the topbar that
@@ -25475,10 +25573,11 @@ function App() {
             <AttendanceClockScreen
               workspaceId={activeWorkspaceId}
               memberId={membership?.id ?? ''}
-              employeeId={membership?.employeeId ?? ''}
-              employeeName={mobileLinkedEmployee?.name ?? ''}
+              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId ?? '')}
+              employeeName={billingPreviewActive ? 'Alex Costa' : (mobileLinkedEmployee?.name ?? '')}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
+              previewMode={billingPreviewActive}
             />
           ) : null
           const accountProfileProps = {
@@ -25616,7 +25715,7 @@ function App() {
           <CommandCenterView
             clockCard={attendanceClockCard}
             reminderCard={shiftReminderCard}
-            statusSummary={todayStatusSummary}
+            statusSummary={shownTodayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={enrichedTeamTodayGroups}
             teamTodayStatus={teamTodayStatus}
@@ -26241,6 +26340,17 @@ function App() {
               moduleConnections: workspaceModuleConnections,
             }}
             notificationSettings={notificationSettingsPanel}
+            billingSection={subscriptionUi.enabled && subscriptionUi.manager ? (
+              <PlansBillingSection
+                venueName={workspace?.name || ''}
+                notice={subscriptionNotice}
+                showPortal={subscriptionUi.hasStripeCustomer}
+                freeMonthEligible={subscriptionUi.freeMonthEligible}
+                onCheckout={handleSubscriptionCheckout}
+                onPortal={handleSubscriptionPortal}
+                onClose={closeSubscriptionBilling}
+              />
+            ) : null}
           />
         ) : null}
             </>
@@ -26269,7 +26379,7 @@ function App() {
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
-                      statusSummary: todayStatusSummary,
+                      statusSummary: shownTodayStatusSummary,
                       dataStatus: todayDataStatus,
                       onRetryData: retryTodayData,
                       attentionItems: todayAttentionItems,

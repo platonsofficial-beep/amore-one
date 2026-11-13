@@ -1,9 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
 import { formatProfileSaveError } from '../lib/profileSaveError'
-import { resolveBootstrapMembershipRole } from '../lib/membershipBootstrapUtils'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { getSession } from './authService'
-import { getDefaultWorkspace, mapWorkspace } from './workspaceService'
+import { mapWorkspace } from './workspaceService'
 
 const WORKSPACE_MEMBERS_TABLE = 'workspace_members'
 
@@ -131,25 +130,6 @@ function mapMembershipWorkspace(record) {
   return mapWorkspace(workspaceRecord)
 }
 
-function serializeMembershipPayload({
-  workspaceId,
-  authUserId,
-  employeeId = null,
-  displayName = '',
-  email = '',
-  role = 'staff',
-}) {
-  return {
-    workspace_id: workspaceId,
-    auth_user_id: authUserId,
-    employee_id: employeeId,
-    display_name: `${displayName ?? ''}`.trim(),
-    email: `${email ?? ''}`.trim(),
-    role: normalizeWorkspaceRole(role),
-    last_seen_at: new Date().toISOString(),
-  }
-}
-
 function resolveUserIdentity(user = {}) {
   const email = `${user.email ?? ''}`.trim()
   const metadataName = `${user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''}`.trim()
@@ -158,23 +138,13 @@ function resolveUserIdentity(user = {}) {
   return { email, displayName }
 }
 
-async function countWorkspaceMembers(workspaceId) {
-  const { count, error } = await supabase
-    .from(WORKSPACE_MEMBERS_TABLE)
-    .select('id', { count: 'exact', head: true })
-    .eq('workspace_id', workspaceId)
-
-  if (error) {
-    console.error('[membershipService] countWorkspaceMembers error:', error)
-
-    if (isTableUnavailableError(error)) {
-      throw new Error('Workspace members table is not ready yet.')
-    }
-
-    throw new Error(error.message || 'Unable to count workspace members right now.')
-  }
-
-  return count ?? 0
+function isMissingSignupVenueRpc(error) {
+  const code = `${error?.code ?? ''}`
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return code === 'PGRST202'
+    || code === '42883'
+    || message.includes('could not find the function')
+    || message.includes('schema cache')
 }
 
 async function fetchMembershipContext(authUserId) {
@@ -332,54 +302,23 @@ export async function createOwnerMembershipIfMissing(user) {
     return existingMembership
   }
 
-  const workspace = await getDefaultWorkspace()
-  if (!workspace?.id) {
-    return null
-  }
-
-  const memberCount = await countWorkspaceMembers(workspace.id)
-  const role = resolveBootstrapMembershipRole(memberCount)
-  if (!role) {
-    return null
-  }
-  const { email, displayName } = resolveUserIdentity(user)
-  const payload = serializeMembershipPayload({
-    workspaceId: workspace.id,
-    authUserId,
-    displayName,
-    email,
-    role,
+  const { displayName } = resolveUserIdentity(user)
+  const venueName = `${displayName ?? ''}`.trim() || 'My venue'
+  const { error } = await supabase.rpc('create_signup_venue', {
+    p_name: venueName,
+    p_plan: 'start',
   })
 
-  const { data, error } = await supabase
-    .from(WORKSPACE_MEMBERS_TABLE)
-    .insert([payload])
-    .select('*')
-    .single()
-
   if (error) {
+    if (isMissingSignupVenueRpc(error)) {
+      console.warn('[membershipService] create_signup_venue is not installed. Not joining an existing venue.')
+      return null
+    }
     console.error('[membershipService] createOwnerMembershipIfMissing error:', error)
-
-    if (`${error.code ?? ''}` === '23505') {
-      const existing = await getCurrentMembership(authUserId)
-      if (existing) {
-        return existing
-      }
-
-      throw new Error(
-        'Workspace membership already exists but could not be loaded. '
-        + 'Check workspace_members RLS SELECT policy for authenticated users.',
-      )
-    }
-
-    if (isTableUnavailableError(error)) {
-      throw new Error('Workspace members table is not ready yet.')
-    }
-
-    throw new Error(error.message || 'Unable to create workspace membership right now.')
+    throw new Error(error.message || 'Unable to create a venue right now.')
   }
 
-  return mapMembership(data)
+  return getCurrentMembership(authUserId)
 }
 
 export async function linkMembershipEmployee(authUserId, employeeId, workspaceId = null) {
