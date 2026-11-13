@@ -5,7 +5,9 @@ import {
   applyStripeEvent,
   assertStripeConfigured,
   buildCheckoutBody,
+  encodeStripeForm,
   verifyStripeSignature,
+  workspaceIdFromStripeObject,
 } from './stripeBilling'
 
 const SECRET = 'whsec_test_secret'
@@ -88,6 +90,15 @@ describe('stripe billing', () => {
       { price: 'price_extra_6', quantity: 1 },
     ])
     expect(body.metadata).toMatchObject({ plan: 'pro', interval: 'month6', workspace_id: 'ws-1' })
+    expect(body.client_reference_id).toBe('ws-1')
+    expect(body.subscription_data.metadata).toEqual(body.metadata)
+    const params = encodeStripeForm({ ...body, customer: 'cus_existing' })
+    expect(params.get('customer')).toBe('cus_existing')
+    expect(params.get('client_reference_id')).toBe('ws-1')
+    expect(params.get('metadata[workspace_id]')).toBe('ws-1')
+    expect(params.get('subscription_data[metadata][workspace_id]')).toBe('ws-1')
+    expect(params.get('subscription_data[metadata][plan]')).toBe('pro')
+    expect(params.get('subscription_data[metadata][interval]')).toBe('month6')
   })
 
   it('starts payment grace on a failed invoice and unlocks when checkout completes', () => {
@@ -115,5 +126,87 @@ describe('stripe billing', () => {
     expect(paid.graceStartedAt).toBeNull()
     expect(unlocked.allowsWrites).toBe(true)
     expect(unlocked.phase).toBe('active')
+  })
+
+  it('reads the venue from invoice subscription metadata when the invoice metadata is empty', () => {
+    const invoice = {
+      metadata: {},
+      customer: 'cus_1',
+      subscription: null,
+      parent: {
+        subscription_details: {
+          subscription: 'sub_1',
+          metadata: { workspace_id: 'ws-1', plan: 'pro', interval: 'month6' },
+        },
+      },
+    }
+    expect(workspaceIdFromStripeObject(invoice)).toBe('ws-1')
+    expect(workspaceIdFromStripeObject({
+      metadata: {},
+      subscription_details: { metadata: { workspace_id: 'ws-older' } },
+    })).toBe('ws-older')
+  })
+
+  it('uses the invoice line period and the plan interval instead of 30 days', () => {
+    const sixMonthEnd = Math.floor(Date.parse('2027-05-20T12:00:00.000Z') / 1000)
+    const paid = applyStripeEvent({
+      type: 'invoice.paid',
+      data: {
+        object: {
+          metadata: {},
+          current_period_end: Math.floor(NOW.getTime() / 1000) + 30 * 24 * 60 * 60,
+          parent: {
+            subscription_details: {
+              metadata: { workspace_id: 'ws-1', plan: 'pro', interval: 'month6' },
+            },
+          },
+          lines: { data: [{ period: { end: sixMonthEnd } }] },
+        },
+      },
+    }, { status: 'past_due', graceStartedAt: NOW.toISOString(), graceReason: 'payment' }, NOW)
+    expect(paid.currentPeriodEnd).toBe('2027-05-20T12:00:00.000Z')
+    expect(paid.status).toBe('active')
+    expect(paid.graceStartedAt).toBeNull()
+    expect(paid.plan).toBe('pro')
+    expect(paid.interval).toBe('month6')
+
+    const checkout = applyStripeEvent({
+      type: 'checkout.session.completed',
+      data: { object: { metadata: { plan: 'group', interval: 'year' } } },
+    }, {}, NOW)
+    expect(checkout.currentPeriodEnd).toBe('2027-11-20T12:00:00.000Z')
+
+    const fromItem = applyStripeEvent({
+      type: 'checkout.session.completed',
+      data: { object: { items: { data: [{ current_period_end: sixMonthEnd }] }, metadata: { interval: 'month6' } } },
+    }, {}, NOW)
+    expect(fromItem.currentPeriodEnd).toBe('2027-05-20T12:00:00.000Z')
+  })
+
+  it('refreshes an updated subscription and starts grace once when it is deleted', () => {
+    const end = Math.floor(Date.parse('2027-05-20T12:00:00.000Z') / 1000)
+    const updated = applyStripeEvent({
+      type: 'customer.subscription.updated',
+      data: {
+        object: {
+          object: 'subscription',
+          status: 'active',
+          metadata: { plan: 'pro', interval: 'month6' },
+          items: { data: [{ current_period_end: end }] },
+        },
+      },
+    }, { status: 'past_due', graceStartedAt: NOW.toISOString(), graceReason: 'payment' }, NOW)
+    expect(updated.status).toBe('active')
+    expect(updated.graceStartedAt).toBeNull()
+    expect(updated.currentPeriodEnd).toBe('2027-05-20T12:00:00.000Z')
+
+    const deleted = applyStripeEvent({ type: 'customer.subscription.deleted' }, updated, NOW)
+    expect(deleted.status).toBe('past_due')
+    expect(deleted.graceReason).toBe('payment')
+    const again = applyStripeEvent({
+      type: 'customer.subscription.deleted',
+    }, deleted, new Date(NOW.getTime() + 86400000))
+    expect(again.graceStartedAt).toBe(deleted.graceStartedAt)
+    expect(resolveSubscriptionAccess(deleted, NOW).daysLeft).toBe(SUBSCRIPTION_GRACE_DAYS)
   })
 })

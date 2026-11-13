@@ -111,18 +111,22 @@ export function buildCheckoutBody({
     }
     lineItems.push({ price: extraPrice, quantity: extras })
   }
+  const workspace = `${workspaceId ?? ''}`.trim()
+  const metadata = {
+    plan,
+    interval,
+    workspace_id: workspace,
+  }
   return {
     mode: 'subscription',
     currency: 'eur',
     success_url: successUrl,
     cancel_url: cancelUrl,
     customer: customerId || undefined,
+    client_reference_id: workspace || undefined,
     line_items: lineItems,
-    metadata: {
-      plan,
-      interval,
-      workspace_id: `${workspaceId ?? ''}`,
-    },
+    metadata,
+    subscription_data: { metadata },
   }
 }
 
@@ -132,6 +136,7 @@ export function encodeStripeForm(body) {
   params.set('success_url', body.success_url)
   params.set('cancel_url', body.cancel_url)
   if (body.customer) params.set('customer', body.customer)
+  if (body.client_reference_id) params.set('client_reference_id', body.client_reference_id)
   body.line_items.forEach((item, index) => {
     params.set(`line_items[${index}][price]`, item.price)
     params.set(`line_items[${index}][quantity]`, String(item.quantity))
@@ -139,7 +144,56 @@ export function encodeStripeForm(body) {
   Object.entries(body.metadata ?? {}).forEach(([key, value]) => {
     params.set(`metadata[${key}]`, `${value ?? ''}`)
   })
+  Object.entries(body.subscription_data?.metadata ?? {}).forEach(([key, value]) => {
+    params.set(`subscription_data[metadata][${key}]`, `${value ?? ''}`)
+  })
   return params
+}
+
+export function workspaceIdFromStripeObject(object) {
+  const values = [
+    object?.metadata?.workspace_id,
+    object?.client_reference_id,
+    object?.subscription_details?.metadata?.workspace_id,
+    object?.parent?.subscription_details?.metadata?.workspace_id,
+  ]
+  for (const value of values) {
+    const id = `${value ?? ''}`.trim()
+    if (id) return id
+  }
+  return ''
+}
+
+export function stripeCustomerIdFromObject(object) {
+  const value = object?.customer
+  if (value && typeof value === 'object') return `${value.id ?? ''}`.trim()
+  return `${value ?? ''}`.trim()
+}
+
+export function stripeSubscriptionIdFromObject(object) {
+  const value = object?.subscription
+    ?? object?.parent?.subscription_details?.subscription
+    ?? (object?.object === 'subscription' ? object.id : '')
+  if (value && typeof value === 'object') return `${value.id ?? ''}`.trim()
+  return `${value ?? ''}`.trim()
+}
+
+export function subscriptionPeriodEndUnix(subscription) {
+  if (!subscription || typeof subscription !== 'object') return null
+  if (typeof subscription.current_period_end === 'number' && Number.isFinite(subscription.current_period_end)) {
+    return subscription.current_period_end
+  }
+  const itemEnd = subscription.items?.data?.[0]?.current_period_end
+  if (typeof itemEnd === 'number' && Number.isFinite(itemEnd)) return itemEnd
+  return null
+}
+
+export function invoicePeriodEndUnix(invoice) {
+  const ends = (invoice?.lines?.data ?? [])
+    .map((line) => line?.period?.end)
+    .filter((end) => typeof end === 'number' && Number.isFinite(end))
+  if (!ends.length) return null
+  return Math.max(...ends)
 }
 
 /**
@@ -178,39 +232,95 @@ export async function verifyStripeSignature({
   return match ? { ok: true } : { ok: false, reason: 'mismatch' }
 }
 
-function periodEndIso(value, now) {
+const INTERVAL_MONTHS = { month: 1, month3: 3, month6: 6, year: 12 }
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+
+function mergedMetadata(object) {
+  return {
+    ...(object?.parent?.subscription_details?.metadata ?? {}),
+    ...(object?.subscription_details?.metadata ?? {}),
+    ...(object?.metadata ?? {}),
+  }
+}
+
+export function addIntervalIso(now, interval) {
+  const months = INTERVAL_MONTHS[interval]
+  if (!months) return null
+  const next = new Date(now)
+  const day = next.getUTCDate()
+  next.setUTCDate(1)
+  next.setUTCMonth(next.getUTCMonth() + months)
+  const lastDay = new Date(Date.UTC(next.getUTCFullYear(), next.getUTCMonth() + 1, 0)).getUTCDate()
+  next.setUTCDate(Math.min(day, lastDay))
+  return next.toISOString()
+}
+
+function periodEndIso(value, now, interval, { derive }) {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return new Date(value * 1000).toISOString()
   }
   if (typeof value === 'string' && value) return value
-  return new Date(new Date(now).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+  if (derive) {
+    const derived = addIntervalIso(now, interval)
+    if (derived) return derived
+  }
+  return null
+}
+
+function startPaymentGrace(next, now) {
+  next.status = 'past_due'
+  next.graceReason = 'payment'
+  if (!next.graceStartedAt) next.graceStartedAt = new Date(now).toISOString()
+  return next
 }
 
 /**
  * Pure billing transition. Payment failure starts grace once and does not
  * move the clock on later retries. A completed checkout or paid invoice
  * clears grace and sets `active` with a period end in the future.
+ * Period end prefers Stripe's timestamp. Checkout falls back to the plan
+ * interval (3, 6, or 12 months), and only then to 30 days.
  */
 export function applyStripeEvent(event, current = {}, now = new Date()) {
   const next = { ...current }
   const type = event?.type
   const object = event?.data?.object ?? {}
+  const meta = mergedMetadata(object)
   if (type === 'invoice.payment_failed' || type === 'customer.subscription.deleted') {
-    next.status = 'past_due'
-    next.graceReason = 'payment'
-    if (!next.graceStartedAt) next.graceStartedAt = new Date(now).toISOString()
+    return startPaymentGrace(next, now)
+  }
+  if (type === 'customer.subscription.updated') {
+    const stripeStatus = `${object.status ?? ''}`
+    if (meta.plan) next.plan = meta.plan
+    if (meta.interval) next.interval = meta.interval
+    if (stripeStatus === 'active' || stripeStatus === 'trialing') {
+      const period = periodEndIso(subscriptionPeriodEndUnix(object), now, meta.interval || next.interval, { derive: false })
+      if (period) {
+        next.status = 'active'
+        next.graceStartedAt = null
+        next.graceReason = null
+        next.currentPeriodEnd = period
+      }
+      return next
+    }
+    if (['past_due', 'unpaid', 'canceled', 'incomplete_expired', 'paused'].includes(stripeStatus)) {
+      return startPaymentGrace(next, now)
+    }
     return next
   }
   if (type === 'invoice.paid' || type === 'checkout.session.completed') {
-    const periodEnd = object.current_period_end
-      ?? object.lines?.data?.[0]?.period?.end
-      ?? object.metadata?.current_period_end
+    const unix = type === 'invoice.paid'
+      ? (invoicePeriodEndUnix(object) ?? subscriptionPeriodEndUnix(object))
+      : subscriptionPeriodEndUnix(object)
+    const interval = meta.interval || next.interval
+    const period = periodEndIso(unix, now, interval, { derive: true })
+      ?? new Date(new Date(now).getTime() + THIRTY_DAYS_MS).toISOString()
     next.status = 'active'
     next.graceStartedAt = null
     next.graceReason = null
-    next.currentPeriodEnd = periodEndIso(periodEnd, now)
-    if (object.metadata?.plan) next.plan = object.metadata.plan
-    if (object.metadata?.interval) next.interval = object.metadata.interval
+    next.currentPeriodEnd = period
+    if (meta.plan) next.plan = meta.plan
+    if (meta.interval) next.interval = meta.interval
     return next
   }
   return next
