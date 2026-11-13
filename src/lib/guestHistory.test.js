@@ -9,6 +9,8 @@ import {
   guestPhoneKey,
   searchGuests,
   summarizeGuest,
+  formatGuestDate,
+  formatGuestFavourite,
 } from './guestHistory'
 import { buildGuestPreviewProfiles, buildGuestPreviewReservations, readGuestPreview } from './guestHistoryPreview'
 
@@ -29,6 +31,8 @@ describe('guest history', () => {
     expect(guest.lastVisit).toBe('2026-11-01')
     expect(guest.favouriteTables).toContain('T4')
     expect(guest.favouriteArea).toBe('Main Dining')
+    expect(formatGuestFavourite(guest)).toBe('T4 · Main Dining')
+    expect(formatGuestDate(guest.lastVisit)).toBe('1 Nov 2026')
     expect(guest.usualPartySize).toBe(4)
     expect(guest.bookings[0].date).toBe('2026-11-01')
   })

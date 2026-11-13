@@ -6,8 +6,11 @@ import {
   canBlacklistGuest,
   canEditGuestNotes,
   findGuestByPhone,
+  formatGuestDate,
+  formatGuestFavourite,
   searchGuests,
 } from '../../lib/guestHistory'
+import { getHostListCompactStatusLabel, getHostStatusMeta } from '../../lib/reservationHostStatus'
 import {
   buildGuestPreviewProfiles,
   buildGuestPreviewReservations,
@@ -81,10 +84,19 @@ function GuestStats({ guest }) {
       <div><dt>Visits</dt><dd>{guest.visits}</dd></div>
       <div><dt>No-shows</dt><dd>{guest.noShows}</dd></div>
       <div><dt>Cancellations</dt><dd>{guest.cancellations}</dd></div>
-      <div><dt>Last visit</dt><dd>{guest.lastVisit || '—'}</dd></div>
+      <div><dt>Last visit</dt><dd className="guest-date">{formatGuestDate(guest.lastVisit)}</dd></div>
       <div><dt>Usual party</dt><dd>{guest.usualPartySize || '—'}</dd></div>
-      <div><dt>Favourite</dt><dd>{guest.favouriteTables.join(', ') || guest.favouriteArea || '—'}</dd></div>
+      <div><dt>Favourite</dt><dd>{formatGuestFavourite(guest)}</dd></div>
     </dl>
+  )
+}
+
+function StatusChip({ status }) {
+  const meta = getHostStatusMeta(status)
+  return (
+    <span className={`host-reservation-card-status-pill tone-${meta.tone} is-compact`}>
+      {getHostListCompactStatusLabel(status)}
+    </span>
   )
 }
 
@@ -109,6 +121,7 @@ export function GuestPhoneInsight({
   const guest = findGuestByPhone(directoryState.directory, debouncedPhone, countryCode)
   const confirm = blacklistConfirmState({ ...(guest || {}), role })
   const [notes, setNotes] = useState(guest?.notes || '')
+  const [expanded, setExpanded] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [notice, setNotice] = useState('')
@@ -146,44 +159,61 @@ export function GuestPhoneInsight({
     }
   }
 
+  const noShowLabel = guest.noShows === 1 ? '1 no-show' : `${guest.noShows} no-shows`
   return (
     <section className="guest-card" data-testid="guest-card" aria-label="Guest history">
       {confirm.warning ? <p className="guest-blacklist-warning" role="alert">{confirm.warning}</p> : null}
-      <div className="guest-actions">
-        <h3>{guest.guestName || guest.phone}</h3>
-        {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
-      </div>
       {confirm.blocked ? <p>Ask a manager before booking this guest.</p> : null}
-      <GuestStats guest={guest} />
-      {guest.favouriteArea ? <p>{guest.favouriteArea}</p> : null}
-      {guest.notes && !(canEditGuestNotes(role) && directoryState.available) ? <p>{guest.notes}</p> : null}
-      {canEditGuestNotes(role) && directoryState.available ? (
-        <label>
-          Notes
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} />
-        </label>
+      <button
+        type="button"
+        className="guest-card-summary"
+        data-testid="guest-card-toggle"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((current) => !current)}
+      >
+        <strong>{guest.guestName || guest.phone}</strong>
+        <span>{guest.visits} visits</span>
+        <span>{noShowLabel}</span>
+        {guest.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
+      </button>
+      {expanded ? (
+        <>
+          <GuestStats guest={guest} />
+          {guest.notes && !(canEditGuestNotes(role) && directoryState.available) ? (
+            <p><span className="guest-notes-label">Notes</span> {guest.notes}</p>
+          ) : null}
+          {canEditGuestNotes(role) && directoryState.available ? (
+            <label className="guest-notes-field">
+              <span className="guest-notes-label">Notes</span>
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} />
+            </label>
+          ) : null}
+          <div className="guest-actions">
+            {canEditGuestNotes(role) && directoryState.available ? (
+              <button type="button" className="secondary-btn" onClick={saveNotes}>Save notes</button>
+            ) : null}
+            {canBlacklistGuest(role) && directoryState.available && !guest.blacklisted ? (
+              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>Blacklist</button>
+            ) : null}
+            {canBlacklistGuest(role) && directoryState.available && guest.blacklisted ? (
+              <button
+                type="button"
+                className="secondary-btn"
+                onClick={async () => {
+                  const saved = directoryState.preview
+                    ? { ...guest, blacklisted: false, blacklistReason: '', displayName: guest.guestName }
+                    : await setGuestBlacklist({ workspaceId, phone: guest.phone, displayName: guest.guestName, blacklisted: false, reason: '' })
+                  directoryState.remember(saved)
+                }}
+              >
+                Remove blacklist
+              </button>
+            ) : null}
+          </div>
+          {notice ? <p role="status">{notice}</p> : null}
+          {!directoryState.available ? <p>Notes and blacklist turn on when guest profiles are saved.</p> : null}
+        </>
       ) : null}
-      <div className="guest-actions">
-        {canEditGuestNotes(role) && directoryState.available ? (
-          <button type="button" onClick={saveNotes}>Save notes</button>
-        ) : null}
-        {canBlacklistGuest(role) && directoryState.available && !guest.blacklisted ? (
-          <button type="button" onClick={() => setDialogOpen(true)}>Blacklist</button>
-        ) : null}
-        {canBlacklistGuest(role) && directoryState.available && guest.blacklisted ? (
-          <button type="button" onClick={async () => {
-            const saved = directoryState.preview
-              ? { ...guest, blacklisted: false, blacklistReason: '', displayName: guest.guestName }
-              : await setGuestBlacklist({ workspaceId, phone: guest.phone, displayName: guest.guestName, blacklisted: false, reason: '' })
-            directoryState.remember(saved)
-          }}
-          >
-            Remove blacklist
-          </button>
-        ) : null}
-      </div>
-      {notice ? <p role="status">{notice}</p> : null}
-      {!directoryState.available ? <p>Notes and blacklist turn on when guest profiles are saved.</p> : null}
       {dialogOpen ? (
         <BlacklistDialog
           guestName={guest.guestName}
@@ -220,7 +250,7 @@ export function BlacklistDialog({ guestName, reason, onReason, onClose, onSave }
         </label>
         <div className="guest-actions">
           <button type="button" className="primary-btn" onClick={onSave}>Save blacklist</button>
-          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="button" className="secondary-btn" onClick={onClose}>Cancel</button>
         </div>
       </div>
     </div>
@@ -248,35 +278,53 @@ export function GuestDirectory({
 
   const sheet = (
     <div className="guest-directory" role="dialog" aria-modal="true" aria-label="Guests" data-testid="guest-directory">
-      <div className="guest-directory-card">
-        <div className="guest-actions">
-          <h2>Guests</h2>
-          <button type="button" onClick={onClose}>Close</button>
-        </div>
-        <label>
-          Search name or phone
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or phone" />
-        </label>
+      <div className="guest-directory-sheet">
+        <header className="mobile-host-reservation-panel-header">
+          <div className="guest-directory-heading">
+            {selected ? (
+              <button
+                type="button"
+                className="mobile-sheet-close-btn"
+                aria-label="Back to guest list"
+                onClick={() => setSelectedPhone('')}
+              >
+                ‹
+              </button>
+            ) : null}
+            <div className="mobile-host-reservation-panel-header-copy">
+              <p className="mobile-screen-eyebrow">Reservations</p>
+              <h2 className="mobile-host-reservation-panel-title">{selected ? (selected.guestName || 'Guest') : 'Guests'}</h2>
+            </div>
+          </div>
+          <button type="button" className="mobile-sheet-close-btn" aria-label="Close" onClick={onClose}>✕</button>
+        </header>
+        <div className="guest-directory-body">
+        {selected ? null : (
+          <label className="guest-notes-field">
+            <span className="guest-notes-label">Search name or phone</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Name or phone" />
+          </label>
+        )}
         {selected ? (
-          <article>
-            <button type="button" onClick={() => setSelectedPhone('')}>Back to list</button>
-            <h3>{selected.guestName || selected.phone}</h3>
+          <article className="guest-history-detail">
             <p>{selected.phone}</p>
             {selected.blacklisted ? <span className="guest-blacklist-badge">Blacklisted</span> : null}
             {selected.blacklistReason ? <p className="guest-blacklist-warning">{`Blacklisted guest — ${selected.blacklistReason}`}</p> : null}
             <GuestStats guest={selected} />
-            {selected.notes ? <p>{selected.notes}</p> : null}
+            {selected.notes ? (
+              <p><span className="guest-notes-label">Notes</span> {selected.notes}</p>
+            ) : null}
             <h3>Bookings</h3>
             <ul className="guest-booking-list">
               {selected.bookings.map((booking) => (
-                <li key={booking.id}>
-                  <span>{booking.date} · {booking.guests} guests · {booking.tableNumber || 'No table'}</span>
-                  <span>{booking.status}</span>
+                <li key={booking.id} className="guest-booking-row">
+                  <span className="guest-date">{formatGuestDate(booking.date)} · {booking.guests} guests · {booking.tableNumber || 'No table'}</span>
+                  <StatusChip status={booking.status} />
                 </li>
               ))}
             </ul>
             {canBlacklistGuest(role) && !selected.blacklisted ? (
-              <button type="button" onClick={() => setDialogOpen(true)}>Blacklist</button>
+              <button type="button" className="ghost-btn danger-text" onClick={() => setDialogOpen(true)}>Blacklist</button>
             ) : null}
           </article>
         ) : (
@@ -293,6 +341,7 @@ export function GuestDirectory({
             ))}
           </div>
         )}
+        </div>
       </div>
       {dialogOpen && selected ? (
         <BlacklistDialog
@@ -318,7 +367,7 @@ export function GuestDirectory({
 
 export function GuestsButton({ onClick }) {
   return (
-    <button type="button" className="guest-history-open" onClick={onClick} data-testid="guests-open">
+    <button type="button" className="ghost-btn guest-history-open" onClick={onClick} data-testid="guests-open">
       Guests
     </button>
   )
