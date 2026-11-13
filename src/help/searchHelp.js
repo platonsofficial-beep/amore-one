@@ -122,7 +122,7 @@ export function searchHelp(query, { role = 'staff', locale = 'en', articles = HE
     .filter((item) => item.score >= MIN_SCORE)
     .sort((left, right) => right.score - left.score || left.article.id.localeCompare(right.article.id))
   const best = ranked[0]?.score ?? 0
-  const matches = ranked.filter((item) => item.score >= best - 0.2)
+  const matches = ranked.filter((item) => item.score >= best - 0.12)
   return { matches, suggestions: suggestedHelpQuestions(role, locale, articles) }
 }
 

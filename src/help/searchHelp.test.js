@@ -24,6 +24,7 @@ describe('help search', () => {
     const staff = searchHelp('how do I choose a plan', { role: 'staff' })
     const manager = searchHelp('how do I choose a plan', { role: 'owner' })
     expect(staff.matches.some((item) => item.article.id === 'billing-plans')).toBe(false)
+    expect(staff.matches.some((item) => item.article.id === 'floor-plan')).toBe(false)
     expect(staff.matches.some((item) => /€|VAT|€29/.test(JSON.stringify(item.article.steps)))).toBe(false)
     expect(manager.matches[0]?.article.id).toBe('billing-plans')
     expect(helpArticlesForRole('staff').some((article) => article.audience === 'managers')).toBe(false)
