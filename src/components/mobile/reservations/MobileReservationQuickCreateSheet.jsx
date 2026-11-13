@@ -26,6 +26,8 @@ import {
   toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
+import { GuestPhoneInsight } from '../../reservations/GuestHistory'
+import { readGuestPreview } from '../../../lib/guestHistoryPreview'
 import { SeatingHoursFallback } from '../../reservations/NoServiceHoursNotice'
 import { seatingHoursPanelKind } from '../../../lib/hostLoadRecovery'
 import { buildQuickCreateEditHydration } from './hostQuickCreateEditHydration'
@@ -53,11 +55,14 @@ function HostReservationQuickCreateFields({
   primaryActionLabel = 'Save reservation',
   showPendingHint = true,
   workspaceProfile = null,
+  role = '',
+  workspaceId = '',
   onOpenSeatingHours,
   seatingsLoading = false,
   seatingsLoadFailed = false,
 }) {
-  const [showWalkInDetails, setShowWalkInDetails] = useState(false)
+  const [showWalkInDetails, setShowWalkInDetails] = useState(() => readGuestPreview() === 'walkin')
+  const [guestBlocked, setGuestBlocked] = useState(false)
   const walkInShort = mode === 'walk-in' && !showWalkInDetails
   const formRef = useRef(form)
   useEffect(() => {
@@ -133,6 +138,10 @@ function HostReservationQuickCreateFields({
   }
 
   const handleSave = async () => {
+    if (guestBlocked) {
+      onNameValidationError?.('Blacklisted guest. Ask a manager before booking.')
+      return
+    }
     const trimmedFirstName = `${firstName}`.trim()
     const trimmedLastName = `${lastName}`.trim()
     const isEditMode = mode === 'edit'
@@ -223,6 +232,14 @@ function HostReservationQuickCreateFields({
           workspaceProfile={workspaceProfile}
         />
       </label>
+
+      <GuestPhoneInsight
+        phone={form.phone}
+        reservations={reservations}
+        workspaceId={workspaceId}
+        role={role}
+        onBlockedChange={setGuestBlocked}
+      />
 
       <label className="mobile-host-form-field" hidden={walkInShort}>
         <span>Date</span>
@@ -414,7 +431,7 @@ function HostReservationQuickCreateFields({
           type="button"
           className="mobile-primary-btn"
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isSaving || guestBlocked}
           data-testid="host-quick-create-primary-action"
         >
           {isSaving ? 'Saving…' : primaryActionLabel}
@@ -437,6 +454,8 @@ export function MobileReservationQuickCreateSheet({
   onClose,
   onSubmit,
   workspaceProfile = null,
+  role = '',
+  workspaceId = '',
   onOpenSeatingHours,
   seatingsLoading = false,
   seatingsLoadFailed = false,
@@ -612,6 +631,8 @@ export function MobileReservationQuickCreateSheet({
       primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
       showPendingHint={!isEditMode && !isWalkInMode}
       workspaceProfile={workspaceProfile}
+      role={role}
+      workspaceId={workspaceId}
       onOpenSeatingHours={onOpenSeatingHours}
       seatingsLoading={seatingsLoading}
       seatingsLoadFailed={seatingsLoadFailed}

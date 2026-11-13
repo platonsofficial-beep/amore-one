@@ -1,0 +1,246 @@
+.guest-card,
+.guest-directory,
+.guest-blacklist-dialog {
+  color: var(--one-text);
+}
+
+.guest-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.guest-card-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--one-border);
+  border-radius: 12px;
+  background: var(--one-surface);
+  color: var(--one-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.guest-card h3,
+.guest-card p,
+.guest-directory h2,
+.guest-directory h3,
+.guest-directory p {
+  margin: 0;
+}
+
+.guest-card-stats,
+.guest-directory-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.guest-card-stats div,
+.guest-directory-stats div {
+  background: var(--one-surface-2);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.guest-card dt,
+.guest-directory dt,
+.guest-notes-label {
+  color: var(--one-text-muted);
+  font-size: 12px;
+}
+
+.guest-notes-label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.guest-card dd,
+.guest-directory dd {
+  margin: 4px 0 0;
+}
+
+.guest-date {
+  white-space: nowrap;
+}
+
+.guest-blacklist-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--one-danger-bg);
+  color: var(--one-danger);
+  font-weight: 650;
+}
+
+.guest-blacklist-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--one-danger-bg);
+  color: var(--one-danger);
+}
+
+.guest-history-open,
+.guest-card .secondary-btn,
+.guest-card .ghost-btn,
+.guest-directory .secondary-btn,
+.guest-directory .ghost-btn,
+.guest-blacklist-dialog .primary-btn,
+.guest-blacklist-dialog .secondary-btn {
+  min-height: 44px;
+}
+
+.guest-notes-field textarea,
+.guest-directory input,
+.guest-blacklist-dialog textarea {
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: 1px solid var(--one-border-strong);
+  background: var(--one-surface-2);
+  color: var(--one-text);
+  padding: 8px 12px;
+  font: inherit;
+}
+
+.guest-directory {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  justify-content: flex-end;
+  background: var(--one-scrim);
+}
+
+.guest-directory-sheet {
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 100%);
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 0 0 32px;
+  background: var(--one-bg);
+  color: var(--one-text);
+}
+
+.guest-directory-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.guest-directory-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 0 16px;
+}
+
+.guest-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guest-directory-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--one-border);
+  border-radius: 12px;
+  background: var(--one-surface);
+  color: var(--one-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.guest-booking-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--one-surface);
+  border: 1px solid var(--one-border);
+  border-radius: 12px;
+}
+
+.guest-history-detail h3 {
+  margin-top: 4px;
+}
+
+.guest-booking-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--one-border);
+}
+
+.guest-booking-row .host-reservation-card-status-pill.is-compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: 0;
+  height: auto;
+  padding: 3px 8px;
+  line-height: 1.2;
+}
+
+.guest-booking-row:last-child {
+  border-bottom: 0;
+}
+
+.guest-blacklist-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 13100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--one-scrim);
+  box-sizing: border-box;
+}
+
+.guest-blacklist-dialog {
+  width: min(420px, 100%);
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--one-surface-2);
+  color: var(--one-text);
+}
+
+.guest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .guest-directory-sheet {
+    width: 100%;
+  }
+}
