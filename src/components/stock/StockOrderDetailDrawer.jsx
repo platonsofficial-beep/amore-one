@@ -48,6 +48,8 @@ import { listReceiveDestinationStorages } from '../../services/workspaceStorageS
 import { LoadingButton } from '../LoadingButton'
 import { OverlayPortal } from './OverlayPortal'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
+import { StockInvoiceSection } from './StockInvoiceSection'
+import { readStockInvoicePreview } from '../../lib/stockInvoicePreview'
 
 function receiveDestinationHint(storages = []) {
   const supplyCount = storages.filter((storage) => storage?.isSupply === true).length
@@ -438,6 +440,7 @@ export function StockOrderDetailDrawer({
   onMarkSent,
   onReceiveOrder,
   onCancel,
+  onInvoiceSaved,
   timeZone = '',
 }) {
   const isDraft = canEditStockOrder(order)
@@ -452,6 +455,7 @@ export function StockOrderDetailDrawer({
   const [workspaceStorageId, setWorkspaceStorageId] = useState('')
   const [isLoadingStorages, setIsLoadingStorages] = useState(false)
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
+  const [invoicePrompt, setInvoicePrompt] = useState(0)
   const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
   const [sendMenuOpen, setSendMenuOpen] = useState(false)
@@ -471,7 +475,7 @@ export function StockOrderDetailDrawer({
 
   useEffect(() => {
     const workspaceId = `${order.workspaceId ?? ''}`.trim()
-    if (!canReceive || !workspaceId) {
+    if (readStockInvoicePreview() || !canReceive || !workspaceId) {
       setDestinationStorages([])
       setWorkspaceStorageId('')
       setIsLoadingStorages(false)
@@ -490,11 +494,11 @@ export function StockOrderDetailDrawer({
           return pickDefaultReceiveStorageId(activeStorages)
         })
       })
-      .catch((loadError) => {
+      .catch(() => {
         if (cancelled) return
         setDestinationStorages([])
         setWorkspaceStorageId('')
-        setError(loadError?.message || 'Unable to load destination storages.')
+        setError('Couldn\'t load the delivery destination. Check your connection and try again.')
       })
       .finally(() => {
         if (!cancelled) setIsLoadingStorages(false)
@@ -802,6 +806,15 @@ export function StockOrderDetailDrawer({
                 <p className="stock-order-next-step-label">Next step</p>
                 <p className="stock-order-next-step-copy">{nextAction.hint}</p>
               </div>
+            ) : null}
+
+            {canManage ? (
+              <StockInvoiceSection
+                order={order}
+                canManage={canManage}
+                openRequest={invoicePrompt}
+                onSaved={onInvoiceSaved}
+              />
             ) : null}
 
             {showReceivingMode ? (
@@ -1182,6 +1195,7 @@ export function StockOrderDetailDrawer({
             return selected ? formatReceiveDestinationLabel(selected) : ''
           })()}
           isSaving={isSaving}
+          onAddInvoice={() => setInvoicePrompt((current) => current + 1)}
           onClose={() => setIsReceiveConfirmOpen(false)}
           onConfirm={handleConfirmReceive}
         />

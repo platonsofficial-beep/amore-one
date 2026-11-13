@@ -20,9 +20,13 @@ import {
   resolveStockOrderSupplierName,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice } from '../../lib/stockUtils'
+import { receivedWithInvoiceBadge } from '../../lib/stockInvoice'
+import { readStockInvoicePreview } from '../../lib/stockInvoicePreview'
+import { listInvoicedOrderIds } from '../../services/stockInvoiceService'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockOrderCleanupDialog } from './StockOrderCleanupDialog'
 import { StockOrderDetailDrawer } from './StockOrderDetailDrawer'
+import './stockInvoice.css'
 
 function StockOrderSortDropdown({ value, options, onChange }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -108,7 +112,7 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
             {supplierName || '—'}
           </strong>
         </div>
-        <div className="stock-order-card-badges">
+          <div className="stock-order-card-badges">
           {showPartialBadge ? (
             <span className="stock-order-status-badge tone-info">Partial</span>
           ) : null}
@@ -117,6 +121,10 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
           </span>
         </div>
       </div>
+
+      {receivedWithInvoiceBadge(order) ? (
+        <span className="stock-order-status-badge stock-invoice-badge">{receivedWithInvoiceBadge(order)}</span>
+      ) : null}
 
       {nextAction?.hint && isActionable ? (
         <p className={`stock-order-card-next-action tone-${nextAction.tone}`}>
@@ -194,6 +202,7 @@ export function StockOrdersView({
   const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false)
   const [ordersMenuOpen, setOrdersMenuOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
+  const [invoicedIds, setInvoicedIds] = useState(() => new Set())
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('newest')
 
@@ -202,6 +211,25 @@ export function StockOrdersView({
     setStatusFilter(initialStatusFilter)
     onStatusFilterApplied?.()
   }, [initialStatusFilter, onStatusFilterApplied])
+
+  useEffect(() => {
+    const preview = readStockInvoicePreview()
+    if (!preview || preview === 'list') return
+    const targetId = preview === 'saved' ? 'preview-order-received' : 'preview-order-sent'
+    const target = orders.find((order) => order.id === targetId)
+    if (target) setSelectedOrder(target)
+  }, [orders])
+
+  useEffect(() => {
+    if (!canManage || !workspaceId || readStockInvoicePreview()) return undefined
+    let cancelled = false
+    listInvoicedOrderIds(workspaceId).then((ids) => {
+      if (!cancelled) setInvoicedIds(ids)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [canManage, workspaceId])
 
   const effectiveSearchTerm = `${searchTerm}`.trim()
 
@@ -392,7 +420,10 @@ export function StockOrdersView({
           {visibleOrders.map((order) => (
             <StockOrderCard
               key={order.id}
-              order={order}
+              order={{
+                ...order,
+                hasInvoice: order.hasInvoice || invoicedIds.has(`${order.id}`),
+              }}
               stockItems={stockItems}
               suppliers={suppliers}
               showCost={canManage}
@@ -426,6 +457,9 @@ export function StockOrdersView({
           isSaving={isSaving}
           onSaveDraft={(payload) => onSaveDraft(selectedOrderRecord.id, payload)}
           onMarkSent={() => onMarkSent(selectedOrderRecord.id)}
+          onInvoiceSaved={() => {
+            setInvoicedIds((current) => new Set(current).add(`${selectedOrderRecord.id}`))
+          }}
           onReceiveOrder={(payload) => onReceiveOrder(selectedOrderRecord.id, {
             ...payload,
             orderNumber: selectedOrderRecord.orderNumber,
