@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { signupVenueChoice } from '../lib/signupHandoff'
 import { formatProfileSaveError } from '../lib/profileSaveError'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { getSession } from './authService'
@@ -303,10 +304,11 @@ export async function createOwnerMembershipIfMissing(user) {
   }
 
   const { displayName } = resolveUserIdentity(user)
-  const venueName = `${displayName ?? ''}`.trim() || 'My venue'
+  const choice = signupVenueChoice(user)
+  const venueName = choice.venue || `${displayName ?? ''}`.trim() || 'My venue'
   const { error } = await supabase.rpc('create_signup_venue', {
     p_name: venueName,
-    p_plan: 'start',
+    p_plan: choice.plan,
   })
 
   if (error) {

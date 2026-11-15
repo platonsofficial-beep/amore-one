@@ -5,8 +5,10 @@ import './App.css'
 import { DeploySetupError } from './components/DeploySetupError.jsx'
 import { getSupabaseSetupError } from './lib/supabaseEnv.js'
 import { bindIslandSide } from './lib/islandInsets.js'
+import { applySignupHandoff } from './lib/signupHandoff.js'
 
 bindIslandSide()
+applySignupHandoff()
 
 const LEGAL_PATHS = ['/privacy', '/terms', '/dpa', '/cookies', '/delete-account']
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)

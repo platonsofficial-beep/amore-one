@@ -19,6 +19,7 @@ import '../../legal/legalGate.css'
 import { getLocale, t } from '../../i18n/i18n'
 import { writePendingSignup } from '../../legal/acceptance'
 import { LEGAL_BUNDLE } from '../../legal/provider'
+import { readSignupHandoff, signupAuthMetadata } from '../../lib/signupHandoff'
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -28,8 +29,9 @@ const MODES = {
 
 export function LoginView() {
   const { signIn, signUp, resetPassword } = useAuth()
-  const [mode, setMode] = useState(MODES.SIGN_IN)
-  const [email, setEmail] = useState('')
+  const [handoff] = useState(() => readSignupHandoff())
+  const [mode, setMode] = useState(handoff ? MODES.SIGN_UP : MODES.SIGN_IN)
+  const [email, setEmail] = useState(handoff?.email || '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -113,7 +115,9 @@ export function LoginView() {
       }
 
       if (mode === MODES.SIGN_UP) {
-        const result = await signUp(trimmedEmail, password)
+        const result = handoff
+          ? await signUp(trimmedEmail, password, signupAuthMetadata(handoff))
+          : await signUp(trimmedEmail, password)
         writePendingSignup({
           email: trimmedEmail,
           bundleId: LEGAL_BUNDLE.id,
