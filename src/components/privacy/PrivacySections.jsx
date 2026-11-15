@@ -11,16 +11,22 @@ import {
   exportWorkspaceData,
   reopenVenue,
 } from '../../services/privacyService'
-import { t } from '../../i18n/i18n'
+import { getLocale, t } from '../../i18n/i18n'
 import '../workspace/venueManager.css'
 import './privacy.css'
 
 export function LegalLinks({ className = '' }) {
+  const lang = getLocale() === 'el' ? 'el' : 'en'
+  const href = (path) => `/${path}?lang=${lang}`
   return (
     <nav className={`legal-links ${className}`.trim()} aria-label={t("Legal")}>
-      <a href="/privacy?lang=en" target="_blank" rel="noopener">{t("Privacy policy")}</a>
+      <a href={href('terms')} target="_blank" rel="noopener">{t("Terms of Service")}</a>
       <span aria-hidden="true">·</span>
-      <a href="/terms?lang=en" target="_blank" rel="noopener">{t("Terms of use")}</a>
+      <a href={href('privacy')} target="_blank" rel="noopener">{t("Privacy Policy")}</a>
+      <span aria-hidden="true">·</span>
+      <a href={href('dpa')} target="_blank" rel="noopener">{t("Data Processing Agreement")}</a>
+      <span aria-hidden="true">·</span>
+      <a href={href('cookies')} target="_blank" rel="noopener">{t("Cookies and local storage")}</a>
     </nav>
   )
 }

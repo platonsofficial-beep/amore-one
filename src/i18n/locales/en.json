@@ -3819,5 +3819,19 @@
   "{{count}} schedule issue_one": "{{count}} schedule issue",
   "{{count}} schedule issue_other": "{{count}} schedule issues",
   "Urgent": "Urgent",
-  "Critical": "Critical"
+  "Critical": "Critical",
+  "Accept": "Accept",
+  "Before you continue": "Before you continue",
+  "ONE needs your acceptance of the current legal documents.": "ONE needs your acceptance of the current legal documents.",
+  "Version {{version}}, effective {{date}}": "Version {{version}}, effective {{date}}",
+  "I have read and accept the Terms of Service and Privacy Policy": "I have read and accept the Terms of Service and Privacy Policy",
+  "I have read and accept the Terms of Service, the Privacy Policy, and the Data Processing Agreement": "I have read and accept the Terms of Service, the Privacy Policy, and the Data Processing Agreement",
+  "Back to acceptance": "Back to acceptance",
+  "Checking acceptance…": "Checking acceptance…",
+  "Terms of Service": "Terms of Service",
+  "Privacy Policy": "Privacy Policy",
+  "Data Processing Agreement": "Data Processing Agreement",
+  "Cookies and local storage": "Cookies and local storage",
+  "Accept the Terms and Privacy Policy to create an account.": "Accept the Terms and Privacy Policy to create an account.",
+  "Deletion": "Deletion"
 }

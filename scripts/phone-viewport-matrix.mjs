@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { enableViewportAuthBypass } from './viewportAuthBypass.mjs'
+import { LEGAL_BUNDLE } from '../src/legal/provider.js'
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -259,6 +260,13 @@ function bootSource(navigation) {
   return `
     try {
       localStorage.setItem('one.navigation.v2', ${JSON.stringify(nav)});
+      localStorage.setItem('one.legalAcceptance.v1', ${JSON.stringify(JSON.stringify([{
+        userId: 'dev-local-user',
+        workspaceId: 'dev-workspace-id',
+        bundleId: LEGAL_BUNDLE.id,
+        includesDpa: true,
+        documentVersions: LEGAL_BUNDLE.documents,
+      }]))});
       localStorage.removeItem('one.navigation.v1');
       localStorage.setItem('amore-floor-plan-published-v1--dev-workspace-id', ${JSON.stringify(layout)});
       localStorage.setItem('amore-floor-plan-published-v1', ${JSON.stringify(layout)});

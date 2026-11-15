@@ -3,6 +3,7 @@ import { BOOTSTRAP_TIMEOUT_MESSAGE, useAuth } from '../../context/AuthContext'
 import { formatInviteErrorMessage, shouldShowJoiningWorkspaceMessage } from '../../lib/inviteFlowUtils'
 import { readPendingInviteToken } from '../../lib/inviteTokenStorage'
 import { LoginView } from './LoginView'
+import { LegalAcceptanceGate } from '../../legal/LegalAcceptanceGate'
 import { t } from '../../i18n/i18n'
 
 export function AuthGate({ children }) {
@@ -18,7 +19,7 @@ export function AuthGate({ children }) {
   } = useAuth()
 
   if (isAuthDisabled) {
-    return children
+    return <LegalAcceptanceGate>{children}</LegalAcceptanceGate>
   }
 
   if (isBootstrapping) {
@@ -103,5 +104,5 @@ export function AuthGate({ children }) {
     )
   }
 
-  return children
+  return <LegalAcceptanceGate>{children}</LegalAcceptanceGate>
 }
