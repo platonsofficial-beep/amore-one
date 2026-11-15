@@ -10355,13 +10355,67 @@ body:not(:has(.inventory-count-session)) :is(
     display: inline;
   }
 
-  .mobile-host-reservations.is-landscape .host-queue-toolbar {
-    flex-wrap: wrap;
+  /* Greek labels are wider than the English row. Keep the three actions
+     and the three chips on their own even rows instead of wrapping one
+     control onto a taller second line. */
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-create-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex: 1 1 100%;
+    width: 100%;
+    gap: 6px;
   }
 
-  .mobile-host-reservations.is-landscape .host-queue-toolbar-btn {
-    flex: 0 1 auto;
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-create-actions > button {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 4px;
+    border-radius: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 36px;
+    text-align: center;
+    font-size: 11px;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 6px;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar > .host-queue-toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 6px;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 36px;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-label-short {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-host-reservations.is-landscape .host-queue-toolbar-clear {
+    grid-column: 1 / -1;
+    justify-content: center;
   }
 
   .mobile-host-reservations.is-landscape .mobile-host-sticky-title {
