@@ -3,17 +3,17 @@ import { t } from '../i18n/i18n'
 
 export const STOCK_ORDER_STATUS_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'draft', label: t("To send") },
+  { id: 'draft', label: 'To send' },
   { id: 'sent', label: 'Sent' },
   { id: 'received', label: 'Received' },
   { id: 'cancelled', label: 'Cancelled' },
 ]
 
 export const STOCK_ORDER_SORT_OPTIONS = [
-  { id: 'newest', label: t("Newest first") },
-  { id: 'oldest', label: t("Oldest first") },
-  { id: 'supplier-az', label: t("Supplier A–Z") },
-  { id: 'highest-value', label: t("Highest value") },
+  { id: 'newest', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'supplier-az', label: 'Supplier A–Z' },
+  { id: 'highest-value', label: 'Highest value' },
   { id: 'status', label: 'Status' },
 ]
 

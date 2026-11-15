@@ -5544,7 +5544,12 @@
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
+}
+
+.host-queue-toolbar-btn:nth-child(3) .host-queue-toolbar-label {
+  overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .host-queue-toolbar-btn > span[aria-hidden="true"] {

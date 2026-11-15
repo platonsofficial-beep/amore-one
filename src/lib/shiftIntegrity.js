@@ -19,6 +19,8 @@ export function normalizeShiftTemplateId(value) {
   }
 
   if (!SHIFT_TEMPLATE_UUID_PATTERN.test(raw)) {
+    // Local demo venues can use readable template ids. Real accounts still need UUIDs.
+    if (import.meta.env.VITE_AUTH_DISABLED === 'true') return raw
     return null
   }
 

@@ -6,7 +6,7 @@ import { normalizeReservationStatus } from './reservationHostStatus'
 
 export function countLabel(count, singular, plural) {
   const n = Number(count) || 0
-  return `${n} ${n === 1 ? singular : plural}`
+  return `${n} ${t(n === 1 ? singular : plural)}`
 }
 
 export function formatGuestDate(dateKey) {

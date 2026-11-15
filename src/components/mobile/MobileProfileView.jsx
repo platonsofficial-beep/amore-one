@@ -37,7 +37,7 @@ export function MobileProfileView({
 
     const trimmedName = `${nameDraft ?? ''}`.trim()
     if (!trimmedName) {
-      setLocalError('Display name is required.')
+      setLocalError(t("Display name is required."))
       return
     }
 
@@ -46,7 +46,7 @@ export function MobileProfileView({
         displayName: trimmedName,
         phone: canEditPhone ? `${phoneDraft ?? ''}`.trim() : undefined,
       })
-      setSaveNotice('Profile updated.')
+      setSaveNotice(t("Profile updated."))
     } catch (error) {
       setLocalError(error?.message || t("Unable to save profile right now."))
     }
@@ -127,7 +127,7 @@ export function MobileProfileView({
         {saveNotice ? <p className="mobile-profile-notice">{saveNotice}</p> : null}
 
         <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
-          {isSaving ? 'Saving…' : t("Save changes")}
+          {isSaving ? t("Saving…") : t("Save changes")}
         </button>
       </form>
 

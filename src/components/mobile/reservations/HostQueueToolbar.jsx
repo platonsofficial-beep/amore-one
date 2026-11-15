@@ -205,26 +205,26 @@ export function HostQueueToolbar({
   return (
     <div className="host-queue-toolbar" role="toolbar" aria-label={t("Host queue filters")}>
       <HostQueueToolbarMenu
-        label={`Area · ${selectedArea?.label ?? t("All areas")}`}
-        compactLabel="Area"
-        ariaLabel={`Area filter, ${selectedArea?.label ?? t("All areas")}`}
+        label={t("Area · {{name}}", { name: selectedArea?.label ?? t("All areas") })}
+        compactLabel={t("Area")}
+        ariaLabel={t("Area filter, {{name}}", { name: selectedArea?.label ?? t("All areas") })}
         options={areaOptions}
         selectedId={areaFilterId}
         onSelect={onAreaFilterChange}
       />
       <HostQueueToolbarMenu
-        label={activeFilterCount > 0 ? `Filter · ${activeFilterCount}` : 'Filter'}
-        compactLabel="Filter"
-        ariaLabel="Operational filters"
+        label={activeFilterCount > 0 ? t("Filter · {{count}}", { count: activeFilterCount }) : t("Filter")}
+        compactLabel={t("Filter")}
+        ariaLabel={t("Operational filters")}
         sections={HOST_QUEUE_FILTER_MENU_SECTIONS}
         selectedIds={activeFilterIds}
         onToggle={onToggleFilter}
         multiSelect
       />
       <HostQueueToolbarMenu
-        label={`Sort · ${selectedSort?.label ?? 'Time'}`}
-        compactLabel="Sort"
-        ariaLabel={`Sort reservations, ${selectedSort?.label ?? 'Time'}`}
+        label={t("Sort · {{name}}", { name: selectedSort?.label ?? t("Time") })}
+        compactLabel={t("Sort")}
+        ariaLabel={t("Sort reservations, {{name}}", { name: selectedSort?.label ?? t("Time") })}
         options={sortOptions}
         selectedId={sortId}
         onSelect={onSortChange}

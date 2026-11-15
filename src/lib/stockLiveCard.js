@@ -76,7 +76,7 @@ export function buildStockLiveFacts({
     belowParLabel: parsReady ? formatItemsBelowPar(belowPar) : t("Pars not available yet"),
     belowParTone: parsReady && belowPar > 0 ? 'warning' : 'default',
     draftCount,
-    draftLabel: draftCount === 1 ? '1 open draft' : `${draftCount} open drafts`,
+    draftLabel: t('{{count}} open draft', { count: draftCount }),
     draftTone: draftCount > 0 ? 'warning' : 'default',
     lastCountLabel: formatInventoryCountFact(lastInventoryCountAt, now, timeZone),
   }

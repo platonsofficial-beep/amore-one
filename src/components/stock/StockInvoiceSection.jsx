@@ -45,9 +45,9 @@ function InvoiceReview({
         <p className="stock-invoice-note">
           {draft.scanned
             ? t("Check these fields before saving. Highlighted lines differ from the order.")
-            : 'Scan isn\'t connected. The file will be saved, and you can type the invoice yourself.'}
+            : t("Scan isn't connected. The file will be saved, and you can type the invoice yourself.")}
         </p>
-        <p>{files.length} file{files.length === 1 ? '' : 's'} attached.</p>
+        <p>{t("{{count}} file attached", { count: files.length })}</p>
         <div className="stock-invoice-fields">
           <label>
             {t("Supplier")}
@@ -91,9 +91,9 @@ function InvoiceReview({
               </label>
               {different ? (
                 <p className="stock-invoice-diff">
-                  Order has {line.difference.orderQty} at {money(line.difference.orderPrice)}.
-                  {line.difference.qtyDiffers ? ' Quantity differs.' : ''}
-                  {line.difference.priceDiffers ? ' Price differs.' : ''}
+                  {t("Order has {{qty}} at {{price}}.", { qty: line.difference.orderQty, price: money(line.difference.orderPrice) })}
+                  {line.difference.qtyDiffers ? ` ${t("Quantity differs.")}` : ''}
+                  {line.difference.priceDiffers ? ` ${t("Price differs.")}` : ''}
                 </p>
               ) : null}
             </div>
@@ -119,7 +119,7 @@ function InvoiceReview({
           <button type="button" className="ghost-btn" onClick={() => document.getElementById(cameraId)?.click()}>{t("Add photo")}</button>
           <button type="button" className="ghost-btn" onClick={() => document.getElementById(fileId)?.click()}>{t("Add file")}</button>
           <button type="button" className="primary-btn stock-invoice-save" onClick={onSave} disabled={isSaving}>
-            {isSaving ? 'Saving…' : t("Save invoice")}
+            {isSaving ? t("Saving…") : t("Save invoice")}
           </button>
           <button type="button" className="ghost-btn" onClick={onClose}>{t("Close")}</button>
         </div>

@@ -246,11 +246,11 @@ export function formatSharedStockHealthLine(summary = {}) {
   const outCount = Math.max(0, Number(summary?.outOfStock) || 0)
   const lowCount = Math.max(0, Number(summary?.lowStock) || 0)
 
-  if (outCount > 0 && lowCount > 0) return `${outCount} out · ${lowCount} low`
-  if (outCount === 1) return '1 item out'
-  if (outCount > 1) return `${outCount} items out`
-  if (lowCount === 1) return '1 item low'
-  if (lowCount > 1) return `${lowCount} items low`
+  if (outCount > 0 && lowCount > 0) {
+    return `${t('{{count}} out', { count: outCount })} · ${t('{{count}} low', { count: lowCount })}`
+  }
+  if (outCount > 0) return t('{{count}} item out', { count: outCount })
+  if (lowCount > 0) return t('{{count}} item low', { count: lowCount })
   return t("Stock levels OK")
 }
 

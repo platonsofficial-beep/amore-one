@@ -198,7 +198,7 @@ export function MobileManagerHomeView({
               onClick={canViewOnShift && workspaceId ? () => setIsOnShiftOpen(true) : undefined}
             />
             <MobileManagerStatusCard
-              label="Team"
+              label={t("Team")}
               value={statusSummary.teamScheduledSummary || '—'}
               status={statusOf('schedule')}
               onRetry={retry('schedule')}
@@ -207,7 +207,7 @@ export function MobileManagerHomeView({
             />
             {isReservationsConnected ? (
               <MobileManagerStatusCard
-                label="Reservations"
+                label={t("Reservations")}
                 value={statusSummary.reservationsSummaryLine || '—'}
                 status={statusOf('reservations')}
                 onRetry={retry('reservations')}
@@ -216,7 +216,7 @@ export function MobileManagerHomeView({
             ) : null}
             {isTasksConnected ? (
               <MobileManagerStatusCard
-                label="Tasks"
+                label={t("Tasks")}
                 value={statusSummary.tasksSummary || '—'}
                 status={statusOf('tasks')}
                 onRetry={retry('tasks')}
@@ -225,7 +225,7 @@ export function MobileManagerHomeView({
             ) : null}
             {showStockStatus && !hasStockLiveCard ? (
               <MobileManagerStatusCard
-                label="Stock"
+                label={t("Stock")}
                 value={stockStatusLine}
                 status={statusOf('stock')}
                 onRetry={retry('stock')}

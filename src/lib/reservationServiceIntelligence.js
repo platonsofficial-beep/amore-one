@@ -173,23 +173,24 @@ export function getHostReservationAlertReasons(
 }
 
 export function formatHostAlertLabel(reason, guestName = 'Guest') {
+  const name = guestName || t("Guest")
   switch (reason.type) {
     case HOST_ALERT_TYPES.LATE:
       return reason.delayMinutes !== null
-        ? `${guestName} is ${reason.delayMinutes} min late`
-        : `${guestName} is late`
+        ? t("{{name}} is {{count}} min late", { name, count: reason.delayMinutes })
+        : t("{{name}} is late", { name })
     case HOST_ALERT_TYPES.WAITING_LONG:
-      return `${guestName} waiting ${reason.delayMinutes} min`
+      return t("{{name}} waiting {{count}} min", { name, count: reason.delayMinutes })
     case HOST_ALERT_TYPES.OCCUPIED_LONG:
-      return `${guestName} seated ${reason.delayMinutes} min`
+      return t("{{name}} seated {{count}} min", { name, count: reason.delayMinutes })
     case HOST_ALERT_TYPES.STALE_SEATED:
-      return `${guestName} still seated from ${formatStaleSeatedDate(reason.reservationDate)}`
+      return t("{{name}} still seated from {{date}}", { name, date: formatStaleSeatedDate(reason.reservationDate) })
     case HOST_ALERT_TYPES.UNASSIGNED:
-      return `${guestName} needs a table`
+      return t("{{name}} needs a table", { name })
     case HOST_ALERT_TYPES.CAPACITY:
-      return `${guestName} over table capacity`
+      return t("{{name}} over table capacity", { name })
     default:
-      return `${guestName} needs attention`
+      return t("{{name}} needs attention", { name })
   }
 }
 

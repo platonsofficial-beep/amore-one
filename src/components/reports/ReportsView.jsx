@@ -110,7 +110,7 @@ function formatSectionMetric(value, { connected = true, format = 'count', loadFa
   if (format === 'currency') return formatReportCurrency(value)
   if (format === 'percent') return formatReportPercent(value)
   if (format === 'hours') return `${value}h`
-  if (format === 'text') return `${value}`
+  if (format === 'text') return t(value)
   return `${value}`
 }
 
@@ -296,14 +296,14 @@ export default function ReportsView({
   const reservationMetrics = [
     {
       key: 'bookings',
-      label: 'Bookings',
+      label: t("Bookings"),
       value: formatSectionMetric(reports.reservationsReport.metrics.bookings, {
         connected: reports.reservationsReport.connected,
       }),
     },
     {
       key: 'guests',
-      label: 'Guests',
+      label: t("Guests"),
       value: formatSectionMetric(reports.reservationsReport.metrics.guests, {
         connected: reports.reservationsReport.connected,
       }),
@@ -314,7 +314,7 @@ export default function ReportsView({
     reservationMetrics.push(
       {
         key: 'covers',
-        label: 'Covers',
+        label: t("Covers"),
         value: formatSectionMetric(reports.reservationsReport.metrics.covers, {
           connected: reports.reservationsReport.connected,
         }),
@@ -328,14 +328,14 @@ export default function ReportsView({
       },
       {
         key: 'waiting',
-        label: 'Arrived',
+        label: t("Arrived"),
         value: formatSectionMetric(reports.reservationsReport.metrics.waiting, {
           connected: reports.reservationsReport.connected,
         }),
       },
       {
         key: 'late',
-        label: 'Late',
+        label: t("Late"),
         value: formatSectionMetric(reports.reservationsReport.metrics.late, {
           connected: reports.reservationsReport.connected,
         }),
@@ -357,28 +357,28 @@ export default function ReportsView({
   reservationMetrics.push(
     {
       key: 'in-house',
-      label: 'Seated',
+      label: t("Seated"),
       value: formatSectionMetric(reports.reservationsReport.metrics.inHouse, {
         connected: reports.reservationsReport.connected,
       }),
     },
     {
       key: 'completed',
-      label: 'Completed',
+      label: t("Completed"),
       value: formatSectionMetric(reports.reservationsReport.metrics.completed, {
         connected: reports.reservationsReport.connected,
       }),
     },
     {
       key: 'cancelled',
-      label: 'Cancelled',
+      label: t("Cancelled"),
       value: formatSectionMetric(reports.reservationsReport.metrics.cancelled, {
         connected: reports.reservationsReport.connected,
       }),
     },
     {
       key: 'no-show',
-      label: 'No-show',
+      label: t("No-show"),
       value: formatSectionMetric(reports.reservationsReport.metrics.noShow, {
         connected: reports.reservationsReport.connected,
       }),
@@ -458,21 +458,21 @@ export default function ReportsView({
   const taskMetrics = [
     {
       key: 'active',
-      label: 'Active',
+      label: t("Active"),
       value: formatSectionMetric(reports.tasksReport.metrics.active, {
         connected: reports.tasksReport.connected,
       }),
     },
     {
       key: 'overdue',
-      label: 'Overdue',
+      label: t("Overdue"),
       value: formatSectionMetric(reports.tasksReport.metrics.overdue, {
         connected: reports.tasksReport.connected,
       }),
     },
     {
       key: 'urgent',
-      label: 'Urgent',
+      label: t("Urgent"),
       value: formatSectionMetric(reports.tasksReport.metrics.urgent, {
         connected: reports.tasksReport.connected,
       }),

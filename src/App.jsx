@@ -11866,7 +11866,7 @@ function FloorPlanView({
                   data-testid="host-floor-dining-timers-toggle"
                   data-help="reservations.timers"
                 >
-                  ⏱ Timers
+                  ⏱ {t("Timers")}
                 </button>
               </div>
               <div className="floor-plan-toolbar-more">
@@ -11914,7 +11914,7 @@ function FloorPlanView({
                       aria-pressed={showDiningTimers}
                       aria-label={t("Dining timers")}
                     >
-                      ⏱ Timers
+                      ⏱ {t("Timers")}
                     </button>
                   </div>,
                   document.body,
@@ -24946,7 +24946,7 @@ function App() {
 
       upsertReservationInState(created)
       await reloadTodayReservations()
-      setReservationNotice('Reservation created.')
+      setReservationNotice(t("Reservation created."))
       return true
     } catch (error) {
       setReservationNotice(error.message || t("Unable to create reservation right now."))
