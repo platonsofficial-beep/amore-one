@@ -25545,6 +25545,7 @@ function App() {
               memberId={membership?.id ?? ''}
               canManage={canManageChatRole}
               inboxRows={chatInbox.rows}
+              chatHides={chatInbox.hides}
               onRefreshInbox={chatInbox.refresh}
               onThreadChange={setChatThreadOpen}
               initialConversationId={chatConversationId}

@@ -26,6 +26,101 @@
 
 .chat-list {
   border-right: 1px solid var(--one-overlay-08);
+  padding-left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
+}
+
+.chat-row-shell {
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-row-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 88px;
+  border: 0;
+  background: var(--one-danger);
+  color: var(--one-navy-900);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chat-row-front {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  background: var(--one-bg);
+  transition: transform 160ms ease;
+}
+
+.chat-row-more {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .chat-row-more {
+    opacity: 0;
+  }
+
+  .chat-row-shell:hover .chat-row-more,
+  .chat-row-shell:focus-within .chat-row-more {
+    opacity: 1;
+  }
+}
+
+.chat-row-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding:
+    max(12px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)))
+    max(12px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    max(12px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
+    max(12px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+}
+
+.chat-row-menu {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--one-bg);
+}
+
+.chat-row-menu button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--one-overlay-06);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.chat-row-menu-delete {
+  background: var(--one-danger);
+  color: var(--one-navy-900);
+  font-weight: 700;
 }
 
 /* The divider only belongs between list and thread. With the list alone it

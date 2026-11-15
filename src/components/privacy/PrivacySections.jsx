@@ -11,7 +11,7 @@ import {
   exportWorkspaceData,
   reopenVenue,
 } from '../../services/privacyService'
-import { getLocale, t } from '../../i18n/i18n'
+import { getLocale, t, uiLocale } from '../../i18n/i18n'
 import '../workspace/venueManager.css'
 import './privacy.css'
 
@@ -61,7 +61,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         <div className="privacy-sheet-body">{children}</div>
         {expected ? (
           <label className="venue-field">
-            <span>Type “{expected}” to confirm</span>
+            <span>{t('Type “{{word}}” to confirm', { word: expected })}</span>
             <input value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" autoCapitalize="characters" />
           </label>
         ) : null}
@@ -93,7 +93,7 @@ export function PrivacyAccountSection() {
     try {
       const data = await exportMyData()
       downloadJson(data, buildExportFilename('one-my-data'))
-      setNotice('Your data downloaded as a JSON file.')
+      setNotice(t('Your data downloaded as a JSON file.'))
     } catch (error) {
       setNotice(error?.message || t("The download failed."))
     } finally {
@@ -106,7 +106,7 @@ export function PrivacyAccountSection() {
       <p className="mobile-card-label">{t("Privacy")}</p>
       <div className="privacy-actions">
         <button type="button" className="ghost-btn" onClick={handleExport} disabled={isExporting}>
-          {isExporting ? 'Preparing…' : t("Download my data")}
+          {isExporting ? t('Preparing…') : t("Download my data")}
         </button>
         <button type="button" className="ghost-btn privacy-danger-text" onClick={() => setIsDeleteOpen(true)}>
           {t("Delete account")}
@@ -117,7 +117,7 @@ export function PrivacyAccountSection() {
       {isDeleteOpen ? (
         <ConfirmSheet
           title={t("Delete account")}
-          confirmLabel="Delete permanently"
+          confirmLabel={t('Delete permanently')}
           expected={DELETE_ACCOUNT_CONFIRM_WORD}
           onClose={() => setIsDeleteOpen(false)}
           onConfirm={async () => {
@@ -169,8 +169,9 @@ export function VenuePrivacySection() {
       <p className="mobile-card-label">{t("Venue data")}</p>
       {closedAt ? (
         <p className="privacy-warning" role="status">
-          This venue is closed and will be deleted permanently on{' '}
-          {new Date(workspace.purgeAfter).toLocaleDateString('en-GB')}.
+          {t('This venue is closed and will be deleted permanently on {{date}}', {
+            date: new Date(workspace.purgeAfter).toLocaleDateString(uiLocale('en-GB')),
+          })}
         </p>
       ) : null}
       <div className="privacy-actions">
@@ -178,7 +179,7 @@ export function VenuePrivacySection() {
           onClick={() => run(async () => {
             const data = await exportWorkspaceData(workspaceId)
             downloadJson(data, buildExportFilename(`one-venue-${workspace?.slug || 'export'}`))
-          }, 'The venue export downloaded.')}>
+          }, t('The venue export downloaded.'))}>
           {t("Download all venue data")}
         </button>
         {closedAt ? (
@@ -186,7 +187,7 @@ export function VenuePrivacySection() {
             onClick={() => run(async () => {
               await reopenVenue(workspaceId)
               await auth?.switchWorkspace?.(workspaceId)
-            }, 'The venue is open again.')}>
+            }, t('The venue is open again.'))}>
             {t("Reopen venue")}
           </button>
         ) : (
@@ -199,7 +200,7 @@ export function VenuePrivacySection() {
       {isCloseOpen ? (
         <ConfirmSheet
           title={t("Close venue")}
-          confirmLabel="Close venue"
+          confirmLabel={t('Close venue')}
           expected={workspace?.name || ''}
           onClose={() => setIsCloseOpen(false)}
           onConfirm={async (typed) => {
@@ -208,8 +209,8 @@ export function VenuePrivacySection() {
             await auth?.switchWorkspace?.(workspaceId)
           }}
         >
-          <p>The venue “{workspace?.name}” will close for the whole team.</p>
-          <p>{t("You can reopen it within")} <strong>{t("30 days")}</strong>. After that, all of its data is deleted permanently.</p>
+          <p>{t('The venue “{{name}}” will close for the whole team.', { name: workspace?.name })}</p>
+          <p>{t('You can reopen it within')} <strong>{t('30 days')}</strong>. {t('After that, all of its data is deleted permanently.')}</p>
           <p>{t("Download the export first if you need it.")}</p>
         </ConfirmSheet>
       ) : null}
