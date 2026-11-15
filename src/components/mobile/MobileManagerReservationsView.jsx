@@ -25,7 +25,7 @@ import { HostQueueServiceSummary } from './reservations/HostQueueServiceSummary'
 import { MobileReservationQuickCreateSheet } from './reservations/MobileReservationQuickCreateSheet'
 import { GuestDirectory, GuestsButton } from '../reservations/GuestHistory'
 import { claimGuestPreview, guestPreviewPhone } from '../../lib/guestHistoryPreview'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 
 function reservationOnDate(reservation, dateKey) {
   return getReservationDateKey(reservation) === dateKey
@@ -59,14 +59,15 @@ export function summarizePortraitDay(dayReservations = []) {
   return parts.join(' · ')
 }
 
-/** "Mon 2 Nov" for the sticky day bar (the app is English for now). */
+/** "Mon 2 Nov" in English, "Δευ 2 Νοε" in Greek. */
 export function formatPortraitStickyDay(dateKey) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(`${dateKey ?? ''}`)
   if (!match) return ''
   const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
   if (Number.isNaN(date.getTime())) return ''
-  const weekday = date.toLocaleDateString('en-GB', { weekday: 'short' })
-  const month = date.toLocaleDateString('en-GB', { month: 'short' })
+  const locale = uiLocale('en-GB')
+  const weekday = date.toLocaleDateString(locale, { weekday: 'short' })
+  const month = date.toLocaleDateString(locale, { month: 'short' })
   return `${weekday} ${date.getDate()} ${month}`
 }
 

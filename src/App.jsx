@@ -1589,7 +1589,7 @@ function formatEmployeeFormDateLabel(value) {
   const parsed = new Date(`${year}-${month}-${day}`)
   if (Number.isNaN(parsed.getTime())) return normalized
 
-  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  return parsed.toLocaleDateString(uiLocale('en-GB'), { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 function EmployeePremiumDateField({

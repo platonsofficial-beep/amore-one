@@ -15,7 +15,7 @@ import {
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { parseLocalDate } from '../../lib/weekUtils'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 
 const TASK_TABS = [
   { id: 'upcoming', label: 'Upcoming' },
@@ -35,15 +35,15 @@ function formatTaskDueLabel(task, todayKey = '') {
   const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
 
-  let dateLabel = 'No due date'
+  let dateLabel = t("No due date")
   if (dueDate) {
     if (dueDate === todayKey) {
-      dateLabel = 'Today'
+      dateLabel = t("Today")
     } else {
       const parsed = parseLocalDate(dueDate)
       dateLabel = Number.isNaN(parsed.getTime())
         ? dueDate
-        : new Intl.DateTimeFormat('en-US', {
+        : new Intl.DateTimeFormat(uiLocale('en-US'), {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
@@ -58,19 +58,19 @@ function formatTaskDueLabel(task, todayKey = '') {
 function formatCompletedCardMeta(task) {
   const completedBy = `${task?.completedByName ?? ''}`.trim() || t("Team member")
   const completedAt = task?.completedAt ?? task?.completed_at
-  if (!completedAt) return `Completed by ${completedBy}`
+  if (!completedAt) return `${t("Completed by")} ${completedBy}`
 
   const parsed = new Date(completedAt)
   const timeLabel = Number.isNaN(parsed.getTime())
     ? ''
-    : new Intl.DateTimeFormat('en-US', {
+    : new Intl.DateTimeFormat(uiLocale('en-US'), {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
     }).format(parsed)
 
-  return timeLabel ? `Completed by ${completedBy} · ${timeLabel}` : `Completed by ${completedBy}`
+  return timeLabel ? `${t("Completed by")} ${completedBy} · ${timeLabel}` : `${t("Completed by")} ${completedBy}`
 }
 
 function getAssignmentLabel(task, employees = []) {

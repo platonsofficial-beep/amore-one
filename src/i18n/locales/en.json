@@ -3974,6 +3974,7 @@
   "Move": "Move",
   "Update": "Update",
   "Cleaning": "Cleaning",
+  "still seated from {{date}}": "still seated from {{date}}",
   "Created {{count}} order.": "Created {{count}} order.",
   "Created {{count}} orders.": "Created {{count}} orders."
 }

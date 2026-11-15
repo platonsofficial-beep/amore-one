@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { formatPortraitStickyDay } from '../components/mobile/MobileManagerReservationsView.jsx'
+import { setLocale } from '../i18n/i18n'
 
 const css = readFileSync(new URL('../safeOverlay.css', import.meta.url), 'utf8')
 const picker = readFileSync(new URL('../components/reservations/HostReservationStatusPicker.jsx', import.meta.url), 'utf8')
@@ -9,6 +10,11 @@ describe('portrait sticky day bar', () => {
   it('formats the day as "Mon 2 Nov"', () => {
     expect(formatPortraitStickyDay('2026-11-02')).toBe('Mon 2 Nov')
   })
+  it('formats the day in Greek when the screen is Greek', () => {
+    setLocale('el')
+    expect(formatPortraitStickyDay('2026-11-15')).toBe('Κυρ 15 Νοε')
+  })
+  afterEach(() => setLocale('en'))
   it('pins below the portrait band, portrait only', () => {
     expect(css).toMatch(/\.manager-portrait-sticky-day\s*\{\s*display:\s*none/)
     expect(css).toMatch(/top:\s*var\(--one-portrait-band/)

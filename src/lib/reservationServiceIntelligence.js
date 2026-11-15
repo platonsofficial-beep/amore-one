@@ -11,7 +11,7 @@ import {
   isUpcomingReservationStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
-import { t } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 
 export const WAITING_TOO_LONG_MINUTES = 15
 export const TABLE_OCCUPIED_TOO_LONG_MINUTES = 120
@@ -43,7 +43,7 @@ export function formatStillSeatedReservationLabel(reservation, todayKey = '', ti
   const today = `${todayKey ?? ''}`.slice(0, 10)
   if (!reservationDay || !today || reservationDay >= today) return ''
   if (!isReservationInHouseStatus(reservation?.status)) return ''
-  return `still seated from ${formatStaleSeatedDate(reservationDay)}`
+  return t("still seated from {{date}}", { date: formatStaleSeatedDate(reservationDay) })
 }
 
 function reservationBelongsToDay(reservation, todayKey) {
@@ -53,7 +53,7 @@ function reservationBelongsToDay(reservation, todayKey) {
 function formatStaleSeatedDate(dateKey) {
   const [year, month, day] = `${dateKey ?? ''}`.split('-').map(Number)
   if (!year || !month || !day) return dateKey
-  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-GB', {
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(uiLocale('en-GB'), {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',
