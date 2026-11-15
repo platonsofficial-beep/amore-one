@@ -29,7 +29,7 @@ export const HOST_QUEUE_UNASSIGNED_AREA = '__unassigned__'
 export const HOST_QUEUE_META_SEPARATOR = '  •  '
 
 function formatHostQueueTableAriaLabel(tableSegment) {
-  if (tableSegment === 'Unassigned') return 'table unassigned'
+  if (tableSegment === t("Unassigned")) return t("Unassigned table")
   if (tableSegment.includes(' + ')) {
     const tables = tableSegment.split(' + ').join(' and ')
     return `tables ${tables}`
@@ -658,7 +658,7 @@ export function buildHostQueueEmptyState({
 
 export function formatHostQueueTableSegment(reservation) {
   const tableLabel = formatHostListTableLabel(reservation)
-  if (!tableLabel || tableLabel === '—') return 'Unassigned'
+  if (!tableLabel || tableLabel === '—') return t("Unassigned")
   return tableLabel.split(' + ').map((part) => (
     part.startsWith('T') ? part : formatHostListUnitLabel(part)
   )).join(' + ')

@@ -309,7 +309,7 @@ export function HostReservationStatusPicker({
                       <span className={`host-status-picker-icon tone-${status.tone}`} aria-hidden="true">
                         {status.icon}
                       </span>
-                      <span className="host-status-picker-label">{status.label}</span>
+                      <span className="host-status-picker-label">{t(status.label)}</span>
                       {isActive ? (
                         <span className="host-status-picker-check" aria-hidden="true">✓</span>
                       ) : null}

@@ -837,11 +837,17 @@ function formatDayCoverageBadgeIcon(status) {
 }
 
 function formatScheduleCellCoverageLabel(cell) {
-  if (cell.hasRealConflict) return 'Conflict'
-  if (cell.staffingState === 'overstaffed') return 'Overstaffed'
-  if (cell.staffingState === 'understaffed' || cell.staffingState === 'attention') return 'Understaffed'
-  if (cell.assignedCount === 0) return 'Empty'
-  return 'Covered'
+  if (cell.hasRealConflict) return t("Conflict")
+  if (cell.staffingState === 'overstaffed') return t("Overstaffed")
+  if (cell.staffingState === 'understaffed' || cell.staffingState === 'attention') return t("Understaffed")
+  if (cell.assignedCount === 0) return t("Empty")
+  return t("✓ Covered")
+}
+
+function displayScheduleAreaLabel(areaLabel) {
+  const raw = `${areaLabel ?? ''}`.trim()
+  if (raw.toLowerCase() === 'service') return upper(t("Service team"))
+  return upper(raw)
 }
 
 function formatScheduleCellCoverageDetail(cell) {
@@ -999,22 +1005,22 @@ function getAssignmentStaffingSummary(cell, template, selectedEmployees = []) {
   const delta = required - projectedTotal
 
   if (delta > 0) {
-    return { required, selected: selectedEmployees.length, label: `Remaining ${delta}`, tone: 'remaining' }
+    return { required, selected: selectedEmployees.length, label: t("Remaining {{count}}", { count: delta }), tone: 'remaining' }
   }
   if (delta < 0) {
-    return { required, selected: selectedEmployees.length, label: `Extra ${Math.abs(delta)}`, tone: 'extra' }
+    return { required, selected: selectedEmployees.length, label: t("Extra {{count}}", { count: Math.abs(delta) }), tone: 'extra' }
   }
-  return { required, selected: selectedEmployees.length, label: 'Covered', tone: 'covered' }
+  return { required, selected: selectedEmployees.length, label: t("✓ Covered"), tone: 'covered' }
 }
 
 function formatStaffingNotice(requiredCount, assignedCount) {
   const required = Number(requiredCount) || 0
   const assigned = Number(assignedCount) || 0
   if (assigned > required) {
-    return `Assigned successfully. ✓ Covered +${assigned - required} extra.`
+    return t("Assigned successfully. ✓ Covered +{{count}} extra.", { count: assigned - required })
   }
   if (assigned < required) {
-    return `Assigned successfully. Missing ${required - assigned}.`
+    return t("Assigned successfully. Missing {{count}}.", { count: required - assigned })
   }
   return t("Assigned successfully. ✓ Covered.")
 }
@@ -3546,7 +3552,7 @@ function ScheduleView({
         const employeeName = shift.employees?.full_name
           || shift.employeeName
           || employees.find((employee) => String(employee.id) === String(shift.employeeId))?.name
-          || 'Unassigned'
+          || t("Unassigned")
 
         return `${shift.date} · ${formatTimeRange24(shift.startTime, shift.endTime, '-')} · ${employeeName}`
       })
@@ -6209,7 +6215,7 @@ function ScheduleView({
                     aria-expanded={isAreaExpanded}
                   >
                     <span className={`schedule-grid-area-chevron${isAreaExpanded ? ' is-expanded' : ''}`} aria-hidden="true">▾</span>
-                    <span className="schedule-grid-area-label">{group.areaLabel.toUpperCase()}</span>
+                    <span className="schedule-grid-area-label">{displayScheduleAreaLabel(group.areaLabel)}</span>
                     <span className="schedule-grid-area-count">{group.rows.length}</span>
                   </button>
 
@@ -6245,7 +6251,7 @@ function ScheduleView({
                     const isDropTarget = dropTargetKey === cellDropKey && canAcceptDrop
                     const isTodayColumn = cell.day.key === todayDateKey
                     const cellHasVisualEmphasis = !isScheduleVisualFilterActive || cell.shifts.some((shift) => {
-                      const shiftEmployeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                      const shiftEmployeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || t("Unassigned")
                       return doesShiftMatchScheduleVisualFilter(shift, shiftEmployeeName, {
                         focusedEmployeeId,
                         searchNeedle: scheduleVisualSearchNeedle,
@@ -6381,7 +6387,7 @@ function ScheduleView({
                         {cell.shifts.length > 0 ? (
                           <ul className="schedule-shift-assigned-list">
                             {cell.shifts.map((shift) => {
-                              const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                              const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || t("Unassigned")
                               const employeeKey = String(
                                 shift.employeeId
                                   ?? shift.employeeRecord?.id
@@ -6531,7 +6537,7 @@ function ScheduleView({
                       aria-expanded={isAreaExpanded}
                     >
                       <span className={`schedule-grid-area-chevron${isAreaExpanded ? ' is-expanded' : ''}`} aria-hidden="true">▾</span>
-                      <span className="schedule-template-area-group-label">{group.areaLabel.toUpperCase()}</span>
+                      <span className="schedule-template-area-group-label">{displayScheduleAreaLabel(group.areaLabel)}</span>
                       <span className="schedule-grid-area-count">{group.rows.length}</span>
                     </button>
 
@@ -6852,7 +6858,7 @@ function ScheduleView({
                 <div className="roster-shift-list">
                   {group.shifts.map((shift) => {
                     const indicator = getShiftIndicator(shift)
-                    const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                    const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || t("Unassigned")
                     const employeePosition = shift.role || shift.employeeRecord?.position || t("Team member")
 
                     return (
@@ -7644,7 +7650,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={handleCloseAssignmentModal}>{t("Cancel")}</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? t("Saving…") : t("Save")}</button>
               </div>
             </form>
           </div>
@@ -7668,10 +7674,10 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={handleCloseShiftDropPrompt}>{t("Cancel")}</button>
               <button type="button" className="ghost-btn" onClick={handleConfirmShiftDropCopy} disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Copy'}
+                {isSaving ? t("Saving…") : t("Copy")}
               </button>
               <button type="button" className="primary-btn" onClick={handleConfirmShiftDropMove} disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Move'}
+                {isSaving ? t("Saving…") : t("Move")}
               </button>
             </div>
           </div>
@@ -7808,7 +7814,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={handleCloseAssignmentTimeEdit}>{t("Cancel")}</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? t("Saving…") : t("Save")}</button>
               </div>
             </form>
           </div>
@@ -7846,7 +7852,7 @@ function ScheduleView({
             <div className="drawer-header">
               <div>
                 <p className="eyebrow">{t("Shift details")}</p>
-                <h3>{selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned'}</h3>
+                <h3>{selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || t("Unassigned")}</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseShiftDetails}>✕</button>
             </div>
@@ -7856,7 +7862,7 @@ function ScheduleView({
                 <EmployeeIdentity
                   employee={resolveScheduleIdentityEmployee(
                     selectedShift,
-                    selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned',
+                    selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || t("Unassigned"),
                   )}
                   size="lg"
                   showName={false}
@@ -12173,7 +12179,7 @@ function FloorPlanView({
           {isHeatmap
             ? `${heatmapPeriodRange.label} utilization · Darker gold indicates higher table turnover`
             : t("Drag reservations between tables to reassign · Shift + click to merge · Right-click to split")}
-          {isSaving ? ' · Saving…' : ''}
+          {isSaving ? ` · ${t("Saving…")}` : ''}
         </p>
       ) : null}
 
@@ -15211,7 +15217,7 @@ function ReservationsWorkspaceContent({
               />
             </label>
             <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving} data-help="reservations.add">
-              {isSaving ? 'Saving…' : '+ Reservation'}
+              {isSaving ? t("Saving…") : t("+ Reservation")}
             </button>
           </div>
         </header>
@@ -21286,7 +21292,7 @@ function App() {
       await refreshScheduleViewData()
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
-        ? `Shift moved. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
+        ? t("Shift moved. ✓ Covered +{{count}} extra.", { count: nextAssigned - Number(requiredCount || 1) })
         : t("Shift moved successfully. ✓ Covered."))
       return savedShift
     } catch (error) {
@@ -21389,7 +21395,7 @@ function App() {
       await refreshScheduleViewData()
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
-        ? `Shift copied. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
+        ? t("Shift copied. ✓ Covered +{{count}} extra.", { count: nextAssigned - Number(requiredCount || 1) })
         : t("Shift copied successfully. ✓ Covered."))
       return createdShift
     } catch (error) {
@@ -27167,7 +27173,7 @@ function App() {
                 <div className="modal-actions employee-premium-form-actions">
                   <button type="button" className="ghost-btn employee-premium-form-cancel-btn" onClick={handleCloseEmployeeModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn employee-premium-form-save-btn" disabled={isSavingEmployee}>
-                    {isSavingEmployee ? 'Saving…' : 'Save'}
+                    {isSavingEmployee ? t("Saving…") : t("Save")}
                   </button>
                 </div>
               </form>
@@ -27332,7 +27338,7 @@ function App() {
                 <div className="modal-actions schedule-compact-modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseShiftModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn" disabled={isSavingShift}>
-                    {isSavingShift ? 'Saving…' : 'Save'}
+                    {isSavingShift ? t("Saving…") : t("Save")}
                   </button>
                 </div>
               </form>
@@ -27472,7 +27478,7 @@ function App() {
                     + New template
                   </button>
                   <button type="submit" className="primary-btn" disabled={isSavingTemplate}>
-                    {isSavingTemplate ? 'Saving…' : editingTemplate ? 'Update' : 'Save'}
+                    {isSavingTemplate ? t("Saving…") : editingTemplate ? t("Update") : t("Save")}
                   </button>
                 </div>
               </form>
@@ -27608,7 +27614,7 @@ function App() {
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>{t("Cancel")}</button>
                   <button type="button" className="primary-btn" disabled={isSavingReservation} onClick={handleReservationSubmit}>
-                    {isSavingReservation ? 'Saving…' : 'Save'}
+                    {isSavingReservation ? t("Saving…") : t("Save")}
                   </button>
                 </div>
               </form>
@@ -27790,7 +27796,7 @@ function App() {
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseSupplierModal}>{t("Cancel")}</button>
                   <button type="submit" className="primary-btn supplier-modal-action-btn" disabled={isSavingSupplier}>
-                    {isSavingSupplier ? 'Saving…' : 'Save'}
+                    {isSavingSupplier ? t("Saving…") : t("Save")}
                   </button>
                 </div>
               </form>

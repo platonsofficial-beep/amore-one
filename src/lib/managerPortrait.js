@@ -194,7 +194,7 @@ export function buildManagerPortraitMoreItems(access, {
   if (showNotifications) {
     items.push({
       id: 'notifications',
-      label: 'Notifications',
+      label: t("Notifications"),
       subtitle: t("Device alerts, quiet hours and this phone"),
       icon: '🔔',
     })
@@ -269,7 +269,7 @@ export function applyPortraitSeatingLeftovers(tables = [], leftovers = [], layou
 
 export function portraitTableStatusLabel(status) {
   const key = `${status ?? ''}`.trim().toLowerCase()
-  return PORTRAIT_TABLE_STATUS_LABELS[key] || 'Available'
+  return t(PORTRAIT_TABLE_STATUS_LABELS[key] || "Available")
 }
 
 export function buildPortraitFloorTables({

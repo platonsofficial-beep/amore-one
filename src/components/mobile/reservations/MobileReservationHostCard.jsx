@@ -41,16 +41,16 @@ function MobileHostReservationCompactRow({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
 }) {
-  const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
+  const guestName = `${reservation?.guestName ?? ''}`.trim() || t("Guest")
   const partySize = Number(reservation?.guests) || 0
   const tableLabel = formatHostListTableLabel(reservation)
-  const tableSection = tableLabel !== '—' ? tableLabel : 'Unassigned'
+  const tableSection = tableLabel !== '—' ? tableLabel : t("Unassigned")
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
   const statusPresentation = useHostQueuePresentation
     ? getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
-    : { label: statusMeta.label, severity: null }
+    : { label: t(statusMeta.label), severity: null }
   const nameIndicators = useHostQueuePresentation
     ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
     : []
@@ -171,17 +171,17 @@ export function MobileReservationHostCard({
   canUndoAutoClose = false,
   onUndoAutoClose = null,
 }) {
-  const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
+  const guestName = `${reservation?.guestName ?? ''}`.trim() || t("Guest")
   const partySize = Number(reservation?.guests) || 0
   const phone = `${reservation?.phone ?? ''}`.trim()
   const tableLabel = formatHostListTableLabel(reservation)
-  const tableSection = tableLabel !== '—' ? tableLabel : 'Unassigned'
+  const tableSection = tableLabel !== '—' ? tableLabel : t("Unassigned")
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
   const quickActions = [
     ...getHostReservationQuickActions(reservation, { nowMinutes, todayKey }),
-    { id: 'edit', label: 'Edit' },
+    { id: 'edit', label: t("Edit") },
   ]
 
   const handleAction = (event, action) => {

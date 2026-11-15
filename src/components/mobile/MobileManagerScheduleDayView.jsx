@@ -127,7 +127,7 @@ export function MobileManagerScheduleDayView({
         {dayShifts.map((shift) => {
           const fullName = `${shift.employeeName ?? ''}`.trim()
             || employeeNames.get(`${shift.employeeId ?? ''}`)
-            || 'Unassigned'
+            || t("Unassigned")
           const name = lookupShiftDisplayName(shiftDisplayNames, shift.employeeId, fullName)
           const isEditing = editingId === `${shift.id}`
           return (

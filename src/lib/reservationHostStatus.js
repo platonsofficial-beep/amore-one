@@ -439,8 +439,8 @@ export function getHostStationStatusMenuOptions() {
     return {
       ...meta,
       status: entry.status,
-      menuLabel: entry.menuLabel,
-      label: entry.menuLabel,
+      menuLabel: t(entry.menuLabel),
+      label: t(entry.menuLabel),
     }
   })
 }
@@ -585,16 +585,16 @@ export function getHostReservationQuickActions(reservation, { nowMinutes = 0, to
 
   if (groupId === 'upcoming') {
     if (canMarkReservationArrived(reservation, nowMinutes, todayKey)) {
-      actions.push({ id: 'arrived', label: 'Arrived', status: 'Waiting', variant: 'primary' })
+      actions.push({ id: 'arrived', label: t("Arrived"), status: 'Waiting', variant: 'primary' })
     }
     if (canSeatReservation(reservation)) {
-      actions.push({ id: 'seat', label: 'Seat', status: t("Checked In"), variant: 'primary' })
+      actions.push({ id: 'seat', label: t("Seat"), status: t("Checked In"), variant: 'primary' })
     }
     if (canMarkReservationNoShow(reservation)) {
-      actions.push({ id: 'no-show', label: 'No-show', status: t("Not Shown"), variant: 'danger' })
+      actions.push({ id: 'no-show', label: t("No-show"), status: t("Not Shown"), variant: 'danger' })
     }
   } else if (groupId === 'in-house' && canCompleteReservation(reservation)) {
-    actions.push({ id: 'complete', label: 'Complete', status: t("Checked Out"), variant: 'primary' })
+    actions.push({ id: 'complete', label: t("Complete"), status: t("Checked Out"), variant: 'primary' })
   }
 
   return actions
