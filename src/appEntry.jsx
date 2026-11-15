@@ -10,6 +10,7 @@ import { ManagerLandscapeGate } from './components/shell/ManagerLandscapeGate.js
 import { PwaShell } from './components/pwa/PwaShell.jsx'
 import { registerPwaServiceWorker } from './pwaRegister.js'
 import { bindPhoneLandscapeClass } from './lib/phoneLandscapeClass.js'
+import { bindOrientationSettle } from './lib/orientationSettle.js'
 import { WorkspaceKeyedApp } from './components/workspace/WorkspaceKeyedApp.jsx'
 import './safeOverlay.css'
 import './mobileTabBarLow.css'
@@ -19,7 +20,9 @@ import { ColdStartSplash } from './components/shell/ColdStartSplash.jsx'
 import { useEffect } from 'react'
 import { applyGreekUppercase, subscribeLocale, useLocale } from './i18n/i18n'
 
-function LocaleRoot({ children }) {
+function LocaleRoot() {
+  // Own this tree. Passing the app in as an unchanged child element lets React
+  // skip the screen, so t() stays in the previous language.
   useLocale()
   useEffect(() => {
     let frame = 0
@@ -37,27 +40,30 @@ function LocaleRoot({ children }) {
       observer.disconnect()
     }
   }, [])
-  return children
+  return (
+    <>
+      <AuthGate>
+        <ManagerLandscapeGate>
+          <PwaShell>
+            <KeyboardInset />
+            <WorkspaceKeyedApp />
+          </PwaShell>
+        </ManagerLandscapeGate>
+      </AuthGate>
+      <ColdStartSplash />
+    </>
+  )
 }
 
 bindPhoneLandscapeClass()
+bindOrientationSettle()
 registerPwaServiceWorker()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
       <AvatarDirectoryProvider>
-        <LocaleRoot>
-        <AuthGate>
-          <ManagerLandscapeGate>
-            <PwaShell>
-              <KeyboardInset />
-              <WorkspaceKeyedApp />
-            </PwaShell>
-          </ManagerLandscapeGate>
-        </AuthGate>
-        <ColdStartSplash />
-        </LocaleRoot>
+        <LocaleRoot />
       </AvatarDirectoryProvider>
     </AuthProvider>
   </StrictMode>,
