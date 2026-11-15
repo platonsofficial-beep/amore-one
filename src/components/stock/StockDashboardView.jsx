@@ -264,7 +264,7 @@ function StockItemCard({
         <span className={`stock-item-level-fill tone-${item.status}`} style={{ width: `${level}%` }} />
       </div>
       <p className="stock-item-level-caption">
-        Minimum {formatStockQuantity(item.minimumQuantity, item.unit)}
+        {t("Minimum")} {formatStockQuantity(item.minimumQuantity, item.unit)}
       </p>
 
       {canManage ? (
@@ -281,7 +281,7 @@ function StockItemCard({
               }}
             >
               <StockActionIcon name={needsDelivery ? 'box' : 'clipboard'} />
-              <span>{needsDelivery ? t("Receive delivery") : 'Count'}</span>
+              <span>{needsDelivery ? t("Receive delivery") : t("Count")}</span>
             </button>
             <button
               type="button"
@@ -740,7 +740,7 @@ function StockCompactRow({
             {formatStockQuantity(item.currentQuantity, item.unit)}
           </span>
           <span className="stock-compact-qty-separator" aria-hidden="true">/</span>
-          <span className="stock-compact-qty-min">min {formatStockQuantity(item.minimumQuantity, item.unit)}</span>
+          <span className="stock-compact-qty-min">{t("Minimum")} {formatStockQuantity(item.minimumQuantity, item.unit)}</span>
         </p>
       </div>
       <div className="stock-compact-actions" onClick={(event) => event.stopPropagation()}>
