@@ -556,8 +556,8 @@ export function AuthProvider({ children }) {
     return data
   }, [loadWorkspaceContext])
 
-  const signUp = useCallback(async (email, password) => {
-    const data = await authSignUp(email, password)
+  const signUp = useCallback(async (email, password, metadata) => {
+    const data = await authSignUp(email, password, metadata)
     const nextUser = data.user ?? data.session?.user ?? null
 
     if (data.session && nextUser) {

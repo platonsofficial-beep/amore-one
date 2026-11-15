@@ -35,10 +35,12 @@ export async function signInWithPassword(email, password) {
   return data
 }
 
-export async function signUp(email, password) {
+export async function signUp(email, password, metadata = null) {
+  const dataFields = metadata && typeof metadata === 'object' ? metadata : null
   const { data, error } = await supabase.auth.signUp({
     email: `${email ?? ''}`.trim(),
     password: `${password ?? ''}`,
+    ...(dataFields ? { options: { data: dataFields } } : {}),
   })
 
   if (error) {

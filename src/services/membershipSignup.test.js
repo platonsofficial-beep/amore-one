@@ -75,6 +75,29 @@ describe('createOwnerMembershipIfMissing', () => {
     })).resolves.toBeNull()
   })
 
+  it('uses the marketing venue name and a whitelisted plan', async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === 'workspace_members') return memberQuery([])
+      throw new Error(`unexpected table ${table}`)
+    })
+    rpcMock.mockResolvedValue({ data: 'new-venue', error: null })
+
+    await createOwnerMembershipIfMissing({
+      id: 'user-4',
+      email: 'maria@example.com',
+      user_metadata: {
+        full_name: 'Μαρία Γεωργίου',
+        venue_name: 'Kafeneio Laiki',
+        plan: 'pro',
+      },
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('create_signup_venue', {
+      p_name: 'Kafeneio Laiki',
+      p_plan: 'pro',
+    })
+  })
+
   it('keeps an existing membership and does not create a venue', async () => {
     fromMock.mockImplementation((table) => {
       if (table === 'workspace_members') {
