@@ -8,7 +8,7 @@ import { bindIslandSide } from './lib/islandInsets.js'
 
 bindIslandSide()
 
-const LEGAL_PATHS = ['/privacy', '/terms', '/delete-account']
+const LEGAL_PATHS = ['/privacy', '/terms', '/dpa', '/cookies', '/delete-account']
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)
 const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
 const supabaseSetupError = getSupabaseSetupError()

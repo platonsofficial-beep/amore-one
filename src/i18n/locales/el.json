@@ -3819,5 +3819,19 @@
   "{{count}} schedule issue_one": "{{count}} θέμα προγράμματος",
   "{{count}} schedule issue_other": "{{count}} θέματα προγράμματος",
   "Urgent": "Επείγον",
-  "Critical": "Κρίσιμο"
+  "Critical": "Κρίσιμο",
+  "Accept": "Αποδοχή",
+  "Before you continue": "Πριν συνεχίσεις",
+  "ONE needs your acceptance of the current legal documents.": "Το ONE χρειάζεται την αποδοχή σου για τα ισχύοντα νομικά κείμενα.",
+  "Version {{version}}, effective {{date}}": "Έκδοση {{version}}, ισχύει από {{date}}",
+  "I have read and accept the Terms of Service and Privacy Policy": "Διάβασα και αποδέχομαι τους Όρους χρήσης και την Πολιτική απορρήτου",
+  "I have read and accept the Terms of Service, the Privacy Policy, and the Data Processing Agreement": "Διάβασα και αποδέχομαι τους Όρους χρήσης, την Πολιτική απορρήτου και τη Σύμβαση επεξεργασίας δεδομένων",
+  "Back to acceptance": "Πίσω στην αποδοχή",
+  "Checking acceptance…": "Έλεγχος αποδοχής…",
+  "Terms of Service": "Όροι χρήσης",
+  "Privacy Policy": "Πολιτική απορρήτου",
+  "Data Processing Agreement": "Σύμβαση επεξεργασίας δεδομένων",
+  "Cookies and local storage": "Cookies και local storage",
+  "Accept the Terms and Privacy Policy to create an account.": "Αποδέξου τους Όρους και την Πολιτική απορρήτου για να φτιάξεις λογαριασμό.",
+  "Deletion": "Διαγραφή"
 }

@@ -103,6 +103,8 @@ describe('legal pages', () => {
   it('resolves public routes', () => {
     expect(resolveLegalRoute('/privacy')).toBe('/privacy')
     expect(resolveLegalRoute('/terms/')).toBe('/terms')
+    expect(resolveLegalRoute('/dpa')).toBe('/dpa')
+    expect(resolveLegalRoute('/cookies')).toBe('/cookies')
     expect(resolveLegalRoute('/delete-account')).toBe('/delete-account')
     expect(resolveLegalRoute('/settings')).toBeNull()
   })
@@ -115,10 +117,18 @@ describe('legal pages', () => {
     expect(html).not.toContain('<script>')
   })
 
-  it('bundled policies keep their visible placeholders', () => {
-    const el = readFileSync(join(__dirname, '../legal/privacy-policy-el.md'), 'utf8')
-    expect(el).toContain('[ΣΥΜΠΛΗΡΩΣΤΕ:')
-    expect(el).toContain('Επίτροπο Προστασίας Δεδομένων')
+  it('ships both languages with the same sections and the confirmed provider', async () => {
+    const { legalDocument, legalSectionIds } = await import('../legal/documents')
+    for (const id of ['terms', 'privacy', 'dpa', 'cookies']) {
+      expect(legalSectionIds(id, 'en')).toEqual(legalSectionIds(id, 'el'))
+      const english = legalDocument(id, 'en').markdown
+      const greek = legalDocument(id, 'el').markdown
+      expect(english).toContain('Spyrou Hadjiyiakoumi 20A')
+      expect(greek).toContain('Spyrou Hadjiyiakoumi 20A')
+      expect(english).toContain('not VAT-registered')
+      expect(english).not.toMatch(/FILL IN|company number|registration no/i)
+    }
+    expect(legalDocument('privacy', 'el').markdown).toContain('Επίτροπο Προστασίας Δεδομένων')
   })
 })
 
@@ -135,7 +145,12 @@ describe('privacy UI', () => {
 
   it('shows legal links', () => {
     const container = render(<LegalLinks />)
-    expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual(['/privacy?lang=en', '/terms?lang=en'])
+    expect([...container.querySelectorAll('a')].map((a) => a.getAttribute('href'))).toEqual([
+      '/terms?lang=en',
+      '/privacy?lang=en',
+      '/dpa?lang=en',
+      '/cookies?lang=en',
+    ])
   })
 
   it('profile shows export and delete actions in English', () => {

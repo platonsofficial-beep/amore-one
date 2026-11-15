@@ -56,6 +56,8 @@ describe('Create account confirm password', () => {
     const [pw, confirm] = container.querySelectorAll('input[type="password"]')
     setValue(container.querySelector('input[type="email"]'), 'a@b.com')
     setValue(pw, 'secret123'); setValue(confirm, 'secret123')
+    const accept = container.querySelector('input[type="checkbox"]')
+    act(() => { accept.click() })
     expect(container.querySelector('.auth-field-error')).toBeNull()
     await submit()
     expect(signUp).toHaveBeenCalledWith('a@b.com', 'secret123')

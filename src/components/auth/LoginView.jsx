@@ -15,7 +15,10 @@ import {
 import { getInvitePreview } from '../../services/inviteService'
 import { PASSWORD_MISMATCH_MESSAGE, passwordsMatch } from '../../lib/passwordConfirm'
 import { LanguagePicker } from '../../i18n/LanguagePicker'
-import { t } from '../../i18n/i18n'
+import '../../legal/legalGate.css'
+import { getLocale, t } from '../../i18n/i18n'
+import { writePendingSignup } from '../../legal/acceptance'
+import { LEGAL_BUNDLE } from '../../legal/provider'
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -35,6 +38,7 @@ export function LoginView() {
   const [inviteBanner, setInviteBanner] = useState(null)
   const [isInvitePreviewLoading, setIsInvitePreviewLoading] = useState(false)
   const [sessionEndedNotice] = useState(() => readSessionEndedNotice())
+  const [acceptedLegal, setAcceptedLegal] = useState(false)
 
   useEffect(() => {
     if (!sessionEndedNotice) return undefined
@@ -95,6 +99,11 @@ export function LoginView() {
       return
     }
 
+    if (mode === MODES.SIGN_UP && !acceptedLegal) {
+      setErrorMessage(t('Accept the Terms and Privacy Policy to create an account.'))
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -105,6 +114,13 @@ export function LoginView() {
 
       if (mode === MODES.SIGN_UP) {
         const result = await signUp(trimmedEmail, password)
+        writePendingSignup({
+          email: trimmedEmail,
+          bundleId: LEGAL_BUNDLE.id,
+          acceptedAt: new Date().toISOString(),
+          locale: getLocale(),
+          userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+        })
         if (result.session) {
           return
         }
@@ -224,7 +240,19 @@ export function LoginView() {
             </label>
           ) : null}
 
-          <button type="submit" className="primary-btn auth-submit-btn" disabled={isSubmitting}>
+          {mode === MODES.SIGN_UP ? (
+            <label className="legal-gate-check auth-legal-check">
+              <input
+                type="checkbox"
+                checked={acceptedLegal}
+                onChange={(event) => setAcceptedLegal(event.target.checked)}
+                disabled={isSubmitting}
+              />
+              <span>{t('I have read and accept the Terms of Service and Privacy Policy')}</span>
+            </label>
+          ) : null}
+
+          <button type="submit" className="primary-btn auth-submit-btn" disabled={isSubmitting || (mode === MODES.SIGN_UP && !acceptedLegal)}>
             {isSubmitting
               ? t('Please wait…')
               : mode === MODES.SIGN_UP
