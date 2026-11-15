@@ -16,10 +16,10 @@ export function normalizeStockOrderStatus(status) {
 
 export function getStockOrderStatusLabel(status) {
   const normalized = normalizeStockOrderStatus(status)
-  if (normalized === 'sent') return 'Sent'
-  if (normalized === 'received') return 'Received'
-  if (normalized === 'cancelled') return 'Cancelled'
-  return 'Draft'
+  if (normalized === 'sent') return t("Sent")
+  if (normalized === 'received') return t("Received")
+  if (normalized === 'cancelled') return t("Cancelled")
+  return t("Draft")
 }
 
 export function getStockOrderStatusTone(status) {

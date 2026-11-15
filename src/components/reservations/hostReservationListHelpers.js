@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n'
 import { reservationHasAssignedTables } from '../../lib/floorAssignmentMapping'
 import {
   computeSeatingAssignmentTotals,
@@ -88,6 +89,6 @@ export const HOST_LIST_HELPERS = {
 export function formatHostListMetaLine(guestCount, tableLabel) {
   const count = Number(guestCount) || 0
   const table = `${tableLabel ?? ''}`.trim()
-  if (!table || table === '—') return `${count} • Unassigned`
+  if (!table || table === '—') return `${count} • ${t("Unassigned")}`
   return `${count} • ${table}`
 }

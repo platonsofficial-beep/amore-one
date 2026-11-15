@@ -435,7 +435,7 @@ function HostReservationQuickCreateFields({
           disabled={isSaving || guestBlocked}
           data-testid="host-quick-create-primary-action"
         >
-          {isSaving ? 'Saving…' : primaryActionLabel}
+          {isSaving ? t("Saving…") : primaryActionLabel}
         </button>
       </div>
     </form>

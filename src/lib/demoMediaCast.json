@@ -1,0 +1,60 @@
+{
+  "el": {
+    "venue": "Kafeneio Laiki",
+    "city": "Nicosia",
+    "country": "Cyprus",
+    "countryCode": "CY",
+    "managerName": "Elena Christodoulou",
+    "emailDomain": "kafeneio.example",
+    "staff": {
+      "emp-elena": "Elena Christodoulou",
+      "emp-andreas": "Andreas Georgiou",
+      "emp-anna": "Anna Kyriacou",
+      "emp-nicos": "Nicos Ioannou",
+      "emp-eleni": "Eleni Pavlou",
+      "emp-petros": "Petros Charalambous",
+      "emp-giorgos": "Giorgos Demetriou",
+      "emp-mia": "Mia Andreou"
+    },
+    "guests": {
+      "maria": "Μαρία Γεωργίου",
+      "andreas": "Ανδρέας Πέτρου",
+      "eleni": "Ελένη Σάββα",
+      "christos": "Χρίστος Λοΐζου",
+      "sophia": "Σοφία Αντωνίου",
+      "nikos": "Νίκος Παναγή",
+      "irene": "Ειρήνη Κωνσταντίνου",
+      "markos": "Μάρκος Χατζηγεωργίου",
+      "walkIn": "Πελάτης μπαρ"
+    }
+  },
+  "en": {
+    "venue": "The Harbour Kitchen",
+    "city": "Lisbon",
+    "country": "Portugal",
+    "countryCode": "PT",
+    "managerName": "Elena",
+    "emailDomain": "harbour.example",
+    "staff": {
+      "emp-elena": "Elena",
+      "emp-andreas": "Marco",
+      "emp-anna": "Anna",
+      "emp-nicos": "James",
+      "emp-eleni": "Sofia",
+      "emp-petros": "Lucas",
+      "emp-giorgos": "Daniel",
+      "emp-mia": "Mia"
+    },
+    "guests": {
+      "maria": "Olivia Bennett",
+      "andreas": "Thomas Weber",
+      "eleni": "Isabella Rossi",
+      "christos": "Lucas Martin",
+      "sophia": "Amelia Costa",
+      "nikos": "Noah Berger",
+      "irene": "Camille Dubois",
+      "markos": "Henrik Nielsen",
+      "walkIn": "Walk-in"
+    }
+  }
+}

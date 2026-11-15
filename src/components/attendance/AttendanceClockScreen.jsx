@@ -43,14 +43,14 @@ import {
   startBreak,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 import { withDemoAttendance } from '../../lib/demoAttendance'
 
 function formatForgotSince(isoValue, timeZone) {
   const date = new Date(isoValue)
   if (Number.isNaN(date.getTime())) return 'earlier'
   try {
-    return new Intl.DateTimeFormat('en-GB', {
+    return new Intl.DateTimeFormat(uiLocale('en-GB'), {
       weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false,
       ...(timeZone ? { timeZone } : {}),
     }).format(date)
@@ -68,14 +68,13 @@ function emptySnapshot() {
   }
 }
 
-// iOS draws datetime-local pickers in the phone's language (Greek for
-// Platon), so show an English read-back under each field.
+// Read the typed clock time back in the language of the screen.
 function formatLocalInputPreview(value) {
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(`${value ?? ''}`)
   if (!match) return ''
   const [, year, month, day, hour, minute] = match
   const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)))
-  const dayLabel = date.toLocaleDateString('en-GB', {
+  const dayLabel = date.toLocaleDateString(uiLocale('en-GB'), {
     weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC',
   })
   return `${dayLabel}, ${hour}:${minute}`

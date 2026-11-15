@@ -7,7 +7,7 @@ import {
 } from '../../lib/operationsUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { parseLocalDate } from '../../lib/weekUtils'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 
 function normalizeTaskDateKey(value) {
   if (!value) return ''
@@ -21,15 +21,15 @@ function formatTaskDueLabel(task, todayKey = '') {
   const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
 
-  let dateLabel = 'No due date'
+  let dateLabel = t("No due date")
   if (dueDate) {
     if (dueDate === todayKey) {
-      dateLabel = 'Today'
+      dateLabel = t("Today")
     } else {
       const parsed = parseLocalDate(dueDate)
       dateLabel = Number.isNaN(parsed.getTime())
         ? dueDate
-        : new Intl.DateTimeFormat('en-US', {
+        : new Intl.DateTimeFormat(uiLocale('en-US'), {
           weekday: 'short',
           month: 'short',
           day: 'numeric',
@@ -47,7 +47,7 @@ function formatCompletedTimestamp(value) {
 
   const parsed = new Date(value)
   if (!Number.isNaN(parsed.getTime())) {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat(uiLocale('en-US'), {
       month: 'short',
       day: 'numeric',
       hour: 'numeric',

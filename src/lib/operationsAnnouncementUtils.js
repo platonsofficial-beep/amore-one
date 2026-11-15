@@ -6,7 +6,7 @@ import {
 } from './timeFormatUtils'
 import { getCurrentDateKey } from './currentDateUtils'
 import { canManageAnnouncements, isManagerRole } from './permissions'
-import { t } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 
 export { canManageAnnouncements, isManagerRole }
 
@@ -114,10 +114,10 @@ export function formatAnnouncementPostedWhen(value, todayKey = getCurrentDateKey
   if (!timeLabel) return '—'
 
   if (getCurrentDateKey(date) === todayKey) {
-    return `Today ${timeLabel}`
+    return `${t("Today")} ${timeLabel}`
   }
 
-  const dayLabel = new Intl.DateTimeFormat('en-GB', {
+  const dayLabel = new Intl.DateTimeFormat(uiLocale('en-GB'), {
     day: 'numeric',
     month: 'short',
   }).format(date)

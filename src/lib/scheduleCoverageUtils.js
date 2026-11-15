@@ -1,3 +1,4 @@
+import { t } from '../i18n/i18n'
 import { resolveShiftTemplateId } from './shiftIntegrity'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { normalizeTimeValue } from './timeFormatUtils'
@@ -110,19 +111,19 @@ export function formatScheduleCoverageStatusLabel({ requiredCount = 0, assignedC
   const assigned = Number(assignedCount) || 0
 
   if (hasConflict) {
-    return { label: 'Conflict', tone: 'conflict', show: true }
+    return { label: t("Conflict"), tone: 'conflict', show: true }
   }
 
   if (needed > 0 && assigned < needed) {
-    return { label: `Missing ${needed - assigned}`, tone: 'understaffed', show: true }
+    return { label: t("Missing {{count}}", { count: needed - assigned }), tone: 'understaffed', show: true }
   }
 
   if (needed > 0 && assigned > needed) {
-    return { label: `✓ Covered +${assigned - needed} extra`, tone: 'covered', show: true }
+    return { label: t("✓ Covered +{{count}} extra", { count: assigned - needed }), tone: 'covered', show: true }
   }
 
   if (needed > 0 && assigned === needed) {
-    return { label: '✓ Covered', tone: 'covered', show: true }
+    return { label: t("✓ Covered"), tone: 'covered', show: true }
   }
 
   return { label: '', tone: 'empty', show: false }

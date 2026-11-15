@@ -3,7 +3,7 @@ import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24, formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 
 const PRIORITY_LABELS = {
   normal: 'Normal',
@@ -29,13 +29,13 @@ function formatTaskDueDateLabel(dueDate, todayKey = getTodayKey()) {
   const normalized = normalizeTaskDateKey(dueDate)
   if (!normalized) return t("No due date")
 
-  if (normalized === todayKey) return 'Today'
-  if (normalized === getTomorrowKey(todayKey)) return 'Tomorrow'
+  if (normalized === todayKey) return t("Today")
+  if (normalized === getTomorrowKey(todayKey)) return t("Tomorrow")
 
   const date = parseLocalDate(normalized)
   if (Number.isNaN(date.getTime())) return normalized
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(uiLocale('en-US'), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -62,7 +62,7 @@ function formatCompletedTimestamp(value) {
   const date = parseLocalDate(dateKey)
   if (Number.isNaN(date.getTime())) return dateKey
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(uiLocale('en-US'), {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
