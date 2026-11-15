@@ -86,7 +86,50 @@
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
+  .legal-gate {
+    padding-top: max(8px, var(--one-safe-area-top, env(safe-area-inset-top, 0px)));
+    padding-bottom: max(8px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+    padding-left: max(12px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+    padding-right: max(12px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
+  }
+
   .legal-gate-card {
-    width: min(100%, 960px);
+    width: min(100%, 980px);
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 6px;
+    align-items: center;
+  }
+
+  .legal-gate .one-full-logo {
+    grid-row: 1 / span 3;
+    width: 56px;
+    margin: 0;
+  }
+
+  .legal-gate .one-full-logo.is-compact .one-full-logo-art {
+    width: 56px;
+  }
+
+  .legal-gate .one-full-logo-tagline {
+    display: none;
+  }
+
+  .legal-gate h1 {
+    font-size: 1.15rem;
+  }
+
+  .legal-gate-lead,
+  .legal-gate-version {
+    font-size: 0.82rem;
+  }
+
+  .legal-gate-docs,
+  .legal-gate-check,
+  .legal-gate-actions,
+  .legal-gate-doc,
+  .legal-gate-wait {
+    grid-column: 1 / -1;
   }
 }
