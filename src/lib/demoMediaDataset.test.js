@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import cast from './demoMediaCast.json'
 import { applyDemoProfile, demoManagerName, demoVenueName, isDemoMode } from './demoMediaDataset'
 
 describe('demo media dataset', () => {
@@ -27,5 +28,12 @@ describe('demo media dataset', () => {
       managerName: 'Elena Christodoulou',
       city: 'Nicosia',
     })
+  })
+
+  it('gives the English demo international suppliers', () => {
+    const names = cast.en.suppliers.map((supplier) => supplier.name)
+    expect(names).toEqual(['Harbour Wines', 'Fresh Market Co.', 'City Bakery'])
+    const blob = JSON.stringify(cast.en)
+    expect(blob).not.toMatch(/Laiki|KEO|Ouzo|Halloumi|Commandaria|Nicosia|Λαϊκ/)
   })
 })
