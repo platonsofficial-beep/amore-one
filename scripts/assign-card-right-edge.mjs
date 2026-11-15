@@ -8,6 +8,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { enableViewportAuthBypass } from './viewportAuthBypass.mjs'
+import { LEGAL_BUNDLE } from '../src/legal/provider.js'
 
 function openSocket(url) {
   const ws = new WebSocket(url)
@@ -39,7 +40,14 @@ function openSocket(url) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 const nav = JSON.stringify({ activeView: 'team', teamSection: 'schedule', settingsSection: 'profile', stockSection: 'dashboard', operationsSection: 'dashboard' })
-const boot = `try { localStorage.setItem('one.navigation.v2', ${JSON.stringify(nav)}); localStorage.setItem('one_pwa_ios_install_dismissed','1'); localStorage.setItem('one_pwa_install_dismissed','1'); const native = window.matchMedia.bind(window); window.matchMedia = (query) => { const text = String(query); if (!text.includes('display-mode')) return native(query); return { matches: text.includes('standalone'), media: text, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false } } } } catch (error) {}`
+const legalAcceptance = JSON.stringify(JSON.stringify([{
+  userId: 'dev-local-user',
+  workspaceId: 'dev-workspace-id',
+  bundleId: LEGAL_BUNDLE.id,
+  includesDpa: true,
+  documentVersions: LEGAL_BUNDLE.documents,
+}]))
+const boot = `try { localStorage.setItem('one.navigation.v2', ${JSON.stringify(nav)}); localStorage.setItem('one.legalAcceptance.v1', ${legalAcceptance}); localStorage.setItem('one_pwa_ios_install_dismissed','1'); localStorage.setItem('one_pwa_install_dismissed','1'); const native = window.matchMedia.bind(window); window.matchMedia = (query) => { const text = String(query); if (!text.includes('display-mode')) return native(query); return { matches: text.includes('standalone'), media: text, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false } } } } catch (error) {}`
 
 const MEASURE = `(() => {
   const modal = document.querySelector('.schedule-assignment-modal');
