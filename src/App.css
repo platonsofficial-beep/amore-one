@@ -54325,14 +54325,16 @@ summary:focus-visible {
 
 .manager-portrait-find {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin: 8px 0;
 }
 
 .manager-portrait-search {
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
+  max-width: 100%;
 }
 
 .manager-portrait-search input {

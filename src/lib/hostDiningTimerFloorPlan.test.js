@@ -13,7 +13,7 @@ describe('host floor dining timer wiring', () => {
 
   it('adds a compact host floor toolbar toggle with a touch-friendly test id', () => {
     expect(appSource).toContain('data-testid="host-floor-dining-timers-toggle"')
-    expect(appSource).toContain('⏱ Timers')
+    expect(appSource).toContain('t("Timers")')
     expect(appCss).toContain('.floor-plan-dining-timers-btn')
   })
 

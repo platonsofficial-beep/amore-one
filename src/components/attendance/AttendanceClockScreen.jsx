@@ -44,6 +44,7 @@ import {
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { t } from '../../i18n/i18n'
+import { withDemoAttendance } from '../../lib/demoAttendance'
 
 function formatForgotSince(isoValue, timeZone) {
   const date = new Date(isoValue)
@@ -102,6 +103,9 @@ export function AttendanceClockScreen({
   // "send to manager".
   isManager = false,
   previewMode = false,
+  // Auth-disabled demo only. Gives the clock card a venue pin and a shift
+  // today when the local mock has neither.
+  demoFixtures = false,
 }) {
   const [snapshot, setSnapshot] = useState(emptySnapshot)
   const [settingsLoaded, setSettingsLoaded] = useState(false)
@@ -133,10 +137,17 @@ export function AttendanceClockScreen({
         : Promise.resolve([]),
     ])
     const breaks = await loadAttendanceBreaks(entries.map((entry) => entry.id))
-    setSnapshot({ settings, entries, breaks, shifts })
+    const loaded = { settings, entries, breaks, shifts }
+    setSnapshot(demoFixtures
+      ? withDemoAttendance(loaded, {
+        employeeId,
+        todayKey: dateKeyInZone(new Date(), timeZone),
+        area: t("Main Dining"),
+      })
+      : loaded)
     setSettingsLoaded(true)
     setLoadError('')
-  }, [employeeId, memberId, timeZone, workspaceId])
+  }, [demoFixtures, employeeId, memberId, timeZone, workspaceId])
 
   useEffect(() => {
     if (!previewMode) return undefined

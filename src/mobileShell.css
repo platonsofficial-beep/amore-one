@@ -1647,8 +1647,8 @@
 }
 
 .mobile-manager-app .mobile-bottom-nav-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.01em;
+  font-size: 0.62rem;
+  letter-spacing: 0;
 }
 
 .mobile-manager-app .mobile-app-content {
@@ -5526,6 +5526,21 @@
   align-items: center;
 }
 
+/* Greek action labels are wider than English. The search keeps a full
+   "Αναζήτηση" and the buttons wrap onto the next line instead of crushing it. */
+.mobile-host-reservations-toolbar.host-queue-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-host-reservations-search {
+  flex: 1 1 14rem;
+  min-width: min(100%, 14rem);
+  max-width: 100%;
+}
+
 .host-queue-toolbar {
   display: flex;
   flex-wrap: nowrap;
@@ -5749,7 +5764,8 @@
 }
 
 .mobile-host-reservations-create-actions {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
