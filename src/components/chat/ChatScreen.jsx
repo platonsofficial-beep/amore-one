@@ -48,6 +48,7 @@ import {
   fetchChatReactions,
   fetchPinnedChatMessages,
   getOrCreateDirectChat,
+  hideChatForMe,
   markChatRead,
   removeChatReaction,
   sendChatMessage,
@@ -59,6 +60,8 @@ import {
   uploadChatPhoto,
 } from '../../services/chatService'
 import { t } from '../../i18n/i18n'
+import { ChatInboxRow } from './ChatInboxRow'
+import { applyChatHides, chatHideFor, mergeChatHides, visibleChatMessages } from '../../lib/chatHide'
 import './chat.css'
 
 const CHAT_SESSION_KEY = 'one.chat.session'
@@ -134,6 +137,7 @@ export function ChatScreen({
   memberId = '',
   canManage = false,
   inboxRows = [],
+  chatHides = [],
   onRefreshInbox,
   onThreadChange,
   initialConversationId = '',
@@ -162,6 +166,8 @@ export function ChatScreen({
   const [channelIcon, setChannelIcon] = useState('')
   const [pickedMembers, setPickedMembers] = useState([])
   const [query, setQuery] = useState('')
+  const [localHides, setLocalHides] = useState([])
+  const [pendingDelete, setPendingDelete] = useState(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [viewerUrl, setViewerUrl] = useState('')
   const [someoneTyping, setSomeoneTyping] = useState(false)
@@ -210,14 +216,17 @@ export function ChatScreen({
     }
     return map
   }, [messages, nameHints, ordered])
+  const hides = useMemo(() => mergeChatHides(chatHides, localHides), [chatHides, localHides])
+  const hidesRef = useRef(hides)
+  hidesRef.current = hides
   const listed = useMemo(() => {
-    const withHistory = ordered.filter((row) => (
+    const withHistory = applyChatHides(ordered, hides).filter((row) => (
       row.conversation_id === openId
       || row.kind !== 'direct'
       || Boolean(`${row.last_body ?? ''}`.trim() || row.last_message_at)
     ))
     return filterInboxByName(withHistory, query, membersById, aliases)
-  }, [aliases, membersById, openId, ordered, query])
+  }, [aliases, hides, membersById, openId, ordered, query])
 
   useEffect(() => {
     if (!workspaceId) return undefined
@@ -269,7 +278,9 @@ export function ChatScreen({
       }
     }
     setHasMore(page.length === 50)
-    setMessages((current) => (before ? [...older, ...current] : older))
+    const clearedAt = chatHideFor(hidesRef.current, conversationId)?.clearedAt
+    const visible = visibleChatMessages(older, clearedAt)
+    setMessages((current) => (before ? [...visible, ...current] : visible))
     if (pins) setPinned(pins)
     if (people) setParticipants(people)
     const reactionRows = await fetchChatReactions(older.map((message) => message.id))
@@ -618,6 +629,27 @@ export function ChatScreen({
   const directPeople = members.filter((member) => member.id !== memberId && member.name?.toLowerCase().includes(directQuery.trim().toLowerCase()))
   const channelPeople = members.filter((member) => member.id !== memberId && `${member.name ?? ''} ${member.email ?? ''}`.toLowerCase().includes(memberQuery.trim().toLowerCase()))
 
+  const confirmDelete = async () => {
+    const row = pendingDelete
+    if (!row) return
+    const result = await hideChatForMe({
+      memberId,
+      workspaceId,
+      conversationId: row.conversation_id,
+    })
+    setLocalHides((current) => mergeChatHides(current, [result.record]))
+    if (openId === row.conversation_id) {
+      setOpenId('')
+      writeChatSession({ openId: '', scrollTop: 0 })
+    }
+    setPendingDelete(null)
+    onRefreshInbox?.()
+  }
+
+  const deleteCopy = pendingDelete?.kind === 'team'
+    ? t('Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.')
+    : t('This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.')
+
   return (
     <div
       className={`chat-screen${resolvedLayout === 'split' ? ' is-split' : ''}`}
@@ -664,53 +696,48 @@ export function ChatScreen({
               const color = getIdentityColorById(person?.identityColor)
               const when = lastMessageTimeLabel(row.last_message_at)
               return (
-                <button
+                <ChatInboxRow
                   key={row.conversation_id}
-                  type="button"
-                  className={`chat-row${row.kind === 'team' ? ' is-pinned' : ''}${row.conversation_id === openId ? ' is-active' : ''}`}
-                  onClick={() => {
+                  title={title}
+                  active={row.conversation_id === openId}
+                  pinned={row.kind === 'team'}
+                  unread={!row.muted && Number(row.unread) > 0}
+                  badge={Number(row.unread) > 9 ? '9+' : row.unread}
+                  when={when ? <time className={`chat-row-time${!row.muted && Number(row.unread) > 0 ? ' is-unread' : ''}`} dateTime={row.last_message_at}>{when}</time> : null}
+                  preview={lastMessagePreview(row)}
+                  muted={row.muted ? (
+                    <span className="chat-muted" title={t("Muted")}>
+                      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+                        <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.2-2h-4.4A2.2 2.2 0 0 0 12 22Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 1 0-2 0v1.1A6 6 0 0 0 6 11v5l-1.7 1.7A1 1 0 0 0 5 19.4h14a1 1 0 0 0 .7-1.7L18 16Z" />
+                        <path fill="currentColor" d="M4.3 3.3 3 4.6 19.4 21l1.3-1.3L4.3 3.3Z" />
+                      </svg>
+                      <span className="sr-only">{t("Muted")}</span>
+                    </span>
+                  ) : null}
+                  avatar={(
+                    <span
+                      className="chat-avatar"
+                      style={color ? { '--chat-ring': color.ring, '--chat-ink': color.text } : undefined}
+                      aria-hidden="true"
+                    >
+                      {row.kind === 'direct' ? (
+                        <PersonAvatar
+                          memberId={row.other_member_id}
+                          employeeId={person?.employeeId}
+                          authUserId={person?.authUserId}
+                          name={title}
+                          fallback={row.icon || initials(title)}
+                        />
+                      ) : (row.icon || initials(title))}
+                    </span>
+                  )}
+                  onOpen={() => {
                     stickToBottomRef.current = true
                     writeChatSession({ openId: row.conversation_id, scrollTop: 0 })
                     setOpenId(row.conversation_id)
                   }}
-                >
-                  <span
-                    className="chat-avatar"
-                    style={color ? { '--chat-ring': color.ring, '--chat-ink': color.text } : undefined}
-                    aria-hidden="true"
-                  >
-                    {row.kind === 'direct' ? (
-                      <PersonAvatar
-                        memberId={row.other_member_id}
-                        employeeId={person?.employeeId}
-                        authUserId={person?.authUserId}
-                        name={title}
-                        fallback={row.icon || initials(title)}
-                      />
-                    ) : (row.icon || initials(title))}
-                  </span>
-                  <span className="chat-row-copy">
-                    <span className="chat-row-line">
-                      <strong>{title}</strong>
-                      {when ? <time className={`chat-row-time${!row.muted && Number(row.unread) > 0 ? ' is-unread' : ''}`} dateTime={row.last_message_at}>{when}</time> : null}
-                    </span>
-                    <span className="chat-row-line">
-                      <span className="chat-row-preview">{lastMessagePreview(row)}</span>
-                      {row.muted ? (
-                        <span className="chat-muted" title={t("Muted")}>
-                          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-                            <path fill="currentColor" d="M12 22a2.2 2.2 0 0 0 2.2-2h-4.4A2.2 2.2 0 0 0 12 22Zm6-6V11a6 6 0 0 0-5-5.9V4a1 1 0 1 0-2 0v1.1A6 6 0 0 0 6 11v5l-1.7 1.7A1 1 0 0 0 5 19.4h14a1 1 0 0 0 .7-1.7L18 16Z" />
-                            <path fill="currentColor" d="M4.3 3.3 3 4.6 19.4 21l1.3-1.3L4.3 3.3Z" />
-                          </svg>
-                          <span className="sr-only">{t("Muted")}</span>
-                        </span>
-                      ) : null}
-                      {!row.muted && Number(row.unread) > 0 ? (
-                        <span className="chat-badge">{Number(row.unread) > 9 ? '9+' : row.unread}</span>
-                      ) : null}
-                    </span>
-                  </span>
-                </button>
+                  onAskDelete={() => { setPendingDelete(row) }}
+                />
               )
             })}
           </div>
@@ -1262,6 +1289,22 @@ export function ChatScreen({
           </div>
         </div>
       ), document.body) : null}
+      {pendingDelete ? createPortal(
+        <div className="venue-sheet-backdrop" role="presentation" onClick={() => { setPendingDelete(null) }}>
+          <div className="venue-sheet panel staff-panel" role="dialog" aria-modal="true" aria-label={t('Delete chat')} onClick={(event) => { event.stopPropagation() }}>
+            <header className="venue-sheet-header">
+              <h3>{t('Delete chat')}</h3>
+              <button type="button" className="venue-sheet-close" aria-label={t('Close')} onClick={() => { setPendingDelete(null) }}>✕</button>
+            </header>
+            <p>{deleteCopy}</p>
+            <footer className="venue-sheet-actions">
+              <button type="button" className="ghost-btn" onClick={() => { setPendingDelete(null) }}>{t('Cancel')}</button>
+              <button type="button" className="chat-row-menu-delete" onClick={confirmDelete}>{t('Delete chat')}</button>
+            </footer>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
       {viewerUrl ? (
         <div className="chat-viewer" role="dialog" aria-label={t("Photo")} onClick={() => setViewerUrl('')}>
           <img src={viewerUrl} alt="" />

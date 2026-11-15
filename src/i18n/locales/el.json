@@ -2189,7 +2189,7 @@
   "Central Time (US & Canada)": "Κεντρική ώρα (ΗΠΑ και Καναδάς)",
   "Change link": "Άλλαξε δέσιμο",
   "Change venue settings": "Άλλαξε ρυθμίσεις καταστήματος",
-  "Chat actions": "Ενέργειες Chat",
+  "Chat actions": "Ενέργειες chat",
   "Chat is for direct messages and channels. Unread chats show a badge.": "Το Chat είναι για προσωπικά μηνύματα και κανάλια. Τα αδιάβαστα έχουν ένδειξη.",
   "Chat with the team": "Chat με την ομάδα",
   "Check stock levels": "Δες το stock",
@@ -3833,5 +3833,16 @@
   "Data Processing Agreement": "Σύμβαση επεξεργασίας δεδομένων",
   "Cookies and local storage": "Cookies και local storage",
   "Accept the Terms and Privacy Policy to create an account.": "Αποδέξου τους Όρους και την Πολιτική απορρήτου για να φτιάξεις λογαριασμό.",
-  "Deletion": "Διαγραφή"
+  "Deletion": "Διαγραφή",
+  "Delete chat": "Διαγραφή chat",
+  "Delete permanently": "Οριστική διαγραφή",
+  "Type “{{word}}” to confirm": "Γράψε «{{word}}» για επιβεβαίωση",
+  "This venue is closed and will be deleted permanently on {{date}}": "Το κατάστημα είναι κλειστό και θα διαγραφεί οριστικά στις {{date}}",
+  "The venue “{{name}}” will close for the whole team.": "Το κατάστημα «{{name}}» θα κλείσει για όλη την ομάδα.",
+  "After that, all of its data is deleted permanently.": "Μετά, όλα τα δεδομένα του διαγράφονται οριστικά.",
+  "The venue export downloaded.": "Η εξαγωγή του καταστήματος κατέβηκε.",
+  "The venue is open again.": "Το κατάστημα άνοιξε ξανά.",
+  "Your data downloaded as a JSON file.": "Τα δεδομένα σου κατέβηκαν σε αρχείο JSON.",
+  "Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.": "Το Team μένει για όλους. Αυτό το κρύβει μόνο από τη δική σου λίστα και καθαρίζει όσα βλέπεις, μέχρι τώρα. Ξανάρχεται όταν κάποιος στείλει νέο μήνυμα.",
+  "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.": "Αυτό βγάζει το chat από τη δική σου λίστα και καθαρίζει όσα βλέπεις, μέχρι τώρα. Νέο μήνυμα το ξαναφέρνει, μόνο με τα νέα. Ο άλλος κρατά όλο το ιστορικό."
 }

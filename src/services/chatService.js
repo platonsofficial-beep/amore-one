@@ -6,6 +6,12 @@ import {
   chatErrorMessage,
 } from '../lib/chat'
 import { prepareChatImage } from '../lib/chatImage'
+import {
+  isMissingChatHideTable,
+  mergeChatHides,
+  readLocalChatHides,
+  writeLocalChatHide,
+} from '../lib/chatHide'
 
 function requireClient() {
   if (!supabase) throw new Error('Supabase is not configured.')
@@ -206,6 +212,38 @@ export async function markChatRead(conversationId) {
   const client = requireClient()
   const { error } = await client.rpc('chat_mark_read', { p_conversation_id: conversationId })
   if (error) fail(error)
+}
+
+export async function fetchChatHides(memberId) {
+  const local = readLocalChatHides(memberId)
+  if (!memberId || !supabase) return local
+  const { data, error } = await supabase
+    .from('chat_conversation_hides')
+    .select('conversation_id, member_id, cleared_at, hidden_at')
+    .eq('member_id', memberId)
+  if (error) {
+    if (isMissingChatHideTable(error)) return local
+    console.warn('[chat] hides', error)
+    return local
+  }
+  return mergeChatHides(local, data ?? [])
+}
+
+export async function hideChatForMe({ memberId, workspaceId, conversationId }) {
+  const now = new Date().toISOString()
+  const record = { memberId, conversationId, clearedAt: now, hiddenAt: now }
+  writeLocalChatHide(record)
+  if (!memberId || !conversationId || !supabase) return { source: 'local', record }
+  const { error } = await supabase.from('chat_conversation_hides').upsert({
+    member_id: memberId,
+    conversation_id: conversationId,
+    workspace_id: workspaceId,
+    cleared_at: now,
+    hidden_at: now,
+  }, { onConflict: 'member_id,conversation_id' })
+  if (error && isMissingChatHideTable(error)) return { source: 'local', record }
+  if (error) fail(error)
+  return { source: 'remote', record }
 }
 
 export async function setChatMute(conversationId, mutedUntil) {

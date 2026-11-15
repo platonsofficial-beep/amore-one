@@ -36,6 +36,10 @@ vi.mock('../../services/chatService', () => ({
   setChatChannelMembers: vi.fn(),
   createChatChannel: vi.fn(),
   getOrCreateDirectChat: vi.fn(),
+  hideChatForMe: vi.fn(async ({ conversationId }) => ({
+    source: 'local',
+    record: { conversationId, clearedAt: '2099-01-01T00:00:00Z', hiddenAt: '2099-01-01T00:00:00Z' },
+  })),
   addChatReaction: vi.fn(),
   removeChatReaction: vi.fn(),
   uploadChatPhoto: vi.fn(),
@@ -421,6 +425,22 @@ describe('ChatScreen', () => {
     })
     expect(scroller.scrollTop).toBe(100)
     globalThis.ResizeObserver = previous
+    view.unmount()
+  })
+
+  it('removes a chat from this list after confirm, and keeps the others', async () => {
+    const view = renderChat()
+    await act(async () => { await Promise.resolve() })
+    const more = [...view.container.querySelectorAll('button')].find((button) => button.getAttribute('aria-label') === 'Chat actions')
+    act(() => { more.click() })
+    const menuDelete = [...document.body.querySelectorAll('button')].find((button) => button.textContent === 'Delete chat')
+    act(() => { menuDelete.click() })
+    expect(document.body.textContent).toContain('Team stays for everyone')
+    const confirm = [...document.body.querySelectorAll('button')].filter((button) => button.textContent === 'Delete chat').at(-1)
+    await act(async () => { confirm.click() })
+    const titles = [...view.container.querySelectorAll('.chat-row strong')].map((node) => node.textContent)
+    expect(titles).not.toContain('Team')
+    expect(titles).toContain('Alex')
     view.unmount()
   })
 

@@ -3833,5 +3833,16 @@
   "Data Processing Agreement": "Data Processing Agreement",
   "Cookies and local storage": "Cookies and local storage",
   "Accept the Terms and Privacy Policy to create an account.": "Accept the Terms and Privacy Policy to create an account.",
-  "Deletion": "Deletion"
+  "Deletion": "Deletion",
+  "Delete chat": "Delete chat",
+  "Delete permanently": "Delete permanently",
+  "Type “{{word}}” to confirm": "Type “{{word}}” to confirm",
+  "This venue is closed and will be deleted permanently on {{date}}": "This venue is closed and will be deleted permanently on {{date}}",
+  "The venue “{{name}}” will close for the whole team.": "The venue “{{name}}” will close for the whole team.",
+  "After that, all of its data is deleted permanently.": "After that, all of its data is deleted permanently.",
+  "The venue export downloaded.": "The venue export downloaded.",
+  "The venue is open again.": "The venue is open again.",
+  "Your data downloaded as a JSON file.": "Your data downloaded as a JSON file.",
+  "Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.": "Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.",
+  "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.": "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history."
 }
