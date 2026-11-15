@@ -35,11 +35,12 @@ import {
   coerceHydratedWorkspace,
   resolveWorkspaceLoadError,
 } from '../lib/workspaceLoadUtils'
-import { t } from '../i18n/i18n'
+import { getLocale, subscribeLocale, t } from '../i18n/i18n'
+import { resolveDemoDisplayName } from '../lib/demoAttendance'
 
 const DEV_MOCK_USER = {
   id: 'dev-local-user',
-  email: 'development@local.one',
+  email: 'elena@kafeneio.example',
   app_metadata: {},
   user_metadata: {},
   aud: 'authenticated',
@@ -57,7 +58,7 @@ const DEV_MOCK_SESSION = {
 
 const DEV_MOCK_WORKSPACE = {
   id: 'dev-workspace-id',
-  name: 'AMORE.NICOSIA',
+  name: 'Kafeneio Laiki',
   slug: 'amore-nicosia',
   createdAt: null,
   updatedAt: null,
@@ -77,7 +78,7 @@ function buildDevMembership(displayName = '') {
     workspaceId: DEV_MOCK_WORKSPACE.id,
     authUserId: DEV_MOCK_USER.id,
     employeeId: null,
-    displayName: trimmedName || t("Development user"),
+    displayName: resolveDemoDisplayName(trimmedName, getLocale()),
     email: DEV_MOCK_USER.email,
     // Local auth-disabled sessions only. ?devRole=staff previews a non-manager.
     role: resolveDevMockRole(),
@@ -354,6 +355,13 @@ export function AuthProvider({ children }) {
       setIsBootstrapping(false)
       setIsLoading(false)
     }
+  }, [isAuthDisabled, devProfileDisplayName])
+
+  useEffect(() => {
+    if (!isAuthDisabled) return undefined
+    return subscribeLocale(() => {
+      setMembership(buildDevMembership(devProfileDisplayName))
+    })
   }, [isAuthDisabled, devProfileDisplayName])
 
   useEffect(() => {

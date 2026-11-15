@@ -208,26 +208,25 @@ export function buildTodayStatusSummary({
   void _parsReady
   void _belowParCount
   const workingCount = liveFloor.state === 'live' ? Number(liveFloor.onShiftCount) || 0 : 0
-  // Scheduled now and actually clocked in, side by side ("3 on shift · 1 clocked in").
+  // Scheduled now and who has actually started, side by side.
   const clockedIn = Number.isFinite(clockedInCount) ? clockedInCount : null
-  let onShiftSummary = 'No one on shift now'
+  let onShiftSummary = t("No one on shift now")
   if (liveFloor.state === 'unpublished') {
-    onShiftSummary = clockedIn ? `Schedule not published · ${clockedIn} clocked in` : t("Schedule not published")
+    onShiftSummary = clockedIn
+      ? `${t("Schedule not published")} · ${t('{{count}} clocked in', { count: clockedIn })}`
+      : t("Schedule not published")
   } else if (workingCount > 0 || clockedIn) {
     onShiftSummary = formatOnShiftSummary(workingCount, clockedIn)
   }
 
   const scheduledStaff = Number(snapshot.scheduledStaff) || 0
   const coverageGaps = Number(snapshot.coverageGaps) || 0
-  let teamScheduledSummary = 'No shifts scheduled today'
-  if (scheduledStaff === 1) {
+  let teamScheduledSummary = t("No shifts scheduled today")
+  if (scheduledStaff > 0) {
+    const scheduledLabel = t('{{count}} scheduled today', { count: scheduledStaff })
     teamScheduledSummary = coverageGaps > 0
-      ? `1 scheduled · ${coverageGaps} uncovered shift${coverageGaps === 1 ? '' : 's'}`
-      : '1 scheduled today'
-  } else if (scheduledStaff > 0) {
-    teamScheduledSummary = coverageGaps > 0
-      ? `${scheduledStaff} scheduled · ${coverageGaps} uncovered shift${coverageGaps === 1 ? '' : 's'}`
-      : `${scheduledStaff} scheduled today`
+      ? `${t('{{count}} scheduled', { count: scheduledStaff })} · ${t('{{count}} uncovered shift', { count: coverageGaps })}`
+      : scheduledLabel
   }
 
   let reservationsSummaryLine = reservationsConnected ? t("No reservations today") : t("Reservations not connected")
@@ -243,7 +242,7 @@ export function buildTodayStatusSummary({
         : t('{{count}} booking today', { count: bookings })
     }
     if (reservationsFooter?.type === 'next' && reservationsFooter.time) {
-      reservationsSummaryLine = `${reservationsSummaryLine} · Next ${reservationsFooter.time}`
+      reservationsSummaryLine = `${reservationsSummaryLine} · ${t("Next {{time}}", { time: reservationsFooter.time })}`
     }
   }
 
@@ -256,17 +255,17 @@ export function buildTodayStatusSummary({
     const completedToday = tasksConnected ? (Number(tasksOverview.completedToday) || 0) : 0
 
     if (active > 0) {
-      tasksSummary = active === 1 ? '1 open task' : `${active} open tasks`
+      tasksSummary = t('{{count}} open task', { count: active })
       if (overdue > 0) {
-        tasksSummary = `${tasksSummary} · ${overdue} overdue`
+        tasksSummary = `${tasksSummary} · ${t('{{count}} overdue', { count: overdue })}`
       }
       if (completedToday > 0) {
-        tasksSummary = `${tasksSummary} · ${completedToday} done today`
+        tasksSummary = `${tasksSummary} · ${t('{{count}} done today', { count: completedToday })}`
       }
     } else if (overdue > 0) {
-      tasksSummary = `${overdue} overdue task${overdue === 1 ? '' : 's'}`
+      tasksSummary = t('{{count}} overdue task', { count: overdue })
     } else if (completedToday > 0) {
-      tasksSummary = `${completedToday} completed today`
+      tasksSummary = t('{{count}} completed today', { count: completedToday })
     }
   }
 
@@ -278,7 +277,7 @@ export function buildTodayStatusSummary({
       + (Number(stockOrdersSummary?.partialCount) || 0)
 
     const toOrder = Math.max(0, Number(stockSummary?.toOrder) || 0)
-    const toOrderLabel = toOrder === 1 ? '1 to order' : `${toOrder} to order`
+    const toOrderLabel = t('{{count}} to order', { count: toOrder })
 
     if (hasStockModuleData || pendingDeliveries > 0) {
       if (outCount > 0 || lowCount > 0) {
@@ -287,14 +286,12 @@ export function buildTodayStatusSummary({
       } else if (toOrder > 0) {
         stockSummaryLine = toOrderLabel
       } else if (pendingDeliveries > 0) {
-        stockSummaryLine = pendingDeliveries === 1
-          ? '1 delivery pending'
-          : `${pendingDeliveries} deliveries pending`
+        stockSummaryLine = t('{{count}} delivery pending', { count: pendingDeliveries })
       } else {
-        stockSummaryLine = 'Stock levels OK'
+        stockSummaryLine = t("Stock levels OK")
       }
     } else {
-      stockSummaryLine = 'No products yet'
+      stockSummaryLine = t("No products yet")
     }
   }
 

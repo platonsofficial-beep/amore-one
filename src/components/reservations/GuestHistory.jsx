@@ -83,9 +83,9 @@ export function useGuestDirectory({
 function GuestStats({ guest }) {
   return (
     <dl className="guest-card-stats">
-      <div><dt>{guest.visits === 1 ? 'Visit' : 'Visits'}</dt><dd>{guest.visits}</dd></div>
-      <div><dt>{guest.noShows === 1 ? 'No-show' : 'No-shows'}</dt><dd>{guest.noShows}</dd></div>
-      <div><dt>{guest.cancellations === 1 ? 'Cancellation' : 'Cancellations'}</dt><dd>{guest.cancellations}</dd></div>
+      <div><dt>{t(guest.visits === 1 ? 'Visit' : 'Visits')}</dt><dd>{guest.visits}</dd></div>
+      <div><dt>{t(guest.noShows === 1 ? 'No-show' : 'No-shows')}</dt><dd>{guest.noShows}</dd></div>
+      <div><dt>{t(guest.cancellations === 1 ? 'Cancellation' : 'Cancellations')}</dt><dd>{guest.cancellations}</dd></div>
       <div><dt>{t("Last visit")}</dt><dd className="guest-date">{formatGuestDate(guest.lastVisit)}</dd></div>
       <div><dt>{t("Usual party")}</dt><dd>{guest.usualPartySize || '—'}</dd></div>
       <div><dt>{t("Favourite")}</dt><dd>{formatGuestFavourite(guest)}</dd></div>
@@ -145,7 +145,7 @@ export function GuestPhoneInsight({
     try {
       if (directoryState.preview) {
         directoryState.remember({ ...guest, displayName: guest.guestName, notes, phone: guest.phone })
-        setNotice('Notes saved.')
+        setNotice(t("Notes saved."))
         return
       }
       const saved = await saveGuestProfile({
@@ -155,7 +155,7 @@ export function GuestPhoneInsight({
         displayName: guest.guestName,
       })
       directoryState.remember(saved)
-      setNotice('Notes saved.')
+      setNotice(t("Notes saved."))
     } catch (error) {
       setNotice(error?.message || t("Could not save the guest notes."))
     }

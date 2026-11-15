@@ -1,8 +1,10 @@
+import { t } from '../../i18n/i18n'
+
 export function FloorPlanLegend({
   items = [],
   variant = 'default',
   className = '',
-  ariaLabel = 'Table status legend',
+  ariaLabel = t("Table status legend"),
   style = undefined,
 }) {
   if (!items.length) return null
@@ -26,7 +28,7 @@ export function FloorPlanLegend({
             className={isCompact ? 'floor-plan-legend-dot' : 'floor-plan-legend-swatch'}
             aria-hidden="true"
           />
-          <span className="floor-plan-legend-label">{item.label}</span>
+          <span className="floor-plan-legend-label">{t(item.label)}</span>
         </span>
       ))}
     </div>

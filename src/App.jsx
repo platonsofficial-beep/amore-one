@@ -1,5 +1,6 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { t, uiLocale, upper } from './i18n/i18n'
+import { getLocale, t, uiLocale, upper } from './i18n/i18n'
+import { resolveDemoDisplayName } from './lib/demoAttendance'
 import { startVisibleInterval } from './lib/visibleInterval'
 import { combineLoadStatus, loadAreaForCard, stockLiveLoadStatus, useLoadStatuses } from './lib/loadStatus'
 import { LoadFailed, PendingValue } from './components/common/DataPending'
@@ -11866,7 +11867,7 @@ function FloorPlanView({
                   data-testid="host-floor-dining-timers-toggle"
                   data-help="reservations.timers"
                 >
-                  ⏱ Timers
+                  ⏱ {t("Timers")}
                 </button>
               </div>
               <div className="floor-plan-toolbar-more">
@@ -11914,7 +11915,7 @@ function FloorPlanView({
                       aria-pressed={showDiningTimers}
                       aria-label={t("Dining timers")}
                     >
-                      ⏱ Timers
+                      ⏱ {t("Timers")}
                     </button>
                   </div>,
                   document.body,
@@ -24946,7 +24947,7 @@ function App() {
 
       upsertReservationInState(created)
       await reloadTodayReservations()
-      setReservationNotice('Reservation created.')
+      setReservationNotice(t("Reservation created."))
       return true
     } catch (error) {
       setReservationNotice(error.message || t("Unable to create reservation right now."))
@@ -25555,11 +25556,12 @@ function App() {
             <AttendanceClockScreen
               workspaceId={activeWorkspaceId}
               memberId={membership?.id ?? ''}
-              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId ?? '')}
-              employeeName={billingPreviewActive ? t("Alex Costa") : (mobileLinkedEmployee?.name ?? '')}
+              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId || (isAuthDisabled ? 'dev-elena' : ''))}
+              employeeName={billingPreviewActive ? t("Alex Costa") : (mobileLinkedEmployee?.name || (isAuthDisabled ? resolveDemoDisplayName(workspaceProfile.managerName, getLocale()) : ''))}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
               previewMode={billingPreviewActive}
+              demoFixtures={isAuthDisabled && !billingPreviewActive}
             />
           ) : null
           const accountProfileProps = {

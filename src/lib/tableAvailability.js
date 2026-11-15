@@ -90,14 +90,14 @@ export function formatHostSeatingTableAvailabilityDisplay({
   availableTables = 0,
   totalTables = 0,
 } = {}) {
-  return `${availableTables}/${totalTables} available`
+  return t('{{available}}/{{total}} available', { available: availableTables, total: totalTables })
 }
 
 export function formatHostSeatingTableAvailabilityAccessible({
   availableTables = 0,
   totalTables = 0,
 } = {}) {
-  return `${availableTables} of ${totalTables} tables available`
+  return t('{{available}} of {{total}} tables available', { available: availableTables, total: totalTables })
 }
 
 export function formatTableConflictReason(conflict) {

@@ -163,20 +163,14 @@ export function buildManagerMobileStockStatusLine(
   }
 
   if (outCount > 0 && lowCount > 0) {
-    return `${outCount} out · ${lowCount} low`
+    return `${t('{{count}} out', { count: outCount })} · ${t('{{count}} low', { count: lowCount })}`
   }
 
-  if (outCount > 0) {
-    return outCount === 1 ? '1 item out' : `${outCount} items out`
-  }
+  if (outCount > 0) return t('{{count}} item out', { count: outCount })
 
-  if (lowCount > 0) {
-    return lowCount === 1 ? '1 item low' : `${lowCount} items low`
-  }
+  if (lowCount > 0) return t('{{count}} item low', { count: lowCount })
 
-  if (pendingDeliveries > 0) {
-    return pendingDeliveries === 1 ? '1 delivery pending' : `${pendingDeliveries} deliveries pending`
-  }
+  if (pendingDeliveries > 0) return t('{{count}} delivery pending', { count: pendingDeliveries })
 
   return t("Stock levels OK")
 }

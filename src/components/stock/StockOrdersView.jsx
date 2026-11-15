@@ -59,7 +59,7 @@ function StockOrderSortDropdown({ value, options, onChange }) {
         aria-expanded={isOpen}
         aria-label={t("Sort orders")}
       >
-        <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
+        <span className="stock-sort-dropdown-value">{selectedOption ? t(selectedOption.label) : ''}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
@@ -77,7 +77,7 @@ function StockOrderSortDropdown({ value, options, onChange }) {
                   setIsOpen(false)
                 }}
               >
-                {option.label}
+                {t(option.label)}
               </button>
             </li>
           ))}
@@ -352,7 +352,7 @@ export function StockOrdersView({
                 className={`stock-status-filter${statusFilter === filter.id ? ' active' : ''}`}
                 onClick={() => setStatusFilter(filter.id)}
               >
-                {filter.label}
+                {t(filter.label)}
                 <span className="stock-status-filter-count">
                   {isLoading ? '—' : statusFilterCounts[filter.id] ?? 0}
                 </span>
@@ -374,7 +374,7 @@ export function StockOrdersView({
 
         {!isLoading && orders.length > 0 ? (
           <p className="stock-browse-result-count" aria-live="polite">
-            Showing {visibleOrders.length} of {orders.length} order{orders.length === 1 ? '' : 's'}
+            {t("Showing {{visible}} of {{total}} order", { count: orders.length, visible: visibleOrders.length, total: orders.length })}
           </p>
         ) : null}
       </div>

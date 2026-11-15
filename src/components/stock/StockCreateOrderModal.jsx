@@ -378,8 +378,8 @@ export function StockCreateOrderModal({
             disabled={isBusy || orderCount === 0}
           >
             {isBusy
-              ? 'Creating…'
-              : `Create ${orderCount} order${orderCount === 1 ? '' : 's'}`}
+              ? t("Creating…")
+              : t("Create {{count}} order", { count: orderCount })}
           </button>
         </footer>
       </form>
