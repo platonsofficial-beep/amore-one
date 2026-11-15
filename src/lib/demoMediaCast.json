@@ -26,7 +26,12 @@
       "irene": "Ειρήνη Κωνσταντίνου",
       "markos": "Μάρκος Χατζηγεωργίου",
       "walkIn": "Πελάτης μπαρ"
-    }
+    },
+    "suppliers": [
+      { "id": "sup-harbour", "name": "Harbour Wines", "contact": "Στέλιος Ανδρέου", "phone": "+35722111000", "email": "orders@harbourwines.example", "city": "Nicosia" },
+      { "id": "sup-market", "name": "Λαϊκή Αγορά", "contact": "Γιάννης Χρήστου", "phone": "+35799100000", "email": "laiki@market.example", "city": "Nicosia" },
+      { "id": "sup-bakery", "name": "KEO", "contact": "Δέσποινα Μιχαήλ", "phone": "+35722111001", "email": "trade@keo.example", "city": "Nicosia" }
+    ]
   },
   "en": {
     "venue": "The Harbour Kitchen",
@@ -55,6 +60,11 @@
       "irene": "Camille Dubois",
       "markos": "Henrik Nielsen",
       "walkIn": "Walk-in"
-    }
+    },
+    "suppliers": [
+      { "id": "sup-harbour", "name": "Harbour Wines", "contact": "Miguel Santos", "phone": "+351210000001", "email": "orders@harbourwines.example", "city": "Lisbon" },
+      { "id": "sup-market", "name": "Fresh Market Co.", "contact": "Claire Moreau", "phone": "+351210000002", "email": "hello@freshmarket.example", "city": "Lisbon" },
+      { "id": "sup-bakery", "name": "City Bakery", "contact": "Luis Ferreira", "phone": "+351210000003", "email": "orders@citybakery.example", "city": "Lisbon" }
+    ]
   }
 }

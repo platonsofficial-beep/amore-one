@@ -6,6 +6,7 @@ import { DeploySetupError } from './components/DeploySetupError.jsx'
 import { getSupabaseSetupError } from './lib/supabaseEnv.js'
 import { bindIslandSide } from './lib/islandInsets.js'
 import { applySignupHandoff } from './lib/signupHandoff.js'
+import { installDemoClock } from './lib/demoMediaClock.js'
 
 bindIslandSide()
 applySignupHandoff()
@@ -13,6 +14,7 @@ applySignupHandoff()
 const LEGAL_PATHS = ['/privacy', '/terms', '/dpa', '/cookies', '/delete-account']
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)
 const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
+if (isAuthDisabled) installDemoClock()
 const supabaseSetupError = getSupabaseSetupError()
 
 if (legalPath) {
