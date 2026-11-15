@@ -167,7 +167,7 @@ export function MobileManagerScheduleDayView({
                       {t("Cancel")}
                     </button>
                     <button type="button" className="mobile-primary-btn" onClick={() => saveShift(shift)} disabled={isSaving}>
-                      {isSaving ? 'Saving…' : 'Save'}
+                      {isSaving ? t("Saving…") : t("Save")}
                     </button>
                   </div>
                 </div>
