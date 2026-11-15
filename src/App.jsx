@@ -6224,6 +6224,7 @@ function ScheduleView({
                 const isCustomRow = isCustomScheduleRow(row)
                 const templateShiftName = `${row.template.name || row.template.defaultArea || 'Shift'}`.trim()
                 const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
+                const templateDepartmentLabel = displayScheduleAreaLabel(templateDepartment)
                 const templateShiftDisplayName = formatScheduleShiftDisplayName(templateShiftName, templateDepartment)
                 const templateTimeLabel = formatTimeRange24(
                   row.template.startTime,
@@ -6277,7 +6278,7 @@ function ScheduleView({
                     >
                       <header className="schedule-shift-instance-header">
                         <div className="schedule-shift-instance-copy">
-                          <span className="schedule-shift-instance-dept" title={templateDepartment}>{templateDepartment}</span>
+                          <span className="schedule-shift-instance-dept" title={templateDepartmentLabel}>{templateDepartmentLabel}</span>
                           <h4 className="schedule-shift-instance-name" title={templateShiftDisplayName}>{templateShiftDisplayName}</h4>
                           {templateTimeLabel && !isCustomRow ? (
                             <span className="schedule-shift-instance-time" title={templateTimeLabel}>{templateTimeLabel}</span>
