@@ -23268,7 +23268,9 @@ function App() {
       })
       await refreshStockOrders()
       handleStockSectionChange('orders')
-      setStockOrdersNotice(`Created ${createdOrders.length} order${createdOrders.length === 1 ? '' : 's'}.`)
+      setStockOrdersNotice(createdOrders.length === 1
+        ? t("Created {{count}} order.", { count: createdOrders.length })
+        : t("Created {{count}} orders.", { count: createdOrders.length }))
     } catch (error) {
       setStockOrdersNotice(error.message || t("Unable to create orders right now."))
       throw error

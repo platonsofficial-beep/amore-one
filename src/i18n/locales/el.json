@@ -756,7 +756,7 @@
   "Exit": "Έξοδος",
   "Exit Host Mode": "Έξοδος από host",
   "Exit Schedule": "Έξοδος από το Πρόγραμμα",
-  "Exit Stock": "Έξοδος από το Stock",
+  "Exit Stock": "Έξοδος από το απόθεμα",
   "Expected": "Αναμενόμενο",
   "Expected at count": "Αναμενόμενο στην καταμέτρηση",
   "Expected at Count": "Αναμενόμενο στην καταμέτρηση",
@@ -3973,5 +3973,7 @@
   "Draft": "Πρόχειρο",
   "Move": "Μετακίνηση",
   "Update": "Ενημέρωση",
-  "Cleaning": "Καθαρισμός"
+  "Cleaning": "Καθαρισμός",
+  "Created {{count}} order.": "Δημιουργήθηκε {{count}} παραγγελία.",
+  "Created {{count}} orders.": "Δημιουργήθηκαν {{count}} παραγγελίες."
 }

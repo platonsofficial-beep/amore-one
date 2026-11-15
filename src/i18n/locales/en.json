@@ -3973,5 +3973,7 @@
   "Draft": "Draft",
   "Move": "Move",
   "Update": "Update",
-  "Cleaning": "Cleaning"
+  "Cleaning": "Cleaning",
+  "Created {{count}} order.": "Created {{count}} order.",
+  "Created {{count}} orders.": "Created {{count}} orders."
 }

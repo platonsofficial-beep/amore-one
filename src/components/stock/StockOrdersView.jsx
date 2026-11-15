@@ -166,7 +166,7 @@ function StockOrderCard({ order, stockItems = [], suppliers = [], onOpen, showCo
         </p>
         {deliveryLabel ? (
           <p className="stock-order-card-delivery">
-            Expected {deliveryLabel}
+            {t("Expected")} {deliveryLabel}
           </p>
         ) : null}
       </div>
