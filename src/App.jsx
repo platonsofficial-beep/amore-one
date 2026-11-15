@@ -1,6 +1,7 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { getLocale, t, uiLocale, upper } from './i18n/i18n'
+import { getLocale, subscribeLocale, t, uiLocale, upper } from './i18n/i18n'
 import { resolveDemoDisplayName } from './lib/demoAttendance'
+import { applyDemoProfile } from './lib/demoMediaDataset'
 import { startVisibleInterval } from './lib/visibleInterval'
 import { combineLoadStatus, loadAreaForCard, stockLiveLoadStatus, useLoadStatuses } from './lib/loadStatus'
 import { LoadFailed, PendingValue } from './components/common/DataPending'
@@ -18049,7 +18050,7 @@ function App() {
       setWorkspaceProfileNotice('')
 
       try {
-        const remoteProfile = await getWorkspaceProfile(workspace?.id)
+        const remoteProfile = applyDemoProfile(await getWorkspaceProfile(workspace?.id), getLocale())
         if (!isMounted) return
         setWorkspaceProfile(remoteProfile)
         setWorkspaceProfileDraft(remoteProfile)
@@ -18076,6 +18077,14 @@ function App() {
     if (!isAuthDisabled) return
     syncDevMembershipProfile({ displayName: workspaceProfile.managerName })
   }, [isAuthDisabled, workspaceProfile.managerName, syncDevMembershipProfile])
+
+  useEffect(() => {
+    if (!isAuthDisabled) return undefined
+    return subscribeLocale(() => {
+      setWorkspaceProfile((current) => applyDemoProfile(current, getLocale()))
+      setWorkspaceProfileDraft((current) => applyDemoProfile(current, getLocale()))
+    })
+  }, [isAuthDisabled])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {

@@ -37,6 +37,7 @@ import {
 } from '../lib/workspaceLoadUtils'
 import { getLocale, subscribeLocale, t } from '../i18n/i18n'
 import { resolveDemoDisplayName } from '../lib/demoAttendance'
+import { demoVenueName } from '../lib/demoMediaDataset'
 
 const DEV_MOCK_USER = {
   id: 'dev-local-user',
@@ -56,12 +57,14 @@ const DEV_MOCK_SESSION = {
   user: DEV_MOCK_USER,
 }
 
-const DEV_MOCK_WORKSPACE = {
-  id: 'dev-workspace-id',
-  name: 'Kafeneio Laiki',
-  slug: 'amore-nicosia',
-  createdAt: null,
-  updatedAt: null,
+function devMockWorkspace() {
+  return {
+    id: 'dev-workspace-id',
+    name: demoVenueName(getLocale()) || 'Kafeneio Laiki',
+    slug: 'amore-nicosia',
+    createdAt: null,
+    updatedAt: null,
+  }
 }
 
 function resolveDevMockRole() {
@@ -75,7 +78,7 @@ function buildDevMembership(displayName = '') {
 
   return {
     id: 'dev-membership-id',
-    workspaceId: DEV_MOCK_WORKSPACE.id,
+    workspaceId: 'dev-workspace-id',
     authUserId: DEV_MOCK_USER.id,
     employeeId: null,
     displayName: resolveDemoDisplayName(trimmedName, getLocale()),
@@ -112,7 +115,7 @@ export function AuthProvider({ children }) {
   const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
   const [session, setSession] = useState(isAuthDisabled ? DEV_MOCK_SESSION : null)
   const [user, setUser] = useState(isAuthDisabled ? DEV_MOCK_USER : null)
-  const [workspace, setWorkspace] = useState(isAuthDisabled ? DEV_MOCK_WORKSPACE : null)
+  const [workspace, setWorkspace] = useState(isAuthDisabled ? devMockWorkspace() : null)
   const [membership, setMembership] = useState(isAuthDisabled ? buildDevMembership() : null)
   const [membershipLoadError, setMembershipLoadError] = useState(null)
   const [memberships, setMemberships] = useState([])
@@ -347,7 +350,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (isAuthDisabled) {
       setMembership(buildDevMembership(devProfileDisplayName))
-      setWorkspace(DEV_MOCK_WORKSPACE)
+      setWorkspace(devMockWorkspace())
       setMembershipLoadError(null)
       setWorkspaceLoadError(null)
       hasBootstrappedRef.current = true
@@ -361,6 +364,7 @@ export function AuthProvider({ children }) {
     if (!isAuthDisabled) return undefined
     return subscribeLocale(() => {
       setMembership(buildDevMembership(devProfileDisplayName))
+      setWorkspace(devMockWorkspace())
     })
   }, [isAuthDisabled, devProfileDisplayName])
 
