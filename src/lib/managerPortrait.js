@@ -15,8 +15,10 @@ export const MANAGER_PHONE_MAX_WIDTH = 760
 
 /**
  * Phone shell for owners and managers.
- * A phone stays on the bottom-nav shell in portrait and landscape.
- * Tablets and desktops stay on the workspace shell.
+ * A sideways phone with a usable landscape canvas (including the first
+ * iPhone SE at 568×320) uses the full workspace, with a compact sidebar
+ * that scrolls instead of clipping Time clock. A narrow or portrait phone
+ * uses the bottom-nav shell. Tablets and desktops stay on the workspace shell.
  */
 export function shouldUseManagerPhoneShell(source) {
   const box = resolveManagerViewportBox(source)
@@ -24,11 +26,9 @@ export function shouldUseManagerPhoneShell(source) {
   const height = Number(box.height) || 0
   const isPortrait = box.portrait
   const isNarrow = box.narrow
-  const shortSide = width > 0 && height > 0 ? Math.min(width, height) : 0
+  const shortSide = Math.min(width, height)
   const usableLandscape = !isPortrait && height >= 320 && width > height
 
-  // Phones stay on the bottom-nav shell when turned sideways. Tablets do not.
-  if (shortSide > 0 && shortSide <= 500) return true
   if (usableLandscape) return false
   if (shortSide >= 600 && !isNarrow) return false
   // Orientation media can update before innerWidth on iOS standalone.

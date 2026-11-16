@@ -54173,7 +54173,8 @@ summary:focus-visible {
     align-self: stretch;
     padding: 4px 4px 8px;
     gap: 2px;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-right: 1px solid var(--one-gold-line);
     border-bottom: 0;
   }
@@ -54215,7 +54216,7 @@ summary:focus-visible {
 
   .app-shell:not(.is-mobile-shell) .nav-link {
     flex: 0 0 auto;
-    min-height: 44px;
+    min-height: 36px;
     width: 100%;
     padding: 2px 2px;
     gap: 0;
@@ -54230,9 +54231,10 @@ summary:focus-visible {
   .app-shell:not(.is-mobile-shell) .nav-link > span:last-child {
     flex: 0 1 auto;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    overflow-wrap: anywhere;
     position: static;
     width: auto;
     height: auto;
