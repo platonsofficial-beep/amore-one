@@ -102,7 +102,7 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true, showCo
           </div>
         </div>
         <span className={`stock-order-status-badge tone-${statusTone}`}>
-          {formatSupplierStatusLabel(supplier)}
+          {t(formatSupplierStatusLabel(supplier))}
         </span>
       </div>
 
@@ -396,7 +396,7 @@ export function StockSuppliersView({
                 className={`stock-status-filter${statusFilter === filter.id ? ' active' : ''}`}
                 onClick={() => setStatusFilter(filter.id)}
               >
-                {filter.label}
+                {t(filter.label)}
               </button>
             ))}
           </div>
@@ -415,7 +415,11 @@ export function StockSuppliersView({
 
         {!isLoading && suppliers.length > 0 ? (
           <p className="stock-browse-result-count" aria-live="polite">
-            Showing {visibleSuppliers.length} of {suppliers.length} supplier{suppliers.length === 1 ? '' : 's'}
+            {t('Showing {{visible}} of {{total}} suppliers', {
+              count: suppliers.length,
+              visible: visibleSuppliers.length,
+              total: suppliers.length,
+            })}
           </p>
         ) : null}
       </div>

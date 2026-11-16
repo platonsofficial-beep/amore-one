@@ -50,6 +50,7 @@ import {
   TAKE_FROM_SUPPLY_LABEL,
 } from '../../lib/stockSupplyRefill'
 import { t } from '../../i18n/i18n'
+import { translateStockCatalogTerm, translateStockPlaceName } from '../../lib/stockLabels'
 
 function escapeParItemSelector(value) {
   const text = `${value ?? ''}`
@@ -204,14 +205,14 @@ function StorageProductRow({
         <div className="stock-storage-product-row-main">
           <strong className="stock-storage-product-name">{buildProductDisplayNameFromItem(row)}</strong>
           {sizeDetail ? <span className="stock-item-size-detail">{sizeDetail}</span> : null}
-          <span className="stock-storage-product-category">{row.category || 'Other'}</span>
+          <span className="stock-storage-product-category">{translateStockCatalogTerm(row.category || 'Other')}</span>
         </div>
         <div className="stock-storage-product-row-meta">
           <span className="stock-storage-product-qty">
             {formatStockQuantity(row.quantity, row.unit)}
           </span>
           <span className={`stock-storage-product-badge tone-${row.active ? 'active' : 'inactive'}`}>
-            {row.active ? 'Active' : 'Inactive'}
+            {row.active ? t("Active") : t("Inactive")}
           </span>
         </div>
       </button>
@@ -417,7 +418,7 @@ export function StockStorageDetailWorkspace({
   // No probe call on open. A blocked or missing take shows its reason when it is tried.
   const staffTakeReady = staffTakeOpen
 
-  const storageTitle = storage?.name || storage?.locationKey || 'Storage'
+  const storageTitle = translateStockPlaceName(storage?.name || storage?.locationKey || 'Storage')
 
   const requestParFocus = (stockItemId) => {
     const itemId = `${stockItemId ?? ''}`.trim()
@@ -807,10 +808,10 @@ export function StockStorageDetailWorkspace({
             onClick={() => onBack?.()}
             aria-label={t("Back to storages")}
           >
-            ← Storages
+            {t("← Storages")}
           </button>
           <span className={`stock-storage-center-status tone-${storage?.active !== false ? 'active' : 'archived'}`}>
-            {storage?.active !== false ? 'Active' : 'Archived'}
+            {storage?.active !== false ? t("Active") : t("Archived")}
           </span>
         </div>
         <div className="stock-storage-detail-workspace-header-copy">
@@ -932,14 +933,14 @@ export function StockStorageDetailWorkspace({
         ) : null}
         <p className="stock-storage-detail-result-count" role="status">
           {status === 'ready' || status === 'empty'
-            ? `${visibleProducts.length} product${visibleProducts.length === 1 ? '' : 's'}`
+            ? t('{{count}} products', { count: visibleProducts.length })
             : null}
         </p>
       </div>
 
       {parsAvailable && status !== 'loading' && status !== 'error' ? (
         <p className="stock-storage-par-note" data-testid="storage-par-note">
-          {STORAGE_PAR_LABEL}. Blank = not tracked on this shelf.
+          {t("Per-shelf par. Blank = not tracked on this shelf.")}
         </p>
       ) : null}
 
@@ -1091,7 +1092,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Transfer stock")}
-          subtitlePrefix="Source"
+          subtitlePrefix={t("Source")}
           testId="stock-storage-transfer-product-picker"
           onClose={() => setTransferPickerOpen(false)}
           onSelectProduct={handleTransferProductSelected}
@@ -1116,7 +1117,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Adjust stock")}
-          subtitlePrefix="Storage"
+          subtitlePrefix={t("Storage")}
           testId="stock-storage-adjustment-product-picker"
           onClose={() => setAdjustmentPickerOpen(false)}
           onSelectProduct={handleAdjustmentProductSelected}
@@ -1143,7 +1144,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Waste")}
-          subtitlePrefix="Storage"
+          subtitlePrefix={t("Storage")}
           testId="stock-storage-waste-product-picker"
           onClose={() => setWastePickerOpen(false)}
           onSelectProduct={handleWasteProductSelected}

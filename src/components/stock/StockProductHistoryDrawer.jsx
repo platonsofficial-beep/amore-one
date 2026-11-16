@@ -11,6 +11,7 @@ import {
   buildStockMonthlyInsights,
   buildStockMovementTimeline,
   formatLastCountedLabel,
+  translateLastCountedLabel,
   formatMonthlyMovementStat,
   formatStockMovementHeadline,
   formatStockMovementTypeLabel,
@@ -28,6 +29,7 @@ import {
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { getStockMovementsWithAuthors } from '../../services/stockMovementService'
 import { t } from '../../i18n/i18n'
+import { translateStockCatalogLine, translateStockPlaceName } from '../../lib/stockLabels'
 
 function OverviewRow({ label, value, emphasize = false }) {
   return (
@@ -48,7 +50,7 @@ function LocationBalanceRow({ balance, unit }) {
   return (
     <div className="stock-product-history-overview-row stock-location-balance-row">
       <dt>
-        <span className="stock-location-balance-name">{balance.locationName}</span>
+        <span className="stock-location-balance-name">{translateStockPlaceName(balance.locationName)}</span>
         {balance.storageActive === false ? (
           <span className="stock-location-balance-inactive-label">{t("Inactive")}</span>
         ) : null}
@@ -192,11 +194,12 @@ export function StockProductHistoryDrawer({
     return buildStockMonthlyInsights(movements)
   }, [movements])
 
-  const lastCountedLabel = formatLastCountedLabel(resolveLastCountedRecord(
+  const rawLastCountedLabel = formatLastCountedLabel(resolveLastCountedRecord(
     movements,
     item.lastCount,
     { locationKey: location },
   ))
+  const lastCountedLabel = translateLastCountedLabel(rawLastCountedLabel)
   const productInformationRows = buildStockProductInformationRows(item, {
     supplierLabel,
     storageLabel: location,
@@ -223,7 +226,7 @@ export function StockProductHistoryDrawer({
               </span>
             </div>
             <p className="stock-product-history-subtitle">
-              {formatStockCategoryTypeLine(item.category, itemType)}
+              {translateStockCatalogLine(formatStockCategoryTypeLine(item.category, itemType))}
             </p>
           </div>
           <button
@@ -261,20 +264,20 @@ export function StockProductHistoryDrawer({
                     value={formatStockQuantity(item.currentQuantity, item.unit)}
                   />
                   <OverviewRow
-                    label="Minimum"
+                    label={t("Minimum")}
                     value={formatStockQuantity(item.minimumQuantity, item.unit)}
                   />
                   <OverviewRow
-                    label="Target"
+                    label={t("Target")}
                     value={targetQuantity === null
                       ? t("Not set")
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
                   {showCost ? (
                     <OverviewRow
-                      label="Cost"
+                      label={t("Cost")}
                       value={hasCost
-                        ? `${formatStockPurchasePrice(costPrice)} / ${formatInventoryUnitLabel(item.unit) || 'unit'}`
+                        ? `${formatStockPurchasePrice(costPrice)} / ${formatInventoryUnitLabel(item.unit) || t("unit")}`
                         : '—'}
                     />
                   ) : null}
@@ -303,7 +306,7 @@ export function StockProductHistoryDrawer({
                       />
                     ))}
                     <OverviewRow
-                      label="Total"
+                      label={t("Total")}
                       value={formatStockQuantity(item.currentQuantity, item.unit)}
                     />
                   </dl>
@@ -318,22 +321,22 @@ export function StockProductHistoryDrawer({
                 <h3 className="stock-product-history-section-title">{t("This month")}</h3>
                 <dl className="stock-product-history-insights">
                   <OverviewRow
-                    label="Received"
+                    label={t("Received")}
                     value={formatMonthlyMovementStat('received', monthlyInsights.received, item.unit)}
                   />
                   <OverviewRow
-                    label="Used"
+                    label={t("Used")}
                     value={formatMonthlyMovementStat('used', monthlyInsights.used, item.unit)}
                   />
                   <OverviewRow
-                    label="Adjustments"
+                    label={t("Adjustments")}
                     value={formatMonthlyMovementStat('adjustments', monthlyInsights.adjustments, item.unit)}
                   />
                   <OverviewRow
                     label={t("Last counted")}
                     value={
-                      lastCountedLabel !== 'Never' && isStaleCountLabel(lastCountedLabel)
-                        ? `Last counted ${lastCountedLabel}`
+                      rawLastCountedLabel !== 'Never' && isStaleCountLabel(rawLastCountedLabel)
+                        ? t('Last counted {{when}}', { when: lastCountedLabel })
                         : lastCountedLabel
                     }
                     emphasize={isStaleCountLabel(lastCountedLabel)}

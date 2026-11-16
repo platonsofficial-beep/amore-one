@@ -4,6 +4,7 @@ import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 import { formatInVenueZone } from './timeFormatUtils'
 import { t } from '../i18n/i18n'
+import { translateStockPlaceName } from './stockLabels'
 
 export const STOCK_ORDER_STATUSES = ['draft', 'sent', 'received', 'cancelled']
 
@@ -418,8 +419,9 @@ export function isReceiveSupplyStorage(storage) {
 }
 
 export function formatReceiveDestinationLabel(storage) {
-  const name = `${storage?.name || storage?.locationKey || 'Storage'}`.trim() || 'Storage'
-  return isReceiveSupplyStorage(storage) ? `${name} · Supply` : name
+  const raw = `${storage?.name || storage?.locationKey || 'Storage'}`.trim() || 'Storage'
+  const name = translateStockPlaceName(raw)
+  return isReceiveSupplyStorage(storage) ? `${name} · ${t('Supply')}` : name
 }
 
 /**

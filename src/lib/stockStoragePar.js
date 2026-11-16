@@ -150,5 +150,5 @@ export function countBelowParByStorage({ balances = [], pars = [] } = {}) {
  */
 export function formatItemsBelowPar(count) {
   const total = Number.isFinite(Number(count)) ? Math.max(0, Math.trunc(Number(count))) : 0
-  return `${total} ${total === 1 ? 'item' : 'items'} below storage par`
+  return t('{{count}} items below storage par', { count: total })
 }

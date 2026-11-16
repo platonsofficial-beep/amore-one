@@ -17,6 +17,7 @@ import {
   supplierHasHistory,
 } from '../../lib/stockSupplierUtils'
 import { t } from '../../i18n/i18n'
+import { translateStockCatalogLine } from '../../lib/stockLabels'
 
 function DetailRow({ label, value }) {
   if (!`${value ?? ''}`.trim()) return null
@@ -82,7 +83,7 @@ export function StockSupplierDetailDrawer({
                   {supplier?.companyName || t("Unnamed supplier")}
                 </h2>
                 <span className={`stock-order-status-badge tone-${statusTone}`}>
-                  {formatSupplierStatusLabel(supplier)}
+                  {t(formatSupplierStatusLabel(supplier))}
                 </span>
               </div>
             </div>
@@ -128,7 +129,7 @@ export function StockSupplierDetailDrawer({
                   <li key={product.id} className="stock-supplier-product-item">
                     <div className="stock-supplier-product-copy">
                       <strong>{product.name}</strong>
-                      <span>{product.categoryType || 'Uncategorized'}</span>
+                      <span>{product.categoryType ? translateStockCatalogLine(product.categoryType) : t("Uncategorized")}</span>
                     </div>
                     <div className="stock-supplier-product-stats">
                       <span>{product.currentStock}</span>

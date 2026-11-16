@@ -6,6 +6,7 @@ import {
   withPreservedStorageSelection,
 } from '../../lib/stockCatalog'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { translateStockPlaceName } from '../../lib/stockLabels'
 import { CreateWorkspaceStorageDialog } from './CreateWorkspaceStorageDialog'
 
 function buildFallbackOptions() {
@@ -168,7 +169,7 @@ export function WorkspaceStorageSelector({
               className={`stock-location-preset${value === option.value ? ' active' : ''}`}
               onClick={() => onChange?.(option.value)}
             >
-              {option.label}
+              {translateStockPlaceName(option.label)}
             </button>
           ))}
           <button
@@ -196,7 +197,7 @@ export function WorkspaceStorageSelector({
           <option value="">{emptyLabel}</option>
           {locationOptions.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {translateStockPlaceName(option.label)}
             </option>
           ))}
           <option value={STOCK_CREATE_STORAGE_OPTION_VALUE}>+ Create storage...</option>

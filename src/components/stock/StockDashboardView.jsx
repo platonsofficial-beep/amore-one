@@ -65,6 +65,7 @@ import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 import { t } from '../../i18n/i18n'
+import { translateStockCatalogLine, translateStockCatalogTerm, translateStockPlaceName } from '../../lib/stockLabels'
 
 function StockLayoutModeIcon({ icon }) {
   if (icon === 'grid') {
@@ -201,7 +202,7 @@ function StockItemCard({
   onOpenHistory,
 }) {
   const itemType = resolveStockItemType(item)
-  const location = resolveStockStorageLocation(item)
+  const location = translateStockPlaceName(resolveStockStorageLocation(item))
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const insights = getStockItemInsights(item, { canManage })
   const staleCount = insights.find((insight) => insight.id === 'not-counted')
@@ -418,7 +419,7 @@ function StockListRow({
   timeZone = '',
 }) {
   const itemType = resolveStockItemType(item)
-  const location = resolveStockStorageLocation(item)
+  const location = translateStockPlaceName(resolveStockStorageLocation(item))
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
   const sizeDetail = formatProductSizeDetail(item)
@@ -466,8 +467,8 @@ function StockListRow({
       </th>
       <td className="stock-list-cell stock-list-cell-details">
         <div className="stock-list-details">
-          <p className="stock-list-details-line is-category" title={formatStockCategoryTypeLine(item.category, itemType)}>
-            {formatStockCategoryTypeLine(item.category, itemType)}
+          <p className="stock-list-details-line is-category" title={translateStockCatalogLine(formatStockCategoryTypeLine(item.category, itemType))}>
+            {translateStockCatalogLine(formatStockCategoryTypeLine(item.category, itemType))}
           </p>
           <p className="stock-list-details-line is-supplier" title={supplierLabel === '—' ? undefined : supplierLabel}>
             {supplierLabel}
@@ -525,7 +526,7 @@ function StockListMobileCard({
   timeZone = '',
 }) {
   const itemType = resolveStockItemType(item)
-  const location = resolveStockStorageLocation(item)
+  const location = translateStockPlaceName(resolveStockStorageLocation(item))
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
   const sizeDetail = formatProductSizeDetail(item)
@@ -570,7 +571,7 @@ function StockListMobileCard({
       <dl className="stock-list-mobile-meta">
         <div className="stock-list-mobile-meta-row">
           <dt>{t("Category / Type")}</dt>
-          <dd>{formatStockCategoryTypeLine(item.category, itemType)}</dd>
+          <dd>{translateStockCatalogLine(formatStockCategoryTypeLine(item.category, itemType))}</dd>
         </div>
         <div className="stock-list-mobile-meta-row">
           <dt>{t("Supplier")}</dt>
@@ -696,7 +697,7 @@ function StockCompactRow({
   onCount,
   onOpenHistory,
 }) {
-  const location = resolveStockStorageLocation(item)
+  const location = translateStockPlaceName(resolveStockStorageLocation(item))
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
   const sizeDetail = formatProductSizeDetail(item)
@@ -935,7 +936,7 @@ function StockBulkFieldModal({
               <select value={value} onChange={(event) => setValue(event.target.value)} required>
                 <option value="">{t("Select category")}</option>
                 {STOCK_CATEGORIES.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                  <option key={category} value={category}>{translateStockCatalogTerm(category)}</option>
                 ))}
               </select>
             </label>

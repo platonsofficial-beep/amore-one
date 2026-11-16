@@ -1,4 +1,6 @@
 import { t } from '../i18n/i18n'
+import { formatInventoryUnitLabel } from './inventoryUnitDisplay'
+import { translateStockPlaceName } from './stockLabels'
 /**
  * P8.31.6d — Product metadata display helpers (read-only).
  * Does not compute Display Name. Does not change quantities or units.
@@ -102,15 +104,15 @@ export function buildStockProductInformationRows(item, options = {}) {
   )
   const unit = trimProductMetadataValue(options.unitLabel ?? item?.unit)
 
-  if (brand) rows.push({ key: 'brand', label: 'Brand', value: brand })
-  if (size) rows.push({ key: 'size', label: 'Size', value: size })
-  if (barcode) rows.push({ key: 'barcode', label: 'Barcode', value: barcode })
+  if (brand) rows.push({ key: 'brand', label: t("Brand"), value: brand })
+  if (size) rows.push({ key: 'size', label: t("Size"), value: size })
+  if (barcode) rows.push({ key: 'barcode', label: t("Barcode"), value: barcode })
   if (packagingNote) {
     rows.push({ key: 'packagingNote', label: t("Packaging note"), value: packagingNote })
   }
-  if (supplier) rows.push({ key: 'supplier', label: 'Supplier', value: supplier })
-  if (storage) rows.push({ key: 'storage', label: t("Default storage"), value: storage })
-  if (unit) rows.push({ key: 'unit', label: t("Inventory unit"), value: unit })
+  if (supplier) rows.push({ key: 'supplier', label: t("Supplier"), value: supplier })
+  if (storage) rows.push({ key: 'storage', label: t("Default storage"), value: translateStockPlaceName(storage) })
+  if (unit) rows.push({ key: 'unit', label: t("Inventory unit"), value: formatInventoryUnitLabel(unit) || unit })
 
   return rows
 }

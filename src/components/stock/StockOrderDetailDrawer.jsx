@@ -784,7 +784,7 @@ export function StockOrderDetailDrawer({
                 </span>
               </div>
               <p className="stock-order-detail-order-number">
-                Order {formatStockOrderNumber(order.orderNumber)}
+                {t('Order {{number}}', { number: formatStockOrderNumber(order.orderNumber) })}
                 {partiallyReceived && !isReceived ? ' · Partially received' : ''}
               </p>
             </div>
@@ -857,12 +857,16 @@ export function StockOrderDetailDrawer({
               <div className="stock-order-completion-banner panel staff-panel" aria-label={t("Order completed")}>
                 <h4>{t("Order completed")}</h4>
                 <p>
-                  Received by {order.receivedByName || 'System'}
+                  {t('Received by {{name}}', { name: order.receivedByName || t('System') })}
                   {' · '}
                   {formatStockOrderDateTime(order.receivedAt, timeZone)}
                 </p>
                 <p className="stock-order-completion-summary">
-                  {receiveSummary.receivedTotal} of {receiveSummary.orderedTotal} units received across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
+                  {t('{{received}} of {{ordered}} units received across {{count}} products.', {
+                    count: displayItems.length,
+                    received: receiveSummary.receivedTotal,
+                    ordered: receiveSummary.orderedTotal,
+                  })}
                 </p>
               </div>
             ) : null}

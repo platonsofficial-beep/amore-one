@@ -17,6 +17,7 @@ import {
   undoQuickTake,
 } from '../../services/stockQuickTakeService'
 import { t } from '../../i18n/i18n'
+import { translateStockPlaceName } from '../../lib/stockLabels'
 import './stockQuickTake.css'
 
 const LAST_STORAGE_KEY = 'one.quickTake.lastStorage'
@@ -206,8 +207,8 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
               <li key={s.id}>
                 <button type="button" className="stock-quick-take-tile" onClick={() => openStorage(s.id)}>
                   <span>
-                    <strong>{s.name}</strong>
-                    <small>{index === 0 && readLocal(LAST_STORAGE_KEY, '') === s.id ? t("Last used · ") : ''}{s.productCount ?? 0} products</small>
+                    <strong>{translateStockPlaceName(s.name)}</strong>
+                    <small>{index === 0 && readLocal(LAST_STORAGE_KEY, '') === s.id ? t("Last used · ") : ''}{t('{{count}} products', { count: s.productCount ?? 0 })}</small>
                   </span>
                   <span className="stock-quick-take-chevron" aria-hidden="true">›</span>
                 </button>

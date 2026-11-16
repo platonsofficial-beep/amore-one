@@ -15,6 +15,33 @@ import { InventoryCountCorrectionReview } from './InventoryCountCorrectionReview
 import { staffShelfCountPresentation } from '../../lib/staffShelfCount'
 import { formatVenueDateTime } from '../../lib/timeFormatUtils'
 import { t } from '../../i18n/i18n'
+import { translateStockPlaceName } from '../../lib/stockLabels'
+
+function translateCountProgress(label) {
+  const text = `${label ?? ''}`
+  const items = /^(\d+) \/ (\d+) items counted$/.exec(text)
+  if (items) {
+    return t('{{counted}} / {{total}} items counted', {
+      count: Number(items[1]),
+      counted: items[1],
+      total: items[2],
+    })
+  }
+  const locations = /^(\d+) \/ (\d+) locations$/.exec(text)
+  if (locations) {
+    return t('{{completed}} / {{total}} locations', {
+      completed: locations[1],
+      total: locations[2],
+    })
+  }
+  if (
+    text === 'All locations completed · Waiting for Finish'
+    || text === 'All locations completed'
+    || text === 'No items yet'
+    || text === 'No locations'
+  ) return t(text)
+  return text
+}
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
@@ -23,12 +50,12 @@ function formatSessionDate(value, timeZone = '') {
 }
 
 function formatProgress(session) {
-  if (session?.progressLabel) return session.progressLabel
+  if (session?.progressLabel) return translateCountProgress(session.progressLabel)
   // Fallback for older payloads
   const total = Number(session?.totalLocations) || 0
   const completed = Number(session?.completedLocations) || 0
   if (total <= 0) return t("No locations")
-  return `${completed} / ${total} locations`
+  return t('{{completed}} / {{total}} locations', { completed, total })
 }
 
 function sessionSearchHaystack(session) {
@@ -52,9 +79,10 @@ function filterCountSessions(sessions, searchTerm = '') {
 
 function formatLocations(session) {
   const keys = Array.isArray(session?.locations) ? session.locations.filter(Boolean) : []
-  if (keys.length === 0) return '—'
-  if (keys.length <= 3) return keys.join(', ')
-  return `${keys.slice(0, 3).join(', ')} +${keys.length - 3}`
+  const names = keys.map((key) => translateStockPlaceName(key))
+  if (names.length === 0) return '—'
+  if (names.length <= 3) return names.join(', ')
+  return `${names.slice(0, 3).join(', ')} +${names.length - 3}`
 }
 
 /** P8.23.0 — Home/card status: Reversed replaces Posted when reversedAt is set. */
@@ -68,6 +96,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
   const shelfCount = staffShelfCountPresentation(session)
   const title = shelfCount?.title || session.countTypeLabel
+  const titleLabel = title ? t(title) : title
   const canDelete = typeof onDelete === 'function' && session?.status !== 'posted'
   const statusLabel = formatInventoryCountSessionStatusLabel(session)
   const isReversed = Boolean(`${session?.reversedAt ?? ''}`.trim())
@@ -75,13 +104,13 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
   return (
     <>
       <div className="inventory-count-session-card-top">
-        <strong className="inventory-count-session-card-title">{title}</strong>
+        <strong className="inventory-count-session-card-title">{titleLabel}</strong>
         <div className="inventory-count-session-card-top-end">
           <span
             className={`inventory-count-session-pill is-status${isReversed ? ' is-reversed' : ''}`.trim()}
             data-inventory-count-home-status={isReversed ? 'reversed' : `${session?.status ?? ''}`.trim() || 'unknown'}
           >
-            {statusLabel}
+            {statusLabel === '—' ? statusLabel : t(statusLabel)}
           </span>
           {canDelete ? (
             <button

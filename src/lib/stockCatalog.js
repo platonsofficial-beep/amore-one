@@ -138,12 +138,12 @@ const LEGACY_STOCK_CATEGORY_MAP = {
 }
 
 const LEGACY_STOCK_TYPE_MAP = {
-  'red wine': t("Red Wine"),
-  'white wine': t("White Wine"),
-  'rosé wine': t("Rosé Wine"),
-  'sparkling wine': t("Sparkling Wine"),
+  'red wine': 'Red Wine',
+  'white wine': 'White Wine',
+  'rosé wine': 'Rosé Wine',
+  'sparkling wine': 'Sparkling Wine',
   champagne: 'Champagne',
-  'dessert wine': t("Dessert Wine"),
+  'dessert wine': 'Dessert Wine',
   'fortified wine': 'Other',
   lager: 'Beer',
   ipa: 'Beer',
@@ -151,17 +151,17 @@ const LEGACY_STOCK_TYPE_MAP = {
   stout: 'Beer',
   cider: 'Beer',
   'non-alcoholic beer': 'Beer',
-  soda: t("Soda / Tonic"),
-  tonic: t("Soda / Tonic"),
-  cola: t("Soft Drink"),
-  lemonade: t("Soft Drink"),
+  soda: 'Soda / Tonic',
+  tonic: 'Soda / Tonic',
+  cola: 'Soft Drink',
+  lemonade: 'Soft Drink',
   juice: 'Juice',
-  'energy drink': t("Energy Drink"),
+  'energy drink': 'Energy Drink',
   water: 'Water',
   'sparkling water': 'Water',
   mezcal: 'Tequila',
-  liqueur: t("Vermouth & Liqueur"),
-  vermouth: t("Vermouth & Liqueur"),
+  liqueur: 'Vermouth & Liqueur',
+  vermouth: 'Vermouth & Liqueur',
   brandy: 'Cognac',
   whiskey: 'Whiskey',
 }
@@ -270,13 +270,13 @@ export const STOCK_DEFAULT_UNIT_BY_CATEGORY = {
 export const STOCK_DEFAULT_LOCATION_BY_CATEGORY = {
   Spirits: 'Bar',
   'Syrups & Purées': 'Bar',
-  Beverages: t("Main Storage"),
-  Wine: t("Wine Storage"),
+  Beverages: 'Main Storage',
+  Wine: 'Wine Storage',
   Fresh: 'Fridge',
   Vegetables: 'Fridge',
   'Meat and Seafood': 'Fridge',
-  Consumables: t("Main Storage"),
-  Other: t("Main Storage"),
+  Consumables: 'Main Storage',
+  Other: 'Main Storage',
 }
 
 export function normalizeStockCategory(category) {
@@ -321,7 +321,7 @@ export function getDefaultUnitForCategory(category) {
 
 export function getDefaultLocationForCategory(category) {
   const normalized = normalizeStockCategory(category)
-  return STOCK_DEFAULT_LOCATION_BY_CATEGORY[normalized] ?? t("Main Storage")
+  return STOCK_DEFAULT_LOCATION_BY_CATEGORY[normalized] ?? 'Main Storage'
 }
 
 export function resolveStockItemType(item) {
@@ -608,7 +608,7 @@ export function stockFormToPayload(form) {
     category: normalizeStockCategory(form.category),
     itemType: `${form.itemType ?? ''}`.trim() || 'Other',
     supplier: `${form.supplier ?? ''}`.trim(),
-    storageLocation: `${form.storageLocation ?? ''}`.trim() || t("Main Storage"),
+    storageLocation: `${form.storageLocation ?? ''}`.trim() || 'Main Storage',
     unit: resolveStockFormUnitForSave(form),
     size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),
