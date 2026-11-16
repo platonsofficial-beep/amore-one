@@ -20,7 +20,12 @@ export function isIosDevice() {
     || (platform === 'MacIntel' && maxTouchPoints > 1)
 }
 
+function isDemoCapture() {
+  return import.meta.env?.VITE_AUTH_DISABLED === 'true'
+}
+
 export function canShowIosInstallHint() {
+  if (isDemoCapture()) return false
   if (typeof window === 'undefined') return false
   if (isStandaloneDisplayMode()) return false
   if (!isIosDevice()) return false
@@ -32,6 +37,7 @@ export function dismissIosInstallHint() {
 }
 
 export function canShowInstallPrompt(dismissed = false) {
+  if (isDemoCapture()) return false
   return !dismissed && !isStandaloneDisplayMode()
 }
 

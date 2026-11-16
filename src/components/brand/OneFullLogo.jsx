@@ -7,7 +7,7 @@ export function OneFullLogo({ compact = false }) {
       <div className="one-full-logo-art">
         <img src="/brand/one-full-logo.svg" alt={t("ONE")} />
       </div>
-      <p className="one-full-logo-tagline">{ONE_TAGLINE}</p>
+      <p className="one-full-logo-tagline">{t(ONE_TAGLINE)}</p>
     </div>
   )
 }

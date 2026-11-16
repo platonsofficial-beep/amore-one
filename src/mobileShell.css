@@ -5544,7 +5544,7 @@
 
 .host-queue-toolbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -5558,13 +5558,14 @@
 
 .host-queue-toolbar-btn:nth-child(3) {
   flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
+  min-width: max-content;
+  overflow: visible;
 }
 
 .host-queue-toolbar-btn:nth-child(3) .host-queue-toolbar-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
   min-width: 0;
 }
 

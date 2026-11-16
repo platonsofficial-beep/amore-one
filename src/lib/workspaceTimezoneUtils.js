@@ -20,6 +20,11 @@ const CURATED_TIMEZONE_GROUPS = [
         aliases: ['greece', 'gr', 'hellas', 'eet'],
       },
       {
+        value: 'Europe/Lisbon',
+        cityLabel: 'Lisbon',
+        aliases: ['portugal', 'pt', 'lisboa', 'wet', 'west'],
+      },
+      {
         value: 'Europe/London',
         cityLabel: 'London',
         aliases: ['united kingdom', 'uk', 'gb', 'great britain', 'england', 'gmt', 'bst'],
@@ -134,6 +139,7 @@ const EXTENDED_SEARCH_TIMEZONES = [
 const VENUE_TIMEZONE_RULES = [
   { timeZone: 'Europe/Nicosia', countries: ['cyprus', 'cy'], cities: ['nicosia'] },
   { timeZone: 'Europe/Athens', countries: ['greece', 'gr', 'hellas'], cities: ['athens'] },
+  { timeZone: 'Europe/Lisbon', countries: ['portugal', 'pt'], cities: ['lisbon', 'lisboa'] },
   { timeZone: 'Europe/London', countries: ['united kingdom', 'uk', 'gb', 'great britain', 'england'], cities: ['london'] },
   { timeZone: 'Europe/Paris', countries: ['france', 'fr'], cities: ['paris'] },
   { timeZone: 'Europe/Berlin', countries: ['germany', 'de'], cities: ['berlin'] },

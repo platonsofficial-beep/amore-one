@@ -16956,9 +16956,10 @@ function App() {
     const enriched = enrichTeamTodayGroups(teamTodayGroups, {
       liveFloor: liveFloorState,
       now: localNow,
+      timeZone: workspaceTimeZone,
     })
     return applyCoverageHintsToGroups(enriched, teamTodayDisplayCoverageBreakdown)
-  }, [teamTodayGroups, liveFloorState, localNow, teamTodayDisplayCoverageBreakdown])
+  }, [teamTodayGroups, liveFloorState, localNow, workspaceTimeZone, teamTodayDisplayCoverageBreakdown])
 
   const teamTodayStatus = useMemo(() => buildTeamTodayStatus({
     liveFloor: liveFloorState,
@@ -25511,7 +25512,7 @@ function App() {
         <div className="brand-block">
           <img src="/brand/one-mark.svg" alt="" className="brand-product-mark" />
           <p className="brand-wordmark">{t("ONE")}</p>
-          <p className="brand-tagline">{ONE_TAGLINE}</p>
+          <p className="brand-tagline">{t(ONE_TAGLINE)}</p>
           <h1
             className="brand-business-name"
             title={brandDisplay.businessName || undefined}

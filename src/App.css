@@ -75,9 +75,9 @@
   margin: 0;
   width: 100%;
   color: var(--one-gold);
-  font-size: 0.56rem;
+  font-size: 0.52rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.04em;
   line-height: 1.35;
   text-align: center;
 }
@@ -29347,8 +29347,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .one-full-logo.is-compact .one-full-logo-tagline {
-  font-size: 0.58rem;
-  letter-spacing: 0.14em;
+  max-width: 18ch;
+  font-size: 0.52rem;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
 }
 
 .auth-brand {
@@ -54319,16 +54321,11 @@ summary:focus-visible {
 
 .manager-portrait-seatings {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 8px;
   margin: 8px 0;
-  /* Phones paint the horizontal indicator on the scrollport edge. */
-  padding-bottom: 12px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-inline: 8px;
-  scrollbar-color: var(--one-scrollbar-thumb) transparent;
+  padding-bottom: 4px;
+  overflow: visible;
 }
 
 .manager-portrait-seatings::-webkit-scrollbar {

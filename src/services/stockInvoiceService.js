@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
 import { isDemoMode } from '../lib/demoMediaDataset'
+import { demoInvoicePaperUrl } from '../lib/stockInvoicePreview'
 import { fallbackScanResult } from '../lib/stockInvoiceScan'
 import { buildInvoiceStoragePath } from '../lib/stockInvoice'
 
@@ -179,7 +180,7 @@ function rememberDemoInvoice({ workspaceId, orderId, draft, files }) {
       storagePath: '',
       contentType: file.contentType,
       fileName: file.fileName || '',
-      previewUrl: file.localUrl || '',
+      previewUrl: demoInvoicePaperUrl(),
     })),
     lines: (draft?.lines ?? []).map((line) => ({
       name: line.name,

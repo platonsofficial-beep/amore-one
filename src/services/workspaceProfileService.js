@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
+import { isDemoMode } from '../lib/demoMediaDataset'
+import { getLocale, t } from '../i18n/i18n'
 import {
   getDefaultWorkspaceCurrency,
   getDefaultWorkspaceTimezone,
@@ -87,10 +89,19 @@ function normalizeProfile(profile = {}) {
   }
 }
 
+function applyDemoVenueProfile(profile) {
+  if (!isDemoMode() || !profile) return profile
+  const next = { ...profile }
+  if (getLocale() === 'en') next.timezone = 'Europe/Lisbon'
+  const role = `${next.managerRole ?? ''}`
+  if (getLocale() === 'el' && /manager/i.test(role)) next.managerRole = t('General Manager')
+  return next
+}
+
 function mapWorkspaceProfile(record) {
   if (!record) return { ...EMPTY_WORKSPACE_PROFILE }
 
-  return normalizeProfile({
+  return applyDemoVenueProfile(normalizeProfile({
     id: record.id ?? null,
     businessName: record.business_name ?? record.businessName ?? '',
     managerName: record.manager_name ?? record.managerName ?? '',
@@ -103,7 +114,7 @@ function mapWorkspaceProfile(record) {
     city: record.city ?? '',
     defaultPhoneCountryCode: record.default_phone_country_code ?? record.defaultPhoneCountryCode ?? '',
     reservationAutoCloseTime: record.reservation_auto_close_time ?? record.reservationAutoCloseTime,
-  })
+  }))
 }
 
 function serializeWorkspaceProfile(profile, workspaceId = '') {

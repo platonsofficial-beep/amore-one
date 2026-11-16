@@ -10,11 +10,15 @@ function buildOnShiftCard(onShiftSummary = '') {
   let tone = 'muted'
 
   const workingMatch = line.match(/^(\d+)\s+working now$/i)
-  if (workingMatch) {
-    const count = Number(workingMatch[1])
+  const scheduledMatch = line.match(/(\d+)\s+on shift/i)
+  if (workingMatch || scheduledMatch) {
+    const count = Number((workingMatch || scheduledMatch)[1])
+    const clockedMatch = line.match(/(\d+)\s+clocked in/i)
     primary = count === 1 ? '1 employee' : `${count} employees`
-    secondary = 'Active now'
-    tone = 'live'
+    secondary = clockedMatch
+      ? `${clockedMatch[1]} clocked in`
+      : (count > 0 ? 'Active now' : 'No active shifts')
+    tone = count > 0 ? 'live' : 'muted'
   } else if (line === 'Schedule not published') {
     secondary = line
   }
