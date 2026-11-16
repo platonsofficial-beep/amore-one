@@ -832,9 +832,11 @@ export function StockOrderDetailDrawer({
                   {t('when the full remaining amount arrived.')}
                 </p>
                 <p>
-                  {t('{{unitsLabel}} still outstanding across {{count}} products.', {
-                    count: displayItems.length,
-                    unitsLabel: `${receiveSummary.remainingTotal} ${t(receiveSummary.remainingTotal === 1 ? 'unit' : 'units')}`,
+                  {t(receiveSummary.remainingTotal === 1
+                    ? '{{units}} unit still outstanding across {{products}}.'
+                    : '{{units}} units still outstanding across {{products}}.', {
+                    units: receiveSummary.remainingTotal,
+                    products: t('{{count}} products', { count: displayItems.length }),
                   })}
                 </p>
                 <label className="stock-form-field">

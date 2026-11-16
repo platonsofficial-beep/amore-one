@@ -4246,6 +4246,8 @@
   "{{unitsLabel}} still outstanding across {{count}} products.": "{{unitsLabel}} still outstanding across {{count}} products.",
   "{{unitsLabel}} still outstanding across {{count}} products._one": "{{unitsLabel}} still outstanding across {{count}} product.",
   "{{unitsLabel}} still outstanding across {{count}} products._other": "{{unitsLabel}} still outstanding across {{count}} products.",
+  "{{units}} unit still outstanding across {{products}}.": "{{units}} unit still outstanding across {{products}}.",
+  "{{units}} units still outstanding across {{products}}.": "{{units}} units still outstanding across {{products}}.",
   "Review receive": "Review receive",
   "Review receive — enter quantities": "Review receive — enter quantities",
   "Received {{received}} / Ordered {{ordered}}": "Received {{received}} / Ordered {{ordered}}",

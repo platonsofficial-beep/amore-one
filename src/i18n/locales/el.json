@@ -4246,6 +4246,8 @@
   "{{unitsLabel}} still outstanding across {{count}} products.": "{{unitsLabel}} ακόμα εκκρεμούν σε {{count}} προϊόντα.",
   "{{unitsLabel}} still outstanding across {{count}} products._one": "{{unitsLabel}} ακόμα εκκρεμεί σε {{count}} προϊόν.",
   "{{unitsLabel}} still outstanding across {{count}} products._other": "{{unitsLabel}} ακόμα εκκρεμούν σε {{count}} προϊόντα.",
+  "{{units}} unit still outstanding across {{products}}.": "Εκκρεμεί ακόμα {{units}} μονάδα σε {{products}}.",
+  "{{units}} units still outstanding across {{products}}.": "Εκκρεμούν ακόμα {{units}} μονάδες σε {{products}}.",
   "Review receive": "Έλεγχος παραλαβής",
   "Review receive — enter quantities": "Έλεγχος παραλαβής — βάλε ποσότητες",
   "Received {{received}} / Ordered {{ordered}}": "Παραλήφθηκαν {{received}} / Παραγγέλθηκαν {{ordered}}",
