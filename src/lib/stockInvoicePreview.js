@@ -57,9 +57,31 @@ export function buildStockInvoicePreviewOrders() {
   return [sent, received]
 }
 
-export function previewInvoiceThumb() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="210" viewBox="0 0 160 210"><rect width="160" height="210" fill="#18283d"/><rect x="16" y="18" width="128" height="10" fill="#f3d27a"/><rect x="16" y="40" width="90" height="6" fill="#a9c0d6"/><rect x="16" y="56" width="128" height="4" fill="#21344c"/><rect x="16" y="70" width="128" height="4" fill="#21344c"/><rect x="16" y="84" width="128" height="4" fill="#21344c"/></svg>`
+/** Paper invoice for the Lisbon Drinks demo capture. Not a live supplier file. */
+export function demoInvoicePaperUrl() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="440" viewBox="0 0 320 440">
+    <rect width="320" height="440" fill="#f6f1e6"/>
+    <rect x="18" y="18" width="284" height="404" fill="#fffdf8" stroke="#d7c7a3"/>
+    <text x="36" y="58" font-family="Georgia, serif" font-size="22" fill="#1c2740">&#8203;Lisbon Drinks</text>
+    <text x="36" y="80" font-family="Georgia, serif" font-size="12" fill="#7a6848">&#8203;Rua da Prata 18, Lisbon</text>
+    <text x="36" y="112" font-family="Georgia, serif" font-size="13" fill="#1c2740">&#8203;Invoice INV-2041</text>
+    <text x="200" y="112" font-family="Georgia, serif" font-size="13" fill="#1c2740">&#8203;13 Nov 2026</text>
+    <line x1="36" y1="128" x2="284" y2="128" stroke="#e4d7bc"/>
+    <text x="36" y="156" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;Cola 330ml</text>
+    <text x="230" y="156" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;12 x 1.20</text>
+    <text x="36" y="180" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;Subtotal</text>
+    <text x="230" y="180" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;EUR 14.40</text>
+    <text x="36" y="204" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;VAT</text>
+    <text x="230" y="204" font-family="Georgia, serif" font-size="13" fill="#243044">&#8203;EUR 2.74</text>
+    <line x1="36" y1="222" x2="284" y2="222" stroke="#e4d7bc"/>
+    <text x="36" y="250" font-family="Georgia, serif" font-size="16" fill="#1c2740">&#8203;Total</text>
+    <text x="214" y="250" font-family="Georgia, serif" font-size="16" fill="#1c2740">&#8203;EUR 17.14</text>
+  </svg>`
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+export function previewInvoiceThumb() {
+  return demoInvoicePaperUrl()
 }
 
 export function buildPreviewInvoiceDraft() {

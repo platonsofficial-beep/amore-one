@@ -21,6 +21,13 @@ describe('buildTodayStatusCardsFromSummary', () => {
       secondary: 'Active now',
       tone: 'live',
     })
+    expect(buildTodayStatusCardsFromSummary({
+      onShiftSummary: '1 on shift · 0 clocked in',
+    })[0]).toMatchObject({
+      primary: '1 employee',
+      secondary: '0 clocked in',
+      tone: 'live',
+    })
     expect(cards[1]).toMatchObject({
       id: 'reservations',
       primary: '7 bookings',

@@ -59,7 +59,7 @@ import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockActionIcon } from './StockActionIcon'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
-import { formatInventoryQuantityNumber, formatInventoryUnitLabel } from '../../lib/inventoryUnitDisplay'
+import { formatInventoryQuantityNumber, formatInventoryUnitLabelForQuantity } from '../../lib/inventoryUnitDisplay'
 import { StockDashboardMovementDialog } from './StockDashboardMovementDialog'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
@@ -258,7 +258,7 @@ function StockItemCard({
 
       <p className={`stock-item-qty-figure tone-${item.status}`}>
         <span className="stock-item-qty-number">{formatInventoryQuantityNumber(item.currentQuantity)}</span>
-        <span className="stock-item-qty-unit">{formatInventoryUnitLabel(item.unit) || itemType}</span>
+        <span className="stock-item-qty-unit">{formatInventoryUnitLabelForQuantity(item.currentQuantity, item.unit) || itemType}</span>
       </p>
       <div className="stock-item-level" aria-hidden="true">
         <span className={`stock-item-level-fill tone-${item.status}`} style={{ width: `${level}%` }} />

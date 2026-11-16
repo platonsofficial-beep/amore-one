@@ -43,7 +43,7 @@ import {
   openStockOrderPrintWindow,
   resolveStockOrderSupplierContact,
 } from '../../lib/stockOrderSend'
-import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
+import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabelForQuantity } from '../../lib/stockUtils'
 import { listReceiveDestinationStorages } from '../../services/workspaceStorageService'
 import { LoadingButton } from '../LoadingButton'
 import { OverlayPortal } from './OverlayPortal'
@@ -164,7 +164,7 @@ function DraftOrderItem({
             <span className="stock-order-status-badge tone-muted">{t("Inactive")}</span>
           ) : null}
         </div>
-        <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
+        <span>{formatInventoryUnitLabelForQuantity(item.quantity, item.unit) || t("units")}</span>
       </div>
 
       {isInactive ? (
@@ -293,7 +293,7 @@ function ReceivingOrderItem({
               onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
               aria-label={`Receive now for ${lineName}`}
             />
-            <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
+            <span>{formatInventoryUnitLabelForQuantity(receiveNow === '' ? remaining : receiveNow, item.unit) || t("units")}</span>
           </label>
           <button
             type="button"

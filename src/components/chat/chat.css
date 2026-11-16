@@ -133,7 +133,7 @@
 .chat-thread-header {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 4px;
   min-height: 48px;
   padding: 4px 8px;
@@ -1058,6 +1058,11 @@
   font-size: 1.55rem;
   font-weight: 700;
   letter-spacing: -0.01em;
+  flex: 1 1 auto;
+  min-width: max-content;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: nowrap;
 }
 
 .chat-header-actions {

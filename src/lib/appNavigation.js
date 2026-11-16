@@ -217,7 +217,7 @@ export function getSearchPlaceholder(activeView, {
 } = {}) {
   if (activeView === 'team' && teamSection === 'members') return t('Search employee')
   if (activeView === 'stock' && stockSection === 'orders') return t('Search orders')
-  if (activeView === 'stock' && stockSection === 'dashboard') return t('Search stock item')
+  if (activeView === 'stock' && stockSection === 'dashboard') return t('Search stock items')
   if (activeView === 'stock' && stockSection === 'count') return t('Search counts')
   if (activeView === 'stock' && stockSection === 'storages') return t('Search storages')
   if (activeView === 'stock' && stockSection === 'suppliers') return t('Search supplier')

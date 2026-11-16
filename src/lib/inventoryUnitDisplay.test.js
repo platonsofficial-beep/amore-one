@@ -22,6 +22,10 @@ describe('formatInventoryUnit', () => {
     expect(formatInventoryUnit(2, 'Bottle')).toBe('2 Bottles')
     expect(formatInventoryUnit(6, 'Bottle')).toBe('6 Bottles')
     expect(formatInventoryUnit(0, 'Bottle')).toBe('0 Bottles')
+    expect(formatInventoryUnit(0, 'bag')).toBe('0 Bags')
+    expect(formatInventoryUnit(1, 'bag')).toBe('1 Bag')
+    expect(formatInventoryUnit(4, 'bags')).toBe('4 Bags')
+    expect(formatInventoryUnit(6, 'Btl')).toBe('6 Bottles')
 
     expect(formatInventoryUnit(1, 'Can')).toBe('1 Can')
     expect(formatInventoryUnit(4, 'Can')).toBe('4 Cans')

@@ -1,6 +1,7 @@
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
+import { getWorkspaceNowMinutes } from './employeeTodayStatusUtils'
 import { t } from '../i18n/i18n'
 
 function normalizeDate(value) {
@@ -69,12 +70,13 @@ export function resolveTeamMemberShiftState({
 
 export function enrichTeamTodayGroups(
   groups = [],
-  { liveFloor = {}, now = new Date() } = {},
+  { liveFloor = {}, now = new Date(), timeZone = '' } = {},
 ) {
   const onShiftShiftIds = new Set(
     (liveFloor.onShift ?? []).map((member) => String(member.shiftId)),
   )
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = getWorkspaceNowMinutes(now, timeZone).minutes
+    ?? (now.getHours() * 60 + now.getMinutes())
 
   return (groups ?? []).map((group) => ({
     ...group,

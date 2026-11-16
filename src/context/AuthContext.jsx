@@ -80,7 +80,7 @@ function buildDevMembership(displayName = '') {
     id: 'dev-membership-id',
     workspaceId: 'dev-workspace-id',
     authUserId: DEV_MOCK_USER.id,
-    employeeId: null,
+    employeeId: resolveDevMockRole() === 'staff' ? 'emp-eleni' : null,
     displayName: resolveDemoDisplayName(trimmedName, getLocale()),
     email: DEV_MOCK_USER.email,
     // Local auth-disabled sessions only. ?devRole=staff previews a non-manager.

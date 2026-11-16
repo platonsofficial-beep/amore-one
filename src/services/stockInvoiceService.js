@@ -1,6 +1,16 @@
 import { supabase } from '../lib/supabaseClient'
+import { isDemoMode } from '../lib/demoMediaDataset'
+import { demoInvoicePaperUrl } from '../lib/stockInvoicePreview'
 import { fallbackScanResult } from '../lib/stockInvoiceScan'
 import { buildInvoiceStoragePath } from '../lib/stockInvoice'
+
+/**
+ * Real venues store invoice files in the private Supabase bucket `stock-invoices`
+ * and the tables in supabase/stock_invoices.sql (stock_order_invoices,
+ * stock_order_invoice_files, stock_order_invoice_lines). That SQL is not applied here.
+ * Demo mode keeps the file in memory so the capture flow can finish without the bucket.
+ */
+const demoInvoices = new Map()
 
 export const STOCK_INVOICE_BUCKET = 'stock-invoices'
 const SIGNED_URL_SECONDS = 60 * 60
@@ -99,7 +109,9 @@ function mapInvoice(row, files = [], lines = []) {
 
 export async function loadOrderInvoice(orderId) {
   const id = `${orderId ?? ''}`.trim()
-  if (!id || !supabase) return null
+  if (!id) return null
+  if (isDemoMode() && demoInvoices.has(id)) return demoInvoices.get(id)
+  if (!supabase) return null
   const { data, error } = await supabase
     .from('stock_order_invoices')
     .select('id, order_id, workspace_id, supplier_name, invoice_number, invoice_date, subtotal, vat, total, scanned')
@@ -151,7 +163,37 @@ export async function scanInvoiceFile({ blob, fileName, contentType }) {
   }
 }
 
+function rememberDemoInvoice({ workspaceId, orderId, draft, files }) {
+  const saved = {
+    id: `demo-invoice-${orderId}`,
+    orderId,
+    workspaceId,
+    supplierName: draft?.supplierName || '',
+    invoiceNumber: draft?.invoiceNumber || '',
+    invoiceDate: draft?.invoiceDate || '',
+    subtotal: draft?.subtotal === '' ? null : draft?.subtotal,
+    vat: draft?.vat === '' ? null : draft?.vat,
+    total: draft?.total === '' ? null : draft?.total,
+    scanned: draft?.scanned === true,
+    files: (files ?? []).map((file, index) => ({
+      id: `demo-invoice-${orderId}-file-${index}`,
+      storagePath: '',
+      contentType: file.contentType,
+      fileName: file.fileName || '',
+      previewUrl: demoInvoicePaperUrl(),
+    })),
+    lines: (draft?.lines ?? []).map((line) => ({
+      name: line.name,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+    })),
+  }
+  demoInvoices.set(`${orderId}`, saved)
+  return saved
+}
+
 export async function saveOrderInvoice({ workspaceId, orderId, draft, files }) {
+  if (isDemoMode()) return rememberDemoInvoice({ workspaceId, orderId, draft, files })
   if (!supabase) {
     const error = new Error('Invoice storage is not turned on yet.')
     error.code = 'unavailable'
