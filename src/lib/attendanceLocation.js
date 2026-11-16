@@ -1,3 +1,4 @@
+import { hasLocationConsent } from './attendance'
 import { explainBeforePermission } from './permissionNotice'
 
 const GEO_OPTIONS = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -30,9 +31,12 @@ export function readCurrentPosition(geolocation = globalThis.navigator?.geolocat
 
 /** Explains the location check once, then reads the position (used by clock-in/out). */
 export async function readCurrentPositionWithNotice(geolocation = globalThis.navigator?.geolocation) {
-  const accepted = await explainBeforePermission('location')
-  if (!accepted) {
-    throw Object.assign(new Error('no_location'), { code: 'no_location' })
+  // The clock card already explained the check and stored consent. Don't stack a second dialog.
+  if (!hasLocationConsent()) {
+    const accepted = await explainBeforePermission('location')
+    if (!accepted) {
+      throw Object.assign(new Error('no_location'), { code: 'no_location' })
+    }
   }
   return readCurrentPosition(geolocation)
 }

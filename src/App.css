@@ -603,6 +603,11 @@
   cursor: pointer;
 }
 
+.today-status-premium-card.is-static,
+.today-command-chip.is-static {
+  cursor: default;
+}
+
 .today-status-premium-card.tone-live {
   border-color: color-mix(in srgb, var(--one-success) 24%, transparent);
   background:
@@ -51846,6 +51851,20 @@ summary:focus-visible {
 .attendance-hours-inline dt {
   color: var(--one-text-muted, rgba(244, 239, 228, 0.72));
   font-size: 0.8rem;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .attendance-hours dl {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-hours dl > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
 }
 
 .attendance-hours dd,
@@ -54154,7 +54173,8 @@ summary:focus-visible {
     align-self: stretch;
     padding: 4px 4px 8px;
     gap: 2px;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-right: 1px solid var(--one-gold-line);
     border-bottom: 0;
   }
@@ -54211,9 +54231,10 @@ summary:focus-visible {
   .app-shell:not(.is-mobile-shell) .nav-link > span:last-child {
     flex: 0 1 auto;
     max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
+    white-space: normal;
+    overflow-wrap: anywhere;
     position: static;
     width: auto;
     height: auto;

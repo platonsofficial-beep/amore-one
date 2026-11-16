@@ -16,7 +16,8 @@ export const MANAGER_PHONE_MAX_WIDTH = 760
 /**
  * Phone shell for owners and managers.
  * A sideways phone with a usable landscape canvas (including the first
- * iPhone SE at 568×320) uses the full workspace. A narrow or portrait phone
+ * iPhone SE at 568×320) uses the full workspace, with a compact sidebar
+ * that scrolls instead of clipping Time clock. A narrow or portrait phone
  * uses the bottom-nav shell. Tablets and desktops stay on the workspace shell.
  */
 export function shouldUseManagerPhoneShell(source) {

@@ -184,7 +184,7 @@ export function formatTimelineEventRow(event, nowMinutes = null) {
         timeLabel: event.timeLabel,
         title: event.title,
         detail,
-        meta: endLabel ? `Working · until ${endLabel}` : 'Working',
+        meta: endLabel ? t("Working · until {{time}}", { time: endLabel }) : t("Working"),
         status,
         isFinishedShift: false,
         isCompletedItem: false,

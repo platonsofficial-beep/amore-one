@@ -7,8 +7,8 @@ import {
 
 describe('todayTimelinePresentationUtils', () => {
   it('formats guests with presentation label only', () => {
-    expect(formatTimelineGuestsLine(16)).toBe('👥 16 Guests')
-    expect(formatTimelineGuestsLine(1)).toBe('👥 1 Guest')
+    expect(formatTimelineGuestsLine(16)).toBe('👥 16 guests')
+    expect(formatTimelineGuestsLine(1)).toBe('👥 1 guest')
     expect(formatTimelineGuestsLine(0)).toBe('')
   })
 
@@ -26,7 +26,7 @@ describe('todayTimelinePresentationUtils', () => {
     })
 
     expect(presentation.guestName).toBe('Evie Samaridi')
-    expect(presentation.guestsLine).toBe('👥 16 Guests')
+    expect(presentation.guestsLine).toBe('👥 16 guests')
     expect(presentation.tablesLine).toBe('🪑 T101 • T102 • T103 • T104 • T105')
     expect(presentation.fallbackLine).toBe('')
   })

@@ -16,7 +16,7 @@ function TodayTimelineNowRow({ row }) {
   return (
     <li key={row.key} className="today-timeline-now-row" aria-label={`Current time ${row.label}`}>
       <div className="today-timeline-now">
-        <span>Now {row.label}</span>
+        <span>{t("Now {{time}}", { time: row.label })}</span>
       </div>
     </li>
   )
@@ -157,7 +157,7 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           onClick={() => setShowCompleted((current) => !current)}
           aria-expanded={showCompleted}
         >
-          {showCompleted ? t("Hide completed") : `Show completed (${completedCount})`}
+          {showCompleted ? t("Hide completed") : t("Show completed ({{count}})", { count: completedCount })}
         </button>
       ) : null}
       {showCompleted && completedRows.length > 0 ? (
@@ -175,14 +175,14 @@ export function TodayServiceTimeline({ events, isLoading, now = new Date(), toda
           className="today-timeline-show-all"
           onClick={() => setShowAll(true)}
         >
-          Show all ({totalActiveCount})
+          {t("Show all ({{count}})", { count: totalActiveCount })}
         </button>
       ) : null}
       <div className="today-timeline-legend" aria-label={t("Timeline legend")}>
         {TIMELINE_LEGEND_ITEMS.map((item) => (
           <span key={item.key} className="today-timeline-legend-item">
             <span className="today-timeline-legend-icon" aria-hidden="true">{item.icon}</span>
-            {item.label}
+            {t(item.label)}
           </span>
         ))}
       </div>

@@ -15,12 +15,12 @@ function formatTaskChip(boardOpen = 0, operationsOpen = 0) {
   const operations = Number(operationsOpen) || 0
   const total = board + operations
   if (total <= 0) {
-    return { value: 'Clear', detail: '', tone: 'default' }
+    return { value: t("All clear"), detail: '', tone: 'default' }
   }
 
   const parts = []
-  if (board > 0) parts.push(`${board} board`)
-  if (operations > 0) parts.push(`${operations} ops`)
+  if (board > 0) parts.push(t('{{count}} board', { count: board }))
+  if (operations > 0) parts.push(t('{{count}} ops', { count: operations }))
 
   return {
     value: t('{{count}} Open', { count: total }),

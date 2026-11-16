@@ -4,14 +4,16 @@ import { areaStatus, loadAreaForCard } from '../../lib/loadStatus'
 import { PendingValue } from '../common/DataPending'
 import { t } from '../../i18n/i18n'
 
-function TodayStatusCard({ card, status = 'ready', onSelect, onRetry }) {
+function TodayStatusCard({ card, status = 'ready', onSelect, onRetry, selectable = true }) {
   const isReady = status === 'ready'
+  const interactive = status === 'error' ? typeof onRetry === 'function' : selectable && typeof onSelect === 'function'
+  const Tag = interactive ? 'button' : 'div'
   return (
-    <button
-      type="button"
-      className={`today-status-premium-card tone-${isReady ? (card.tone ?? 'default') : 'default'}${isReady ? '' : ` is-${status}`}`}
+    <Tag
+      type={interactive ? 'button' : undefined}
+      className={`today-status-premium-card tone-${isReady ? (card.tone ?? 'default') : 'default'}${isReady ? '' : ` is-${status}`}${interactive ? '' : ' is-static'}`}
       aria-busy={status === 'loading' ? 'true' : undefined}
-      onClick={() => (status === 'error' ? onRetry?.() : onSelect?.(card.id))}
+      onClick={interactive ? () => (status === 'error' ? onRetry?.() : onSelect?.(card.id)) : undefined}
     >
       <div className="today-status-premium-icon" aria-hidden="true">{card.icon}</div>
       <div className="today-status-premium-copy">
@@ -29,11 +31,11 @@ function TodayStatusCard({ card, status = 'ready', onSelect, onRetry }) {
           </div>
         )}
       </div>
-    </button>
+    </Tag>
   )
 }
 
-export function TodayStatusCards({ statusSummary = {}, showStock = false, onSelect, dataStatus = null, onRetryData }) {
+export function TodayStatusCards({ statusSummary = {}, showStock = false, onSelect, canSelectCard, dataStatus = null, onRetryData }) {
   const cards = useMemo(
     () => buildTodayStatusCardsFromSummary(statusSummary, { showStock }),
     [statusSummary, showStock],
@@ -47,6 +49,7 @@ export function TodayStatusCards({ statusSummary = {}, showStock = false, onSele
           card={card}
           status={areaStatus(dataStatus, loadAreaForCard(card.id))}
           onSelect={onSelect}
+          selectable={typeof canSelectCard === 'function' ? canSelectCard(card.id) : true}
           onRetry={() => onRetryData?.(loadAreaForCard(card.id))}
         />
       ))}

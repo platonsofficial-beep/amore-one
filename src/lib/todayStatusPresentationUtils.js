@@ -1,27 +1,19 @@
 import { t } from '../i18n/i18n'
-function splitSummaryParts(value = '') {
-  return `${value}`.split('·').map((part) => part.trim()).filter(Boolean)
+
+function asCount(value, fallback = 0) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : fallback
 }
 
-function buildOnShiftCard(onShiftSummary = '') {
-  const line = `${onShiftSummary}`.trim()
-  let primary = '0 employees'
-  let secondary = 'No active shifts'
-  let tone = 'muted'
-
-  const workingMatch = line.match(/^(\d+)\s+working now$/i)
-  const scheduledMatch = line.match(/(\d+)\s+on shift/i)
-  if (workingMatch || scheduledMatch) {
-    const count = Number((workingMatch || scheduledMatch)[1])
-    const clockedMatch = line.match(/(\d+)\s+clocked in/i)
-    primary = count === 1 ? '1 employee' : `${count} employees`
-    secondary = clockedMatch
-      ? `${clockedMatch[1]} clocked in`
-      : (count > 0 ? 'Active now' : 'No active shifts')
-    tone = count > 0 ? 'live' : 'muted'
-  } else if (line === 'Schedule not published') {
-    secondary = line
-  }
+function buildOnShiftCard(statusSummary = {}) {
+  const count = asCount(statusSummary.onShiftScheduledCount)
+  const clockedRaw = statusSummary.clockedInCount
+  const clockedIn = clockedRaw == null || clockedRaw === '' ? null : asCount(clockedRaw)
+  const unpublished = statusSummary.scheduleState === 'unpublished'
+  const primary = t('{{count}} employee', { count })
+  let secondary = count > 0 ? t("Active now") : t("No active shifts")
+  if (unpublished) secondary = t("Schedule not published")
+  else if (clockedIn != null) secondary = t('{{count}} clocked in', { count: clockedIn })
 
   return {
     id: 'on-shift',
@@ -29,193 +21,146 @@ function buildOnShiftCard(onShiftSummary = '') {
     title: t("On Shift"),
     primary,
     secondary,
-    tone,
+    tone: count > 0 ? 'live' : 'muted',
   }
 }
 
-function buildTeamCard(teamScheduledSummary = '') {
-  const line = `${teamScheduledSummary}`.trim()
-  const parts = splitSummaryParts(line)
-
-  if (!line || line.startsWith('No shifts')) {
+function buildTeamCard(statusSummary = {}) {
+  const scheduled = asCount(statusSummary.scheduledStaff)
+  const gaps = asCount(statusSummary.coverageGaps)
+  if (scheduled <= 0) {
     return {
       id: 'team',
       icon: '👥',
-      title: 'Team',
+      title: t("Team"),
       primary: t("No schedule today"),
-      secondary: line || t("No shifts scheduled today"),
+      secondary: t("No shifts scheduled today"),
       tone: 'muted',
     }
   }
 
-  const scheduledMatch = parts[0]?.match(/^(\d+)\s+scheduled/i)
   return {
     id: 'team',
     icon: '👥',
-    title: 'Team',
-    primary: scheduledMatch ? `${scheduledMatch[1]} scheduled` : parts[0],
-    secondary: parts[1] || (parts[0]?.includes('today') ? t("On roster today") : ''),
-    tone: /open shift|uncovered shift/i.test(parts[1] ?? '') || parts[1]?.includes('gap') ? 'warning' : 'default',
+    title: t("Team"),
+    primary: t('{{count}} scheduled', { count: scheduled }),
+    secondary: gaps > 0
+      ? t('{{count}} uncovered shift', { count: gaps })
+      : t("On roster today"),
+    tone: gaps > 0 ? 'warning' : 'default',
   }
 }
 
-function buildReservationsCard(reservationsSummaryLine = '') {
-  const line = `${reservationsSummaryLine}`.trim()
-  const parts = splitSummaryParts(line)
-
-  if (line.includes('not connected')) {
+function buildReservationsCard(statusSummary = {}) {
+  if (statusSummary.reservationsConnected === false) {
     return {
       id: 'reservations',
       icon: '🍽',
-      title: 'Reservations',
+      title: t("Reservations"),
       primary: '—',
-      secondary: line,
+      secondary: t("Reservations not connected"),
       tone: 'muted',
     }
   }
 
-  if (!line || line.startsWith('No reservations')) {
-    return {
-      id: 'reservations',
-      icon: '🍽',
-      title: 'Reservations',
-      primary: t('{{count}} booking', { count: 0 }),
-      secondary: line || t("No reservations today"),
-      tone: 'muted',
-    }
-  }
-
-  const bookingPart = parts.find((part) => /booking/i.test(part)) ?? parts[0] ?? ''
-  const coverPart = parts.find((part) => /cover/i.test(part)) ?? ''
-  const nextPart = parts.find((part) => part.startsWith('Next')) ?? ''
-  const bookingCount = bookingPart.match(/(\d+)/)?.[1]
+  const bookings = asCount(statusSummary.reservationBookings)
+  const covers = asCount(statusSummary.reservationCovers)
+  const nextTime = `${statusSummary.reservationNextTime ?? ''}`.trim()
+  const secondary = [
+    covers > 0 ? t('{{count}} cover', { count: covers }) : '',
+    nextTime ? t("Next {{time}}", { time: nextTime }) : (bookings <= 0 ? t("No reservations today") : ''),
+  ].filter(Boolean).join(' · ')
 
   return {
     id: 'reservations',
     icon: '🍽',
-    title: 'Reservations',
-    primary: bookingCount
-      ? t('{{count}} booking', { count: Number(bookingCount) })
-      : bookingPart,
-    secondary: [coverPart, nextPart].filter(Boolean).join(' · '),
+    title: t("Reservations"),
+    primary: t('{{count}} booking', { count: bookings }),
+    secondary,
     tone: 'default',
   }
 }
 
-function buildTasksCard(tasksSummary = '') {
-  const line = `${tasksSummary}`.trim()
-  const parts = splitSummaryParts(line)
-
-  if (line.includes('not connected')) {
+function buildTasksCard(statusSummary = {}) {
+  if (statusSummary.tasksConnected === false) {
     return {
       id: 'tasks',
       icon: '✅',
-      title: 'Tasks',
+      title: t("Tasks"),
       primary: '—',
-      secondary: line,
+      secondary: t("Tasks not connected"),
       tone: 'muted',
     }
   }
 
-  if (!line || line.startsWith('No open tasks')) {
-    return {
-      id: 'tasks',
-      icon: '✅',
-      title: 'Tasks',
-      primary: 'Clear',
-      secondary: line || t("No open tasks today"),
-      tone: 'default',
-    }
-  }
-
-  const openMatch = parts[0]?.match(/(\d+)\s+open/i)
-    ?? line.match(/(\d+)\s+open task/i)
-  const overduePart = parts.find((part) => /overdue/i.test(part))
-  const donePart = parts.find((part) => /done today/i.test(part))
-
-  if (openMatch) {
-    const openCount = Number(openMatch[1])
-    return {
-      id: 'tasks',
-      icon: '✅',
-      title: 'Tasks',
-      primary: `${openCount} Open`,
-      secondary: overduePart || donePart || t("All caught up"),
-      tone: openCount > 0 || overduePart ? 'warning' : 'default',
-    }
-  }
-
-  if (overduePart) {
-    const overdueCount = overduePart.match(/(\d+)/)?.[1]
-    return {
-      id: 'tasks',
-      icon: '✅',
-      title: 'Tasks',
-      primary: '0 Open',
-      secondary: overdueCount ? `${overdueCount} Overdue` : overduePart,
-      tone: 'warning',
-    }
-  }
+  const open = asCount(statusSummary.tasksOpen)
+  const overdue = asCount(statusSummary.tasksOverdue)
+  const done = asCount(statusSummary.tasksDone)
+  const secondary = overdue > 0
+    ? t('{{count}} overdue', { count: overdue })
+    : done > 0
+      ? t('{{count}} done today', { count: done })
+      : t("No open tasks today")
 
   return {
     id: 'tasks',
     icon: '✅',
-    title: 'Tasks',
-    primary: 'Clear',
-    secondary: parts[0] || line,
-    tone: 'default',
+    title: t("Tasks"),
+    primary: open > 0 ? t('{{count}} Open', { count: open }) : t("All clear"),
+    secondary,
+    tone: open > 0 || overdue > 0 ? 'warning' : 'default',
   }
 }
 
-function buildStockCard(stockSummaryLine = '') {
-  const line = `${stockSummaryLine}`.trim()
-  if (!line) return null
-
-  if (line.includes('OK')) {
-    return {
-      id: 'stock',
-      icon: '📦',
-      title: 'Stock',
-      primary: t("No alerts"),
-      secondary: line,
-      tone: 'default',
-    }
+function buildStockCard(statusSummary = {}) {
+  if (!`${statusSummary.stockSummaryLine ?? ''}`.trim() && statusSummary.stockOut == null && statusSummary.stockLow == null) {
+    return null
   }
-
-  if (line === 'No products yet') {
+  const out = asCount(statusSummary.stockOut)
+  const low = asCount(statusSummary.stockLow)
+  if (statusSummary.stockEmpty) {
     return {
       id: 'stock',
       icon: '📦',
-      title: 'Stock',
-      primary: 'Empty',
-      secondary: line,
+      title: t("Stock"),
+      primary: t("Empty"),
+      secondary: t("No products yet"),
       tone: 'muted',
     }
   }
-
+  if (out <= 0 && low <= 0) {
+    return {
+      id: 'stock',
+      icon: '📦',
+      title: t("Stock"),
+      primary: t("No alerts"),
+      secondary: t("Stock levels OK"),
+      tone: 'default',
+    }
+  }
   return {
     id: 'stock',
     icon: '📦',
-    title: 'Stock',
-    primary: line,
-    secondary: '',
-    tone: line.includes('out') ? 'alert' : 'warning',
+    title: t("Stock"),
+    primary: t('{{count}} out', { count: out }),
+    secondary: t('{{count}} low', { count: low }),
+    tone: out > 0 ? 'alert' : 'warning',
   }
 }
 
 export function buildTodayStatusCardsFromSummary(statusSummary = {}, { showStock = false } = {}) {
   const cards = [
-    buildOnShiftCard(statusSummary.onShiftSummary),
-    buildReservationsCard(statusSummary.reservationsSummaryLine),
-    buildTasksCard(statusSummary.tasksSummary),
+    buildOnShiftCard(statusSummary),
+    buildReservationsCard(statusSummary),
+    buildTasksCard(statusSummary),
   ]
 
-  if (showStock && statusSummary.stockSummaryLine) {
-    const stockCard = buildStockCard(statusSummary.stockSummaryLine)
+  if (showStock) {
+    const stockCard = buildStockCard(statusSummary)
     if (stockCard) cards.push(stockCard)
   }
 
-  cards.push(buildTeamCard(statusSummary.teamScheduledSummary))
+  cards.push(buildTeamCard(statusSummary))
   return cards
 }
 
