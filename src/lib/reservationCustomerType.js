@@ -7,13 +7,14 @@ export const GUEST_TYPE_OPTIONS = [
   { value: 'Regular', label: 'Normal' },
   { value: 'VIP', label: 'VIP' },
   { value: 'VVIP', label: 'VVIP' },
-  { value: t("House Guest"), label: t("House Guest") },
+  { value: 'House Guest', label: 'House Guest' },
 ]
 
 export function getGuestTypeLabel(customerType) {
   const normalized = normalizeStoredCustomerType(customerType)
-  const option = GUEST_TYPE_OPTIONS.find((entry) => entry.value === normalized)
-  return option?.label ?? 'Normal'
+  if (normalized === 'VIP' || normalized === 'VVIP') return normalized
+  if (normalized === 'House Guest') return t("House Guest")
+  return t("Normal")
 }
 
 export function normalizeStoredCustomerType(customerType) {

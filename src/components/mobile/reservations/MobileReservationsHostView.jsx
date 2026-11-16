@@ -495,7 +495,7 @@ export function MobileReservationsHostView({
             type="button"
             className="mobile-host-reservations-walk-in-btn"
             onClick={handleOpenWalkInCreate}
-            disabled={isSaving}
+            disabled={isSaving || isLoading || isHostLoadFailureMessage(noticeMessage)}
             data-testid="host-walk-in-create-btn"
             data-help="reservations.walk-in"
           >
@@ -505,7 +505,7 @@ export function MobileReservationsHostView({
             type="button"
             className="mobile-host-reservations-add-btn"
             onClick={handleOpenStandardCreate}
-            disabled={isSaving}
+            disabled={isSaving || isLoading || isHostLoadFailureMessage(noticeMessage)}
             data-testid="host-standard-create-btn"
             data-help="reservations.add"
           >

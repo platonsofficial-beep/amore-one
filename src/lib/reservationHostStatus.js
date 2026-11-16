@@ -310,13 +310,13 @@ export function getPartialSeatCount(reservation) {
 /** "Seated 2/4" when the count is known, otherwise "Seated · partly". */
 export function formatPartialSeatLabel(reservation) {
   const count = getPartialSeatCount(reservation)
-  return count ? `Seated ${count.seated}/${count.party}` : t("Seated · partly")
+  return count ? t("Seated {{seated}}/{{party}}", { seated: count.seated, party: count.party }) : t("Seated · partly")
 }
 
 /** "2 to come" when the count is known, otherwise ''. */
 export function formatPartialSeatRemaining(reservation) {
   const count = getPartialSeatCount(reservation)
-  return count ? `${count.remaining} to come` : ''
+  return count ? t("{{count}} to come", { count: count.remaining }) : ''
 }
 
 export function getHostListCompactStatusLabel(status) {
@@ -350,7 +350,7 @@ export function getHostListCompactStatusPresentation(
     const delayMinutes = getReservationLateDelayMinutes(reservation, nowMinutes, todayKey)
     if (delayMinutes != null) {
       return {
-        label: `Late ${delayMinutes}m`,
+        label: t("Late {{count}}m", { count: delayMinutes }),
         delayMinutes,
         severity: delayMinutes >= 20 ? 'severe' : 'mild',
       }

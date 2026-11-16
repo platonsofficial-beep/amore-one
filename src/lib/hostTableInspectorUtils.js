@@ -38,9 +38,11 @@ export function buildHostTableInspectorContextStrip(rows = []) {
 
     return {
       kind: 'occupied',
-      contextLine: timeLabel ? `🟢 In service · Since ${timeLabel}` : '🟢 In service',
+      contextLine: timeLabel
+        ? `🟢 ${t("In service · Since {{time}}", { time: timeLabel })}`
+        : `🟢 ${t("In service")}`,
       contextAccessibleLabel: timeLabel
-        ? `Table in service since ${timeLabel}`
+        ? t("Table in service since {{time}}", { time: timeLabel })
         : t("Table in service"),
       guestLine: guestName,
     }

@@ -327,8 +327,14 @@ export function buildTodayCommandTimeline({
   ))
 }
 
+const TODAY_BOOKING_EXCLUDED = new Set(['Cancelled', 'Not Shown', 'Rejected'])
+
+export function countsTowardTodayBookings(reservation) {
+  return !TODAY_BOOKING_EXCLUDED.has(normalizeReservationStatus(reservation?.status))
+}
+
 export function buildTodayReservationsSummary(reservations = [], todayKey = getCurrentDateKey()) {
-  const todayReservations = getOperationalTodayReservations(reservations, todayKey)
+  const todayReservations = getTodayReservations(reservations, todayKey).filter(countsTowardTodayBookings)
   const tableNumbers = new Set()
   let guests = 0
 

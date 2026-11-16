@@ -204,7 +204,7 @@ export function WorkspaceReservationSeatingsSection({
             </button>
           ) : null}
           <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-            {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
+            {isSaving ? t("Saving…") : editingSeatingId ? t("Update seating") : t("Add seating")}
           </button>
         </div>
       </form>
@@ -216,7 +216,7 @@ export function WorkspaceReservationSeatingsSection({
       <div className="panel-heading">
         <div>
           <p className="eyebrow">{hoursOnly ? t("Seating hours") : t("Seating list")}</p>
-          <h3>{seatings.length} seating{seatings.length === 1 ? '' : 's'}</h3>
+          <h3>{t('{{count}} seating', { count: seatings.length })}</h3>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export function WorkspaceReservationSeatingsSection({
                   <p>
                     {normalized.startTime}
                     {' · '}
-                    {normalized.durationMinutes} min
+                    {t("{{minutes}} min", { minutes: normalized.durationMinutes })}
                     {' · '}
                     {formatSeatingDaysLabel(normalized.daysOfWeek)}
                   </p>
@@ -254,7 +254,7 @@ export function WorkspaceReservationSeatingsSection({
                       className="ghost-btn small workspace-action-btn"
                       onClick={() => onMoveSeating(normalized, 'up')}
                       disabled={index === 0}
-                      aria-label={`Move ${normalized.name} up`}
+                      aria-label={t("Move {{name}} up", { name: normalized.name })}
                     >
                       ↑
                     </button>
@@ -263,7 +263,7 @@ export function WorkspaceReservationSeatingsSection({
                       className="ghost-btn small workspace-action-btn"
                       onClick={() => onMoveSeating(normalized, 'down')}
                       disabled={index === seatings.length - 1}
-                      aria-label={`Move ${normalized.name} down`}
+                      aria-label={t("Move {{name}} down", { name: normalized.name })}
                     >
                       ↓
                     </button>
@@ -279,7 +279,7 @@ export function WorkspaceReservationSeatingsSection({
                       className="ghost-btn small workspace-action-btn"
                       onClick={() => onToggleActive(normalized)}
                     >
-                      {normalized.isActive ? 'Deactivate' : 'Activate'}
+                      {normalized.isActive ? t("Deactivate") : t("Activate")}
                     </button>
                     <button
                       type="button"
@@ -465,7 +465,7 @@ export function WorkspaceReservationSeatingsSection({
               </button>
             ) : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : editingSeatingId ? t("Update seating") : t("Add seating")}
+              {isSaving ? t("Saving…") : editingSeatingId ? t("Update seating") : t("Add seating")}
             </button>
           </div>
         </form>

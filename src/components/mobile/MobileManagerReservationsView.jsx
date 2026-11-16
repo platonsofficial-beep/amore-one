@@ -53,7 +53,7 @@ export function summarizePortraitDay(dayReservations = []) {
   })
   const parts = [
     t('{{count}} booking', { count: bookings }),
-    t('{{count}} guest', { count: guests }),
+    t('{{count}} guest today', { count: guests }),
   ]
   if (cancelled) parts.push(t('{{count}} cancelled', { count: cancelled }))
   return parts.join(' · ')
@@ -258,7 +258,7 @@ export function MobileManagerReservationsView({
         <button type="button" onClick={() => shiftDate(1)} aria-label={t("Next day")} tabIndex={showStickyDay ? 0 : -1}>›</button>
       </div>
       <header className="manager-portrait-screen-header" ref={headerRef}>
-        <div>
+        <div className="manager-portrait-header-copy">
           <p className="mobile-screen-eyebrow">{t("Reservations")}</p>
           <h1>{dayLabel.weekdayLabel}</h1>
           <p className="manager-portrait-date-label">{dayLabel.calendarLabel}</p>
@@ -272,10 +272,10 @@ export function MobileManagerReservationsView({
         </div>
         {canManage ? (
           <div className="manager-portrait-create-actions">
-            <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
+            <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')} disabled={isLoading || loadFailed}>
               {t("Walk-in")}
             </button>
-            <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
+            <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')} disabled={isLoading || loadFailed}>
               {t("Add")}
             </button>
             <GuestsButton onClick={() => setGuestsOpen(true)} />
@@ -373,7 +373,7 @@ export function MobileManagerReservationsView({
         {!isLoading && visibleReservations.length === 0 ? (
           <div className="manager-portrait-empty">
             <p>{loadFailed
-              ? "Couldn't load reservations"
+              ? t("Couldn't load reservations")
               : searchTerm.trim() || problemsOnly || selectedSeating
                 ? t("No bookings match.")
                 : t("No bookings for this day.")}</p>
@@ -384,7 +384,7 @@ export function MobileManagerReservationsView({
                   {t("Walk-in")}
                 </button>
                 <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
-                  + Reservation
+                  {t("+ Reservation")}
                 </button>
                 <GuestsButton onClick={() => setGuestsOpen(true)} />
               </div>

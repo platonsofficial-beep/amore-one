@@ -108,17 +108,17 @@ function CanvasSizeControls({
         type="button"
         className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-canvas-size-btn"
         onClick={onExpandWidth}
-        title={`Add ${WORKSPACE_EXPAND_STEP}px to the right`}
+        title={t("Add {{step}}px to the right", { step: WORKSPACE_EXPAND_STEP })}
       >
-        + Width
+        {t("+ Width")}
       </button>
       <button
         type="button"
         className="fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-canvas-size-btn"
         onClick={onExpandHeight}
-        title={`Add ${WORKSPACE_EXPAND_STEP}px to the bottom`}
+        title={t("Add {{step}}px to the bottom", { step: WORKSPACE_EXPAND_STEP })}
       >
-        + Height
+        {t("+ Height")}
       </button>
       <button
         type="button"

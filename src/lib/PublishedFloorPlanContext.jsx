@@ -28,6 +28,7 @@ import {
 } from './publishFloorPlanDiagnostics'
 import { resolvePublishedLayoutApply } from './hostLoadRecovery'
 import { t } from '../i18n/i18n'
+import { withTimeout } from './withTimeout'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
@@ -146,10 +147,15 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '', include
     const requestId = ++layoutRequestRef.current
     setIsRefreshingPublishedLayout(true)
     try {
-      const result = await readStoredLayouts()
+      const result = await withTimeout(readStoredLayouts())
       const applied = applyLoadedLayouts(result, requestId)
       if (!applied) return buildPublishTransitionResult(result.publishedLayout)
       return buildPublishTransitionResult(result.publishedLayout)
+    } catch (error) {
+      if (requestId === layoutRequestRef.current) {
+        setLoadError(error?.message || "Couldn't load")
+      }
+      return buildPublishTransitionResult(null)
     } finally {
       if (requestId === layoutRequestRef.current) {
         setIsRefreshingPublishedLayout(false)
@@ -165,9 +171,13 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '', include
       setIsLoading(true)
 
       try {
-        const result = await readStoredLayouts()
+        const result = await withTimeout(readStoredLayouts())
         if (cancelled) return
         applyLoadedLayouts(result, requestId)
+      } catch (error) {
+        if (!cancelled && requestId === layoutRequestRef.current) {
+          setLoadError(error?.message || "Couldn't load")
+        }
       } finally {
         if (!cancelled) setIsLoading(false)
       }

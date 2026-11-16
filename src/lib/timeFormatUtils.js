@@ -229,10 +229,13 @@ export function formatReservationDayMonth(dateKey, { year = false, fallback = ''
   const normalized = normalizeReservationDateKey(dateKey)
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized)
   if (!match) return fallback
-  const monthLabel = RESERVATION_MONTH_LABELS[Number(match[2]) - 1]
-  if (!monthLabel) return fallback
-  const day = Number(match[3])
-  return year ? `${day} ${monthLabel} ${match[1]}` : `${day} ${monthLabel}`
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  if (Number.isNaN(date.getTime())) return fallback
+  return date.toLocaleDateString(uiLocale('en-GB'), {
+    day: 'numeric',
+    month: 'short',
+    ...(year ? { year: 'numeric' } : {}),
+  })
 }
 
 export function formatHostReservationListTime(reservation, todayKey) {

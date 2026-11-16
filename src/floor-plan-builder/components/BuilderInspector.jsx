@@ -122,7 +122,7 @@ export function BuilderInspector({
     return (
       <aside className="fpb-inspector fpb-inspector-simple" aria-label={t("Table properties")}>
         <PanelHeader
-          eyebrow="Properties"
+          eyebrow={t("Properties")}
           title={`${selectionCount} tables selected`}
           onClose={onClose}
           showClose={showCloseButton}
@@ -137,7 +137,7 @@ export function BuilderInspector({
     return (
       <aside className="fpb-inspector fpb-inspector-simple" aria-label={t("Table properties")}>
         <PanelHeader
-          eyebrow="Properties"
+          eyebrow={t("Properties")}
           title={t("Table")}
           onClose={onClose}
           showClose={showCloseButton}
@@ -193,7 +193,7 @@ export function BuilderInspector({
   return (
     <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label={t("Table properties")}>
       <PanelHeader
-        eyebrow="Properties"
+        eyebrow={t("Properties")}
         title={displayLabel}
         onClose={onClose}
         showClose={showCloseButton}
