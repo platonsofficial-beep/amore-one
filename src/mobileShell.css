@@ -8523,9 +8523,17 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   isolation: isolate;
 }
 
-.mobile-host-reservations-right-pane.has-table-inspector .floor-plan-toolbar {
+.mobile-host-reservations-right-pane.has-table-inspector .floor-plan-toolbar,
+.mobile-host-reservations-right-pane.has-table-inspector .floor-seating-selector-shell {
   box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
   padding-right: calc(clamp(310px, 29vw, 390px) + 8px);
+}
+.mobile-host-reservations-right-pane.has-table-inspector .floor-seating-selector-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 .floor-plan-mode-btn {
   flex: 0 0 auto;
@@ -10291,25 +10299,23 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-toolbar {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
     width: 100%;
     max-width: 100%;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-scroll {
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: row wrap;
     align-items: center;
     gap: 6px;
-    width: 0;
-    flex: 1 1 0;
+    width: 100%;
+    flex: 1 1 100%;
     min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-padding-inline: 12px;
-    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 18px), transparent);
+    max-width: 100%;
+    overflow: visible;
   }
 
   .mobile-host-reservations.is-landscape .host-queue-metric-label {
@@ -10329,9 +10335,9 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     width: auto;
-    max-width: none;
+    max-width: 100%;
     overflow: visible;
     flex-direction: row;
     align-items: center;
@@ -10473,7 +10479,7 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-scroll {
-    padding-inline-end: 28px;
+    padding-inline-end: 0;
   }
 
   .mobile-host-floor-stage:has(.is-floor-interaction-locked),

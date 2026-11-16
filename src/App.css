@@ -54624,9 +54624,14 @@ summary:focus-visible {
   width: 100%;
 }
 .manager-portrait-reservations .manager-portrait-seatings {
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  overflow: visible;
+  max-width: 100%;
   margin: 0;
+}
+.manager-portrait-reservations .manager-portrait-seatings button {
+  max-width: 100%;
+  white-space: normal;
 }
 .manager-portrait-reservations .manager-portrait-date-nav {
   margin: 0;
