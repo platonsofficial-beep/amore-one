@@ -1,6 +1,7 @@
 import { formatTimestampDayAndTime24 } from './timeFormatUtils'
 import { isWasteNote } from './stockWaste'
 import { applyStockMovementQuantity } from './stockUtils'
+import { formatInventoryUnitLabel } from './inventoryUnitDisplay'
 import { t } from '../i18n/i18n'
 
 export function buildStockMovementTimeline(movements = [], currentQuantity = 0) {
@@ -154,16 +155,16 @@ export function formatStockMovementHeadline(movement, unit = '') {
     const before = Number(movement?.quantityBefore)
     const after = Number(movement?.quantityAfter)
     if (Number.isFinite(before) && Number.isFinite(after) && before === 0) {
-      return `Opening count ${formatQuantityWithUnit(after, unit)}`
+      return t('Opening count {{amount}}', { amount: formatQuantityWithUnit(after, unit) })
     }
     const transition = readQuantityTransition(movement, unit)
-    if (transition) return `Count ${transition}`
-    return `Counted ${formatQuantityWithUnit(Math.abs(quantity), unit)}`
+    if (transition) return t('Count {{amount}}', { amount: transition })
+    return t('Counted {{amount}}', { amount: formatQuantityWithUnit(Math.abs(quantity), unit) })
   }
 
   if (movement.type === 'adjustment') {
     const transition = readQuantityTransition(movement, unit)
-    if (transition) return `Adjustment ${transition}`
+    if (transition) return t('Adjustment {{amount}}', { amount: transition })
   }
 
   if (movement.type === 'receive') {
@@ -171,7 +172,7 @@ export function formatStockMovementHeadline(movement, unit = '') {
   }
 
   if (movement.type === 'usage' && isWasteNote(movement.note)) {
-    return `Waste −${formatQuantityWithUnit(Math.abs(quantity), unit)}`
+    return t('Waste −{{amount}}', { amount: formatQuantityWithUnit(Math.abs(quantity), unit) })
   }
 
   if (movement.type === 'usage') {
@@ -183,12 +184,20 @@ export function formatStockMovementHeadline(movement, unit = '') {
 }
 
 export function formatStockMovementTypeLabel(type, note = '') {
-  if (type === 'usage' && isWasteNote(note)) return 'Waste'
-  if (type === 'receive') return 'Receive'
-  if (type === 'usage') return 'Usage'
-  if (type === 'adjustment') return 'Adjustment'
+  if (type === 'usage' && isWasteNote(note)) return t('Waste')
+  if (type === 'receive') return t('Receive')
+  if (type === 'usage') return t('Usage')
+  if (type === 'adjustment') return t('Adjustment')
   if (type === 'stock_count') return t("Stock count")
-  return 'Update'
+  return t('Update')
+}
+
+const KNOWN_MOVEMENT_NOTES = new Set(['Shelf count'])
+
+export function translateStockMovementNote(note) {
+  const text = `${note ?? ''}`.trim()
+  if (!text || !KNOWN_MOVEMENT_NOTES.has(text)) return text
+  return t(text)
 }
 
 function formatQuantityWithUnit(value, unit = '') {
@@ -197,7 +206,8 @@ function formatQuantityWithUnit(value, unit = '') {
     ? (Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(2).replace(/\.?0+$/, ''))
     : '0'
   const normalizedUnit = `${unit ?? ''}`.trim()
-  return normalizedUnit ? `${formatted} ${normalizedUnit}` : formatted
+  const label = normalizedUnit ? (formatInventoryUnitLabel(normalizedUnit) || normalizedUnit) : ''
+  return label ? `${formatted} ${label}` : formatted
 }
 
 export function formatStockProductHistoryTimestamp(value, timeZone = '') {

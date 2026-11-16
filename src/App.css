@@ -55305,15 +55305,21 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
-  padding-inline-end: 20px;
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
-  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
+  padding-inline-end: 4px;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .stock-focus-search:not(:focus-within):has(input:placeholder-shown) {
-  flex: 0 0 36px;
-  width: 36px;
-  min-width: 36px;
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  flex: 0 0 40px;
+  width: 40px;
+  min-width: 40px;
+  margin: 0;
   justify-content: center;
 }
 
@@ -55381,10 +55387,25 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 
 /* Tabs end before search and ? with a clear gap and a fade, so no tab sits under them. */
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
-  margin-inline-end: 8px;
-  padding-inline-end: 28px;
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 36px), transparent);
-  mask-image: linear-gradient(to right, black calc(100% - 36px), transparent);
+  margin-inline-end: 10px;
+  padding-inline-end: 4px;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+html.one-phone-landscape body .app-shell.stock-focus-mode .stock-focus-chrome .stock-focus-exit-btn {
+  width: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  padding: 0;
+  overflow: hidden;
+  font-size: 0;
+}
+
+html.one-phone-landscape body .app-shell.stock-focus-mode .stock-focus-chrome .stock-focus-exit-btn::before {
+  content: '←';
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* Phone landscape: scroll the stock tabs inside the gap left of search and ?,
@@ -55393,13 +55414,14 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
+  position: relative;
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
   width: calc(100% - 56px);
   max-width: calc(100% - 56px);
   margin-inline-end: 0;
-  padding-inline-end: 0;
+  padding-inline-end: 48px;
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .module-section-tabs,
@@ -55424,6 +55446,20 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tab {
   flex: 0 0 auto;
+}
+
+html.one-phone-landscape .stock-today-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+html.one-phone-landscape .stock-today-card-header,
+html.one-phone-landscape .stock-meta-segments,
+html.one-phone-landscape .stock-meta-segments > span {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Storage card Edit: compact role chips, short hint, Rename/Cancel on one row. */

@@ -1845,7 +1845,7 @@ export function StockDashboardView({
               <p className="stock-today-card-empty">{t("Nothing to order.")}</p>
             )}
             {hiddenOrderGroups > 0 ? (
-              <p className="stock-today-card-more">+{hiddenOrderGroups} more supplier{hiddenOrderGroups === 1 ? '' : 's'}</p>
+              <p className="stock-today-card-more">{t('+{{count}} more suppliers', { count: hiddenOrderGroups })}</p>
             ) : null}
             <div className="stock-today-links">
               {stockLiveSnapshot?.parsReady && Number(stockLiveSnapshot.belowParCount) > 0 ? (
@@ -1888,7 +1888,7 @@ export function StockDashboardView({
               <p className="stock-today-card-empty">{t("Only items not counted in the last 14 days show here.")}</p>
             )}
             {hiddenCountItems > 0 ? (
-              <p className="stock-today-card-more">+{hiddenCountItems} in other storages</p>
+              <p className="stock-today-card-more">{t('+{{count}} in other storages', { count: hiddenCountItems })}</p>
             ) : null}
             {typeof onOpenCounts === 'function' && toCountTotal > 0 ? (
               <button type="button" className="stock-text-btn" onClick={onOpenCounts}>

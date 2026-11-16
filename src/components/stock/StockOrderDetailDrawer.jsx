@@ -85,7 +85,10 @@ function ReceiveProgressBar({ received, ordered, unit }) {
     <div className="stock-order-receive-progress">
       <div className="stock-order-receive-progress-copy">
         <span className="stock-order-receive-progress-label">
-          Received {formatStockQuantity(received, unit)} / Ordered {formatStockQuantity(ordered, unit)}
+          {t('Received {{received}} / Ordered {{ordered}}', {
+            received: formatStockQuantity(received, unit),
+            ordered: formatStockQuantity(ordered, unit),
+          })}
         </span>
         <span className="stock-order-receive-progress-percent">{percent}%</span>
       </div>
@@ -95,7 +98,7 @@ function ReceiveProgressBar({ received, ordered, unit }) {
         aria-valuemin={0}
         aria-valuemax={ordered}
         aria-valuenow={received}
-        aria-label={`Received ${received} of ${ordered}`}
+        aria-label={t('Received {{received}} of {{ordered}}', { received, ordered })}
       >
         <span
           className="stock-order-receive-progress-fill"
@@ -291,7 +294,7 @@ function ReceivingOrderItem({
               className="stock-create-order-qty-input"
               value={receiveNow}
               onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
-              aria-label={`Receive now for ${lineName}`}
+              aria-label={t('Receive now for {{name}}', { name: lineName })}
             />
             <span>{formatInventoryUnitLabelForQuantity(receiveNow === '' ? remaining : receiveNow, item.unit) || t("units")}</span>
           </label>
@@ -300,7 +303,7 @@ function ReceivingOrderItem({
             className="ghost-btn stock-order-receive-all-btn"
             onClick={() => onReceiveAllRemaining(item.id, remaining)}
           >
-            Receive all ({formatStockQuantity(remaining, item.unit)})
+            {t('Receive all ({{quantity}})', { quantity: formatStockQuantity(remaining, item.unit) })}
           </button>
         </div>
       ) : (
@@ -316,7 +319,7 @@ function formatReceivedOrderDifference(ordered, received, unit) {
   if (difference === 0) {
     return {
       value: '0',
-      badgeLabel: 'Complete',
+      badgeLabel: t('Line complete'),
       badgeTone: 'success',
     }
   }
@@ -326,14 +329,14 @@ function formatReceivedOrderDifference(ordered, received, unit) {
   if (difference < 0) {
     return {
       value: `-${quantityLabel}`,
-      badgeLabel: 'Missing',
+      badgeLabel: t('Missing'),
       badgeTone: 'warning',
     }
   }
 
   return {
     value: `+${quantityLabel}`,
-    badgeLabel: 'Extra',
+    badgeLabel: t('Extra'),
     badgeTone: 'info',
   }
 }
@@ -785,7 +788,7 @@ export function StockOrderDetailDrawer({
               </div>
               <p className="stock-order-detail-order-number">
                 {t('Order {{number}}', { number: formatStockOrderNumber(order.orderNumber) })}
-                {partiallyReceived && !isReceived ? ' · Partially received' : ''}
+                {partiallyReceived && !isReceived ? ` · ${t('Partially received')}` : ''}
               </p>
             </div>
             <button
@@ -822,15 +825,17 @@ export function StockOrderDetailDrawer({
               <div className="stock-order-receiving-guide panel staff-panel" aria-label={t("Receiving instructions")}>
                 <h4>{t("Receiving this delivery")}</h4>
                 <p>
-                  Check each product against the delivery note. Enter the quantity arriving now — use
+                  {t('Check each product against the delivery note. Enter the quantity arriving now — use')}
                   {' '}
                   <strong>{t("Receive all")}</strong>
                   {' '}
-                  when the full remaining amount arrived.
+                  {t('when the full remaining amount arrived.')}
                 </p>
                 <p>
-                  {receiveSummary.remainingTotal} unit{receiveSummary.remainingTotal === 1 ? '' : 's'} still
-                  outstanding across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
+                  {t('{{unitsLabel}} still outstanding across {{count}} products.', {
+                    count: displayItems.length,
+                    unitsLabel: `${receiveSummary.remainingTotal} ${t(receiveSummary.remainingTotal === 1 ? 'unit' : 'units')}`,
+                  })}
                 </p>
                 <label className="stock-form-field">
                   <span>{t("Destination storage")}</span>
@@ -877,7 +882,7 @@ export function StockOrderDetailDrawer({
                 <div className="stock-product-history-overview-row">
                   <dt>{t("Created")}</dt>
                   <dd>
-                    {order.createdByName || 'System'}
+                    {order.createdByName || t('System')}
                     {' · '}
                     {formatStockOrderDateTime(order.createdAt, timeZone)}
                   </dd>
@@ -902,7 +907,7 @@ export function StockOrderDetailDrawer({
                   <div className="stock-product-history-overview-row">
                     <dt>{t("Sent")}</dt>
                     <dd>
-                      {order.sentByName || 'System'}
+                      {order.sentByName || t('System')}
                       {' · '}
                       {formatStockOrderDateTime(order.sentAt, timeZone)}
                     </dd>
@@ -923,7 +928,7 @@ export function StockOrderDetailDrawer({
 
             <section className="stock-product-history-section" aria-label={t("Order summary")}>
               <h3 className="stock-product-history-section-title">
-                {isReceived ? t("Final summary") : 'Summary'}
+                {isReceived ? t("Final summary") : t('Summary')}
               </h3>
               <dl className="stock-product-history-overview">
                 <div className="stock-product-history-overview-row">
@@ -969,7 +974,7 @@ export function StockOrderDetailDrawer({
 
             <section className="stock-product-history-section" aria-label={t("Products")}>
               <h3 className="stock-product-history-section-title">
-                {isReceived ? t("Received products") : 'Products'}
+                {isReceived ? t("Received products") : t('Products')}
               </h3>
               <div className="stock-order-detail-lines">
                 {displayItems.length === 0 ? (
@@ -1177,11 +1182,11 @@ export function StockOrderDetailDrawer({
                   type="button"
                   className="stock-product-history-action-btn stock-order-receive-review"
                   loading={isSaving}
-                  loadingLabel="Receiving..."
+                  loadingLabel={t('Receiving...')}
                   disabled={!hasReceiveInput || !workspaceStorageId || isLoadingStorages}
                   onClick={openReceiveConfirm}
                 >
-                  {`Review receive${hasReceiveInput ? '' : ' — enter quantities'}`}
+                  {hasReceiveInput ? t('Review receive') : t('Review receive — enter quantities')}
                 </LoadingButton>
               ) : null}
               </footer>
