@@ -3,16 +3,35 @@
  * Does not change stored units, quantities, or stock math.
  */
 
+import { t } from '../i18n/i18n'
+
 /** Countable inventory objects — pluralize for quantity !== 1 (including 0). */
 const COUNTABLE_UNIT_FORMS = Object.freeze({
   piece: { singular: 'Piece', plural: 'Pieces' },
+  pieces: { singular: 'Piece', plural: 'Pieces' },
   bottle: { singular: 'Bottle', plural: 'Bottles' },
+  bottles: { singular: 'Bottle', plural: 'Bottles' },
+  btl: { singular: 'Bottle', plural: 'Bottles' },
+  btls: { singular: 'Bottle', plural: 'Bottles' },
   can: { singular: 'Can', plural: 'Cans' },
+  cans: { singular: 'Can', plural: 'Cans' },
   tin: { singular: 'Tin', plural: 'Tins' },
   tins: { singular: 'Tin', plural: 'Tins' },
   roll: { singular: 'Roll', plural: 'Rolls' },
+  rolls: { singular: 'Roll', plural: 'Rolls' },
   keg: { singular: 'Keg', plural: 'Kegs' },
+  kegs: { singular: 'Keg', plural: 'Kegs' },
+  bag: { singular: 'Bag', plural: 'Bags' },
+  bags: { singular: 'Bag', plural: 'Bags' },
+  pack: { singular: 'Pack', plural: 'Packs' },
+  packs: { singular: 'Pack', plural: 'Packs' },
+  jar: { singular: 'Jar', plural: 'Jars' },
+  jars: { singular: 'Jar', plural: 'Jars' },
 })
+
+function countableLabel(forms, isSingular) {
+  return t(isSingular ? forms.singular : forms.plural)
+}
 
 /** Measured units — fixed abbreviations; never pluralize. */
 const MEASURED_UNIT_LABELS = Object.freeze({
@@ -77,7 +96,7 @@ export function formatInventoryUnitLabel(unit) {
   const measured = lookupMeasuredUnit(key)
   if (measured) return measured
   if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
-    return COUNTABLE_UNIT_FORMS[key].singular
+    return countableLabel(COUNTABLE_UNIT_FORMS[key], true)
   }
   return normalized
 }
@@ -99,7 +118,7 @@ export function formatInventoryUnitLabelForQuantity(quantity, unit) {
   if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
     const numericQuantity = Number(quantity)
     const isSingular = Number.isFinite(numericQuantity) && numericQuantity === 1
-    return isSingular ? COUNTABLE_UNIT_FORMS[key].singular : COUNTABLE_UNIT_FORMS[key].plural
+    return countableLabel(COUNTABLE_UNIT_FORMS[key], isSingular)
   }
   return normalized
 }
@@ -126,8 +145,7 @@ export function formatInventoryUnit(quantity, unit = '') {
   if (measured) return `${formattedQuantity} ${measured}`
 
   if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
-    const forms = COUNTABLE_UNIT_FORMS[key]
-    return `${formattedQuantity} ${isSingular ? forms.singular : forms.plural}`
+    return `${formattedQuantity} ${countableLabel(COUNTABLE_UNIT_FORMS[key], isSingular)}`
   }
 
   return `${formattedQuantity} ${normalizedUnit}`

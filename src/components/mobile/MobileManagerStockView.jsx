@@ -428,7 +428,7 @@ export function MobileManagerStockView({
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder={t("Search stock item...")}
+            placeholder={t("Search stock items...")}
             autoComplete="off"
             enterKeyHint="search"
           />

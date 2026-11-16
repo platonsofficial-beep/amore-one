@@ -1600,11 +1600,12 @@
 }
 
 .mobile-bottom-nav-label {
-  font-size: 0.72rem;
+  font-size: clamp(0.58rem, 2.5vw, 0.72rem);
   font-weight: 600;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  line-height: 1.1;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -10539,11 +10540,11 @@ body:not(:has(.inventory-count-session)) :is(
     max-height: none;
   }
 
-  /* S-25: chip row fades at the right edge so it reads as scrollable. */
+  /* Wrap the filter chips so a label such as Food is never cut at the screen edge. */
   .mobile-manager-stock-chip-scroll {
-    -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent);
-    mask-image: linear-gradient(to right, black calc(100% - 28px), transparent);
-    padding-inline-end: 28px;
+    flex-wrap: wrap;
+    overflow: visible;
+    row-gap: 8px;
   }
 
   /* S-32: help mode replaces the sideways hint instead of overlapping it. */

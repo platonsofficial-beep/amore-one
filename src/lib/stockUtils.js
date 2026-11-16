@@ -9,6 +9,7 @@ export {
   formatInventoryQuantityNumber,
   formatInventoryUnit,
   formatInventoryUnitLabel,
+  formatInventoryUnitLabelForQuantity,
 } from './inventoryUnitDisplay'
 
 export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_count']

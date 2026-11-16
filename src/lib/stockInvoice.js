@@ -7,6 +7,36 @@ function cleanName(value) {
   return `${value ?? ''}`.trim().toLowerCase().replace(/[^a-z0-9]+/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+/** Filled number and total for the auth-disabled capture screen. */
+export function demoInvoiceDraft(order = {}) {
+  const base = emptyInvoiceDraft(order)
+  const lines = (order.items ?? []).map((item) => ({
+    name: `${item.itemName ?? item.name ?? ''}`.trim(),
+    quantity: item.quantity ?? '',
+    unitPrice: item.costPrice ?? item.cost_price ?? '',
+  })).filter((line) => line.name)
+  const subtotal = lines.reduce((sum, line) => {
+    const qty = Number(line.quantity)
+    const price = Number(line.unitPrice)
+    if (!Number.isFinite(qty) || !Number.isFinite(price)) return sum
+    return sum + qty * price
+  }, 0)
+  const rounded = Math.round(subtotal * 100) / 100
+  const vat = Math.round(rounded * 0.19 * 100) / 100
+  const total = Math.round((rounded + vat) * 100) / 100
+  const orderTotal = Number(order.totalCost ?? order.total_cost)
+  return {
+    ...base,
+    invoiceNumber: 'INV-2041',
+    invoiceDate: '2026-11-13',
+    lines,
+    subtotal: lines.length ? rounded : (Number.isFinite(orderTotal) ? orderTotal : ''),
+    vat: lines.length ? vat : '',
+    total: lines.length ? total : (Number.isFinite(orderTotal) ? orderTotal : ''),
+    scanned: true,
+  }
+}
+
 export function emptyInvoiceDraft(order = {}) {
   return {
     supplierName: `${order.supplier ?? order.supplierName ?? ''}`.trim(),

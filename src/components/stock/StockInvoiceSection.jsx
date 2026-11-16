@@ -2,10 +2,12 @@ import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   compareInvoiceLines,
+  demoInvoiceDraft,
   draftFromScan,
   emptyInvoiceDraft,
   prepareInvoiceUpload,
 } from '../../lib/stockInvoice'
+import { isDemoMode } from '../../lib/demoMediaDataset'
 import {
   buildPreviewInvoiceDraft,
   buildPreviewSavedInvoice,
@@ -206,6 +208,12 @@ export function StockInvoiceSection({
           current.invoiceNumber || current.lines.length
             ? current
             : draftFromScan(scan.fields, order)
+        ))
+      } else if (isDemoMode()) {
+        setDraft((current) => (
+          current.invoiceNumber || current.lines.length
+            ? current
+            : demoInvoiceDraft(order)
         ))
       } else if (!draft.scanned && draft.lines.length === 0 && !draft.invoiceNumber) {
         setDraft(emptyInvoiceDraft(order))

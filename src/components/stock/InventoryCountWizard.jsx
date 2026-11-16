@@ -677,7 +677,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       {selectedVisibility.title}
                       <span className="inventory-count-review-plain">
                         {selectedVisibility.id === 'blind'
-                          ? "Counters don't see expected quantities."
+                          ? t("Counters don't see expected quantities.")
                           : t("Counters see expected quantities.")}
                       </span>
                     </dd>

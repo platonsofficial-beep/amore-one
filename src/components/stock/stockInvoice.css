@@ -10,6 +10,13 @@
   margin: 12px 0;
 }
 
+@media (max-width: 640px) {
+  .stock-invoice-section {
+    gap: 6px;
+    margin: 4px 0;
+  }
+}
+
 .stock-invoice-section h4,
 .stock-invoice-section p {
   margin: 0;
