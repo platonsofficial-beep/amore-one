@@ -55311,15 +55311,10 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .stock-focus-search:not(:focus-within):has(input:placeholder-shown) {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 3;
   flex: 0 0 40px;
   width: 40px;
   min-width: 40px;
-  margin: 0;
+  margin-inline-start: 8px;
   justify-content: center;
 }
 
@@ -55414,14 +55409,12 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   display: flex;
   flex-flow: row nowrap;
   align-items: center;
-  position: relative;
   min-width: 0;
-  overflow: hidden;
   box-sizing: border-box;
   width: calc(100% - 56px);
   max-width: calc(100% - 56px);
   margin-inline-end: 0;
-  padding-inline-end: 48px;
+  padding-inline-end: 0;
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .module-section-tabs,
