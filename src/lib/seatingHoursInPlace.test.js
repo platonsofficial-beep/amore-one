@@ -29,8 +29,9 @@ describe('seating hours stay inside Reservations', () => {
     expect(app).not.toContain('<WorkspaceReservationSeatingsSection {...reservationSeatingsEditorProps} />')
   })
 
-  it('does not fade the first seating chip', () => {
-    expect(css).toContain('mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 18px), transparent)')
+  it('wraps landscape seating chips instead of fading the row', () => {
+    expect(css).toMatch(/\.mobile-host-reservations\.is-landscape \.floor-seating-selector-scroll \{[^}]*flex-flow:\s*row wrap/)
+    expect(css).not.toContain('mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 18px), transparent)')
     expect(css).not.toContain('linear-gradient(90deg, transparent, #000 12px')
   })
 
