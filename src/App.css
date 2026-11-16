@@ -538,6 +538,20 @@
   min-width: 0;
 }
 
+/* Desktop and iPad portrait: the field is wide enough for the Greek placeholder. */
+@media (min-width: 700px) and (min-height: 600px) {
+  .app-shell.stock-focus-mode .stock-focus-search {
+    flex: 1 1 24rem;
+    min-width: min(24rem, 100%);
+    max-width: 32rem;
+  }
+
+  .app-shell.stock-focus-mode .stock-focus-search input {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 /* P8.19.5 — One search during active count: hide Stock-level Search counts (not focusable) */
 .app-shell.stock-focus-mode:has(.inventory-count-session.is-high-density) .stock-focus-search,
 .app-shell.stock-focus-mode:has(.main-panel-stock.is-inventory-count-session-lock) .stock-focus-search,
@@ -50919,7 +50933,7 @@ summary:focus-visible {
     overflow-y: auto;
   }
 
-  .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) > .stock-focus-chrome,
+  .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) .stock-focus-chrome,
   .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) > .stock-dashboard-page {
     flex: 0 0 auto;
     min-height: 0;
@@ -54090,7 +54104,7 @@ summary:focus-visible {
 /* Phone landscape: keep stock tabs on screen, slim supplier stats, and a
    compact side rail. Active inventory count keeps its own scroll lock. */
 @media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) {
-  .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome {
+  .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -55268,13 +55282,13 @@ body:has(.mobile-sheet-backdrop) .mobile-screen.manager-portrait-reservations::b
    tab row gets a soft frosted backdrop that spans the panel edge to edge and fades
    out, the tab strip fades at its end so "Import" reads as scrollable instead of
    cut, and search keeps its own 36px slot. Active Count is excluded (own chrome). */
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome {
   overflow: visible;
   background: transparent;
   isolation: isolate;
 }
 
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome::before {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome::before {
   content: '';
   position: absolute;
   z-index: -1;
@@ -55290,13 +55304,13 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   mask-image: linear-gradient(to bottom, black 70%, transparent);
 }
 
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome .module-section-tabs {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
   padding-inline-end: 20px;
   -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
   mask-image: linear-gradient(to right, black calc(100% - 24px), transparent);
 }
 
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome .stock-focus-search:not(:focus-within):has(input:placeholder-shown) {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .stock-focus-search:not(:focus-within):has(input:placeholder-shown) {
   flex: 0 0 36px;
   width: 36px;
   min-width: 36px;
@@ -55344,7 +55358,7 @@ html.one-phone-landscape .stock-supplier-form-modal .stock-supplier-form-scroll 
    edge down to just below the pills. The band repaints the app-shell background,
    aligned to the viewport, so it has no visible side edges and is never a black bar;
    only the bottom fades. Scrolled content can't show above or beside the pills. */
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome::before {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome::before {
   position: absolute;
   top: -20px;
   bottom: -14px;
@@ -55366,11 +55380,50 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 }
 
 /* Tabs end before search and ? with a clear gap and a fade, so no tab sits under them. */
-html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) > .stock-focus-chrome .module-section-tabs {
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
   margin-inline-end: 8px;
   padding-inline-end: 28px;
   -webkit-mask-image: linear-gradient(to right, black calc(100% - 36px), transparent);
   mask-image: linear-gradient(to right, black calc(100% - 36px), transparent);
+}
+
+/* Phone landscape: scroll the stock tabs inside the gap left of search and ?,
+   so Import can be brought fully into view and nothing sits under the help button. */
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: calc(100% - 56px);
+  max-width: calc(100% - 56px);
+  margin-inline-end: 0;
+  padding-inline-end: 0;
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .module-section-tabs,
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .stock-section-nav {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+  margin-inline-end: 0;
+  padding-inline-end: 12px;
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tab {
+  flex: 0 0 auto;
 }
 
 /* Storage card Edit: compact role chips, short hint, Rename/Cancel on one row. */

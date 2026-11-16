@@ -103,6 +103,17 @@ export function resolveLastCountedRecord(movements = [], fallback = null, { loca
   return fallbackAt ? { createdAt: fallbackAt } : null
 }
 
+/** Display copy for formatLastCountedLabel. The raw label stays English for age checks. */
+export function translateLastCountedLabel(label) {
+  const text = `${label ?? ''}`
+  if (text === 'Never') return t('Never')
+  if (text === 'Today') return t('Today')
+  const oneDay = text === '1 day ago'
+  const match = oneDay ? ['', '1'] : /^(\d+) days ago$/.exec(text)
+  if (match) return t('{{count}} days ago', { count: Number(match[1]) })
+  return text
+}
+
 export function formatLastCountedLabel(lastCount, now = new Date()) {
   const createdAt = lastCount?.createdAt ?? lastCount?.created_at
   if (!createdAt) return 'Never'

@@ -24,6 +24,7 @@ import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 import './stockQuickTake.css'
 import { formatQuantityWithUnit, isStockPackSchemaAvailable, normalizeUnitsPerPack } from '../../lib/stockPackUnits'
 import { t } from '../../i18n/i18n'
+import { translateStockCatalogTerm } from '../../lib/stockLabels'
 
 function StockFormSection({ title, children }) {
   return (
@@ -277,7 +278,7 @@ export function StockItemFormModal({
                   >
                     <option value="">{t("Choose a category")}</option>
                     {STOCK_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>{category}</option>
+                      <option key={category} value={category}>{translateStockCatalogTerm(category)}</option>
                     ))}
                   </select>
                 </label>
@@ -292,7 +293,7 @@ export function StockItemFormModal({
                   >
                     <option value="">{t("Choose a subcategory")}</option>
                     {typeOptions.map((type) => (
-                      <option key={type} value={type}>{type}</option>
+                      <option key={type} value={type}>{translateStockCatalogTerm(type)}</option>
                     ))}
                   </select>
                 </label>
@@ -314,7 +315,7 @@ export function StockItemFormModal({
                         customUnit: '',
                       }))}
                     >
-                      {preset}
+                      {translateStockCatalogTerm(preset)}
                     </button>
                   ))}
                 </div>
@@ -326,7 +327,7 @@ export function StockItemFormModal({
                   Size belongs in Size; packaging belongs in Packaging Note.
                 </p>
               ) : (
-                <p className="stock-unit-selected">Selected: {resolvedUnit || '—'}</p>
+                <p className="stock-unit-selected">{t('Selected: {{unit}}', { unit: translateStockCatalogTerm(resolvedUnit) || '—' })}</p>
               )}
 
               <label className="stock-form-field stock-form-field-full">
@@ -521,7 +522,7 @@ export function StockItemFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn stock-item-form-submit" disabled={isSaving || !isWorkspaceReady}>
-              {isSaving ? 'Saving…' : isEditing ? t("Save changes") : isDuplicating ? t("Create duplicate") : '+ Create stock item'}
+              {isSaving ? 'Saving…' : isEditing ? t("Save changes") : isDuplicating ? t("Create duplicate") : t("+ Create stock item")}
             </button>
           </div>
         </form>

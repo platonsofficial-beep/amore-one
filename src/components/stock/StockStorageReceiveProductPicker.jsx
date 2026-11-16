@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { t } from '../../i18n/i18n'
+import { translateStockPlaceName } from '../../lib/stockLabels'
 
 /**
  * @param {{
@@ -32,7 +33,7 @@ export function StockStorageReceiveProductPicker({
 } = {}) {
   useEscapeToClose(() => onClose?.())
 
-  const storageTitle = storage?.name || storage?.locationKey || 'Storage'
+  const storageTitle = translateStockPlaceName(storage?.name || storage?.locationKey || 'Storage')
   const list = Array.isArray(products) ? products : []
   // Scroll hint: a soft fade at the bottom while more products sit below.
   const listRef = useRef(null)
@@ -63,7 +64,7 @@ export function StockStorageReceiveProductPicker({
           <div>
             <h3>{title}</h3>
             <p className="stock-modal-subtitle">
-              {subtitlePrefix}: {storageTitle}
+              {t(subtitlePrefix)}: {storageTitle}
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label={t("Close")}>✕</button>

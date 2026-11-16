@@ -17,6 +17,7 @@ import {
 } from '../../lib/stockDepartmentGroups'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import { formatItemsBelowPar } from '../../lib/stockStoragePar'
+import { translateStockPlaceName } from '../../lib/stockLabels'
 import { getWorkspaceStorageSummaries, peekWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
 import {
   assignWorkspaceStorageDepartment,
@@ -105,10 +106,10 @@ function StorageSummaryCard({
         <div className="stock-storage-center-card-top">
           <div>
             <strong className="stock-storage-center-card-name">
-              {storage.name || storage.locationKey || t("Unnamed storage")}
+              {translateStockPlaceName(storage.name || storage.locationKey) || t("Unnamed storage")}
             </strong>
             {departmentName ? (
-              <span className="stock-storage-center-card-key">{departmentName}</span>
+              <span className="stock-storage-center-card-key">{translateStockPlaceName(departmentName)}</span>
             ) : null}
           </div>
           <span className="stock-storage-center-card-badges">
@@ -123,7 +124,7 @@ function StorageSummaryCard({
               </span>
             ) : null}
             <span className={`stock-storage-center-status tone-${storage.active ? 'active' : 'archived'}`}>
-              {storage.active ? 'Active' : 'Archived'}
+              {storage.active ? t("Active") : t("Archived")}
             </span>
           </span>
         </div>

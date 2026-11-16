@@ -15893,12 +15893,27 @@ function App() {
     [permissionAccess],
   )
   const stockAccessReady = !isAuthLoading && !isAuthBootstrapping
+  const [isPhoneLandscapeLayout, setIsPhoneLandscapeLayout] = useState(() => (
+    typeof document !== 'undefined' && document.documentElement.classList.contains('one-phone-landscape')
+  ))
+  useEffect(() => {
+    const sync = () => {
+      setIsPhoneLandscapeLayout(document.documentElement.classList.contains('one-phone-landscape'))
+    }
+    sync()
+    window.addEventListener('resize', sync)
+    window.addEventListener('orientationchange', sync)
+    return () => {
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('orientationchange', sync)
+    }
+  }, [])
   const stockSectionNav = useMemo(
     () => resolveStockSectionNav({
       canManage: stockAccessReady ? canManageStockRole : true,
-      compactPhone: useMobileExperience,
+      compactPhone: useMobileExperience && !isPhoneLandscapeLayout,
     }),
-    [stockAccessReady, canManageStockRole, useMobileExperience],
+    [stockAccessReady, canManageStockRole, useMobileExperience, isPhoneLandscapeLayout],
   )
 
   const canManageOperationsRole = useMemo(

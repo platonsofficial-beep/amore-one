@@ -9,7 +9,7 @@ export const STOCK_SUPPLIER_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'active', label: 'Active' },
   { id: 'inactive', label: 'Inactive' },
-  { id: 'has-open-orders', label: t("Has open orders") },
+  { id: 'has-open-orders', label: 'Has open orders' },
 ]
 
 export function filterStockSuppliers(
