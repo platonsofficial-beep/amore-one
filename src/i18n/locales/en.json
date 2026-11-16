@@ -4024,5 +4024,6 @@
   "Location for clock-in": "Location for clock-in",
   "Clock location consent": "When you press Clock in or Clock out, ONE checks your phone’s location once to confirm you are at the venue. We do not track you and we do not save where you are. We only keep whether you were inside or outside, and the distance in metres.",
   "Clock location permission body": "ONE checks once, when you clock in or out, whether you are near the venue. Only the distance and the accuracy are saved, not your coordinates. There is no background tracking.",
-  "Push permission body": "ONE will send notifications for shifts, messages, and tasks. You can turn them off at any time in the device settings."
+  "Push permission body": "ONE will send notifications for shifts, messages, and tasks. You can turn them off at any time in the device settings.",
+  "I agree": "I agree"
 }
