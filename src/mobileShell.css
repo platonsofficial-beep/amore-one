@@ -4890,7 +4890,8 @@
 }
 
 .mobile-host-sticky-date-today-btn:disabled {
-  opacity: 0.4;
+  opacity: 1;
+  cursor: default;
 }
 
 .mobile-host-sticky-date-btn {
@@ -5744,12 +5745,14 @@
   width: 100%;
   min-height: 44px;
   padding: 0 12px;
-  border: 0;
+  border: 1px solid var(--one-overlay-12);
   border-radius: 12px;
-  background: var(--one-overlay-06);
-  box-shadow: inset 0 0 0 1px var(--one-overlay-08);
+  background: var(--one-navy-800, #122033);
   color: var(--one-text);
+  font: inherit;
   font-size: 0.9rem;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .mobile-host-reservations-add-btn {
@@ -9720,16 +9723,18 @@ body:not(:has(.inventory-count-session)) :is(
 }
 
 .manager-portrait-date-nav button {
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--one-overlay-12);
   border-radius: 12px;
-  background: var(--one-overlay-04);
+  background: var(--one-navy-800, #122033);
   color: var(--one-text);
   font-weight: 600;
   cursor: pointer;
 }
 
 .manager-portrait-date-nav button:disabled {
-  opacity: 0.45;
+  opacity: 1;
+  color: var(--one-text);
+  cursor: default;
 }
 
 .manager-portrait-reservations section,
