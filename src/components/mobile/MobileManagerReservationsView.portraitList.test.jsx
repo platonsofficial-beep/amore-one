@@ -126,13 +126,12 @@ describe('portrait reservations list', () => {
     expect(onDateChange).toHaveBeenCalled()
   })
 
-  it('lets seating chips scroll sideways instead of clipping the row', () => {
+  it('lets seating chips wrap so the last seating stays fully visible', () => {
     render()
     expect(container.querySelector('[data-testid="portrait-seatings"]')).toBeTruthy()
     const css = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
-    expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*overflow-x:\s*auto/s)
-    expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*padding-bottom:\s*12px/s)
-    expect(css).not.toMatch(/\.manager-portrait-seatings \{[^}]*scrollbar-width:\s*none/s)
+    expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*flex-wrap:\s*wrap/s)
+    expect(css).toMatch(/\.manager-portrait-seatings \{[^}]*overflow:\s*visible/s)
     expect(css).toMatch(/\.manager-portrait-seatings button \{[^}]*flex:\s*0 0 auto/s)
   })
 })
