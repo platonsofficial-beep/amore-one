@@ -18,6 +18,10 @@ describe('shared reservation and shift counts', () => {
     ]
 
     expect(buildTodayReservationsSummary(reservations, TODAY).bookings).toBe(2)
+    expect(buildTodayReservationsSummary([
+      ...reservations,
+      { id: 'finished', date: TODAY, time: '13:00', guests: 3, status: 'Checked Out' },
+    ], TODAY)).toEqual({ bookings: 3, tables: 0, guests: 9 })
     expect(buildReservationsReport(reservations, {
       period: REPORT_PERIOD_TODAY,
       todayKey: TODAY,

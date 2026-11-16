@@ -41,6 +41,6 @@ describe('reservations audit fixes', () => {
   it('summarises the day like the database count', () => {
     expect(summarizePortraitDay([
       booking('19:00'), booking('20:00', 'Pending', { guests: 2 }), booking('21:00', 'Cancelled'),
-    ])).toBe('2 bookings · 6 guests · 1 cancelled')
+    ])).toBe('2 bookings · 6 guests today · 1 cancelled')
   })
 })

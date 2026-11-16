@@ -82,7 +82,7 @@ function getTableChipMeta(reservation, assignedTablesLabel) {
   }
 
   return {
-    prefix: tableCount === 1 ? 'Table' : 'Tables',
+    prefix: tableCount === 1 ? t("Table") : t("Tables"),
     value: assignedTablesLabel,
   }
 }
@@ -134,7 +134,7 @@ function buildInspectorDetailItems(
     items.push({
       id: 'standing',
       icon: '🧍',
-      label: `${standingGuests} standing guest${standingGuests === 1 ? '' : 's'}`,
+      label: t('{{count}} standing guest', { count: standingGuests }),
     })
   }
   if (seatingLabel) {
@@ -204,7 +204,7 @@ function OccupiedReservationActions({
             data-testid="floor-table-day-edit-reservation"
             aria-label={`Edit reservation for ${guestName}`}
           >
-            ✏ Edit
+            ✏ {t("Edit")}
           </button>
         ) : null}
         {quickActions.map((action) => (
@@ -258,7 +258,7 @@ function OccupiedReservationActions({
               data-testid="floor-table-day-edit-reservation"
               aria-label={`Edit reservation for ${guestName}`}
             >
-              ✏ Edit
+              ✏ {t("Edit")}
             </button>
           ) : null}
           {secondaryActions.map((action) => (
@@ -481,7 +481,7 @@ function TableInspectorAvailableRow({
             }}
             data-testid="floor-table-day-new-reservation"
           >
-            [ + New reservation ]
+            [ {t("+ New reservation")} ]
           </button>
         ) : (
           <p className="floor-table-day-seating-select-hint">{t("Tap to seat here")}</p>
@@ -512,7 +512,7 @@ function TableDayViewRow({
   const { seating, reservation, conflicts, hasConflict, isAvailable, timeWindowLabel, state } = row
   const isAssignmentMode = Boolean(assignmentContext?.reservation)
   const isAssignmentSelected = assignmentContext?.seatingId === seating.id
-  const releaseLabel = tableLabel ? `Release ${tableLabel}` : t("Release table")
+  const releaseLabel = tableLabel ? t("Release {{table}}", { table: tableLabel }) : t("Release table")
   const guestName = reservation?.guestName || 'Guest'
   const infoItems = buildInspectorDetailItems(reservation, row.assignedTablesLabel, {
     reservationSeatings,
@@ -652,7 +652,7 @@ function TableDayViewRow({
               onClick={() => onNewReservation?.(seating)}
               data-testid="floor-table-day-new-reservation"
             >
-              + New reservation
+              {t("+ New reservation")}
             </button>
           ) : (
             <p className="floor-table-day-seating-select-hint">{t("Tap to seat here")}</p>
@@ -730,7 +730,7 @@ export function formatTableDayViewCapacity(table) {
     Number(table.maxGuestCapacity ?? table.maxGuests ?? table.seatedCapacity) || 0,
   )
 
-  if (maxGuests > 0) return `Capacity ${maxGuests}`
+  if (maxGuests > 0) return t("Capacity {{count}}", { count: maxGuests })
   return t("Capacity varies")
 }
 
@@ -785,11 +785,11 @@ export function HostTableInspectorContent({
   const tableCapacity = table ? formatTableDayViewCapacity(table) : ''
   const guestCount = Math.max(0, Number(assignmentContext?.reservation?.guests) || 0)
   const assignmentCapacityLabel = assignmentContext?.reservation && tableCapacity
-    ? `${tableCapacity} · Guests ${guestCount}`
+    ? `${tableCapacity} · ${t('{{count}} guest', { count: guestCount })}`
     : ''
 
   const accessibleTitle = tableLabel
-    ? `Table ${tableLabel.replace(/^TABLE\s*/i, '')} details`
+    ? t("Table {{label}} details", { label: tableLabel.replace(/^TABLE\s*/i, '') })
     : t("Table details")
 
   return (

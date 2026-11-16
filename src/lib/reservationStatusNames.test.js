@@ -73,7 +73,7 @@ describe('status names (Platon t447u)', () => {
     expect(isTerminalReservationStatus('Not Shown')).toBe(true)
 
     const day = HOST_RESERVATION_STATUSES.map((s, i) => booking(`r${i}`, s.id, `${String(10 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`, i + 1))
-    expect(summarizePortraitDay(day)).toBe('9 bookings · 45 guests · 3 cancelled')
+    expect(summarizePortraitDay(day)).toBe('9 bookings · 45 guests today · 3 cancelled')
     expect(groupHostListReservations(day).map((g) => [g.id, g.reservations.length])).toEqual([
       ['upcoming', 5], ['in-house', 3], ['completed', 1], ['problems', 3],
     ])

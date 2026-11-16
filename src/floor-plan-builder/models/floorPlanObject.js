@@ -249,8 +249,8 @@ export function resolveTableGuestRange(properties = {}, shape = 'round') {
 
 export function formatTableGuestRangeLabel(properties = {}, shape = 'round') {
   const { minGuests, maxGuests } = resolveTableGuestRange(properties, shape)
-  if (minGuests === maxGuests) return `${maxGuests} guests`
-  return `${minGuests}–${maxGuests} guests`
+  if (minGuests === maxGuests) return t('{{count}} guest', { count: maxGuests })
+  return t('{{min}}–{{max}} guests', { min: minGuests, max: maxGuests })
 }
 
 export function adjustTableDimension(value, delta, minimum = 64) {

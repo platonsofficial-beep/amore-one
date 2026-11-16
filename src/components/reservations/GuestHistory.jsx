@@ -245,7 +245,7 @@ export function BlacklistDialog({ guestName, reason, onReason, onClose, onSave }
   const dialog = (
     <div className="guest-blacklist-dialog-backdrop" role="presentation">
       <div className="guest-blacklist-dialog" role="dialog" aria-modal="true" aria-labelledby="guest-blacklist-title" data-testid="guest-blacklist-dialog">
-        <h3 id="guest-blacklist-title">Blacklist {guestName || 'guest'}</h3>
+        <h3 id="guest-blacklist-title">{t("Blacklist {{name}}", { name: guestName || t("Guest") })}</h3>
         <label>
           {t("Reason")}
           <textarea value={reason} onChange={(event) => onReason(event.target.value)} rows={3} />
@@ -295,7 +295,7 @@ export function GuestDirectory({
             ) : null}
             <div className="mobile-host-reservation-panel-header-copy">
               <p className="mobile-screen-eyebrow">{t("Reservations")}</p>
-              <h2 className="mobile-host-reservation-panel-title">{selected ? (selected.guestName || 'Guest') : 'Guests'}</h2>
+              <h2 className="mobile-host-reservation-panel-title">{selected ? (selected.guestName || t("Guest")) : t("Guests")}</h2>
             </div>
           </div>
           <button type="button" className="mobile-sheet-close-btn" aria-label={t("Close")} onClick={onClose}>✕</button>
@@ -311,7 +311,7 @@ export function GuestDirectory({
           <article className="guest-history-detail">
             <p>{selected.phone}</p>
             {selected.blacklisted ? <span className="guest-blacklist-badge">{t("Blacklisted")}</span> : null}
-            {selected.blacklistReason ? <p className="guest-blacklist-warning">{`Blacklisted guest — ${selected.blacklistReason}`}</p> : null}
+            {selected.blacklistReason ? <p className="guest-blacklist-warning">{t("Blacklisted guest — {{reason}}", { reason: selected.blacklistReason })}</p> : null}
             <GuestStats guest={selected} />
             {selected.notes ? (
               <p><span className="guest-notes-label">{t("Notes")}</span> {selected.notes}</p>

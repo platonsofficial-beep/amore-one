@@ -8523,6 +8523,15 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   isolation: isolate;
 }
 
+.mobile-host-reservations-right-pane.has-table-inspector .floor-plan-toolbar {
+  box-sizing: border-box;
+  padding-right: calc(clamp(310px, 29vw, 390px) + 8px);
+}
+.floor-plan-mode-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .host-table-inspector {
   position: absolute;
   top: 0;
@@ -10388,20 +10397,23 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-landscape .mobile-host-reservations-create-actions > button {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    height: 36px;
-    min-height: 36px;
-    padding: 0 4px;
+    height: auto;
+    min-height: 44px;
+    padding: 4px 6px;
     border-radius: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 36px;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.15;
     text-align: center;
-    font-size: 11px;
+    font-size: 12px;
+    overflow-wrap: anywhere;
   }
 
   .mobile-host-reservations.is-landscape .host-queue-toolbar {
@@ -10854,24 +10866,25 @@ body:not(:has(.inventory-count-session)) :is(
   border-radius: 12px;
 }
 
-/* Tablet host floor: seating names stay whole. The count stays on its own line. */
+/* Tablet host floor: chips wrap inside the floor column so Late is not
+   pushed past the screen edge. Names and the count stay on their own lines. */
 @media (min-width: 700px) and (min-height: 700px) {
   .mobile-host-reservations .floor-seating-selector-scroll {
     display: flex;
-    flex-flow: row nowrap;
+    flex-flow: row wrap;
     align-items: stretch;
     gap: 8px;
     width: 100%;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding-inline: 2px 16px;
-    scroll-padding-inline: 12px;
+    max-width: 100%;
+    overflow: visible;
+    padding-inline: 0;
   }
 
   .mobile-host-reservations .floor-seating-selector-chip {
-    flex: 0 0 auto;
+    flex: 1 1 calc(50% - 8px);
     width: auto;
-    max-width: none;
+    max-width: calc(50% - 4px);
+    min-width: 0;
     overflow: visible;
   }
 
@@ -10880,7 +10893,7 @@ body:not(:has(.inventory-count-session)) :is(
   .mobile-host-reservations .floor-seating-selector-chip-count {
     overflow: visible;
     text-overflow: clip;
-    max-width: none;
+    max-width: 100%;
     white-space: nowrap;
   }
 }

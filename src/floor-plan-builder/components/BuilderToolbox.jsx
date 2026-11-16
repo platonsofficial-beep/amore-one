@@ -55,7 +55,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
     if (floors.length <= 1) return
 
     const confirmed = window.confirm(
-      `Delete "${activeFloor.label}" and remove its tables?`,
+      t("Delete \"{{name}}\" and remove its tables?", { name: activeFloor.label }),
     )
     if (!confirmed) return
 
@@ -109,7 +109,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
     <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label={t("Floor plan builder")}>
       <div className="fpb-toolbox-scroll">
         <PanelHeader
-          eyebrow="Restaurant"
+          eyebrow={t("Restaurant")}
           title={t("Areas")}
           onClose={onClose}
           showClose={showCloseButton}
@@ -184,14 +184,14 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
               disabled={!isEditing}
               onClick={() => placeTable(tableType)}
             >
-              {SHAPE_ADD_LABELS[tableType.shape] ?? `+ ${tableType.label}`}
+              {t(SHAPE_ADD_LABELS[tableType.shape] ?? `+ ${tableType.label}`)}
             </button>
           ))}
         </div>
 
         <p className="fpb-toolbox-hint">
           {isEditing
-            ? <>{t("Adds a table to the center of")} <strong>{activeFloor?.label}</strong>. Drag to move, tap to edit properties.</>
+            ? <>{t("Adds a table to the center of")} <strong>{activeFloor?.label}</strong>. {t("Drag to move, tap to edit properties.")}</>
             : t("Layout is locked in view mode. Click Edit layout to make changes.")}
         </p>
       </div>

@@ -22,7 +22,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
     <div className="host-status-count-step" role="group" aria-label={t("How many guests have sat down")}>
       <p className="host-status-count-title">{t("How many have sat down?")}</p>
       <p className="host-status-count-copy">
-        {partySize > 0 ? `Party of ${partySize}. We'll show how many are still to come.` : t("Party size is not set.")}
+        {partySize > 0 ? t("Party of {{count}}. We'll show how many are still to come.", { count: partySize }) : t("Party size is not set.")}
       </p>
       {options.length > 0 ? (
         <div className="host-status-count-options">
@@ -32,7 +32,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
               type="button"
               className={`host-status-count-option${count === currentCount ? ' is-active' : ''}`}
               aria-pressed={count === currentCount}
-              aria-label={`${count} of ${partySize} seated, ${partySize - count} to come`}
+              aria-label={t("{{count}} of {{party}} seated, {{remaining}} to come", { count, party: partySize, remaining: partySize - count })}
               disabled={isSaving}
               onClick={() => onPickCount(count)}
             >
@@ -46,7 +46,7 @@ function PartialSeatCountStep({ partySize, currentCount, isSaving, onBack, onPic
           {t("‹ Back")}
         </button>
         <button type="button" className="host-status-count-all" disabled={isSaving} onClick={onPickAll}>
-          {partySize > 0 ? `All ${partySize} seated → Seated` : t("Everyone seated → Seated")}
+          {partySize > 0 ? t("All {{count}} seated → Seated", { count: partySize }) : t("Everyone seated → Seated")}
         </button>
       </div>
     </div>

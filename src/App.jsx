@@ -123,6 +123,7 @@ import {
 } from './lib/hostFloorPlanViewport'
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
+import { withTimeout } from './lib/withTimeout'
 import { isLoadFailureMessage, presentLoadFailure } from './lib/userFacingLoadError'
 import { LoadFailureBanner } from './components/shell/LoadFailureBanner'
 import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, resolveWorkspaceLoadGate, reservationScopesMatch } from './lib/hostLoadRecovery'
@@ -15220,7 +15221,7 @@ function ReservationsWorkspaceContent({
                 placeholder={t("Search guest or table")}
               />
             </label>
-            <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving} data-help="reservations.add">
+            <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving || isLoading} data-help="reservations.add">
               {isSaving ? t("Saving…") : t("+ Reservation")}
             </button>
           </div>
@@ -17370,7 +17371,7 @@ function App() {
     setIsReservationsLoading(true)
     setReservationsLoadFailed(false)
     try {
-      await refreshReservations()
+      await withTimeout(refreshReservations())
       setReservationNotice('')
     } catch (error) {
       setReservationsLoadFailed(true)
@@ -18747,7 +18748,7 @@ function App() {
       setReservationsLoadFailed(false)
 
       try {
-        await refreshReservations()
+        await withTimeout(refreshReservations())
       } catch (error) {
         if (!isMounted) return
         setReservationsLoadFailed(true)
@@ -27930,13 +27931,13 @@ function App() {
               </div>
 
               <p className="staff-subtitle">
-                Delete {reservationSeatingPendingDelete.name}? Existing reservations keep their times.
+                {t("Delete {{name}}? Existing reservations keep their times.", { name: reservationSeatingPendingDelete.name })}
               </p>
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setReservationSeatingPendingDelete(null)}>{t("Cancel")}</button>
                 <button type="button" className="primary-btn" onClick={handleConfirmDeleteReservationSeating} disabled={isSavingReservationSeating}>
-                  {isSavingReservationSeating ? 'Deleting…' : t("Delete seating")}
+                  {isSavingReservationSeating ? t("Deleting…") : t("Delete seating")}
                 </button>
               </div>
             </div>
