@@ -94,4 +94,22 @@ describe('TeamPeopleView empty-state Add Employee CTA', () => {
 
     unmount()
   })
+
+  it('shows a retry instead of a zero team when the roster did not load', () => {
+    const onRetryLoad = vi.fn()
+    const { container, unmount } = renderPeopleView({
+      noticeMessage: "Couldn't load",
+      onRetryLoad,
+    })
+
+    expect(container.textContent).toContain("Couldn't load the team")
+    expect(container.textContent).toContain('Team size unavailable')
+    expect(container.textContent).not.toContain('0 Employees')
+    expect(container.textContent).not.toContain('No employees yet.')
+    expect(container.querySelector('.load-failure-retry')?.textContent).toBe('Retry')
+
+    container.querySelector('.load-failure-retry').click()
+    expect(onRetryLoad).toHaveBeenCalledTimes(1)
+    unmount()
+  })
 })

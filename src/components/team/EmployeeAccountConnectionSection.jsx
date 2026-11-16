@@ -180,7 +180,7 @@ export function EmployeeAccountConnectionSection({
             ) : null}
             {linkedMembership?.role ? (
               <p className="employee-account-connection-meta">
-                Role: {getWorkspaceRoleLabel(linkedMembership.role)}
+                {t("Role: {{role}}", { role: getWorkspaceRoleLabel(linkedMembership.role) })}
               </p>
             ) : null}
           </div>

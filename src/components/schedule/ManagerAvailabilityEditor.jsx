@@ -77,7 +77,7 @@ export function ManagerAvailabilityEditor({
                         onClick={() => onChangeDay?.(dayOfWeek, { status: status.key })}
                         disabled={isSaving}
                       >
-                        {status.label}
+                        {t(status.label)}
                       </button>
                     ))}
                   </div>

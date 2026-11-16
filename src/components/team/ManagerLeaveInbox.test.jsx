@@ -1004,4 +1004,21 @@ describe('ManagerLeaveDetailsDrawer', () => {
     expect(container.textContent).toContain('Leave request approved.')
     cleanup()
   })
+
+  it('turns a failed leave load into a retry instead of a raw error or an empty list', async () => {
+    fetchPendingLeaveMock.mockRejectedValue(new TypeError('Failed to fetch'))
+    const { container, cleanup } = renderInbox()
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).not.toContain('TypeError')
+    expect(container.textContent).not.toContain('Failed to fetch')
+    expect(container.textContent).toContain("Couldn't load")
+    expect(container.textContent).not.toContain('No pending leave requests.')
+    expect(container.querySelector('.load-failure-retry')?.textContent).toBe('Retry')
+    cleanup()
+  })
 })

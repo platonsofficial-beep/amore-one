@@ -270,7 +270,7 @@ export function AttendanceBoard({
 
       <div className="attendance-board-grid">
         <article className="attendance-panel" aria-label={t("Working now")}>
-          <h3>▶ Working now</h3>
+          <h3>▶ {t("Working now")}</h3>
           {workingNow.length === 0 ? <p className="attendance-empty">{t("Nobody is clocked in.")}</p> : null}
           <ul className="attendance-list">
             {workingNow.map((entry) => {
@@ -282,8 +282,8 @@ export function AttendanceBoard({
                     memberId={entry.member_id}
                     name={entryPersonName(entry, employees)}
                   />
-                  <span>Since {formatClockTime(entry.clock_in_at, timeZone)}</span>
-                  {onBreak ? <span className="attendance-pill">☕ On break</span> : null}
+                  <span>{t("Since {{time}}", { time: formatClockTime(entry.clock_in_at, timeZone) })}</span>
+                  {onBreak ? <span className="attendance-pill">☕ {t("On break")}</span> : null}
                   <span>{formatHoursMinutes(actualWorkedMinutes(entry, breaksByEntry[entry.id] ?? [], now))}</span>
                 </li>
               )
@@ -292,7 +292,7 @@ export function AttendanceBoard({
         </article>
 
         <article className="attendance-panel" aria-label={t("Late today")}>
-          <h3>⏱ Late today</h3>
+          <h3>⏱ {t("Late today")}</h3>
           {lateRows.length === 0 ? <p className="attendance-empty">{t("No late arrivals or no-shows.")}</p> : null}
           <ul className="attendance-list">
             {lateRows.map((row) => (
@@ -305,7 +305,7 @@ export function AttendanceBoard({
         </article>
 
         <article className="attendance-panel" aria-label={t("Requests")}>
-          <h3>✉ Requests</h3>
+          <h3>✉ {t("Requests")}</h3>
           {exceptions.length === 0 ? <p className="attendance-empty">{t("No requests waiting.")}</p> : null}
           <ul className="attendance-list">
             {exceptions.map((exception) => {
@@ -354,7 +354,7 @@ export function AttendanceBoard({
       </div>
 
       <article className="attendance-panel attendance-timesheet" aria-label={t("Weekly timesheet")}>
-        <h3>◷ Hours this week</h3>
+        <h3>◷ {t("Hours this week")}</h3>
         {people.length === 0 ? <p className="attendance-empty">{t("No shifts or clock times this week.")}</p> : null}
         <div className="attendance-person-row" role="tablist" aria-label={t("People")}>
           {people.map((person) => (

@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchPendingLeaveForWorkspace } from '../../services/leaveService'
+import { withTimeout } from '../../lib/withTimeout'
+import { isPlainLoadFailure, isTechnicalErrorText, presentLoadFailure } from '../../lib/userFacingLoadError'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { ManagerLeaveDetailsDrawer } from './ManagerLeaveDetailsDrawer'
+import { leaveTypeLabel } from './RequestLeaveModal'
 import { t } from '../../i18n/i18n'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
-  if (!normalized) return 'Leave'
-  return `${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`
+  if (!normalized) return t("Leave")
+  return leaveTypeLabel(normalized)
 }
 
 function formatSubmittedDate(createdAt) {
@@ -88,13 +92,16 @@ export function ManagerLeaveInbox({
     setErrorMessage('')
 
     try {
-      const records = await fetchPendingLeaveForWorkspace(normalizedWorkspaceId)
+      const records = await withTimeout(fetchPendingLeaveForWorkspace(normalizedWorkspaceId))
       if (pendingLeaveRequestIdRef.current !== requestId) return
       setPendingLeave(records)
     } catch (error) {
       if (pendingLeaveRequestIdRef.current !== requestId) return
       setPendingLeave([])
-      setErrorMessage(error?.message || t("Unable to load pending leave requests right now."))
+      const raw = `${error?.message ?? ''}`.trim()
+      setErrorMessage(!raw || isTechnicalErrorText(raw) || isPlainLoadFailure(raw)
+        ? presentLoadFailure(error, t("pending leave"))
+        : raw)
     } finally {
       if (pendingLeaveRequestIdRef.current === requestId) {
         setIsLoading(false)
@@ -212,7 +219,7 @@ export function ManagerLeaveInbox({
       ) : null}
 
       {!isLoading && errorMessage ? (
-        <div className="staff-status-banner" role="alert">{errorMessage}</div>
+        <LoadFailureBanner message={errorMessage} subject={t("pending leave")} onRetry={loadPendingLeave} />
       ) : null}
 
       {!isLoading && successMessage ? (

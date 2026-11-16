@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
-import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
+import { formatUserFacingLoadError, isLoadFailureMessage } from '../../lib/userFacingLoadError'
 import { PersonAvatar } from '../identity/PersonAvatar'
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
 import { MemberAccessPanel } from './MemberAccessPanel'
@@ -21,6 +21,7 @@ import {
   formatEmployeeWeeklyHoursDisplay,
   formatStoredPhoneForDisplay,
 } from '../../lib/teamPeopleDisplay'
+import { translateKnownLabel, translatePlaceLabel } from '../../lib/areaLabels'
 import { t } from '../../i18n/i18n'
 
 export const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
@@ -159,10 +160,11 @@ export function countPeopleDepartmentsWithStaff(employeeList = []) {
 }
 
 function formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount) {
-  const employeeLabel = employeeCount === 1 ? 'Employee' : 'Employees'
-  const departmentLabel = departmentCount === 1 ? 'Department' : 'Departments'
-
-  return `${employeeCount} ${employeeLabel} • ${workingCount} Working now • ${departmentCount} ${departmentLabel}`
+  return [
+    t('{{count}} Employee', { count: employeeCount }),
+    t('{{count}} working now', { count: workingCount }),
+    t('{{count}} department', { count: departmentCount }),
+  ].join(' • ')
 }
 
 function formatDrawerFieldValue(value) {
@@ -321,11 +323,15 @@ export function TeamPeopleView({
         <div className="team-people-header-copy">
           <p className="eyebrow">{t("People")}</p>
           <h3>{t("Your team")}</h3>
-          <p className="team-people-metrics">{directoryLoadFailed ? t("Team size unavailable") : metricsLine}</p>
+          <p className="team-people-metrics">
+            {directoryLoadFailed
+              ? t("Team size unavailable")
+              : (isLoading && employeeCount === 0 ? '' : metricsLine)}
+          </p>
         </div>
         <div className="team-people-header-actions">
           <button type="button" className="primary-btn team-people-add-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
-            {isSaving ? 'Saving…' : '+ Add Employee'}
+            {isSaving ? t("Saving…") : t("+ Add Employee")}
           </button>
         </div>
       </div>
@@ -357,7 +363,7 @@ export function TeamPeopleView({
                 className={`filter-chip team-people-filter-chip ${activeFilter === filter ? 'active' : ''}`}
                 onClick={() => onFilterChange(filter)}
               >
-                {filter}
+                {filter === DISABLED_PEOPLE_FILTER ? t("Disabled") : translatePlaceLabel(filter)}
               </button>
             ))}
           </div>
@@ -365,7 +371,7 @@ export function TeamPeopleView({
       </div>
 
       {directoryLoadFailed ? (
-        <LoadFailureBanner message={noticeMessage} subject="the team" onRetry={onRetryLoad} />
+        <LoadFailureBanner message={formatUserFacingLoadError(t("the team"))} subject={t("the team")} onRetry={onRetryLoad} />
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">{t("Loading staff roster…")}</div> : null}
 
@@ -379,7 +385,7 @@ export function TeamPeopleView({
             onClick={onOpenAddEmployee}
             disabled={isSaving || !onOpenAddEmployee}
           >
-            {isSaving ? 'Saving…' : '+ Add Employee'}
+            {isSaving ? t("Saving…") : t("+ Add Employee")}
           </button>
         </div>
       ) : isFilteredEmpty ? (
@@ -419,7 +425,7 @@ export function TeamPeopleView({
                       ) : null}
                     </h4>
                     <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
-                    <p className="team-people-card-department">{employee.department}</p>
+                    <p className="team-people-card-department">{translatePlaceLabel(employee.department)}</p>
                   </div>
                 </div>
 
@@ -469,7 +475,7 @@ export function TeamPeopleView({
             <div className="employee-profile-drawer-identity-copy">
               <h3 className="employee-profile-drawer-name">{selectedEmployee.name}</h3>
               <p className="employee-profile-drawer-role">{formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}</p>
-              <p className="employee-profile-drawer-department">{formatDrawerFieldValue(selectedEmployee.department)}</p>
+              <p className="employee-profile-drawer-department">{formatDrawerFieldValue(translatePlaceLabel(selectedEmployee.department))}</p>
               <div className="employee-profile-drawer-identity-meta">
                 <span className={getEmployeeTodayStatusPillClass(selectedDrawerIdentity.toneKey)}>
                   {selectedDrawerIdentity.statusLabel}
@@ -489,12 +495,12 @@ export function TeamPeopleView({
               <EmployeeProfileDrawerField label={t("Additional positions")}>
                 {formatDrawerFieldValue(getAdditionalPositionsLabel(selectedEmployee))}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Department">
-                {formatDrawerFieldValue(selectedEmployee.department)}
+              <EmployeeProfileDrawerField label={t("Department")}>
+                {formatDrawerFieldValue(translatePlaceLabel(selectedEmployee.department))}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label={t("Employment Status")}>
                 <span className={getEmploymentStatusClassName(selectedEmployee.status)}>
-                  {formatDrawerFieldValue(selectedEmployee.status)}
+                  {formatDrawerFieldValue(translateKnownLabel(selectedEmployee.status))}
                 </span>
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label={t("Today Status")}>
@@ -512,7 +518,7 @@ export function TeamPeopleView({
                 {formatDrawerFieldValue(selectedEmployee.hireDate)}
               </EmployeeProfileDrawerField>
               {canViewSalary ? (
-                <EmployeeProfileDrawerField label="Salary">
+                <EmployeeProfileDrawerField label={t("Salary")}>
                   {formatEmployeeSalaryDisplay(selectedEmployee.salary)}
                 </EmployeeProfileDrawerField>
               ) : null}
@@ -520,15 +526,15 @@ export function TeamPeopleView({
                 {formatEmployeeWeeklyHoursDisplay(selectedEmployee.weeklyHours)}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label={t("Preferred Shift")}>
-                {formatDrawerFieldValue(selectedEmployee.shift)}
+                {formatDrawerFieldValue(translateKnownLabel(selectedEmployee.shift))}
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 
             <EmployeeProfileDrawerSection title={t("Contact")}>
-              <EmployeeProfileDrawerField label="Phone">
+              <EmployeeProfileDrawerField label={t("Phone")}>
                 {formatDrawerFieldValue(formatStoredPhoneForDisplay(selectedEmployee.phone))}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Email">
+              <EmployeeProfileDrawerField label={t("Email")}>
                 {formatDrawerFieldValue(selectedEmployee.email)}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label={t("Emergency contact")}>
@@ -586,8 +592,8 @@ export function TeamPeopleView({
                 }}
               >
                 {togglingEmployeeId === selectedEmployee.id
-                  ? 'Saving…'
-                  : isEmployeeDisabled(selectedEmployee) ? 'Enable' : 'Disable'}
+                  ? t("Saving…")
+                  : isEmployeeDisabled(selectedEmployee) ? t("Enable") : t("Disable")}
               </button>
             ) : null}
             <button
@@ -601,7 +607,9 @@ export function TeamPeopleView({
           {confirmDisableId && confirmDisableId === selectedEmployee.id ? (
             <div className="employee-disable-confirm" role="alertdialog" aria-label={t("Confirm disable")} data-testid="employee-disable-confirm">
               <p>
-                Disable {selectedEmployee.full_name ?? selectedEmployee.name ?? 'this person'}? They can&apos;t sign in and their upcoming shifts are hidden. You can enable them again any time.
+                {t("Disable {{name}}? They can't sign in and their upcoming shifts are hidden. You can enable them again any time.", {
+                  name: selectedEmployee.full_name ?? selectedEmployee.name ?? t("this person"),
+                })}
               </p>
               <div className="employee-disable-confirm-actions">
                 <button type="button" className="ghost-btn" onClick={() => setConfirmDisableId(null)}>

@@ -1,4 +1,5 @@
 import { getDateKeyInTimeZone, getWeekDateKeys, getWeekStartDate } from './weekUtils'
+import { translateKnownLabel } from './areaLabels'
 import { t } from '../i18n/i18n'
 
 export const LOCATION_CONSENT_STORAGE_KEY = 'one.attendance.locationConsent.v1'
@@ -344,10 +345,10 @@ export function classifyUnclockedShift(shift, {
 }
 
 export function lateTodayDetail(shift, status, lateMinutes = 0) {
-  const place = shiftPlaceLabel(shift)
+  const place = translateKnownLabel(shiftPlaceLabel(shift))
   const range = `${shiftStartTime(shift)}–${shiftEndTime(shift)}${place ? `, ${place}` : ''}`
-  if (status === 'no-show') return `No-show · ${range}`
-  if (status === 'not-clocked-in') return `Not clocked in (late by ${lateMinutes} min) · ${range}`
+  if (status === 'no-show') return t("No-show · {{range}}", { range })
+  if (status === 'not-clocked-in') return t("Not clocked in (late by {{minutes}} min) · {{range}}", { minutes: lateMinutes, range })
   return ''
 }
 

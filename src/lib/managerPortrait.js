@@ -9,6 +9,7 @@ import {
   canManageAttendance,
 } from './permissions'
 import { LIMITED_SETTINGS_SUBTITLE } from './settingsSections'
+import { translateKnownLabel } from './areaLabels'
 import { t } from '../i18n/i18n'
 
 export const MANAGER_PHONE_MAX_WIDTH = 760
@@ -304,8 +305,8 @@ export function buildPortraitFloorTables({
 
 export function portraitShiftSubtitle(shift) {
   const role = `${shift?.role ?? ''}`.trim()
-  const area = `${shift?.area ?? ''}`.trim()
-  if (!role && !area) return 'Shift'
+  const area = translateKnownLabel(shift?.area)
+  if (!role && !area) return t("Shift")
   if (role && area && role.localeCompare(area, undefined, { sensitivity: 'accent' }) === 0) return role
   return [role, area].filter(Boolean).join(' · ')
 }

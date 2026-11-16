@@ -463,11 +463,11 @@ export function formatEmployeeTodayStatusDetail(result) {
       return EMPLOYEE_TODAY_STATUS.on_leave.label
     case EMPLOYEE_TODAY_STATUS.working_now.key: {
       const endLabel = result.endsAt || minutesToTimeLabel(result.currentShift?.endMinutes)
-      return endLabel ? `Working now · Until ${endLabel}` : EMPLOYEE_TODAY_STATUS.working_now.label
+      return endLabel ? t("Working now · Until {{time}}", { time: endLabel }) : EMPLOYEE_TODAY_STATUS.working_now.label
     }
     case EMPLOYEE_TODAY_STATUS.scheduled_later.key: {
       const startLabel = result.startsAt || minutesToTimeLabel(result.nextShift?.startMinutes)
-      return startLabel ? `Scheduled at ${startLabel}` : EMPLOYEE_TODAY_STATUS.scheduled_later.label
+      return startLabel ? t("Scheduled at {{time}}", { time: startLabel }) : EMPLOYEE_TODAY_STATUS.scheduled_later.label
     }
     case EMPLOYEE_TODAY_STATUS.shift_completed.key:
       return EMPLOYEE_TODAY_STATUS.shift_completed.label

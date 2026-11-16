@@ -124,7 +124,9 @@ import {
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
 import { withTimeout } from './lib/withTimeout'
-import { isLoadFailureMessage, presentLoadFailure } from './lib/userFacingLoadError'
+import { translateKnownLabel } from './lib/areaLabels'
+import { LocaleDateField } from './components/LocaleDateField'
+import { isLoadFailureMessage, logLoadFailure, presentLoadFailure } from './lib/userFacingLoadError'
 import { LoadFailureBanner } from './components/shell/LoadFailureBanner'
 import { resolveFloorPlanEmptyPresentation, resolveScopedReservationRead, resolveWorkspaceLoadGate, reservationScopesMatch } from './lib/hostLoadRecovery'
 import {
@@ -848,8 +850,9 @@ function formatScheduleCellCoverageLabel(cell) {
 
 function displayScheduleAreaLabel(areaLabel) {
   const raw = `${areaLabel ?? ''}`.trim()
+  if (!raw) return ''
   if (raw.toLowerCase() === 'service') return upper(t("Service team"))
-  return upper(raw)
+  return upper(translateKnownLabel(raw))
 }
 
 function formatScheduleCellCoverageDetail(cell) {
@@ -2296,7 +2299,7 @@ function countOtherEmployeePositionUsage(label, workspacePositionId, employees =
 }
 
 function buildEmployeeAdditionalPositionClosedDisplayLabel(selectedValues, emptyLabel = 'No additional positions') {
-  if (!Array.isArray(selectedValues) || selectedValues.length === 0) return emptyLabel
+  if (!Array.isArray(selectedValues) || selectedValues.length === 0) return t(emptyLabel)
 
   const joined = selectedValues.join(', ')
   if (joined.length <= 64) return joined
@@ -5907,7 +5910,7 @@ function ScheduleView({
             }}
             disabled={isSaving || isPublishing}
           >
-            {hasUnpublishedChanges ? t("Publish changes") : 'Publish'}
+            {hasUnpublishedChanges ? t("Publish changes") : t("Publish")}
           </button>
         ) : canEditSchedule ? (
           <button
@@ -6635,7 +6638,7 @@ function ScheduleView({
       {scheduleGridTemplates.length > 0 ? (
         <ScheduleCollapsibleSection
           title={t("Insights")}
-          meta="Statistics, saved weeks, employee views, and coverage"
+          meta={t("Statistics, saved weeks, employee views, and coverage")}
           className="schedule-insights-collapsible"
         >
           <section className="schedule-weekly-stats" aria-label={t("Weekly statistics")}>
@@ -7169,7 +7172,10 @@ function ScheduleView({
             </div>
 
             <p className="template-delete-copy">
-              This will remove {shiftCountByDate[clearDayTarget.key] ?? 0} draft assignment{(shiftCountByDate[clearDayTarget.key] ?? 0) === 1 ? '' : 's'} from {clearDayTarget.label}. Published schedule is not affected.
+                {t("This will remove {{count}} draft assignment from {{day}}. Published schedule is not affected.", {
+                  count: shiftCountByDate[clearDayTarget.key] ?? 0,
+                  day: clearDayTarget.label,
+                })}
             </p>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
@@ -7248,7 +7254,7 @@ function ScheduleView({
               <p className="template-delete-copy">{t("This week is already empty.")}</p>
             ) : (
               <p className="template-delete-copy">
-                This will remove {visibleWeekShifts.length} draft assignment{visibleWeekShifts.length === 1 ? '' : 's'} from this week.
+                {t("This will remove {{count}} draft assignment from this week.", { count: visibleWeekShifts.length })}
               </p>
             )}
 
@@ -7280,7 +7286,10 @@ function ScheduleView({
             </div>
 
             <p className="template-delete-copy">
-              This removes {clearCellPending.shifts.length} assignment{clearCellPending.shifts.length === 1 ? '' : 's'} from this shift on {clearCellPending.day.label}. Other days are not affected.
+              {t("This removes {{count}} assignment from this shift on {{day}}. Other days are not affected.", {
+                count: clearCellPending.shifts.length,
+                day: clearCellPending.day.label,
+              })}
             </p>
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
@@ -7459,7 +7468,7 @@ function ScheduleView({
             <form className="employee-form" onSubmit={handleCreateAssignment}>
               <div className="assignment-context-card assignment-context-card-simple">
                 <p className="assignment-context-shift-line">
-                  {`${assignmentContext?.template?.defaultArea || assignmentContext?.template?.defaultRole || 'General'}`.trim()}
+                  {translateKnownLabel(assignmentContext?.template?.defaultArea || assignmentContext?.template?.defaultRole || 'General')}
                   <span aria-hidden="true"> · </span>
                   {formatScheduleShiftDisplayName(
                     assignmentContext?.template?.name || '',
@@ -7499,7 +7508,7 @@ function ScheduleView({
                 <div className="assignment-area-warning">
                   <p>
                     {assignmentDraft.area
-                      ? `No area saved. Using ${assignmentDraft.area} for this assignment.`
+                      ? t("No area saved. Using {{area}} for this assignment.", { area: translateKnownLabel(assignmentDraft.area) })
                       : t("No area saved. Choose one to continue.")}
                   </p>
 
@@ -7518,7 +7527,7 @@ function ScheduleView({
                     >
                       <option value="">{t("Select area")}</option>
                       {scheduleAreaOptions.filter((option) => option !== 'Other').map((option) => (
-                        <option key={`assignment-area-${option}`} value={option}>{option}</option>
+                        <option key={`assignment-area-${option}`} value={option}>{translateKnownLabel(option)}</option>
                       ))}
                     </select>
                     {assignmentFieldErrors.area ? <small className="field-helper-error">{t("Area is required.")}</small> : null}
@@ -7928,7 +7937,7 @@ function ScheduleView({
                 setIsPublishConfirmOpen(false)
               }}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handlePublishConfirm} disabled={isPublishing}>
-                {isPublishing ? 'Publishing…' : hasUnpublishedChanges ? t("Publish changes") : 'Publish'}
+                {isPublishing ? t("Publishing…") : hasUnpublishedChanges ? t("Publish changes") : t("Publish")}
               </button>
             </div>
           </div>
@@ -7949,7 +7958,7 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>{t("Cancel")}</button>
               <button type="button" className="primary-btn" onClick={handleConfirmUnpublishSchedule} disabled={isPublishing}>
-                {isPublishing ? 'Unpublishing…' : 'Unpublish'}
+                {isPublishing ? t("Unpublishing…") : t("Unpublish")}
               </button>
             </div>
           </div>
@@ -18237,7 +18246,7 @@ function App() {
       setStaffNotice('')
 
       try {
-        const remoteEmployees = await getEmployees(activeWorkspaceId)
+        const remoteEmployees = await withTimeout(getEmployees(activeWorkspaceId))
         if (!isMounted) return
         const nextEmployees = remoteEmployees.length === 0 && shouldUseSchedulePreviewFixture(window.location.search)
           ? buildSchedulePreviewEmployees()
@@ -18254,7 +18263,8 @@ function App() {
         }
         setEmployees([])
         setScheduleEmployees([])
-        setStaffNotice(presentLoadFailure(error, 'the team'))
+        logLoadFailure('the team', error)
+        setStaffNotice("Couldn't load")
       } finally {
         if (isMounted) {
           setIsLoadingStaff(false)
@@ -27078,7 +27088,7 @@ function App() {
                         openMenuId={employeeFormOpenMenuId}
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.shift}
-                        options={EMPLOYEE_SHIFT_OPTIONS}
+                        options={EMPLOYEE_SHIFT_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))}
                         onChange={(shift) => setEmployeeForm((current) => ({ ...current, shift }))}
                       />
                     </label>
@@ -27091,7 +27101,7 @@ function App() {
                         openMenuId={employeeFormOpenMenuId}
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.status}
-                        options={buildEmployeeStatusOptions(EMPLOYEE_STATUS_OPTIONS, { isEditing: Boolean(editingEmployee) })}
+                        options={buildEmployeeStatusOptions(EMPLOYEE_STATUS_OPTIONS, { isEditing: Boolean(editingEmployee) }).map((option) => ({ ...option, label: t(option.label) }))}
                         onChange={(status) => setEmployeeForm((current) => ({ ...current, status }))}
                       />
                     </label>
@@ -27179,7 +27189,7 @@ function App() {
                         onClick={handleAddCustomPositionToEmployee}
                         disabled={!`${employeeForm.customPositionName ?? ''}`.trim() || isCreatingEmployeeCustomPosition}
                       >
-                        {isCreatingEmployeeCustomPosition ? 'Creating…' : '+ Create Position'}
+                        {isCreatingEmployeeCustomPosition ? t("Creating…") : t("+ Create Position")}
                       </button>
                     </div>
                   </div>
@@ -27274,7 +27284,7 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>{t("Date")}</span>
-                    <input type="date" value={formData.shift_date} onChange={(event) => setFormData((current) => ({ ...current, shift_date: event.target.value }))} />
+                    <LocaleDateField value={formData.shift_date} onChange={(shiftDate) => setFormData((current) => ({ ...current, shift_date: shiftDate }))} />
                   </label>
                   <div className="template-field-row schedule-shift-template-row">
                     <label className="form-field">
@@ -27334,7 +27344,7 @@ function App() {
                     <span>{t("Area")}</span>
                     <select value={formData.area_option} onChange={(event) => setFormData((current) => ({ ...current, area_option: event.target.value }))}>
                       {scheduleAreaOptions.map((option) => (
-                        <option key={option} value={option}>{option}</option>
+                        <option key={option} value={option}>{translateKnownLabel(option)}</option>
                       ))}
                     </select>
                   </label>
@@ -27466,7 +27476,7 @@ function App() {
                     >
                       <option value="">{t("Select area")}</option>
                       {scheduleAreaOptions.map((option) => (
-                        <option key={`template-area-${option}`} value={option}>{option}</option>
+                        <option key={`template-area-${option}`} value={option}>{translateKnownLabel(option)}</option>
                       ))}
                     </select>
                   </label>

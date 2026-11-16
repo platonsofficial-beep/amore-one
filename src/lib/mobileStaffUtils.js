@@ -3,6 +3,7 @@ import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isTaskOverdue } from './taskUtils'
 import { compareOperationsTasksByWorkflow, isOperationsTaskOverdue } from './operationsBrowse'
 import { canStaffCompleteTask, getTaskAssigneeId, normalizeOperationsStatus } from './operationsUtils'
+import { translateKnownLabel } from './areaLabels'
 import { t } from '../i18n/i18n'
 
 function normalizeShiftDate(value) {
@@ -15,7 +16,7 @@ function normalizeShiftDate(value) {
 
 function formatMobilePositionArea(position, area) {
   const normalizedPosition = `${position ?? ''}`.trim()
-  const normalizedArea = `${area ?? ''}`.trim()
+  const normalizedArea = translateKnownLabel(area)
 
   if (normalizedPosition && normalizedArea) {
     return `${normalizedPosition} · ${normalizedArea}`

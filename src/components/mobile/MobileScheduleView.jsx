@@ -111,7 +111,7 @@ export function MobileScheduleView({
                   <p className="mobile-schedule-day-date">{day.shortDate}</p>
                 </div>
                 <span className="mobile-schedule-day-status">
-                  {day.isDayOff ? 'Off' : `${day.shifts.length} shift${day.shifts.length === 1 ? '' : 's'}`}
+                  {day.isDayOff ? t("Off") : t("{{count}} shift", { count: day.shifts.length })}
                 </span>
               </div>
               {day.isDayOff ? (
