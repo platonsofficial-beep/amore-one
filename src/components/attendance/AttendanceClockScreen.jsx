@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LoadFailed, LoadingLines } from '../common/DataPending'
 import {
-  LOCATION_CONSENT_TEXT,
   NO_VENUE_LOCATION_MESSAGE,
   OFFLINE_MESSAGE,
   POOR_ACCURACY_MESSAGE,
@@ -516,8 +515,8 @@ export function AttendanceClockScreen({
       {showConsent ? (
         <div className="attendance-consent" role="dialog" aria-modal="true" aria-labelledby="attendance-consent-title">
           <div className="attendance-consent-card">
-            <h3 id="attendance-consent-title">📍 Location check</h3>
-            <p>{LOCATION_CONSENT_TEXT}</p>
+            <h3 id="attendance-consent-title">📍 {t("Location check")}</h3>
+            <p>{t("Clock location consent")}</p>
             <div className="attendance-consent-actions">
               <button type="button" className="attendance-action attendance-action-in" onClick={agreeToLocation}>
                 ✓ I agree

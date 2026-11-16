@@ -9,6 +9,16 @@ import { placeUserMenuPanel } from '../../lib/userMenuPlacement'
 import { readCssPx } from '../../lib/safeInline'
 import { t } from '../../i18n/i18n'
 
+function presentMemberName(name) {
+  const trimmed = `${name ?? ''}`.trim()
+  if (!trimmed) return ''
+  return trimmed.split(/\s+/).map((part) => {
+    const first = part.charAt(0)
+    if (!first || first !== first.toLocaleLowerCase('el')) return part
+    return `${first.toLocaleUpperCase('el')}${part.slice(1)}`
+  }).join(' ')
+}
+
 function readSafeAreaInsets() {
   return {
     safeTop: readCssPx('--one-safe-area-top'),
@@ -92,9 +102,10 @@ export function UserMenu({
     }
   }, [isOpen])
 
-  const memberDisplayName = resolveUserDisplayName({ membership, employees, user })
-    || `${profileChipDisplay?.name ?? ''}`.trim()
-    || t("Profile not set")
+  const memberDisplayName = presentMemberName(
+    resolveUserDisplayName({ membership, employees, user })
+    || `${profileChipDisplay?.name ?? ''}`.trim(),
+  ) || t("Profile not set")
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
     || (isAuthDisabled ? t("Development mode") : t("Signed in"))
   const chipInitials = getProfileInitials(memberDisplayName)

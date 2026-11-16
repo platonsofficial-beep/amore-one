@@ -74,14 +74,18 @@ export function TodayCommandHeader({
                 {chips.map((chip) => {
                   const status = chip.loadStatus ?? 'ready'
                   const isReady = status === 'ready'
+                  const interactive = status === 'error'
+                    ? typeof chip.onRetry === 'function'
+                    : chip.selectable !== false && typeof onChipSelect === 'function'
+                  const Tag = interactive ? 'button' : 'div'
                   return (
-                  <button
+                  <Tag
                     key={chip.id}
-                    type="button"
-                    className={`today-command-chip tone-${isReady ? (chip.tone ?? 'default') : 'default'}${isReady ? '' : ` is-${status}`}`}
+                    type={interactive ? 'button' : undefined}
+                    className={`today-command-chip tone-${isReady ? (chip.tone ?? 'default') : 'default'}${isReady ? '' : ` is-${status}`}${interactive ? '' : ' is-static'}`}
                     role="listitem"
                     aria-busy={status === 'loading' ? 'true' : undefined}
-                    onClick={() => (status === 'error' ? chip.onRetry?.() : onChipSelect?.(chip.id))}
+                    onClick={interactive ? () => (status === 'error' ? chip.onRetry?.() : onChipSelect?.(chip.id)) : undefined}
                   >
                     <span className="today-command-chip-icon" aria-hidden="true">{chip.icon}</span>
                     <span className="today-command-chip-copy">
@@ -93,7 +97,7 @@ export function TodayCommandHeader({
                         <span className="today-command-chip-detail">{chip.detail}</span>
                       ) : null}
                     </span>
-                  </button>
+                  </Tag>
                   )
                 })}
               </div>

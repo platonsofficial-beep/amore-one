@@ -1,12 +1,19 @@
-export const PERMISSION_NOTICES = {
-  location: {
-    title: 'Τοποθεσία για το clock-in',
-    body: 'Το ONE ελέγχει μία φορά, τη στιγμή του clock-in/out, αν είσαι κοντά στο venue. Αποθηκεύεται μόνο η απόσταση και η ακρίβεια — όχι οι συντεταγμένες σου. Καμία παρακολούθηση στο παρασκήνιο.',
-  },
-  push: {
-    title: 'Ειδοποιήσεις',
-    body: 'Το ONE θα σου στέλνει ειδοποιήσεις για βάρδιες, μηνύματα και εργασίες. Μπορείς να τις κλείσεις οποτεδήποτε από τις ρυθμίσεις της συσκευής.',
-  },
+import { t } from '../i18n/i18n'
+
+export function permissionNoticeCopy(kind) {
+  if (kind === 'location') {
+    return {
+      title: t("Location for clock-in"),
+      body: t("Clock location permission body"),
+    }
+  }
+  if (kind === 'push') {
+    return {
+      title: t("Notifications"),
+      body: t("Push permission body"),
+    }
+  }
+  return null
 }
 
 const storageKey = (kind) => `one.permissionNotice.${kind}`
@@ -32,7 +39,7 @@ function rememberPermissionNotice(kind, storage = globalThis.localStorage) {
  * Resolves true when the user continues, false when they cancel.
  */
 export function explainBeforePermission(kind, { doc = globalThis.document, storage = globalThis.localStorage } = {}) {
-  const notice = PERMISSION_NOTICES[kind]
+  const notice = permissionNoticeCopy(kind)
   if (!notice || hasSeenPermissionNotice(kind, storage) || !doc?.body) return Promise.resolve(true)
 
   return new Promise((resolve) => {
@@ -52,11 +59,11 @@ export function explainBeforePermission(kind, { doc = globalThis.document, stora
     const cancel = doc.createElement('button')
     cancel.type = 'button'
     cancel.className = 'ghost-btn'
-    cancel.textContent = 'Όχι τώρα'
+    cancel.textContent = t("Not now")
     const ok = doc.createElement('button')
     ok.type = 'button'
     ok.className = 'primary-btn'
-    ok.textContent = 'Συνέχεια'
+    ok.textContent = t("Continue")
     const finish = (accepted) => {
       backdrop.remove()
       if (accepted) rememberPermissionNotice(kind, storage)

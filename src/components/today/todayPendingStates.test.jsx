@@ -21,6 +21,7 @@ const render = (ui) => act(() => root.render(ui))
 
 const summary = {
   onShiftSummary: 'Schedule not published',
+  scheduleState: 'unpublished',
   teamScheduledSummary: 'No shifts scheduled today',
   reservationsSummaryLine: '0 reservations',
   tasksSummary: '0 open',

@@ -20,10 +20,10 @@ describe('manager portrait shell', () => {
     })).toBe(true)
   })
 
-  it('uses the full workspace when a phone is sideways', () => {
-    expect(shouldUseManagerPhoneShell({ width: 844, height: 390, portrait: false, narrow: false })).toBe(false)
-    expect(shouldUseManagerPhoneShell({ width: 667, height: 375, portrait: false, narrow: true })).toBe(false)
-    expect(shouldUseManagerPhoneShell({ width: 568, height: 320, portrait: false, narrow: true })).toBe(false)
+  it('keeps a sideways phone on the phone shell', () => {
+    expect(shouldUseManagerPhoneShell({ width: 844, height: 390, portrait: false, narrow: false })).toBe(true)
+    expect(shouldUseManagerPhoneShell({ width: 667, height: 375, portrait: false, narrow: true })).toBe(true)
+    expect(shouldUseManagerPhoneShell({ width: 568, height: 320, portrait: false, narrow: true })).toBe(true)
   })
 
   it('uses the full workspace when landscape dimensions disagree with a portrait query', () => {
@@ -35,7 +35,7 @@ describe('manager portrait shell', () => {
         matches: query.includes('portrait') || query.includes('max-width'),
       }),
     })
-    expect(shouldUseManagerPhoneShell()).toBe(false)
+    expect(shouldUseManagerPhoneShell()).toBe(true)
     if (previous) vi.stubGlobal('window', previous)
     else vi.unstubAllGlobals()
   })

@@ -298,6 +298,25 @@ export function buildTodayStatusSummary({
   return {
     onShiftSummary,
     onShiftScheduledCount: workingCount,
+    clockedInCount: clockedIn,
+    scheduleState: liveFloor.state ?? '',
+    scheduledStaff,
+    coverageGaps,
+    reservationsConnected,
+    reservationBookings: reservationsConnected ? (Number(reservationsSummary.bookings) || 0) : 0,
+    reservationCovers: reservationsConnected
+      ? (Number(serviceSnapshot?.totalCovers ?? reservationsSummary.guests) || 0)
+      : 0,
+    reservationNextTime: reservationsFooter?.type === 'next' ? `${reservationsFooter.time ?? ''}`.trim() : '',
+    tasksConnected,
+    tasksOpen: (tasksOverview.showEmptyToday && operationsOpen <= 0)
+      ? 0
+      : (tasksConnected ? (Number(tasksOverview.active) || 0) : 0) + operationsOpen,
+    tasksOverdue: tasksConnected ? (Number(tasksOverview.overdue) || 0) : 0,
+    tasksDone: tasksConnected ? (Number(tasksOverview.completedToday) || 0) : 0,
+    stockOut: Number(stockSummary?.outOfStock) || 0,
+    stockLow: Number(stockSummary?.lowStock) || 0,
+    stockEmpty: stockConnected && !hasStockModuleData && ((Number(stockOrdersSummary?.awaitingDeliveryCount) || 0) + (Number(stockOrdersSummary?.partialCount) || 0)) <= 0,
     teamScheduledSummary,
     reservationsSummaryLine,
     tasksSummary,
@@ -330,9 +349,10 @@ export function buildReservationAttentionItems({
       tone: snapshot.lateCount > 0 ? 'critical' : 'warning',
       priority: 'urgent',
       label: t('{{count}} guest needs attention', { count: snapshot.waitingLateCount }),
-      detail: snapshot.lateCount > 0
-        ? t('{{late}} late · {{waiting}} waiting', { late: snapshot.lateCount, waiting: snapshot.waitingCount })
-        : t('{{count}} waiting in lobby', { count: snapshot.waitingCount }),
+      detail: [
+        snapshot.lateCount > 0 ? t('{{count}} late', { count: snapshot.lateCount }) : '',
+        snapshot.waitingCount > 0 ? t('{{count}} waiting', { count: snapshot.waitingCount }) : '',
+      ].filter(Boolean).join(' · ') || t('{{count}} waiting in lobby', { count: snapshot.waitingCount }),
     })
   }
 

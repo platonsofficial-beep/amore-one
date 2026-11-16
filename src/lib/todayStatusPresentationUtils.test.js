@@ -5,13 +5,17 @@ import {
 } from './todayStatusPresentationUtils'
 
 describe('buildTodayStatusCardsFromSummary', () => {
-  it('maps existing summary strings into premium status cards', () => {
+  it('builds premium cards from counts, not English sentences', () => {
     const cards = buildTodayStatusCardsFromSummary({
-      onShiftSummary: '12 working now',
-      teamScheduledSummary: '18 scheduled today',
-      reservationsSummaryLine: '7 bookings · 37 covers',
-      tasksSummary: '3 open tasks · 3 overdue',
+      onShiftScheduledCount: 12,
+      scheduledStaff: 18,
+      reservationBookings: 7,
+      reservationCovers: 37,
+      tasksOpen: 3,
+      tasksOverdue: 3,
       stockSummaryLine: 'Stock levels OK',
+      stockOut: 0,
+      stockLow: 0,
     }, { showStock: true })
 
     expect(cards).toHaveLength(5)
@@ -22,7 +26,8 @@ describe('buildTodayStatusCardsFromSummary', () => {
       tone: 'live',
     })
     expect(buildTodayStatusCardsFromSummary({
-      onShiftSummary: '1 on shift · 0 clocked in',
+      onShiftScheduledCount: 1,
+      clockedInCount: 0,
     })[0]).toMatchObject({
       primary: '1 employee',
       secondary: '0 clocked in',
@@ -46,21 +51,22 @@ describe('buildTodayStatusCardsFromSummary', () => {
     expect(cards[4]).toMatchObject({
       id: 'team',
       primary: '18 scheduled',
+      secondary: 'On roster today',
     })
   })
 
-  it('handles empty schedule states without new calculations', () => {
+  it('handles empty schedule states without parsing summary sentences', () => {
     const cards = buildTodayStatusCardsFromSummary({
-      onShiftSummary: 'No one working now',
-      teamScheduledSummary: 'No shifts scheduled today',
-      reservationsSummaryLine: 'No reservations today',
-      tasksSummary: 'No open tasks today',
-      stockSummaryLine: '',
+      onShiftScheduledCount: 0,
+      scheduledStaff: 0,
+      reservationBookings: 0,
+      tasksOpen: 0,
     })
 
     expect(cards[0].primary).toBe('0 employees')
+    expect(cards[0].secondary).toBe('No active shifts')
     expect(cards[1].primary).toBe('0 bookings')
-    expect(cards[2].primary).toBe('Clear')
+    expect(cards[2].primary).toBe('All clear')
     expect(cards.find((card) => card.id === 'team')?.primary).toBe('No schedule today')
   })
 })

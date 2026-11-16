@@ -1,3 +1,16 @@
+import { t } from '../../i18n/i18n'
+
+const DEPARTMENT_KEYS = {
+  SERVICE: 'Service shift',
+  BAR: 'Bar',
+  KITCHEN: 'Kitchen',
+}
+
+function departmentHeading(department) {
+  const key = DEPARTMENT_KEYS[`${department ?? ''}`.trim().toUpperCase()]
+  return key ? t(key) : department
+}
+
 function TeamTodayMemberRow({ member }) {
   const stateLabel = `${member.shiftStateLabel ?? ''}`.trim()
   const stateTone = member.shiftState ?? 'scheduled'
@@ -39,7 +52,7 @@ export function TeamTodayGroupsList({
           aria-label={group.department}
         >
           <div className="team-today-department-row">
-            <h3 className={departmentClassName}>{group.department}</h3>
+            <h3 className={departmentClassName}>{departmentHeading(group.department)}</h3>
             {group.coverageHint ? (
               <span className={`team-today-department-hint tone-${group.coverageTone ?? 'warn'}`}>
                 {group.coverageHint}

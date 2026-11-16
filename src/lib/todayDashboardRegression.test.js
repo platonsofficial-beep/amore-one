@@ -79,10 +79,11 @@ describe('todayDashboardRegression', () => {
 
   it('keeps open-shift warning tone on the Team status card', () => {
     const cards = buildTodayStatusCardsFromSummary({
-      onShiftSummary: '4 working now',
-      teamScheduledSummary: '8 scheduled · 3 uncovered shifts',
-      reservationsSummaryLine: 'No reservations today',
-      tasksSummary: 'No open tasks today',
+      onShiftScheduledCount: 4,
+      scheduledStaff: 8,
+      coverageGaps: 3,
+      reservationBookings: 0,
+      tasksOpen: 0,
     })
 
     expect(cards.find((card) => card.id === 'team')).toMatchObject({

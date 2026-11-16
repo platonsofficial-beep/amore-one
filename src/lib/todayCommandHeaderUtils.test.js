@@ -82,7 +82,7 @@ describe('buildTodayCommandHeaderChips', () => {
       'reservations',
       'tasks',
     ])
-    expect(chips.find((chip) => chip.id === 'tasks')?.value).toBe('Clear')
+    expect(chips.find((chip) => chip.id === 'tasks')?.value).toBe('All clear')
     expect(chips.find((chip) => chip.id === 'schedule')?.value).toBe('0')
   })
 
@@ -108,7 +108,7 @@ describe('buildTodayCommandHeaderChips', () => {
     })
     const tasks = chips.find((chip) => chip.id === 'tasks')
     expect(tasks?.value).toBe('5 Open')
-    expect(tasks?.detail).toBe('3 board · 2 ops')
+    expect(tasks?.detail).toBe('3 boards · 2 ops')
   })
 
   it('drops the split when every open task comes from one source', () => {

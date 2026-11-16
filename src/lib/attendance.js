@@ -384,9 +384,10 @@ export function describeTodayShift(shifts, {
   }
 
   const place = shiftPlaceLabel(chosen)
+  const placeLabel = place === 'Service' ? t("Service shift") : (place ? t(place) : '')
   const range = `${shiftStartTime(chosen)}–${shiftEndTime(chosen)}`
   return {
-    label: place ? `${range}, ${place}` : range,
+    label: placeLabel ? `${range}, ${placeLabel}` : range,
     unscheduled: false,
     shift: chosen,
   }

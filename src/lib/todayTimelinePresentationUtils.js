@@ -1,12 +1,13 @@
+import { t } from '../i18n/i18n'
+
 export function formatTimelineGuestName(title) {
-  return `${title ?? ''}`.trim() || 'Guest'
+  return `${title ?? ''}`.trim() || t("Guest")
 }
 
 export function formatTimelineGuestsLine(guests) {
   const count = Number(guests)
   if (!Number.isFinite(count) || count <= 0) return ''
-  const label = count === 1 ? 'Guest' : 'Guests'
-  return `👥 ${count} ${label}`
+  return `👥 ${t('{{count}} guest', { count })}`
 }
 
 export function formatTimelineTablesLine(tableNumber) {

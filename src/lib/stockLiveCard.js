@@ -58,7 +58,7 @@ export function formatInventoryCountFact(postedAt, now = new Date(), timeZone = 
     month: 'short',
     ...(sameYear ? {} : { year: 'numeric' }),
   }, timeZone)
-  return `Last inventory count ${label}`
+  return t("Last inventory count {{date}}", { date: label })
 }
 
 export function buildStockLiveFacts({

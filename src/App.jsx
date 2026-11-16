@@ -1251,6 +1251,7 @@ function CommandCenterView({
   attentionPermissions = {},
   onMarkAnnouncementSeen,
   onStatusCardSelect,
+  canSelectCard,
   stockLive = null,
   dataStatus = null,
   onRetryData,
@@ -1290,6 +1291,7 @@ function CommandCenterView({
         statusSummary={statusSummary}
         showStock={showStockStatus && !stockLive}
         onSelect={onStatusCardSelect}
+        canSelectCard={canSelectCard}
         dataStatus={dataStatus}
         onRetryData={onRetryData}
       />
@@ -17663,10 +17665,24 @@ function App() {
     }
   }, [refreshOperationsAnnouncements, refreshOperationsTasks, refreshReservations, refreshStockItems, refreshStockOrders, refreshTasks])
 
+  const canOpenTodayDestination = useCallback((id) => {
+    if (id === 'on-shift') {
+      return Boolean(canManageAttendanceRole && activeWorkspaceId) || canAccessTeamSection(permissionAccess, 'today')
+    }
+    if (id === 'reservations') return canAccessModule(permissionAccess, 'reservations')
+    if (id === 'tasks') return canAccessModule(permissionAccess, 'operations')
+    if (id === 'stock') return canAccessModule(permissionAccess, 'stock')
+    if (id === 'team' || id === 'schedule') return canAccessTeamSection(permissionAccess, 'schedule')
+    return true
+  }, [activeWorkspaceId, canManageAttendanceRole, permissionAccess])
+
   const todayCommandHeaderChipsWithStatus = useMemo(() => todayCommandHeaderChips.map((chip) => {
     const area = loadAreaForCard(chip.id)
-    return area ? { ...chip, loadStatus: todayDataStatus[area], onRetry: () => retryTodayData(area) } : chip
-  }), [todayCommandHeaderChips, todayDataStatus, retryTodayData])
+    const selectable = canOpenTodayDestination(chip.id)
+    return area
+      ? { ...chip, loadStatus: todayDataStatus[area], onRetry: () => retryTodayData(area), selectable }
+      : { ...chip, selectable }
+  }), [todayCommandHeaderChips, todayDataStatus, retryTodayData, canOpenTodayDestination])
 
 
   const refreshReportsData = useCallback(async () => {
@@ -25575,7 +25591,7 @@ function App() {
             <AttendanceClockScreen
               workspaceId={activeWorkspaceId}
               memberId={membership?.id ?? ''}
-              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId || (isAuthDisabled ? 'dev-elena' : ''))}
+              employeeId={billingPreviewActive ? 'preview-staff' : (membership?.employeeId || (isAuthDisabled ? 'emp-elena' : ''))}
               employeeName={billingPreviewActive ? t("Alex Costa") : (mobileLinkedEmployee?.name || (isAuthDisabled ? resolveDemoDisplayName(workspaceProfile.managerName, getLocale()) : ''))}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
@@ -25742,6 +25758,7 @@ function App() {
             attentionPermissions={todayAttentionPermissions}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
+            canSelectCard={canOpenTodayDestination}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
               loadStatus: todayDataStatus.stock,
               onRetry: () => retryTodayData('stock'),

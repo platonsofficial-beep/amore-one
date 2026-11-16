@@ -83,7 +83,7 @@ describe('permission notice', () => {
   it('shows once, then remembers acceptance', async () => {
     const pending = explainBeforePermission('location')
     const ok = document.querySelector('.permission-notice .primary-btn')
-    expect(document.querySelector('.permission-notice h3').textContent).toMatch(/Τοποθεσία/)
+    expect(document.querySelector('.permission-notice h3').textContent).toMatch(/Location for clock-in/)
     ok.click()
     await expect(pending).resolves.toBe(true)
     expect(hasSeenPermissionNotice('location')).toBe(true)

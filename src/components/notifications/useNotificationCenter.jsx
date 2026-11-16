@@ -176,7 +176,7 @@ export function useNotificationCenter({
     isIos: isIosDevice(),
     isStandalone: isStandaloneDisplayMode(),
   })
-  const showOffer = ready && shouldShowShiftReminderOffer({
+  const showOffer = import.meta.env.VITE_AUTH_DISABLED !== 'true' && ready && shouldShowShiftReminderOffer({
     signedIn: Boolean(userId && workspaceId),
     alreadySubscribed: Boolean(thisDeviceEndpoint),
     permission,

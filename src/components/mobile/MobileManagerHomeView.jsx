@@ -285,7 +285,7 @@ export function MobileManagerHomeView({
       <section className="mobile-manager-command-secondary mobile-manager-priority-panel" aria-label={t("Attention")}>
         <div className="mobile-manager-command-block">
           <h2 className="mobile-manager-block-title">
-            Attention
+            {t("Attention")}
             {mergedAttentionItems.length > 0 ? (
               <span className="mobile-manager-section-count">{mergedAttentionItems.length}</span>
             ) : null}

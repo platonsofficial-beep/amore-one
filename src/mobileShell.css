@@ -7864,6 +7864,20 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 }
 
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-shell.is-mobile-shell .mobile-app-content {
+    padding-bottom: calc(var(--one-mobile-bottom-inset) + 20px);
+  }
+
+  .app-shell.is-mobile-shell .shift-reminder-actions {
+    position: sticky;
+    bottom: calc(var(--one-mobile-bottom-nav-height, 64px) + var(--one-mobile-nav-float-gap, 0px) + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    padding-top: 8px;
+    background: var(--one-bg, #0e1a2b);
+  }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .mobile-schedule {
     gap: 10px;
