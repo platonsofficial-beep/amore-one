@@ -21,6 +21,7 @@ import {
 import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
 import { WASTE_REASONS, formatWasteNote } from '../../lib/stockWaste'
 import { t } from '../../i18n/i18n'
+import { translateStockPlaceName } from '../../lib/stockLabels'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
 
@@ -163,7 +164,7 @@ export function StockMovementModal({
     : balanceQuantity
 
   const destinationLabel = selectedStorage
-    ? (selectedStorage.name || selectedStorage.locationKey || 'Storage')
+    ? translateStockPlaceName(selectedStorage.name || selectedStorage.locationKey || 'Storage')
     : ''
 
   const otherLocationNote = pickerMode && movementType === 'stock_count' && selectedStorage
@@ -415,8 +416,8 @@ export function StockMovementModal({
     : (isAdjustment
       ? 'stock-adjustment-storage-lock'
       : 'stock-receive-destination-lock')
-  const lockLabel = isAdjustment || isWaste ? 'Storage' : 'Destination'
-  const lockNote = isAdjustment || isWaste ? 'Locked' : t("Locked to this storage")
+  const lockLabel = isAdjustment || isWaste ? t('Storage') : t('Destination')
+  const lockNote = isAdjustment || isWaste ? t('Locked') : t("Locked to this storage")
   const saveDisabled = saveBlocked
   const countButtonQuantity = (() => {
     const text = `${quantity ?? ''}`.trim()
@@ -562,7 +563,7 @@ export function StockMovementModal({
                       setError('')
                     }}
                   >
-                    {reason.label}
+                    {t(reason.label)}
                   </button>
                 ))}
               </div>

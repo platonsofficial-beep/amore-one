@@ -496,7 +496,7 @@ export function getStockOrderNextAction(order) {
 
   if (status === 'received') {
     return {
-      label: 'Completed',
+      label: t('Completed'),
       hint: t("All products received"),
       tone: 'success',
     }
@@ -504,7 +504,7 @@ export function getStockOrderNextAction(order) {
 
   if (status === 'cancelled') {
     return {
-      label: 'Cancelled',
+      label: t('Cancelled'),
       hint: null,
       tone: 'muted',
     }
@@ -551,7 +551,7 @@ export function buildStockOrderTimeline(order) {
   const steps = [
     {
       id: 'created',
-      label: 'Created',
+      label: t('Created'),
       isComplete: Boolean(order?.createdAt),
       timestamp: order?.createdAt ?? null,
       actorName: order?.createdByName ?? null,
@@ -577,7 +577,7 @@ export function buildStockOrderTimeline(order) {
 
   steps.push({
     id: 'completed',
-    label: 'Completed',
+    label: t('Completed'),
     isComplete: fullyReceived,
     timestamp: order?.receivedAt ?? null,
     actorName: order?.receivedByName ?? null,

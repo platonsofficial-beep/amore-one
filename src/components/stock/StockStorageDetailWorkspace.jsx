@@ -1092,7 +1092,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Transfer stock")}
-          subtitlePrefix={t("Source")}
+          subtitlePrefix="Source"
           testId="stock-storage-transfer-product-picker"
           onClose={() => setTransferPickerOpen(false)}
           onSelectProduct={handleTransferProductSelected}
@@ -1117,7 +1117,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Adjust stock")}
-          subtitlePrefix={t("Storage")}
+          subtitlePrefix="Storage"
           testId="stock-storage-adjustment-product-picker"
           onClose={() => setAdjustmentPickerOpen(false)}
           onSelectProduct={handleAdjustmentProductSelected}
@@ -1144,7 +1144,7 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           products={payload?.products ?? []}
           title={t("Waste")}
-          subtitlePrefix={t("Storage")}
+          subtitlePrefix="Storage"
           testId="stock-storage-waste-product-picker"
           onClose={() => setWastePickerOpen(false)}
           onSelectProduct={handleWasteProductSelected}

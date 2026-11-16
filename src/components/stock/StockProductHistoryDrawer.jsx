@@ -15,6 +15,7 @@ import {
   formatMonthlyMovementStat,
   formatStockMovementHeadline,
   formatStockMovementTypeLabel,
+  translateStockMovementNote,
   formatStockProductHistoryTimestamp,
   getStockMovementTone,
   resolveLastCountedRecord,
@@ -100,7 +101,7 @@ function MovementTimelineCard({ movement, unit, timeZone = '' }) {
       {movement.note ? (
         <div className="stock-product-history-movement-reason">
           <span className="stock-product-history-movement-reason-label">{t("Reason:")}</span>
-          <p className="stock-product-history-movement-reason-text">{movement.note}</p>
+          <p className="stock-product-history-movement-reason-text">{translateStockMovementNote(movement.note)}</p>
         </div>
       ) : null}
     </article>
