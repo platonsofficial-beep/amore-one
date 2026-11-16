@@ -5,6 +5,7 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { LOCATION_CONSENT_STORAGE_KEY } from '../../lib/attendance'
+import { setLocale } from '../../i18n/i18n'
 import { AttendanceClockScreen } from './AttendanceClockScreen'
 
 const { clockInMock, settingsMock, entriesMock } = vi.hoisted(() => ({
@@ -80,6 +81,7 @@ describe('AttendanceClockScreen', () => {
     entriesMock.mockReset()
     entriesMock.mockResolvedValue([])
     delete navigator.geolocation
+    setLocale('en')
   })
 
   it('shows the shift and a large clock in button', async () => {
@@ -90,6 +92,21 @@ describe('AttendanceClockScreen', () => {
     expect(view.container.textContent).toContain('▶ Clock in')
     expect(view.container.textContent).toContain('Venue location is not set yet')
     expect(view.container.querySelector('.attendance-action-in').textContent).toContain('Clock in')
+    view.unmount()
+  })
+
+  it('translates the location agreement button', async () => {
+    settingsMock.mockResolvedValue({ venue_lat: 35, venue_lng: 33, radius_m: 50, late_grace_minutes: 10 })
+    setLocale('el')
+    const view = renderClock()
+    await view.flush()
+    await act(async () => {
+      view.container.querySelector('.attendance-action-in').click()
+    })
+
+    const agree = [...view.container.querySelectorAll('button')].find((button) => button.textContent.includes('Συμφωνώ'))
+    expect(agree?.textContent).toContain('✓ Συμφωνώ')
+    expect(view.container.textContent).not.toContain('I agree')
     view.unmount()
   })
 

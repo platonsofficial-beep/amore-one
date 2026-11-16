@@ -519,7 +519,7 @@ export function AttendanceClockScreen({
             <p>{t("Clock location consent")}</p>
             <div className="attendance-consent-actions">
               <button type="button" className="attendance-action attendance-action-in" onClick={agreeToLocation}>
-                ✓ I agree
+                ✓ {t("I agree")}
               </button>
               <button type="button" className="attendance-action attendance-action-break" onClick={() => setShowConsent(false)}>
                 {t("Not now")}
