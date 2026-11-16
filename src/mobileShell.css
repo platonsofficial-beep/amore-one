@@ -7874,7 +7874,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     bottom: calc(var(--one-mobile-bottom-nav-height, 64px) + var(--one-mobile-nav-float-gap, 0px) + env(safe-area-inset-bottom, 0px));
     z-index: 3;
     padding-top: 8px;
-    background: var(--one-bg, #0e1a2b);
+    background: var(--one-bg);
   }
 }
 
