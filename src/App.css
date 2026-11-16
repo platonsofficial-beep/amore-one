@@ -54216,7 +54216,7 @@ summary:focus-visible {
 
   .app-shell:not(.is-mobile-shell) .nav-link {
     flex: 0 0 auto;
-    min-height: 36px;
+    min-height: 44px;
     width: 100%;
     padding: 2px 2px;
     gap: 0;
