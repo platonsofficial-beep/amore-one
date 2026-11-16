@@ -1179,6 +1179,43 @@ body {
   }
 }
 
+/* iPad portrait week cards: full role titles, wrapping on words.
+   The menu sits in the corner so the title can use the card width.
+   Phone landscape keeps the compact ellipsis. Desktop columns are wide enough. */
+@media (min-width: 700px) and (max-width: 1100px) and (orientation: portrait) {
+  .blend-grid-assignment-cell.schedule-shift-instance-card {
+    position: relative;
+    height: auto;
+    overflow: visible;
+  }
+
+  .schedule-shift-instance-header {
+    display: block;
+  }
+
+  .schedule-shift-instance-copy {
+    min-width: 0;
+  }
+
+  .blend-grid-assignment-cell .blend-grid-cell-actions {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+  }
+
+  .schedule-shift-instance-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: manual;
+    font-size: 0.68rem;
+    line-height: 1.15;
+    padding-right: 22px;
+  }
+}
+
 /* 0026b — Dashboard TODAY card and Task boards "Needs attention" panel use the
    normal app card surface (navy), not a near-black frame. Gold left edge kept. */
 .mobile-manager-tasks-command {

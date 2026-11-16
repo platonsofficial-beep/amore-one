@@ -4,12 +4,24 @@ import { LEAVE_TYPES } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { requestLeave } from '../../services/leaveService'
 import { LeaveHistoryPanel } from './LeaveHistoryPanel'
+import { LocaleDateField } from '../LocaleDateField'
 import { t } from '../../i18n/i18n'
 
-const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({
-  value: type,
-  label: `${type.charAt(0).toUpperCase()}${type.slice(1)}`,
-}))
+const LEAVE_TYPE_LABELS = {
+  vacation: 'Vacation',
+  sick: 'Sick',
+  personal: 'Personal',
+  unpaid: 'Unpaid',
+  training: 'Training',
+  emergency: 'Emergency',
+  bereavement: 'Bereavement',
+  other: 'Other',
+}
+
+export function leaveTypeLabel(type) {
+  const key = LEAVE_TYPE_LABELS[`${type ?? ''}`.trim().toLowerCase()]
+  return key ? t(key) : `${type ?? ''}`.trim()
+}
 
 const SUCCESS_MESSAGE = 'Leave request submitted and pending approval.'
 
@@ -194,9 +206,9 @@ export function RequestLeaveModal({
                 aria-invalid={fieldErrors.leaveType ? 'true' : 'false'}
               >
                 <option value="">{t("Select leave type")}</option>
-                {LEAVE_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                {LEAVE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {leaveTypeLabel(type)}
                   </option>
                 ))}
               </select>
@@ -208,10 +220,9 @@ export function RequestLeaveModal({
             <div className="request-leave-date-grid">
               <label className="form-field">
                 <span>{t("Start Date")}</span>
-                <input
-                  type="date"
+                <LocaleDateField
                   value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                  onChange={setStartDate}
                   disabled={isSubmitting || Boolean(successMessage)}
                   aria-invalid={fieldErrors.startDate || fieldErrors.dateRange ? 'true' : 'false'}
                 />
@@ -222,10 +233,9 @@ export function RequestLeaveModal({
 
               <label className="form-field">
                 <span>{t("End Date")}</span>
-                <input
-                  type="date"
+                <LocaleDateField
                   value={endDate}
-                  onChange={(event) => setEndDate(event.target.value)}
+                  onChange={setEndDate}
                   disabled={isSubmitting || Boolean(successMessage)}
                   aria-invalid={fieldErrors.endDate || fieldErrors.dateRange ? 'true' : 'false'}
                 />

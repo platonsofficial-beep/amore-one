@@ -1,3 +1,5 @@
+import { t } from '../i18n/i18n'
+
 // 0036 — "Disabled" in the Edit employee form does exactly what the Disable
 // action does (set_employee_access via setEmployeeEnabled), never a bare
 // status write. Choosing another status for a disabled person enables them.
@@ -37,5 +39,5 @@ export function buildEmployeeStatusOptions(baseOptions = [], { isEditing = false
 
 export function disableConfirmMessage(employee) {
   const name = employee?.full_name ?? employee?.name ?? 'this person'
-  return `Disable ${name}? They can't sign in and their upcoming shifts are hidden. You can enable them again any time.`
+  return t("Disable {{name}}? They can't sign in and their upcoming shifts are hidden. You can enable them again any time.", { name })
 }

@@ -20,6 +20,12 @@ const LEVEL_OPTIONS = [
   { id: 'manage', label: 'Manage' },
 ]
 
+function accessChoiceLabel(label) {
+  if (label === 'Off') return t("Access off")
+  if (label === 'On') return t("Access on")
+  return t(label)
+}
+
 function levelOptionsFor(area) {
   if (area.module !== 'stock') return LEVEL_OPTIONS
   return LEVEL_OPTIONS.map((option) => (
@@ -175,7 +181,7 @@ export function MemberAccessPanel({
   return (
     <section className="employee-profile-drawer-section member-access" aria-label={t("Access")}>
       <h4 className="employee-profile-drawer-section-title">{t("Access")}</h4>
-      {linkedMembership?.role ? <p className="member-access-preset">Preset: {presetName}</p> : null}
+      {linkedMembership?.role ? <p className="member-access-preset">{t("Preset: {{name}}", { name: presetName })}</p> : null}
 
       {status === 'loading' || status === 'saving' ? (
         <p className="member-access-status">{status === 'saving' ? t("Saving access…") : t("Loading access…")}</p>
@@ -201,7 +207,7 @@ export function MemberAccessPanel({
                 <div className="member-access-copy">
                   <p className="member-access-label">
                     <span className="member-access-icon" aria-hidden="true">{area.icon}</span>
-                    {area.label}
+                    {t(area.label)}
                   </p>
                   <p className="member-access-hint">{area.hint}</p>
                   {area.note ? <p className="member-access-note">{area.note}</p> : null}
@@ -223,7 +229,7 @@ export function MemberAccessPanel({
                           aria-pressed={selected}
                           onClick={() => setLevel(area.module, option.id)}
                         >
-                          {option.label}
+                          {accessChoiceLabel(option.label)}
                         </button>
                       )
                     })}
@@ -240,7 +246,7 @@ export function MemberAccessPanel({
                           aria-pressed={selected}
                           onClick={() => setLevel(area.module, option.id)}
                         >
-                          {option.label}
+                          {accessChoiceLabel(option.label)}
                         </button>
                       )
                     })}

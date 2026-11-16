@@ -34,7 +34,7 @@ export function resolveTeamMemberShiftState({
   }
 
   if (startMinutes === null || endMinutes === null) {
-    return { shiftState: 'scheduled', shiftStateLabel: 'Scheduled' }
+    return { shiftState: 'scheduled', shiftStateLabel: t("Scheduled") }
   }
 
   if (isTimeWithinShift(nowMinutes, startMinutes, endMinutes)) {
@@ -48,12 +48,12 @@ export function resolveTeamMemberShiftState({
       )
       return {
         shiftState: 'upcoming',
-        shiftStateLabel: startLabel ? `Starts ${startLabel}` : 'Upcoming',
+        shiftStateLabel: startLabel ? t("Starts {{time}}", { time: startLabel }) : t("Upcoming"),
       }
     }
 
     if (nowMinutes >= endMinutes) {
-      return { shiftState: 'finished', shiftStateLabel: 'Finished' }
+      return { shiftState: 'finished', shiftStateLabel: t("Finished") }
     }
   } else if (nowMinutes >= endMinutes && nowMinutes < startMinutes) {
     const startLabel = formatTime24(
@@ -61,11 +61,11 @@ export function resolveTeamMemberShiftState({
     )
     return {
       shiftState: 'upcoming',
-      shiftStateLabel: startLabel ? `Starts ${startLabel}` : 'Upcoming',
+      shiftStateLabel: startLabel ? t("Starts {{time}}", { time: startLabel }) : t("Upcoming"),
     }
   }
 
-  return { shiftState: 'scheduled', shiftStateLabel: 'Scheduled' }
+  return { shiftState: 'scheduled', shiftStateLabel: t("Scheduled") }
 }
 
 export function enrichTeamTodayGroups(
@@ -110,7 +110,7 @@ export function applyCoverageHintsToGroups(groups = [], coverageBreakdown = {}) 
     const missing = Number(gap.missing) || 0
     return {
       ...group,
-      coverageHint: missing > 0 ? `Missing ${missing}` : 'Understaffed',
+      coverageHint: missing > 0 ? t("Missing {{count}}", { count: missing }) : t("Understaffed"),
       coverageTone: 'warn',
     }
   })
@@ -127,30 +127,30 @@ export function buildTeamTodayStatus({
       scheduleValue: t("Schedule not published"),
       nextShiftLabel: t("Next shift"),
       nextShiftValue: t("No published shifts"),
-      coverageLabel: 'Coverage',
+      coverageLabel: t("Coverage"),
       coverageValue: t("Waiting for schedule"),
       coverageTone: 'neutral',
       coverageDetail: '',
     }
   }
 
-  let workingNow = 'No one on shift'
+  let workingNow = t("No one on shift")
 
   if (liveFloor.state === 'live') {
     const count = Number(liveFloor.onShiftCount) || 0
-    workingNow = count === 1 ? '1 team member on shift' : `${count} team members on shift`
+    workingNow = t("{{count}} team members on shift", { count })
   }
 
-  let nextShift = 'No more shifts today'
+  let nextShift = t("No more shifts today")
 
   if (liveFloor.nextShiftStartLabel) {
-    nextShift = `Starts at ${liveFloor.nextShiftStartLabel}`
+    nextShift = t("Starts at {{time}}", { time: liveFloor.nextShiftStartLabel })
   }
 
   const gapCount = Number(coverageBreakdown?.gapCount ?? snapshot.coverageGaps) || 0
   const coverageDetail = `${coverageBreakdown?.summaryLine ?? ''}`.trim()
 
-  let coverageValue = 'All covered'
+  let coverageValue = t("All covered")
   let coverageTone = 'ok'
 
   if (gapCount > 0) {
@@ -163,7 +163,7 @@ export function buildTeamTodayStatus({
     scheduleValue: workingNow,
     nextShiftLabel: t("Next shift"),
     nextShiftValue: nextShift,
-    coverageLabel: 'Coverage',
+    coverageLabel: t("Coverage"),
     coverageValue,
     coverageTone,
     coverageDetail,
@@ -197,7 +197,7 @@ export function buildEmployeeTodayShiftLookup({
     const endTimeLabel = formatTime24(normalizeTimeValue(shift.endTime))
     const shiftLabel = startTimeLabel && endTimeLabel
       ? `${startTimeLabel} - ${endTimeLabel}`
-      : startTimeLabel || 'Scheduled'
+      : startTimeLabel || t("Scheduled")
 
     lookup.set(employeeId, shiftLabel)
   })

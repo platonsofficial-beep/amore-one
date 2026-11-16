@@ -32,7 +32,8 @@ const DAY_TITLES = Object.freeze({
 
 export function getMobileAvailabilityDayTitle(dayOfWeek) {
   const normalized = `${dayOfWeek ?? ''}`.trim().toLowerCase()
-  return DAY_TITLES[normalized] ?? normalized
+  const title = DAY_TITLES[normalized]
+  return title ? t(title) : normalized
 }
 
 export function cloneAvailabilityWeek(week) {

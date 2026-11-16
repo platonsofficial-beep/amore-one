@@ -68,19 +68,19 @@ export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = f
 
   switch (result.key) {
     case 'working_now':
-      secondaryLabel = result.endsAt ? `Until ${formatDisplayTime(result.endsAt)}` : ''
+      secondaryLabel = result.endsAt ? t("Until {{time}}", { time: formatDisplayTime(result.endsAt) }) : ''
       break
     case 'scheduled_later':
-      secondaryLabel = result.startsAt ? `Starts ${formatDisplayTime(result.startsAt)}` : ''
+      secondaryLabel = result.startsAt ? t("Starts {{time}}", { time: formatDisplayTime(result.startsAt) }) : ''
       break
     case 'shift_completed':
-      secondaryLabel = result.endsAt ? `Ended ${formatDisplayTime(result.endsAt)}` : ''
+      secondaryLabel = result.endsAt ? t("Ended {{time}}", { time: formatDisplayTime(result.endsAt) }) : ''
       break
     case 'day_off':
-      secondaryLabel = 'No published shift today'
+      secondaryLabel = t("No published shift today")
       break
     case 'not_scheduled':
-      secondaryLabel = 'Schedule not published'
+      secondaryLabel = t("Schedule not published")
       break
     case 'on_leave':
       secondaryLabel = ''
@@ -124,20 +124,20 @@ export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = fal
     case 'working_now': {
       const range = formatShiftRange(result.currentShift)
       todaySubtitle = range
-        ? `Today · ${range}`
-        : (result.endsAt ? `Today · Until ${formatDisplayTime(result.endsAt)}` : 'Today')
+        ? t("Today · {{range}}", { range })
+        : (result.endsAt ? t("Today · Until {{time}}", { time: formatDisplayTime(result.endsAt) }) : t("Today"))
       break
     }
     case 'scheduled_later':
       todaySubtitle = result.startsAt
-        ? `Today · Starts ${formatDisplayTime(result.startsAt)}`
-        : 'Today'
+        ? t("Today · Starts {{time}}", { time: formatDisplayTime(result.startsAt) })
+        : t("Today")
       break
     case 'shift_completed': {
       const range = formatShiftRange(result.completedShift ?? result.currentShift)
       todaySubtitle = range
-        ? `Today · ${range}`
-        : (result.endsAt ? `Today · Ended ${formatDisplayTime(result.endsAt)}` : 'Today')
+        ? t("Today · {{range}}", { range })
+        : (result.endsAt ? t("Today · Ended {{time}}", { time: formatDisplayTime(result.endsAt) }) : t("Today"))
       break
     }
     case 'day_off':
@@ -150,7 +150,7 @@ export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = fal
       todaySubtitle = t("Approved leave today")
       break
     default:
-      todaySubtitle = 'Today'
+      todaySubtitle = t("Today")
       break
   }
 
