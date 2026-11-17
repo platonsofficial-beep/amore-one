@@ -6,6 +6,8 @@
 -- One invoice row per order, with many pages (files) and many lines.
 -- The bucket is private. Paths are {workspace_id}/{order_id}/{file}.
 -- Only members who can manage stock for that venue can read or write.
+-- Safe to run again: tables and indexes use IF NOT EXISTS, policies drop then
+-- recreate, and the bucket insert sets public = false if the bucket already exists.
 
 create table if not exists public.stock_order_invoices (
   id uuid primary key default gen_random_uuid(),

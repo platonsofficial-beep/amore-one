@@ -24,6 +24,11 @@ function money(value) {
   return formatStockPurchasePrice(value)
 }
 
+function invoiceNotice(error, fallback) {
+  const message = `${error?.message ?? ''}`.trim()
+  return message ? t(message) : t(fallback)
+}
+
 function InvoiceReview({
   order,
   draft,
@@ -220,7 +225,7 @@ export function StockInvoiceSection({
       }
       setOpen(true)
     } catch (error) {
-      setNotice(error?.message || t("Could not read that file."))
+      setNotice(invoiceNotice(error, "Could not read that file."))
     }
   }
 
@@ -254,7 +259,7 @@ export function StockInvoiceSection({
       setOpen(false)
       onSaved?.()
     } catch (error) {
-      setNotice(error?.message || t("Could not save the invoice."))
+      setNotice(invoiceNotice(error, "Could not save the invoice."))
     } finally {
       setIsSaving(false)
     }
@@ -323,7 +328,7 @@ export function StockInvoiceSection({
           {viewer.contentType === 'application/pdf' ? (
             <iframe title={viewer.fileName || t("Invoice PDF")} src={viewer.previewUrl} />
           ) : (
-            <img src={viewer.previewUrl} alt={viewer.fileName || 'Invoice'} />
+            <img src={viewer.previewUrl} alt={viewer.fileName || t("Invoice")} />
           )}
           <button type="button" className="ghost-btn" onClick={() => setViewer(null)}>{t("Close")}</button>
         </div>,
