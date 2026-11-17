@@ -71,7 +71,7 @@ export function WorkspaceVenueSetupSection({
         <WorkspaceVenueCard
           title={t("Task Boards")}
           icon="✓"
-          items={taskBoards}
+          items={taskBoards.map((item) => t(item))}
           fallbackNote="Create task boards in Operations → Tasks."
         />
       </div>

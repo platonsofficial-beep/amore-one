@@ -4389,5 +4389,17 @@
   "{{title}} execution": "{{title}} execution",
   "{{title}} progress": "{{title}} progress",
   "Delete {{name}} department": "Delete {{name}} department",
-  "Managers": "Managers"
+  "Managers": "Managers",
+  "{{count}} card overdue": "Overdue",
+  "{{count}} card overdue_one": "Overdue",
+  "{{count}} card overdue_other": "Overdue",
+  "{{count}} card completed today": "Completed today",
+  "{{count}} card completed today_one": "Completed today",
+  "{{count}} card completed today_other": "Completed today",
+  "F&B": "F&B",
+  "Logistics": "Logistics",
+  "Delivery": "Delivery",
+  "Admin": "Admin",
+  "Service-style": "Service-style",
+  "Bar-style": "Bar-style"
 }

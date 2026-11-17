@@ -97,11 +97,11 @@ export default function CreateDepartmentModal({
                   type="button"
                   className={`task-department-icon-choice${icon === preset.emoji ? ' is-selected' : ''}`}
                   onClick={() => setIcon(preset.emoji)}
-                  aria-label={preset.label}
+                  aria-label={t(preset.label)}
                   aria-pressed={icon === preset.emoji}
                 >
                   <span className="task-department-icon-choice-emoji" aria-hidden="true">{preset.emoji}</span>
-                  <span className="task-department-icon-choice-label">{preset.label}</span>
+                  <span className="task-department-icon-choice-label">{t(preset.label)}</span>
                 </button>
               ))}
             </div>

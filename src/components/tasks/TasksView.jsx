@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildCustomDepartmentBoardKey, getTaskDepartmentBoardKey, loadCustomDepartmentIcons, persistCustomDepartmentIcons, TASK_PRESET_DEPARTMENTS, UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from '../../lib/taskDepartments'
-import { canStaffCompleteTask, getOperationsCategoryLabel } from '../../lib/operationsUtils'
+import { canStaffCompleteTask, getOperationsCategoryLabel, translateOperationsWord } from '../../lib/operationsUtils'
 import {
   buildTaskAlerts,
   buildVisibleDepartmentBoards,
@@ -524,7 +524,7 @@ export default function TasksView({
             existingNames={[
               ...customDepartments,
               UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
-              ...TASK_PRESET_DEPARTMENTS.map((department) => department.label),
+              ...TASK_PRESET_DEPARTMENTS.flatMap((department) => [department.label, translateOperationsWord(department.label)]),
             ]}
           />
 

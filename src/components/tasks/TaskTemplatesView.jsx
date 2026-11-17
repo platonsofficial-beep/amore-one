@@ -2,6 +2,7 @@ import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../
 import { getTaskDepartmentLabel, groupTaskTemplatesByDepartment } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { t } from '../../i18n/i18n'
+import { translateOperationsWord } from '../../lib/operationsUtils'
 
 const PRIORITY_LABELS = {
   normal: 'Normal',
@@ -183,7 +184,7 @@ export default function TaskTemplatesView({
             <section key={department.key} className="tasks-templates-group">
               <header className="tasks-templates-group-header">
                 <span className="tasks-templates-group-icon" aria-hidden="true">{department.icon}</span>
-                <h4>{department.label}</h4>
+                <h4>{translateOperationsWord(department.label)}</h4>
                 <span className="tasks-templates-group-count">{departmentTemplates.length}</span>
               </header>
               <div className="tasks-templates-list">
