@@ -294,7 +294,7 @@ export function StockTransferModal({
               disabled={isBusy || isLoading}
               data-testid="stock-transfer-submit"
             >
-              {isBusy ? 'Transferring…' : 'Transfer'}
+              {isBusy ? t('Transferring…') : t('Transfer')}
             </button>
           </div>
         </form>

@@ -9,7 +9,7 @@ const MOBILE_SHEET_QUERY = '(max-width: 900px), (max-height: 520px)'
 
 const MENU_ITEMS = [
   { id: 'label-stock', type: 'label', label: 'Stock' },
-  { id: 'receive', label: t("Receive delivery"), group: 'operations' },
+  { id: 'receive', label: 'Receive delivery', group: 'operations' },
   { id: 'count', label: 'Count', group: 'operations' },
   { id: 'usage', label: 'Usage', group: 'operations' },
   { id: 'waste', label: 'Waste', group: 'operations' },
@@ -17,11 +17,11 @@ const MENU_ITEMS = [
   { id: 'label-product', type: 'label', label: 'Product' },
   { id: 'edit', label: 'Edit', group: 'management' },
   { id: 'duplicate', label: 'Duplicate', group: 'management' },
-  { id: 'history', label: t("History & details"), group: 'management' },
+  { id: 'history', label: 'History & details', group: 'management' },
   { id: 'label-status', type: 'label', label: 'Status' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
   { id: 'sep-delete', type: 'separator' },
-  { id: 'permanently_delete', label: t("Delete product"), danger: true, group: 'destructive' },
+  { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
 ]
 
 function groupMenuSections(items) {
@@ -227,7 +227,7 @@ export function StockItemMoreMenu({
     handlers[id]?.()
   }
 
-  const deactivateLabel = item?.active === false ? 'Reactivate' : 'Deactivate'
+  const deactivateLabel = item?.active === false ? t('Reactivate') : t('Deactivate')
   const menuSections = groupMenuSections(MENU_ITEMS)
   const [leadSection, ...followingSections] = menuSections
 
@@ -241,7 +241,7 @@ export function StockItemMoreMenu({
         />
       )
     }
-    const label = entry.id === 'deactivate' ? deactivateLabel : entry.label
+    const label = entry.id === 'deactivate' ? deactivateLabel : t(entry.label)
     return (
       <button
         key={entry.id}
@@ -262,7 +262,7 @@ export function StockItemMoreMenu({
   const renderSection = (section) => (
     <div key={section.id} className="stock-item-more-menu-section">
       {section.label ? (
-        <p className="stock-item-more-menu-label">{section.label}</p>
+        <p className="stock-item-more-menu-label">{t(section.label)}</p>
       ) : null}
       {section.items.map(renderEntry)}
     </div>
@@ -284,7 +284,7 @@ export function StockItemMoreMenu({
         ref={panelRef}
         className={`stock-item-more-menu-panel${isMobileSheet ? ' is-sheet' : ` is-popover is-${position.placement}`}${isPopoverReady ? ' is-visible' : ''}`}
         role="menu"
-        aria-label={`More actions for ${itemName}`}
+        aria-label={t('More actions for {{name}}', { name: itemName })}
         style={isMobileSheet ? { zIndex: MENU_Z_INDEX } : {
           position: 'fixed',
           top: isPositioned ? `${position.top}px` : '-10000px',

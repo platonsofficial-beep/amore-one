@@ -396,9 +396,9 @@ function StockItemRowActions({
           onClick={keepRow(onToggleMenu)}
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
-          aria-label={`More actions for ${buildProductDisplayNameFromItem(item)}`}
+          aria-label={t('More actions for {{name}}', { name: buildProductDisplayNameFromItem(item) })}
         >
-          {compact ? '⋯' : 'More'}
+          {compact ? '⋯' : t('More')}
         </button>
       </div>
     </div>
@@ -959,7 +959,7 @@ function StockBulkFieldModal({
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>{t("Cancel")}</button>
             <button type="submit" className="primary-btn" disabled={isBusy}>
-              {isBusy ? 'Saving…' : t("Apply to selected")}
+              {isBusy ? t('Saving…') : t("Apply to selected")}
             </button>
           </div>
         </form>
@@ -1072,7 +1072,7 @@ function StockItemDeactivateConfirmModal({
             onClick={handleConfirm}
             disabled={isBusy || !canDismiss}
           >
-            {isBusy ? 'Saving…' : 'Deactivate'}
+            {isBusy ? t('Saving…') : t('Deactivate')}
           </button>
         </div>
       </div>
@@ -1661,7 +1661,7 @@ export function StockDashboardView({
               disabled={!isWorkspaceReady || isStockActionBusy}
             >
               <StockActionIcon name="bag" />
-              <span>{isPreparingDrafts ? 'Preparing…' : (isSavingOrders ? 'Saving…' : t("Suggest order"))}</span>
+              <span>{isPreparingDrafts ? t('Preparing…') : (isSavingOrders ? t('Saving…') : t("Suggest order"))}</span>
             </button>
           ) : null}
           <button
@@ -1714,7 +1714,7 @@ export function StockDashboardView({
                     }}
                     disabled={!isWorkspaceReady || isStockActionBusy}
                   >
-                    {isSavingOrders ? 'Saving…' : t("Create order")}
+                    {isSavingOrders ? t('Saving…') : t("Create order")}
                   </button>
                   <button
                     type="button"
@@ -1738,7 +1738,7 @@ export function StockDashboardView({
                     }}
                     disabled={isStockActionBusy}
                   >
-                    {selectionMode ? 'Done' : 'Select'}
+                    {selectionMode ? t('Done') : t('Select')}
                   </button>
                 </div>
               </>

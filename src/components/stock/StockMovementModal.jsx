@@ -282,7 +282,7 @@ export function StockMovementModal({
     : movementType === 'usage'
       ? t("Record usage")
       : isWaste
-        ? 'Waste'
+        ? t('Waste')
         : movementType === 'stock_count'
           ? t("Stock count")
           : t("Adjust stock")
@@ -299,15 +299,17 @@ export function StockMovementModal({
     if (isBusy) return
 
     if (isWaste && !wasteReasonId) {
-      setError('Choose a reason.')
+      setError(t('Choose a reason.'))
       return
     }
     if (pickerMode && !selectedStorage?.id) {
-      setError('Choose a storage.')
+      setError(t('Choose a storage.'))
       return
     }
     if (pickerMode && effectiveVersion == null && !createsAbsentBalance) {
-      setError(`No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`)
+      setError(t('No balance at {{storage}} yet. Choose a storage that already holds this product.', {
+        storage: destinationLabel,
+      }))
       return
     }
 
@@ -315,16 +317,16 @@ export function StockMovementModal({
     if (isAdjustment) {
       const positive = parsePositiveAdjustmentQuantity(quantity)
       if (positive == null) {
-        setError('Enter a positive quantity.')
+        setError(t('Enter a positive quantity.'))
         return
       }
       parsed = toSignedAdjustmentQuantity(operation, positive)
       if (adjustmentBalance == null) {
-        setError('This storage balance is not available yet. Choose a storage that already holds this product.')
+        setError(t('This storage balance is not available yet. Choose a storage that already holds this product.'))
         return
       }
       if (adjustmentBalance + parsed < 0) {
-        setError('Adjustment would make the balance negative.')
+        setError(t('Adjustment would make the balance negative.'))
         return
       }
     } else {
@@ -333,12 +335,12 @@ export function StockMovementModal({
 
     if (isStockCount) {
       if (!Number.isFinite(parsed) || parsed < 0) {
-        setError('Enter the counted quantity (zero or greater).')
+        setError(t('Enter the counted quantity (zero or greater).'))
         return
       }
     } else if (movementType === 'receive') {
       if (!Number.isFinite(parsed) || parsed <= 0) {
-        setError('Enter a positive quantity to receive.')
+        setError(t('Enter a positive quantity to receive.'))
         return
       }
     } else if (movementType === 'usage' || isWaste) {
@@ -356,17 +358,21 @@ export function StockMovementModal({
         currentQuantity: pickerMode ? null : item?.currentQuantity,
       })
       if (usageCeiling == null) {
-        setError('This storage balance is not available yet. Refresh the location before recording usage.')
+        setError(t('This storage balance is not available yet. Refresh the location before recording usage.'))
         return
       }
       if (parsed > usageCeiling) {
-        const limitLabel = usageDestination ? 'balance in this storage' : 'on-hand quantity'
-        const verb = isWaste ? 'Waste' : 'Usage'
-        setError(`${verb} cannot exceed the ${limitLabel} (${formatStockQuantity(usageCeiling, item.unit)}).`)
+        const limitLabel = usageDestination ? t('balance in this storage') : t('on-hand quantity')
+        const verb = t(isWaste ? 'Waste' : 'Usage')
+        setError(t('{{verb}} cannot exceed the {{limit}} ({{amount}}).', {
+          verb,
+          limit: limitLabel,
+          amount: formatStockQuantity(usageCeiling, item.unit),
+        }))
         return
       }
     } else if (!isAdjustment && (!Number.isFinite(parsed) || parsed === 0)) {
-      setError('Enter a non-zero quantity.')
+      setError(t('Enter a non-zero quantity.'))
       return
     }
 
@@ -402,7 +408,7 @@ export function StockMovementModal({
           setError(reloadError?.message || t("This balance changed, and the refresh failed. Try again."))
           return
         }
-        setError('This balance changed. The storage quantity was refreshed. Check it and try again.')
+        setError(t('This balance changed. The storage quantity was refreshed. Check it and try again.'))
         return
       }
       setError(submitError?.message || t("Unable to save movement right now."))
@@ -427,13 +433,16 @@ export function StockMovementModal({
     return text
   })()
   const submitLabel = isBusy
-    ? 'Saving…'
+    ? t('Saving…')
     : (pickerMode && isStockCount
-      ? `Set ${destinationLabel || 'storage'} to ${countButtonQuantity ?? '…'}`
+      ? t('Set {{storage}} to {{quantity}}', {
+        storage: destinationLabel || t('storage'),
+        quantity: countButtonQuantity ?? '…',
+      })
         : (isStockCount
         ? t("Save stock count")
-        : (isWaste ? t("Log waste") : (isAdjustment ? t("Apply Adjustment") : 'Save'))))
-  const previewOperationLabel = operation === 'remove' ? 'Remove' : 'Add'
+        : (isWaste ? t("Log waste") : (isAdjustment ? t("Apply Adjustment") : t('Save')))))
+  const previewOperationLabel = operation === 'remove' ? t('Remove') : t('Add')
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -494,12 +503,16 @@ export function StockMovementModal({
               ) : null}
               {missingLocationBalance ? (
                 <p className="stock-movement-storage-gap" data-testid="stock-movement-balance-gap">
-                  {`No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`}
+                  {t('No balance at {{storage}} yet. Choose a storage that already holds this product.', {
+                    storage: destinationLabel,
+                  })}
                 </p>
               ) : null}
               {createsAbsentBalance ? (
                 <p className="stock-movement-storage-gap" data-testid="stock-movement-balance-start">
-                  {`No balance at ${destinationLabel} yet. Saving starts this storage at the quantity you enter.`}
+                  {t('No balance at {{storage}} yet. Saving starts this storage at the quantity you enter.', {
+                    storage: destinationLabel,
+                  })}
                 </p>
               ) : null}
               {otherLocationNote ? (
@@ -529,7 +542,7 @@ export function StockMovementModal({
                     setError('')
                   }}
                 >
-                  − Remove
+                  − {t('Remove')}
                 </button>
                 <button
                   type="button"
@@ -541,7 +554,7 @@ export function StockMovementModal({
                     setError('')
                   }}
                 >
-                  + Add
+                  + {t('Add')}
                 </button>
               </div>
             </fieldset>
@@ -571,7 +584,7 @@ export function StockMovementModal({
           ) : null}
 
           <label>
-            {isStockCount ? t("Counted quantity") : 'Quantity'}
+            {isStockCount ? t("Counted quantity") : t('Quantity')}
             {isAdjustment ? (
               <input
                 type="text"
@@ -595,7 +608,7 @@ export function StockMovementModal({
                 onChange={(event) => setQuantity(event.target.value)}
                 placeholder={isStockCount
                   ? `${pickerMode ? (effectiveBalanceQuantity ?? 0) : (item.currentQuantity ?? 0)}`
-                  : 'Qty'}
+                  : t('Qty')}
                 required
                 disabled={isBusy}
               />
@@ -641,7 +654,7 @@ export function StockMovementModal({
           ) : null}
 
           <label>
-            {isAdjustment ? 'Notes' : 'Note'}
+            {isAdjustment ? t('Notes') : t('Note')}
             <input
               type="text"
               value={note}
@@ -651,12 +664,10 @@ export function StockMovementModal({
               }}
               placeholder={
                 isStockCount
-                  ? 'e.g. Monday bar count'
+                  ? t('e.g. Monday bar count')
                   : isAdjustment
                     ? t("Describe why this adjustment was made...")
-                    : isWaste
-                      ? 'Optional'
-                      : 'Optional'
+                    : t('Optional')
               }
               disabled={isBusy}
               data-testid={isAdjustment ? 'stock-adjustment-note' : undefined}

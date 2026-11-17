@@ -125,7 +125,7 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
   it('removes Dashboard import entry points while preserving core manager actions (P8.25.3)', () => {
     expect(DASHBOARD_SOURCE).toContain('Add item')
     expect(DASHBOARD_SOURCE).toContain('Create order')
-    expect(DASHBOARD_SOURCE).toContain("selectionMode ? 'Done' : 'Select'")
+    expect(DASHBOARD_SOURCE).toContain("selectionMode ? t('Done') : t('Select')")
     expect(DASHBOARD_SOURCE).not.toContain('StockToolbarOverflowMenu')
     expect(DASHBOARD_SOURCE).not.toContain('data-stock-toolbar-overflow')
     expect(DASHBOARD_SOURCE).not.toContain('isImportModalOpen')

@@ -254,7 +254,7 @@ export function StockItemFormModal({
                   autoFocus
                 />
                 {cardTitle && cardTitle !== storedProductName ? (
-                  <p className="stock-item-form-shown-as">Shown on cards as {cardTitle}</p>
+                  <p className="stock-item-form-shown-as">{t('Shown on cards as {{title}}', { title: cardTitle })}</p>
                 ) : null}
               </label>
 
@@ -429,7 +429,7 @@ export function StockItemFormModal({
                       onClick={onOpenAddSupplier}
                       disabled={isSaving}
                     >
-                      + Add supplier
+                      {t('+ Add supplier')}
                     </button>
                   ) : null}
                 </div>
@@ -441,7 +441,7 @@ export function StockItemFormModal({
               </div>
 
               <label className="stock-form-field stock-form-field-full">
-                <span>Purchase price (€ per unit)</span>
+                <span>{t('Purchase price (€ per unit)')}</span>
                 <input
                   type="number"
                   min="0"

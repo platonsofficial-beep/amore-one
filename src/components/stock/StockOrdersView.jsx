@@ -324,7 +324,7 @@ export function StockOrdersView({
                 onClick={() => { void onPrepareDrafts() }}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : t("Suggest order"))}
+                {isPreparingDrafts ? t('Preparing…') : (isSaving ? t('Saving…') : t("Suggest order"))}
               </button>
             ) : null}
             <button
@@ -333,7 +333,7 @@ export function StockOrdersView({
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!isWorkspaceReady || isActionBusy}
             >
-              {isSaving ? 'Creating…' : t("Create order")}
+              {isSaving ? t('Creating…') : t("Create order")}
             </button>
           </div>
         ) : null}
@@ -402,7 +402,7 @@ export function StockOrdersView({
                   onClick={() => { void onPrepareDrafts() }}
                   disabled={!isWorkspaceReady || isActionBusy}
                 >
-                  {isPreparingDrafts ? 'Preparing…' : (isSaving ? 'Saving…' : t("Suggest order"))}
+                  {isPreparingDrafts ? t('Preparing…') : (isSaving ? t('Saving…') : t("Suggest order"))}
                 </button>
               ) : null}
               <button
@@ -411,7 +411,7 @@ export function StockOrdersView({
                 onClick={() => setIsCreateModalOpen(true)}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isSaving ? 'Creating…' : t("Create order")}
+                {isSaving ? t('Creating…') : t("Create order")}
               </button>
             </div>
           ) : null}
