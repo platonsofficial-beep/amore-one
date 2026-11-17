@@ -55479,8 +55479,8 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs[data-overflow='true'] {
-  -webkit-mask-image: linear-gradient(to left, transparent, #000 32px);
-  mask-image: linear-gradient(to left, transparent, #000 32px);
+  -webkit-mask-image: linear-gradient(to left, transparent, black 32px);
+  mask-image: linear-gradient(to left, transparent, black 32px);
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .stock-focus-search {
