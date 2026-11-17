@@ -1,15 +1,9 @@
 import { useState } from 'react'
 import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
-import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
+import { getBoardPriorityLabel, getBoardRecurrenceLabel, getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24, formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
 import { t, uiLocale } from '../../i18n/i18n'
-
-const PRIORITY_LABELS = {
-  normal: 'Normal',
-  important: 'Important',
-  urgent: 'Urgent',
-}
 
 function normalizeTaskDateKey(value) {
   if (!value) return ''
@@ -71,10 +65,8 @@ function formatCompletedTimestamp(value) {
 
 function getRecurrenceLabel(recurrence) {
   const value = `${recurrence ?? 'none'}`.trim().toLowerCase()
-  if (value === 'daily') return 'Daily'
-  if (value === 'weekly') return 'Weekly'
-  if (value === 'monthly') return 'Monthly'
-  return null
+  if (value === 'none' || !value) return null
+  return getBoardRecurrenceLabel(value) || null
 }
 
 function TaskChecklist({
@@ -130,7 +122,7 @@ function TaskChecklist({
           className="ghost-btn task-checklist-show-all-btn"
           onClick={() => setShowAll(true)}
         >
-          Show all ({totalCount})
+          {t("Show all ({{count}})", { count: totalCount })}
         </button>
       ) : null}
     </div>
@@ -171,10 +163,10 @@ export default function TaskCard({
     >
       <div className="task-card-top">
         {isCompleted ? (
-          <span className="task-card-status-badge is-completed">✓ Completed</span>
+          <span className="task-card-status-badge is-completed">{t("✓ Completed")}</span>
         ) : (
           <span className={`task-priority-badge priority-${priority}`}>
-            {PRIORITY_LABELS[priority] ?? 'Normal'}
+            {getBoardPriorityLabel(priority)}
           </span>
         )}
       </div>
@@ -183,7 +175,7 @@ export default function TaskCard({
         <h4 className="task-card-title">{task?.title || t("Untitled task")}</h4>
 
         {isCompleted && completedLabel ? (
-          <p className="task-card-completed-at">Completed {completedLabel}</p>
+          <p className="task-card-completed-at">{t("Completed {{when}}", { when: completedLabel })}</p>
         ) : null}
 
         <div className="task-card-metadata">
@@ -203,9 +195,9 @@ export default function TaskCard({
           ) : null}
 
           {recurrenceLabel ? (
-            <span className="task-card-metadata-item task-card-recurrence" title={`Repeats ${recurrenceLabel.toLowerCase()}`}>
+            <span className="task-card-metadata-item task-card-recurrence" title={t("Repeats {{label}}", { label: recurrenceLabel })}>
               <span className="task-card-metadata-icon" aria-hidden="true">🔁</span>
-              <span className="sr-only">Repeats {recurrenceLabel.toLowerCase()}</span>
+              <span className="sr-only">{t("Repeats {{label}}", { label: recurrenceLabel })}</span>
             </span>
           ) : null}
         </div>
@@ -262,7 +254,7 @@ export default function TaskCard({
               onClick={() => onComplete?.(task)}
               disabled={isSaving}
             >
-              ✓ Complete
+              {t("✓ Complete")}
             </button>
           ) : null}
         </div>

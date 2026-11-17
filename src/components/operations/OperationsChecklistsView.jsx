@@ -55,7 +55,7 @@ function ChecklistTemplateCard({
           onClick={() => onToggleActive(template)}
           disabled={isSaving}
         >
-          {template.active === false ? 'Activate' : 'Deactivate'}
+          {template.active === false ? t("Activate") : t("Deactivate")}
         </button>
         <button
           type="button"

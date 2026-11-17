@@ -1,6 +1,6 @@
 import { resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { groupTasksBySection, isTaskOverdue, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
-import { canStaffCompleteTask, getTaskAssigneeId } from '../../lib/operationsUtils'
+import { canStaffCompleteTask, getTaskAssigneeId, translateOperationsWord } from '../../lib/operationsUtils'
 import TaskCard from './TaskCard'
 import { t } from '../../i18n/i18n'
 
@@ -85,7 +85,7 @@ export default function DepartmentBoardView({
   const employeeNameById = new Map(
     employees.map((employee) => [
       String(employee.id),
-      employee.full_name || employee.name || `Employee ${employee.id}`,
+      employee.full_name || employee.name || `${t("Employee")} ${employee.id}`,
     ]),
   )
 
@@ -99,16 +99,16 @@ export default function DepartmentBoardView({
     <section className="tasks-board">
       <header className="tasks-board-header">
         <button type="button" className="ghost-btn tasks-back-btn" onClick={onBack}>
-          ← Back
+          ← {t("Back")}
         </button>
         <div className="tasks-board-header-row">
           <div className="tasks-board-title-block">
             <span className="tasks-board-icon" aria-hidden="true">{departmentDisplay.icon}</span>
-            <h3>{departmentDisplay.label}</h3>
+            <h3>{translateOperationsWord(departmentDisplay.label)}</h3>
           </div>
           {canManage ? (
             <button type="button" className="primary-btn tasks-new-btn" onClick={onNewTask} disabled={isSaving}>
-              + New Task
+              {t("+ New Task")}
             </button>
           ) : null}
         </div>
@@ -139,7 +139,7 @@ export default function DepartmentBoardView({
           title={t("Today")}
           tasks={sections.today}
           checklistItemsByTaskId={checklistItemsByTaskId}
-          emptyMessage="No tasks due today for this department."
+          emptyMessage={t("No tasks due today for this department.")}
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}
@@ -155,7 +155,7 @@ export default function DepartmentBoardView({
           title={t("Upcoming")}
           tasks={sections.upcoming}
           checklistItemsByTaskId={checklistItemsByTaskId}
-          emptyMessage="No upcoming tasks scheduled for this department."
+          emptyMessage={t("No upcoming tasks scheduled for this department.")}
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}
@@ -171,7 +171,7 @@ export default function DepartmentBoardView({
           title={t("Completed")}
           tasks={sections.completed}
           checklistItemsByTaskId={checklistItemsByTaskId}
-          emptyMessage="No completed tasks yet for this department."
+          emptyMessage={t("No completed tasks yet for this department.")}
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}

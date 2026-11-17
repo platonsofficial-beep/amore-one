@@ -30,13 +30,13 @@ export default function CreateDepartmentModal({
 
     const trimmed = `${name ?? ''}`.trim()
     if (!trimmed) {
-      setErrorMessage('Department name is required.')
+      setErrorMessage(t("Department name is required."))
       return
     }
 
     const normalizedExisting = existingNames.map((value) => `${value ?? ''}`.trim().toLowerCase())
     if (normalizedExisting.includes(trimmed.toLowerCase())) {
-      setErrorMessage('This department already exists.')
+      setErrorMessage(t("This department already exists."))
       return
     }
 

@@ -295,7 +295,7 @@ export default function TasksView({
   const handleDeleteTask = async (task) => {
     if (!task?.id || !canManage) return
 
-    const confirmed = window.confirm(`Delete "${task.title || 'this task'}"?`)
+    const confirmed = window.confirm(t('Delete "{{title}}"?', { title: task.title || t("this task") }))
     if (!confirmed) return
 
     await onDeleteTask?.(task.id)
@@ -349,7 +349,7 @@ export default function TasksView({
   const handleDeleteTemplate = async (template) => {
     if (!template?.id) return
 
-    const confirmed = window.confirm(`Delete "${template.title || 'this template'}"?`)
+    const confirmed = window.confirm(t('Delete "{{title}}"?', { title: template.title || t("this template") }))
     if (!confirmed) return
 
     await onDeleteTemplate?.(template.id)
