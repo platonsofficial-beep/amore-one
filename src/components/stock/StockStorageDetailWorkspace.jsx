@@ -221,7 +221,7 @@ function StorageProductRow({
         className={`ghost-btn stock-storage-product-more-btn${menuOpen ? ' is-open' : ''}`}
         aria-expanded={menuOpen}
         aria-haspopup="menu"
-        aria-label={`More actions for ${buildProductDisplayNameFromItem(row)}`}
+        aria-label={t('More actions for {{name}}', { name: buildProductDisplayNameFromItem(row) })}
         data-storage-product-menu-trigger="true"
         onClick={(event) => {
           event.stopPropagation()
@@ -1179,7 +1179,7 @@ export function StockStorageDetailWorkspace({
             onClick={(event) => event.stopPropagation()}
           >
             <h3 id="stock-fast-count-confirm-title">{t("Fast Count")}</h3>
-            <p>Start a fast count for {storageTitle}?</p>
+            <p>{t('Start a fast count for {{storage}}?', { storage: storageTitle })}</p>
             <div className="modal-actions stock-fast-count-confirm-actions">
               <button
                 type="button"

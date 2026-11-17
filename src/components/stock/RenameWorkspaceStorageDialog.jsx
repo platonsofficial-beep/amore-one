@@ -102,7 +102,7 @@ export function RenameWorkspaceStorageDialog({
             <p className="eyebrow">{t("Stock")}</p>
             <h3 id={titleId}>{t("Rename")}</h3>
             {locationKey ? (
-              <p className="stock-modal-subtitle">Key stays {locationKey}</p>
+              <p className="stock-modal-subtitle">{t('Key stays {{key}}', { key: locationKey })}</p>
             ) : null}
           </div>
           <button
@@ -142,7 +142,7 @@ export function RenameWorkspaceStorageDialog({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t('Saving…') : t('Save')}
             </button>
           </div>
         </form>

@@ -218,7 +218,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
         </>
       ) : (
         <>
-          <button type="button" className="stock-quick-take-back" onClick={back}>‹ {category && !search ? storage?.name : 'Storages'}</button>
+          <button type="button" className="stock-quick-take-back" onClick={back}>‹ {category && !search ? storage?.name : t('Storages')}</button>
           <header className="stock-quick-take-head">
             <h2>{category && !search ? category : storage?.name}</h2>
             <p>{category || search ? t("Tap what you take") : t("Choose a category")}</p>
@@ -226,7 +226,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
           <input
             type="search"
             className="stock-quick-take-search"
-            placeholder={`Search in ${category && !search ? category : storage?.name ?? 'storage'}`}
+            placeholder={t('Search in {{place}}', { place: category && !search ? category : storage?.name ?? t('storage') })}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label={t("Search products")}
@@ -307,12 +307,12 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
             </p>
             {plan.goesNegative ? (
               <p className="stock-quick-take-warn" role="status">
-                ⚠ {plan.before > 0 ? t("Stock shows only") : t("Stock already shows")} {formatQuantityWithUnit(plan.before, sheet.row.unit)}. You can still take it. It will show {formatQuantityWithUnit(plan.after, sheet.row.unit)} and a manager will see it.
+                ⚠ {plan.before > 0 ? t("Stock shows only") : t("Stock already shows")} {formatQuantityWithUnit(plan.before, sheet.row.unit)}. {t('You can still take it. It will show {{after}} and a manager will see it.', { after: formatQuantityWithUnit(plan.after, sheet.row.unit) })}
               </p>
             ) : null}
             {sheet.error ? <p className="stock-quick-take-error" role="alert">{sheet.error}</p> : null}
             <button type="button" className="stock-quick-take-done" onClick={submit} disabled={sheet.saving || plan.baseQuantity <= 0}>
-              {sheet.saving ? 'Saving…' : 'Done'}
+              {sheet.saving ? t('Saving…') : t('Done')}
             </button>
           </div>
         </div>,
@@ -321,14 +321,16 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
       {toast && !sheet ? (
         <div className={`stock-quick-take-toast${toast.undone ? ' is-undone' : ''}`} role="status" aria-live="polite">
           <span>
-            <strong>{toast.undone ? `Undone · ${toast.name}` : `✓ Took ${toast.label} · ${toast.name}`}</strong>
+            <strong>{toast.undone
+              ? t('Undone · {{name}}', { name: toast.name })
+              : t('✓ Took {{label}} · {{name}}', { label: toast.label, name: toast.name })}</strong>
             {toast.undone ? <small>{t("Stock is back as it was.")}</small> : (
-              <small>{toast.negative ? '⚠ More than stock showed · ' : ''}{toast.storageName} now {formatQuantityWithUnit(toast.after, toast.unit)}</small>
+              <small>{toast.negative ? t('⚠ More than stock showed · ') : ''}{t('{{place}} now {{amount}}', { place: toast.storageName, amount: formatQuantityWithUnit(toast.after, toast.unit) })}</small>
             )}
             {toast.error ? <small className="stock-quick-take-error">{toast.error}</small> : null}
           </span>
           {!toast.undone && toast.movementId ? (
-            <button type="button" onClick={undo} disabled={toast.undoing}>{toast.undoing ? '…' : 'Undo'}</button>
+            <button type="button" onClick={undo} disabled={toast.undoing}>{toast.undoing ? '…' : t('Undo')}</button>
           ) : null}
         </div>
       ) : null}

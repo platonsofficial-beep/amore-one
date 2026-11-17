@@ -152,9 +152,9 @@ export function StaffShelfCountSheet({
               <li key={row.stockItemId} className="staff-shelf-count-row">
                 <div className="staff-shelf-count-identity">
                   <strong>{row.displayName}</strong>
-                  <span>On shelf {formatStaffShelfOnHand(row)}</span>
+                  <span>{t('On shelf {{amount}}', { amount: formatStaffShelfOnHand(row) })}</span>
                   {parsAvailable && row.parQuantity != null ? (
-                    <span>Par {formatStockQuantity(row.parQuantity, row.unit)}</span>
+                    <span>{t('Par {{amount}}', { amount: formatStockQuantity(row.parQuantity, row.unit) })}</span>
                   ) : null}
                 </div>
                 <label className="staff-shelf-count-field">
@@ -202,7 +202,7 @@ export function StaffShelfCountSheet({
             disabled={isSubmitting}
             onClick={() => onClose?.()}
           >
-            {success ? 'Done' : 'Cancel'}
+            {success ? t('Done') : t('Cancel')}
           </button>
           {countable.length > 0 && !success ? (
             <button
@@ -212,7 +212,7 @@ export function StaffShelfCountSheet({
               disabled={isSubmitting || (checked && !available)}
               onClick={() => { void handleSubmit() }}
             >
-              {isSubmitting ? 'Sending…' : t("Submit for approval")}
+              {isSubmitting ? t('Sending…') : t("Submit for approval")}
             </button>
           ) : null}
         </div>

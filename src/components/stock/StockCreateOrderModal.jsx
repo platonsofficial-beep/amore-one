@@ -98,11 +98,11 @@ function SupplierOrderGroup({
           <li key={item.stockItemId} className="stock-create-order-item">
             <div className="stock-create-order-item-copy">
               <strong>{item.itemName}</strong>
-              <span>Need: {formatStockQuantity(item.quantity, item.unit)}</span>
+              <span>{t('Need: {{quantity}}', { quantity: formatStockQuantity(item.quantity, item.unit) })}</span>
             </div>
             <div className="stock-create-order-item-controls">
               <label className="stock-create-order-qty-label">
-                <span className="sr-only">Quantity for {item.itemName}</span>
+                <span className="sr-only">{t('Quantity for {{name}}', { name: item.itemName })}</span>
                 <input
                   type="number"
                   min="0"

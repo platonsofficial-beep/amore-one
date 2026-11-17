@@ -79,9 +79,9 @@ export function SupplyOrderDraftPreviewDialog({
                 <ul>
                   {group.items.map((item, itemIndex) => (
                     <li key={`${item.stockItemId ?? item.itemName}-${itemIndex}`}>
-                      <span className="supply-draft-review-name">{item.itemName || 'Product'}</span>
+                      <span className="supply-draft-review-name">{item.itemName || t('Product')}</span>
                       <label className="supply-draft-review-qty">
-                        <span className="sr-only">Quantity for {item.itemName || 'product'}</span>
+                        <span className="sr-only">{t('Quantity for {{name}}', { name: item.itemName || t('product') })}</span>
                         <input
                           type="number"
                           min="0"

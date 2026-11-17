@@ -103,10 +103,10 @@ export function StockSupplierDetailDrawer({
             <h3 className="stock-product-history-section-title">{t("Contact")}</h3>
             <dl className="stock-supplier-detail-list">
               <DetailRow label={t("Contact person")} value={supplier?.contactPerson} />
-              {canManage ? <DetailRow label="Phone" value={supplier?.phone} /> : null}
-              {canManage ? <DetailRow label="Email" value={supplier?.email} /> : null}
-              <DetailRow label="Address" value={supplier?.address} />
-              <DetailRow label="Notes" value={supplier?.notes} />
+              {canManage ? <DetailRow label={t('Phone')} value={supplier?.phone} /> : null}
+              {canManage ? <DetailRow label={t('Email')} value={supplier?.email} /> : null}
+              <DetailRow label={t('Address')} value={supplier?.address} />
+              <DetailRow label={t('Notes')} value={supplier?.notes} />
             </dl>
             {!supplier?.contactPerson && !(canManage && (supplier?.phone || supplier?.email)) && !supplier?.address && !supplier?.notes ? (
               <p className="stock-supplier-detail-empty">{t("No contact details added yet.")}</p>
@@ -234,7 +234,7 @@ export function StockSupplierDetailDrawer({
                 onClick={() => onDeactivate?.(supplier)}
                 disabled={isSaving}
               >
-                {supplier?.active === false ? 'Activate' : 'Deactivate'}
+                {supplier?.active === false ? t('Activate') : t('Deactivate')}
               </button>
             ) : (
               <button
