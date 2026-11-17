@@ -205,6 +205,16 @@
   gap: 8px;
 }
 
+@media (orientation: landscape) and (max-height: 460px) {
+  .chat-log {
+    padding-bottom: calc(72px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  .chat-thread-pane {
+    overflow: hidden;
+  }
+}
+
 .chat-row,
 .chat-icon-btn,
 .chat-send,

@@ -52,7 +52,7 @@ vi.mock('../../services/chatService', () => ({
 }))
 
 import { AvatarDirectoryContext } from '../../context/AvatarDirectoryContext'
-import { fetchChatMessages, fetchChatParticipants } from '../../services/chatService'
+import { fetchChatMessages, fetchChatParticipants, markChatRead } from '../../services/chatService'
 import { ChatScreen } from './ChatScreen'
 
 const inbox = [
@@ -441,6 +441,31 @@ describe('ChatScreen', () => {
     const titles = [...view.container.querySelectorAll('.chat-row strong')].map((node) => node.textContent)
     expect(titles).not.toContain('Team')
     expect(titles).toContain('Alex')
+    view.unmount()
+  })
+
+  it('shows a retry instead of the empty inbox when chats fail to load', () => {
+    const refresh = vi.fn()
+    const view = renderChat({ inboxRows: [], inboxError: 'TypeError: failed to fetch', onRefreshInbox: refresh })
+    expect(view.container.textContent).toContain("Couldn't load chats. Check your connection and try again.")
+    expect(view.container.textContent).not.toContain('No chats yet')
+    const retry = [...view.container.querySelectorAll('button')].find((button) => button.textContent === 'Retry')
+    act(() => { retry.click() })
+    expect(refresh).toHaveBeenCalled()
+    view.unmount()
+  })
+
+  it('clears the open chat unread count as soon as the thread opens', async () => {
+    const onConversationRead = vi.fn()
+    const view = renderChat({ onConversationRead })
+    await act(async () => { await Promise.resolve() })
+    const team = [...view.container.querySelectorAll('.chat-row')].find((row) => row.querySelector('strong')?.textContent === 'Team')
+    await act(async () => {
+      team.click()
+      await Promise.resolve()
+    })
+    expect(onConversationRead).toHaveBeenCalledWith('team-1')
+    expect(markChatRead).toHaveBeenCalledWith('team-1')
     view.unmount()
   })
 

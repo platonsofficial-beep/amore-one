@@ -25608,7 +25608,9 @@ function App() {
               canManage={canManageChatRole}
               inboxRows={chatInbox.rows}
               chatHides={chatInbox.hides}
+              inboxError={chatInbox.error}
               onRefreshInbox={chatInbox.refresh}
+              onConversationRead={chatInbox.markConversationRead}
               onThreadChange={setChatThreadOpen}
               initialConversationId={chatConversationId}
             />

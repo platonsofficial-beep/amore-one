@@ -4309,5 +4309,17 @@
   "⚠ More than stock showed · ": "⚠ More than stock showed · ",
   "{{place}} now {{amount}}": "{{place}} now {{amount}}",
   "You can still take it. It will show {{after}} and a manager will see it.": "You can still take it. It will show {{after}} and a manager will see it.",
-  "Sending…": "Sending…"
+  "Sending…": "Sending…",
+  "Couldn't load chats. Check your connection and try again.": "Couldn't load chats. Check your connection and try again.",
+  "Couldn't load chat. Check your connection and try again.": "Couldn't load chat. Check your connection and try again.",
+  "No chats named “{{name}}”.": "No chats named “{{name}}”.",
+  "No one matches “{{name}}”.": "No one matches “{{name}}”.",
+  "Pin": "Pin",
+  "Unpin": "Unpin",
+  "{{count}} selected": "{{count}} selected",
+  "{{count}} selected_one": "{{count}} selected",
+  "{{count}} selected_other": "{{count}} selected",
+  "Read": "Read",
+  "Member": "Member",
+  "Scroll to latest, {{count}} new": "Scroll to latest, {{count}} new"
 }

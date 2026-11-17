@@ -60,6 +60,7 @@ import {
   uploadChatPhoto,
 } from '../../services/chatService'
 import { t } from '../../i18n/i18n'
+import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { ChatInboxRow } from './ChatInboxRow'
 import { applyChatHides, chatHideFor, mergeChatHides, visibleChatMessages } from '../../lib/chatHide'
 import './chat.css'
@@ -139,6 +140,8 @@ export function ChatScreen({
   inboxRows = [],
   chatHides = [],
   onRefreshInbox,
+  onConversationRead,
+  inboxError = '',
   onThreadChange,
   initialConversationId = '',
   layout = '',
@@ -201,8 +204,9 @@ export function ChatScreen({
   inboxUnreadRef.current = Number(openRow?.unread) || 0
   const wideLayout = useWideChatLayout(layout)
   const resolvedLayout = wideLayout ? 'split' : 'stack'
-  const showList = resolvedLayout === 'split' || !openId
-  const showThread = resolvedLayout === 'split' || Boolean(openId)
+  const inboxBlocked = Boolean(inboxError) && inboxRows.length === 0
+  const showList = resolvedLayout === 'split' || !openId || inboxBlocked
+  const showThread = !inboxBlocked && (resolvedLayout === 'split' || Boolean(openId))
   const cannotPost = openRow?.post_policy === 'managers' && !canManage
   const aliases = useMemo(() => {
     const map = { ...(nameHints.byConversation || {}) }
@@ -251,6 +255,18 @@ export function ChatScreen({
   useEffect(() => {
     if (initialConversationId) setOpenId(initialConversationId)
   }, [initialConversationId])
+
+  useEffect(() => {
+    if (inboxBlocked) setOpenId('')
+  }, [inboxBlocked])
+
+  const readRef = useRef(onConversationRead)
+  readRef.current = onConversationRead
+  useEffect(() => {
+    if (!openId || inboxBlocked) return undefined
+    readRef.current?.(openId)
+    return undefined
+  }, [inboxBlocked, openId])
 
   useEffect(() => {
     onThreadChange?.(Boolean(openId))
@@ -308,7 +324,11 @@ export function ChatScreen({
     setScrollReadyId('')
     setShowJump(false)
     setJumpCount(0)
-    if (!openId) return undefined
+    if (!openId) {
+      setMessages([])
+      setPinned([])
+      return undefined
+    }
     let cancelled = false
     setError('')
     loadRef.current(openId).catch((err) => {
@@ -384,6 +404,9 @@ export function ChatScreen({
     if (!node) return undefined
     const nextIds = messages.map((message) => message.id)
     const opening = landedForRef.current !== openId
+    const shortLandscape = typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(orientation: landscape) and (max-height: 460px)').matches
     const me = participants.find((person) => `${person.member_id}` === `${memberId}`)
     const unreadId = firstUnreadMessageId(messages, {
       memberId,
@@ -393,7 +416,7 @@ export function ChatScreen({
     const metrics = readChatScrollMetrics(node)
     const plan = planChatScrollUpdate({
       opening,
-      forceBottom: forceBottomRef.current,
+      forceBottom: forceBottomRef.current || (opening && shortLandscape),
       stick: stickToBottomRef.current,
       pendingCount: pendingRef.current,
       previousIds: knownIdsRef.current,
@@ -685,10 +708,16 @@ export function ChatScreen({
               onChange={(event) => setQuery(event.target.value)}
             />
           </label>
-          {error && !openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
+          {inboxError ? (
+            <div className="chat-banner" role="alert">
+              <p>{presentUserError(inboxError, t("Couldn't load chats. Check your connection and try again."))}</p>
+              <button type="button" onClick={() => onRefreshInbox?.()}>{t("Retry")}</button>
+            </div>
+          ) : null}
+          {error && !openId && !inboxError ? <p className="chat-banner" role="alert">{presentUserError(error, t("Couldn't load chat. Check your connection and try again."))}</p> : null}
           <div className="chat-list-scroll">
-            {listed.length === 0 ? (
-              <p className="chat-empty">{query.trim() ? `No chats named “${query.trim()}”.` : t("No chats yet. Start one with New.")}</p>
+            {!inboxError && listed.length === 0 ? (
+              <p className="chat-empty">{query.trim() ? t('No chats named “{{name}}”.', { name: query.trim() }) : t("No chats yet. Start one with New.")}</p>
             ) : null}
             {listed.map((row) => {
               const title = conversationTitle(row, membersById, aliases)
@@ -806,7 +835,13 @@ export function ChatScreen({
               </button>
             ) : null}
           </header>
-          {error && openId ? <p className="chat-banner" role="alert">{presentUserError(error, "Couldn't load chat. Check your connection and try again.")}</p> : null}
+          {inboxError ? (
+            <div className="chat-banner" role="alert">
+              <p>{presentUserError(inboxError, t("Couldn't load chats. Check your connection and try again."))}</p>
+              <button type="button" onClick={() => onRefreshInbox?.()}>{t("Retry")}</button>
+            </div>
+          ) : null}
+          {error && openId && !inboxError ? <p className="chat-banner" role="alert">{presentUserError(error, t("Couldn't load chat. Check your connection and try again."))}</p> : null}
           {pinned.length > 0 ? (
             <div className="chat-pinned" aria-label={t("Pinned messages")}>
               {pinned.map((message) => (
@@ -814,7 +849,7 @@ export function ChatScreen({
                   <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
                     <path fill="currentColor" d="M16 3v2h-1v6l2 3v2h-4v5l-1 1-1-1v-5H7v-2l2-3V5H8V3h8Z" />
                   </svg>
-                  <span>{message.body || 'Photo'}</span>
+                  <span>{message.body || t('Photo')}</span>
                 </button>
               ))}
             </div>
@@ -924,8 +959,8 @@ export function ChatScreen({
                     {!mine && authorName && (group === 'single' || group === 'first') ? <p className="chat-meta">{authorName}</p> : null}
                     {reply ? (
                       <p className="chat-reply-quote">
-                        <strong>{membersById[reply.author_member_id]?.name || aliases[reply.author_member_id] || 'Message'}</strong>
-                        <span>{reply.deleted_at ? t("Message deleted") : (reply.body || 'Photo')}</span>
+                        <strong>{membersById[reply.author_member_id]?.name || aliases[reply.author_member_id] || t('Message')}</strong>
+                        <span>{reply.deleted_at ? t("Message deleted") : (reply.body || t('Photo'))}</span>
                       </p>
                     ) : null}
                     {!deleted && message.attachment_path ? <ChatPhoto path={message.attachment_path} onOpen={setViewerUrl} /> : null}
@@ -933,7 +968,7 @@ export function ChatScreen({
                     <span className="chat-bubble-meta">
                       {message.edited_at && !deleted ? <span>{t("Edited")}</span> : null}
                       <time dateTime={message.created_at}>{lastMessageTimeLabel(message.created_at)}</time>
-                      {tick ? <span className={`chat-ticks is-${tick}`} aria-label={tick === 'read' ? 'Read' : 'Sent'}>{tick === 'read' ? '✓✓' : '✓'}</span> : null}
+                      {tick ? <span className={`chat-ticks is-${tick}`} aria-label={tick === 'read' ? t('Read') : t('Sent')}>{tick === 'read' ? '✓✓' : '✓'}</span> : null}
                     </span>
                     {!deleted && grouped.length > 0 ? (
                       <div className="chat-reactions">
@@ -964,7 +999,7 @@ export function ChatScreen({
               type="button"
               className="chat-scroll-bottom"
               data-testid="chat-scroll-bottom"
-              aria-label={jumpCount > 0 ? `Scroll to latest, ${jumpCount} new` : t("Scroll to latest")}
+              aria-label={jumpCount > 0 ? t('Scroll to latest, {{count}} new', { count: jumpCount }) : t("Scroll to latest")}
               onClick={() => pinToLatest()}
             >
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -989,8 +1024,8 @@ export function ChatScreen({
               {replyTo ? (
                 <p className="chat-compose-quote">
                   <span>
-                    <strong>{membersById[replyTo.author_member_id]?.name || aliases[replyTo.author_member_id] || 'Message'}</strong>
-                    {replyTo.body || 'Photo'}
+                    <strong>{membersById[replyTo.author_member_id]?.name || aliases[replyTo.author_member_id] || t('Message')}</strong>
+                    {replyTo.body || t('Photo')}
                   </span>
                   <button type="button" aria-label={t("Cancel reply")} onClick={() => setReplyTo(null)}>✕</button>
                 </p>
@@ -1094,7 +1129,7 @@ export function ChatScreen({
                     await setChatPinned(activeMessage.id, !activeMessage.pinned_at)
                     setSheet(null)
                     loadConversation(openId).catch(() => {})
-                  }}>{activeMessage.pinned_at ? 'Unpin' : 'Pin'}</button>
+                  }}>{activeMessage.pinned_at ? t('Unpin') : t('Pin')}</button>
                 ) : null}
               </>
             ) : null}
@@ -1111,7 +1146,7 @@ export function ChatScreen({
                   />
                 </label>
                 <div className="chat-sheet-body">
-                  {directPeople.length === 0 ? <p className="chat-sheet-empty">No one matches “{directQuery.trim()}”.</p> : null}
+                  {directPeople.length === 0 ? <p className="chat-sheet-empty">{t('No one matches “{{name}}”.', { name: directQuery.trim() })}</p> : null}
                   {directPeople.map((member) => {
                     const existing = ordered.find((row) => row.kind === 'direct' && row.other_member_id === member.id)
                     return (
@@ -1135,7 +1170,7 @@ export function ChatScreen({
                         </span>
                         <span className="chat-person-copy">
                           <strong>{member.name}</strong>
-                          {member.role ? <span>{member.role}</span> : null}
+                          {member.role ? <span>{getWorkspaceRoleLabel(member.role)}</span> : null}
                         </span>
                         {existing ? <span className="chat-person-badge">{t("Open chat")}</span> : null}
                         <svg className="chat-person-chevron" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
@@ -1193,7 +1228,7 @@ export function ChatScreen({
                   </div>
                   <div className="chat-members-head">
                     <span>{t("Members")}</span>
-                    <span className="chat-members-count">{pickedMembers.length} selected</span>
+                    <span className="chat-members-count">{t('{{count}} selected', { count: pickedMembers.length })}</span>
                   </div>
                   <label className="chat-sheet-search">
                     <span className="sr-only">{t("Search members")}</span>
@@ -1208,7 +1243,7 @@ export function ChatScreen({
                         </span>
                         <span className="chat-person-copy">
                           <strong>{member.name}</strong>
-                          {member.role ? <span>{member.role}</span> : null}
+                          {member.role ? <span>{getWorkspaceRoleLabel(member.role)}</span> : null}
                         </span>
                         <input
                           type="checkbox"
@@ -1225,7 +1260,7 @@ export function ChatScreen({
                       </label>
                     )
                   })}
-                  {channelPeople.length === 0 ? <p className="chat-sheet-empty">No one matches “{memberQuery.trim()}”.</p> : null}
+                  {channelPeople.length === 0 ? <p className="chat-sheet-empty">{t('No one matches “{{name}}”.', { name: memberQuery.trim() })}</p> : null}
                 </div>
                 <div className="chat-sheet-footer">
                   <button type="button" className="chat-sheet-primary" disabled={busy || !channelName.trim()} onClick={createChannel}>{t("Create channel")}</button>
@@ -1256,10 +1291,10 @@ export function ChatScreen({
             {sheet === 'info' && openRow ? (
               <>
                 <p className="chat-sheet-title">{conversationTitle(openRow, membersById, aliases)}</p>
-                <p className="chat-meta">{openRow.kind === 'team' ? 'Team' : openRow.kind === 'group' ? 'Channel' : t("Direct message")}</p>
+                <p className="chat-meta">{openRow.kind === 'team' ? t('Team') : openRow.kind === 'group' ? t('Channel') : t("Direct message")}</p>
                 {participants.filter((person) => !person.left_at).map((person) => (
                   <p key={person.member_id} className="chat-sheet-person">
-                    {membersById[person.member_id]?.name || aliases[person.member_id] || 'Member'}
+                    {membersById[person.member_id]?.name || aliases[person.member_id] || t('Member')}
                   </p>
                 ))}
                 <button type="button" data-help="chat.mute" onClick={() => setSheet('mute')}>{t("Mute")}</button>

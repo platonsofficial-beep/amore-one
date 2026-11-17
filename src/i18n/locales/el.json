@@ -2720,7 +2720,7 @@
   "No bookings for this day.": "Καμία κράτηση αυτή τη μέρα.",
   "No bookings match.": "Καμία κράτηση δεν ταιριάζει.",
   "No cancelled orders": "Καμία ακυρωμένη παραγγελία",
-  "No chats yet. Start one with New.": "Ακόμα κανένα συνομιλία. Ξεκίνα με Νέο.",
+  "No chats yet. Start one with New.": "Ακόμα καμία συνομιλία. Ξεκίνα με Νέο.",
   "No completed reservations": "Καμία ολοκληρωμένη κράτηση",
   "No completed reservations for this date.": "Καμία ολοκληρωμένη κράτηση αυτή τη μέρα.",
   "No completed tasks yet": "Ακόμα καμία ολοκληρωμένη εργασία",
@@ -4309,5 +4309,17 @@
   "⚠ More than stock showed · ": "⚠ Περισσότερο από το απόθεμα · ",
   "{{place}} now {{amount}}": "{{place}} τώρα {{amount}}",
   "You can still take it. It will show {{after}} and a manager will see it.": "Μπορείς να το πάρεις. Θα δείξει {{after}} και ο υπεύθυνος θα το δει.",
-  "Sending…": "Αποστολή…"
+  "Sending…": "Αποστολή…",
+  "Couldn't load chats. Check your connection and try again.": "Δεν φορτώθηκαν οι συνομιλίες. Έλεγξε τη σύνδεση και δοκίμασε ξανά.",
+  "Couldn't load chat. Check your connection and try again.": "Δεν φορτώθηκε η συνομιλία. Έλεγξε τη σύνδεση και δοκίμασε ξανά.",
+  "No chats named “{{name}}”.": "Δεν υπάρχουν συνομιλίες με το όνομα «{{name}}».",
+  "No one matches “{{name}}”.": "Κανείς δεν ταιριάζει με «{{name}}».",
+  "Pin": "Καρφίτσωμα",
+  "Unpin": "Ξεκαρφίτσωμα",
+  "{{count}} selected": "{{count}} επιλεγμένα",
+  "{{count}} selected_one": "{{count}} επιλεγμένο",
+  "{{count}} selected_other": "{{count}} επιλεγμένα",
+  "Read": "Διαβάστηκε",
+  "Member": "Μέλος",
+  "Scroll to latest, {{count}} new": "Κύλιση στα τελευταία, {{count}} νέα"
 }

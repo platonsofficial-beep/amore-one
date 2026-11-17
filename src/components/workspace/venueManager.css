@@ -102,7 +102,7 @@
 /* The short-landscape icon rail paints above fixed descendants of the shell. */
 @media (orientation: landscape) and (max-height: 460px) and (max-width: 1024px) {
   .venue-sheet-backdrop {
-    left: calc(var(--safe-l, 0px) + 78px);
+    left: calc(var(--safe-l, 0px) + var(--one-landscape-rail, 104px));
     padding-left: 12px;
   }
 }
