@@ -37,9 +37,16 @@ export function orderInbox(rows) {
   return [...team, ...rest]
 }
 
+/** The everyday team chat is named Team in English and Ομάδα in Greek. A custom name stays as written. */
+export function teamChatName(row) {
+  const raw = `${row?.name ?? ''}`.trim()
+  if (!raw || raw.toLowerCase() === 'team' || raw.toLowerCase() === 'ομάδα') return t('Team')
+  return raw
+}
+
 export function conversationTitle(row, membersById = {}, aliases = {}) {
   if (!row) return t('Chat')
-  if (row.kind === 'team') return row.name || t('Team')
+  if (row.kind === 'team') return teamChatName(row)
   if (row.kind === 'direct') {
     const other = membersById[row.other_member_id]
     return other?.name

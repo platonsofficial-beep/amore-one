@@ -23,6 +23,23 @@ describe('i18n', () => {
     expect(['en', 'el']).toContain(detectLocale())
   })
 
+  it('inflects συνομιλία for the case each Chat sentence needs', () => {
+    expect(translate('Delete chat', undefined, 'el')).toBe('Διαγραφή συνομιλίας')
+    expect(translate('Chat actions', undefined, 'el')).toBe('Ενέργειες συνομιλίας')
+    expect(translate('Delete chat', undefined, 'en')).toBe('Delete chat')
+    expect(translate('Chat actions', undefined, 'en')).toBe('Chat actions')
+    const removed = translate('This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.', undefined, 'el')
+    expect(removed.startsWith('Αυτό αφαιρεί τη συνομιλία')).toBe(true)
+    expect(removed.includes('το συνομιλία')).toBe(false)
+    const team = translate('{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.', { name: 'Ομάδα' }, 'el')
+    expect(team.startsWith('Η Ομάδα μένει για όλους.')).toBe(true)
+    expect(team.includes('Team')).toBe(false)
+    expect(translate('{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.', { name: 'Team' }, 'en')).toContain('Team stays for everyone.')
+    expect(translate('No late arrivals or no-shows.', undefined, 'el')).toBe('Καμία αργοπορία ή απουσία.')
+    expect(translate('No late arrivals or no-shows.', undefined, 'en')).toBe('No late arrivals or no-shows.')
+    expect(translate('The GPS does not work inside', undefined, 'el')).toBe('Η τοποθεσία δεν πιάνει μέσα')
+  })
+
   it('uses i18next-style plural forms and drops the tonos in Greek capitals', () => {
     expect(translate('{{count}} guest', { count: 1 }, 'el')).toBe('1 άτομο')
     expect(translate('{{count}} guest', { count: 17 }, 'el')).toBe('17 άτομα')

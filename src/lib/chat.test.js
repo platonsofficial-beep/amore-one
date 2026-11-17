@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '../i18n/i18n'
 import {
   buildChatAttachmentPath,
   canDeleteChatMessage,
@@ -6,6 +7,7 @@ import {
   chatErrorMessage,
   chatIdentityHints,
   conversationTitle,
+  teamChatName,
   dayLabel,
   filterInboxByName,
   groupReactions,
@@ -59,6 +61,13 @@ describe('chat helpers', () => {
   it('names a direct chat after the other person', () => {
     expect(conversationTitle(inbox[2], { m2: { name: 'Alex' } })).toBe('Alex')
     expect(conversationTitle(inbox[1])).toBe('Team')
+    expect(teamChatName({ name: 'Κουζίνα' })).toBe('Κουζίνα')
+    expect(teamChatName({ name: 'Team' })).toBe('Team')
+    expect(teamChatName({ name: 'Ομάδα' })).toBe('Team')
+    setLocale('el')
+    expect(teamChatName({ name: 'Team' })).toBe('Ομάδα')
+    expect(teamChatName({ name: 'Ομάδα' })).toBe('Ομάδα')
+    setLocale('en')
   })
 
   it('allows an edit for 15 minutes and a delete for the author or a manager', () => {

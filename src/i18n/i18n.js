@@ -96,6 +96,52 @@ function pluralCategory(count, localeId) {
   return rules.select(amount)
 }
 
+/**
+ * One noun, the case the sentence needs. Greek changes the ending and the
+ * article; English usually does not. Write {{noun:chat:genitive}} in a
+ * translation and the locale picks the form.
+ */
+const NOUNS = {
+  chat: {
+    en: {
+      nominative: 'chat',
+      genitive: 'chat',
+      accusative: 'the chat',
+      accusativeThis: 'this chat',
+      nominativeThis: 'this chat',
+      genitiveThis: 'this chat',
+      plural: 'chats',
+      pluralArticle: 'the chats',
+      pluralGenitive: 'chats',
+    },
+    el: {
+      nominative: 'συνομιλία',
+      genitive: 'συνομιλίας',
+      accusative: 'τη συνομιλία',
+      accusativeThis: 'αυτή τη συνομιλία',
+      nominativeThis: 'αυτή η συνομιλία',
+      genitiveThis: 'αυτής της συνομιλίας',
+      plural: 'συνομιλίες',
+      pluralArticle: 'οι συνομιλίες',
+      pluralGenitive: 'συνομιλιών',
+    },
+  },
+}
+
+export function noun(id, gramCase, localeId = locale) {
+  const forms = NOUNS[id]
+  if (!forms) return ''
+  const table = forms[localeId] || forms.en
+  return table?.[gramCase] ?? forms.en?.[gramCase] ?? ''
+}
+
+function applyNouns(value, localeId) {
+  return value.replace(/\{\{noun:([A-Za-z]+):([A-Za-z]+)\}\}/g, (match, id, gramCase) => {
+    const form = noun(id, gramCase, localeId)
+    return form || match
+  })
+}
+
 /** i18next-style plurals: `key_one`, `key_other`, and the other CLDR categories. */
 function pluralKey(key, vars, localeId) {
   if (!vars || vars.count == null) return key
@@ -107,6 +153,7 @@ export function translate(key, vars, localeId = locale) {
   const catalog = CATALOGS[localeId] || CATALOGS.en
   const counted = pluralKey(text, vars, localeId)
   let value = catalog[counted] ?? CATALOGS.en[counted] ?? catalog[text] ?? CATALOGS.en[text] ?? text
+  value = applyNouns(value, localeId)
   if (vars && typeof vars === 'object') {
     for (const [name, replacement] of Object.entries(vars)) {
       value = value.replaceAll(`{{${name}}}`, `${replacement ?? ''}`)

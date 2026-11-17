@@ -322,7 +322,7 @@ export function AttendanceBoard({
                     name={entryPersonName(exception, employees)}
                   />
                   <span>{exceptionKindLabel(exception.kind)}</span>
-                  {exception.distance_m != null ? <span>About {exception.distance_m} m away</span> : null}
+                  {exception.distance_m != null ? <span>{t('About {{distance}} m away', { distance: exception.distance_m })}</span> : null}
                   {exception.reason ? <span>{exception.reason}</span> : null}
                   {allowed ? (
                     <>
@@ -336,10 +336,10 @@ export function AttendanceBoard({
                       </label>
                       <div className="attendance-row-actions">
                         <button type="button" className="attendance-choice" onClick={() => decide(exception, true)} disabled={busyId === exception.id}>
-                          ✓ Approve
+                          ✓ {t('Approve')}
                         </button>
                         <button type="button" className="attendance-choice" onClick={() => decide(exception, false)} disabled={busyId === exception.id}>
-                          ✕ Reject
+                          ✕ {t('Reject')}
                         </button>
                       </div>
                     </>
@@ -392,10 +392,10 @@ export function AttendanceBoard({
             <ul className="attendance-list">
               {personEntries.map((entry) => (
                 <li key={entry.id}>
-                  <strong>{formatClockTime(entry.clock_in_at, timeZone)}–{entry.clock_out_at ? formatClockTime(entry.clock_out_at, timeZone) : 'now'}</strong>
+                  <strong>{formatClockTime(entry.clock_in_at, timeZone)}–{entry.clock_out_at ? formatClockTime(entry.clock_out_at, timeZone) : t('now')}</strong>
                   <span>{formatHoursMinutes(actualWorkedMinutes(entry, breaksByEntry[entry.id] ?? [], now))}</span>
                   <button type="button" className="attendance-text-btn" onClick={() => openFix(entry)}>
-                    ✎ Fix time
+                    ✎ {t('Fix time')}
                   </button>
                 </li>
               ))}
@@ -407,7 +407,7 @@ export function AttendanceBoard({
       {fixEntry ? (
         <div className="attendance-consent" role="dialog" aria-modal="true" aria-labelledby="attendance-fix-title">
           <form className="attendance-consent-card" onSubmit={saveFix}>
-            <h3 id="attendance-fix-title">✎ Fix time</h3>
+            <h3 id="attendance-fix-title">✎ {t('Fix time')}</h3>
             <label className="attendance-field">
               {t("Clock in")}
               <input type="datetime-local" value={fixClockIn} onChange={(event) => setFixClockIn(event.target.value)} required />
