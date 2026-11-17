@@ -138,7 +138,7 @@ describe('privacy UI', () => {
     const legal = readFileSync(join(__dirname, '../legal/legal.css'), 'utf8')
     expect(css).toContain('min-height: 44px')
     expect(css).toContain('--safe-l')
-    expect(css).toContain('calc(var(--safe-l, 0px) + 78px)')
+    expect(css).toContain('calc(var(--safe-l, 0px) + var(--one-landscape-rail, 112px))')
     expect(legal).toContain('--one-safe-top-chrome')
     expect(legal).toContain('--safe-l')
   })
