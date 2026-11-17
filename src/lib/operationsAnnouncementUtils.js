@@ -14,9 +14,9 @@ export const ANNOUNCEMENT_PRIORITIES = ['normal', 'important', 'urgent']
 export const ANNOUNCEMENT_AUDIENCES = ['all', 'bar', 'service', 'kitchen', 'managers']
 
 const PRIORITY_LABELS = {
-  normal: 'Normal',
-  important: 'Important',
-  urgent: 'Urgent',
+  normal: 'Task priority normal',
+  important: 'Task priority important',
+  urgent: 'Task priority urgent',
 }
 
 const PRIORITY_TONES = {
@@ -32,7 +32,7 @@ const PRIORITY_WEIGHT = {
 }
 
 const AUDIENCE_LABELS = {
-  all: t("All staff"),
+  all: 'All staff',
   bar: 'Bar',
   service: 'Service',
   kitchen: 'Kitchen',
@@ -50,7 +50,7 @@ export function normalizeAnnouncementAudience(value) {
 }
 
 export function getAnnouncementPriorityLabel(priority) {
-  return PRIORITY_LABELS[normalizeAnnouncementPriority(priority)] ?? 'Normal'
+  return t(PRIORITY_LABELS[normalizeAnnouncementPriority(priority)] ?? 'Task priority normal')
 }
 
 export function getAnnouncementPriorityTone(priority) {
@@ -58,7 +58,7 @@ export function getAnnouncementPriorityTone(priority) {
 }
 
 export function getAnnouncementAudienceLabel(audience) {
-  return AUDIENCE_LABELS[normalizeAnnouncementAudience(audience)] ?? t("All staff")
+  return t(AUDIENCE_LABELS[normalizeAnnouncementAudience(audience)] ?? 'All staff')
 }
 
 export function matchesAnnouncementAudience(audience, { role = '', employeeDepartment = '' } = {}) {

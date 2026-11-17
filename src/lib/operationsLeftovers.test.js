@@ -36,7 +36,7 @@ describe('0033 leftovers', () => {
   })
 
   it('(3) phone dashboard uses the Task boards overdue count', () => {
-    expect(read('../components/mobile/MobileManagerTasksView.jsx')).toContain('Task boards overdue: ${boardOverdueCount}')
+    expect(read('../components/mobile/MobileManagerTasksView.jsx')).toContain('t("Task boards overdue: {{count}}", { count: boardOverdueCount })')
     expect(read('../App.jsx')).toContain('boardOverdueCount: taskBoardsOverdueCount')
   })
 

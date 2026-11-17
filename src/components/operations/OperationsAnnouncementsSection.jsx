@@ -138,7 +138,7 @@ export function OperationsAnnouncementsSection({
           }}
           disabled={isSaving}
         >
-          + Announcement
+          {t("+ Announcement")}
         </button>
       </header>
 
@@ -146,7 +146,7 @@ export function OperationsAnnouncementsSection({
         <div className="operations-empty-state is-inline">
           <p>
             <strong>{t("No announcements yet")}</strong>
-            {' · Share important updates with your team.'}
+            {` · ${t("Share important updates with your team.")}`}
           </p>
         </div>
       ) : (

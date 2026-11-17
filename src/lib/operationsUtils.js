@@ -21,10 +21,10 @@ export const OPERATIONS_STATUSES = ['pending', 'completed', 'skipped']
 export const OPERATIONS_LOG_TYPES = ['handover', 'incident', 'note']
 
 const CATEGORY_LABELS = {
-  opening: 'Opening',
+  opening: 'Category opening',
   closing: 'Closing',
   cleaning: 'Cleaning',
-  maintenance: 'Maintenance',
+  maintenance: 'Category maintenance',
   service: 'Service',
   bar: 'Bar',
   kitchen: 'Kitchen',
@@ -32,10 +32,10 @@ const CATEGORY_LABELS = {
 }
 
 const PRIORITY_LABELS = {
-  low: 'Low',
-  normal: 'Normal',
-  high: 'High',
-  urgent: 'Urgent',
+  low: 'Task priority low',
+  normal: 'Task priority normal',
+  high: 'Task priority high',
+  urgent: 'Task priority urgent',
 }
 
 const STATUS_LABELS = {
@@ -50,11 +50,7 @@ const LOG_TYPE_LABELS = {
   note: 'Note',
 }
 
-const LOG_TYPE_BADGE_LABELS = {
-  handover: 'HANDOVER',
-  incident: 'ISSUE',
-  note: 'NOTE',
-}
+const LOG_TYPE_BADGE_LABELS = LOG_TYPE_LABELS
 
 const LOG_TYPE_ICONS = {
   handover: '🔁',
@@ -103,24 +99,46 @@ export function normalizeOperationsTaskDate(value) {
   return raw.slice(0, 10)
 }
 
+const WORD_KEYS = {
+  opening: 'Category opening',
+  closing: 'Closing',
+  cleaning: 'Cleaning',
+  maintenance: 'Category maintenance',
+  service: 'Service',
+  bar: 'Bar',
+  kitchen: 'Kitchen',
+  other: 'Other',
+  management: 'Management',
+  custom: 'Custom',
+  unknown: 'Unknown',
+  department: 'Department',
+}
+
+export function translateOperationsWord(value) {
+  const raw = `${value ?? ''}`.trim()
+  if (!raw) return ''
+  const mapped = WORD_KEYS[raw.toLowerCase()]
+  return t(mapped || raw)
+}
+
 export function getOperationsCategoryLabel(category) {
-  return CATEGORY_LABELS[normalizeOperationsCategory(category)] ?? 'Other'
+  return t(CATEGORY_LABELS[normalizeOperationsCategory(category)] ?? 'Other')
 }
 
 export function getOperationsPriorityLabel(priority) {
-  return PRIORITY_LABELS[normalizeOperationsPriority(priority)] ?? 'Normal'
+  return t(PRIORITY_LABELS[normalizeOperationsPriority(priority)] ?? 'Task priority normal')
 }
 
 export function getOperationsStatusLabel(status) {
-  return STATUS_LABELS[normalizeOperationsStatus(status)] ?? 'Pending'
+  return t(STATUS_LABELS[normalizeOperationsStatus(status)] ?? 'Pending')
 }
 
 export function getOperationsLogTypeLabel(type) {
-  return LOG_TYPE_LABELS[normalizeOperationsLogType(type)] ?? 'Note'
+  return t(LOG_TYPE_LABELS[normalizeOperationsLogType(type)] ?? 'Note')
 }
 
 export function getOperationsLogTypeBadgeLabel(type) {
-  return LOG_TYPE_BADGE_LABELS[normalizeOperationsLogType(type)] ?? 'NOTE'
+  return getOperationsLogTypeLabel(type)
 }
 
 export function getOperationsLogTypeIcon(type) {
@@ -214,9 +232,9 @@ export function formatOperationsLogTimestamp(value) {
 }
 
 export function resolveEmployeeName(employeeId, employees = []) {
-  if (!employeeId) return 'Unassigned'
+  if (!employeeId) return t('Unassigned')
   const match = employees.find((employee) => `${employee.id}` === `${employeeId}`)
-  return match?.full_name ?? match?.name ?? 'Unassigned'
+  return match?.full_name ?? match?.name ?? t('Unassigned')
 }
 
 export function getTaskAssigneeId(task) {

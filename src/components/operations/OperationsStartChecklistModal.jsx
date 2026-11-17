@@ -51,7 +51,7 @@ export function OperationsStartChecklistModal({
                   <span className="operations-start-checklist-meta">
                     {getChecklistDepartmentLabel(template.department)}
                     <span aria-hidden="true">·</span>
-                    {template.items.length} task{template.items.length === 1 ? '' : 's'}
+                    {t("{{count}} task", { count: template.items.length })}
                   </span>
                 </button>
               </li>

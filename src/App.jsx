@@ -17516,7 +17516,6 @@ function App() {
       markLoad('operationsTasks', 'success')
       return remoteTasks
     } catch (error) {
-      setOperationsTasks([])
       markLoad('operationsTasks', 'failure')
       throw error
     }
@@ -17535,7 +17534,6 @@ function App() {
       setMobileOperationsTasks(remoteTasks)
       return remoteTasks
     } catch (error) {
-      setMobileOperationsTasks([])
       throw error
     } finally {
       setIsMobileOperationsTasksLoading(false)
@@ -18580,7 +18578,7 @@ function App() {
         ])
       } catch (error) {
         if (!isMounted) return
-        setOperationsNotice(presentLoadFailure(error, 'operations'))
+        setOperationsNotice("Couldn't load operations. Check your connection and try again.")
       } finally {
         if (isMounted) {
           setIsOperationsLoading(false)

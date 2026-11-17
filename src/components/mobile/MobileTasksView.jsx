@@ -75,7 +75,7 @@ function formatCompletedCardMeta(task) {
 
 function getAssignmentLabel(task, employees = []) {
   const assignedTo = task?.assignedTo ?? task?.assigned_to ?? null
-  if (!assignedTo) return 'Unassigned'
+  if (!assignedTo) return t('Unassigned')
   return resolveEmployeeName(assignedTo, employees)
 }
 
@@ -124,7 +124,7 @@ function MobileTaskCard({
                 </span>
                 <span aria-hidden="true">·</span>
                 <span className="mobile-task-category">{getOperationsCategoryLabel(task.category)}</span>
-                {assignmentLabel !== 'Unassigned' && ownershipLabel === 'Team task' ? (
+                {assignmentLabel !== t('Unassigned') && ownershipLabel === 'Team task' ? (
                   <>
                     <span aria-hidden="true">·</span>
                     <span className="mobile-task-assignment">{assignmentLabel}</span>
@@ -231,7 +231,7 @@ export function MobileTasksView({
 
   const selectedAssigneeName = selectedTask
     ? getAssignmentLabel(selectedTask, employees)
-    : 'Unassigned'
+    : t('Unassigned')
 
   const selectedCanComplete = selectedTask
     ? canStaffCompleteTask(selectedTask, currentEmployeeId)

@@ -104,8 +104,8 @@ function OperationsTaskRow({
         onClick={() => onToggleComplete(task)}
         disabled={!canComplete && !canManage}
         aria-label={showSteps
-          ? `Open ${task.title}, ${task.checklistCompletedCount ?? 0} of ${stepCount} steps`
-          : (isDone ? `Reopen ${task.title}` : `Complete ${task.title}`)}
+          ? t("Open {{title}}, {{done}} of {{count}} steps", { title: task.title, done: task.checklistCompletedCount ?? 0, count: stepCount })
+          : (isDone ? t("Reopen {{title}}", { title: task.title }) : t("Complete {{title}}", { title: task.title }))}
         aria-pressed={isDone}
       >
         {isDone ? '✓' : ''}
@@ -127,7 +127,7 @@ function OperationsTaskRow({
           {showSteps ? (
             <>
               <span aria-hidden="true">·</span>
-              <span>{task.checklistCompletedCount ?? 0}/{stepCount} steps</span>
+              <span>{t("{{done}}/{{count}} steps", { done: task.checklistCompletedCount ?? 0, count: stepCount })}</span>
             </>
           ) : null}
         </p>
@@ -135,7 +135,7 @@ function OperationsTaskRow({
           <p className="operations-task-description">{task.description}</p>
         ) : null}
         {task.completionNote ? (
-          <p className="operations-task-completion-note">Note: {task.completionNote}</p>
+          <p className="operations-task-completion-note">{t("Note: {{note}}", { note: task.completionNote })}</p>
         ) : null}
       </div>
 
@@ -562,7 +562,7 @@ export function OperationsDashboardView({
         {!isWorkspaceReady && workspaceSetupMessage ? (
           <div className="staff-status-banner">{workspaceSetupMessage}</div>
         ) : null}
-        {isLoading ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
+        {isLoading && !figuresUnavailable ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
 
         <header className="operations-mobile-command-header">
           <h3 className="operations-mobile-command-title">{t("Operational control")}</h3>
@@ -575,9 +575,9 @@ export function OperationsDashboardView({
             value={mobileMetrics.overdueTasks}
             tone={mobileMetrics.overdueTasks > 0 ? 'danger' : 'default'}
           />
-          <OperationsSummaryCard label="Issues" value={mobileMetrics.issues} tone="danger" />
-          <OperationsSummaryCard label="Notes" value={mobileMetrics.notes} tone="gold" />
-          <OperationsSummaryCard label="Checklists" value={mobileMetrics.checklists} />
+          <OperationsSummaryCard label={t("Issues")} value={mobileMetrics.issues} tone="danger" />
+          <OperationsSummaryCard label={t("Notes")} value={mobileMetrics.notes} tone="gold" />
+          <OperationsSummaryCard label={t("Checklists")} value={mobileMetrics.checklists} />
         </div>
 
         {canManage ? (
@@ -729,7 +729,7 @@ export function OperationsDashboardView({
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
+      {isLoading && !figuresUnavailable ? <div className="staff-status-banner">{t("Loading operations…")}</div> : null}
 
       <div className="operations-dashboard-toolbar">
         <div>
@@ -836,7 +836,7 @@ export function OperationsDashboardView({
             <p className="eyebrow">{t("Tasks")}</p>
             <h3>{t("Open tasks")}</h3>
           </div>
-          <p className="operations-section-count">{visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}</p>
+          <p className="operations-section-count">{t("{{count}} task", { count: visibleTasks.length })}</p>
         </header>
 
         {figuresUnavailable ? null : visibleTasks.length === 0 && !isLoading ? (
@@ -855,7 +855,7 @@ export function OperationsDashboardView({
                     {t("Create task")}
                   </button>
                 </>
-              ) : ' · Check back when tasks are assigned.'}
+              ) : ` · ${t("Check back when tasks are assigned.")}`}
             </p>
           </div>
         ) : (
@@ -895,7 +895,7 @@ export function OperationsDashboardView({
               className={`operations-log-filter${logTypeFilter === filter.id ? ' active' : ''}`}
               onClick={() => setLogTypeFilter(filter.id)}
             >
-              {filter.label}
+              {t(filter.label)}
             </button>
           ))}
         </div>
@@ -916,7 +916,7 @@ export function OperationsDashboardView({
                     {t("Add note")}
                   </button>
                 </>
-              ) : ' · Leave updates for the next shift.'}
+              ) : ` · ${t("Leave updates for the next shift.")}`}
             </p>
           </div>
         ) : (
