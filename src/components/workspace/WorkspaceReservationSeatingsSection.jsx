@@ -13,7 +13,8 @@ import {
 } from '../../lib/hostDiningTimer'
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
-import { formatUserFacingLoadError, isTechnicalErrorText } from '../../lib/userFacingLoadError'
+import { formatUserFacingLoadError, isLoadFailureMessage, isTechnicalErrorText } from '../../lib/userFacingLoadError'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { t } from '../../i18n/i18n'
 
 function HostDiningTimerSettings() {
@@ -80,7 +81,7 @@ function SeatingDaysToggle({ daysOfWeek, onChange }) {
               onChange(next.length > 0 ? next : [day.value])
             }}
           >
-            {day.label}
+            {t(day.label)}
           </button>
         )
       })}
@@ -118,6 +119,7 @@ export function WorkspaceReservationSeatingsSection({
   autoCloseNotice = '',
   hoursOnly = false,
   canEdit = true,
+  onRetry,
 }) {
   const showAutoClose = !hoursOnly && typeof onAutoCloseTimeChange === 'function'
   const showEditActions = canEdit && typeof onStartEdit === 'function'
@@ -361,7 +363,7 @@ export function WorkspaceReservationSeatingsSection({
                 className="primary-btn workspace-action-btn reservation-auto-close-save"
                 disabled={isSavingAutoClose}
               >
-                {isSavingAutoClose ? 'Saving…' : t("Save cutoff")}
+                {isSavingAutoClose ? t("Saving…") : t("Save cutoff")}
               </button>
             </div>
           </form>
@@ -370,8 +372,10 @@ export function WorkspaceReservationSeatingsSection({
 
       {hoursOnly ? null : <HostDiningTimerSettings />}
 
-      {visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
-      {isLoading ? <div className="staff-status-banner">{t("Loading seatings…")}</div> : null}
+      {isLoadFailureMessage(visibleNotice) ? (
+        <LoadFailureBanner message={visibleNotice} subject="seating hours" onRetry={onRetry} />
+      ) : visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
+      {isLoading && !isLoadFailureMessage(visibleNotice) ? <div className="staff-status-banner">{t("Loading seatings…")}</div> : null}
 
       {hoursOnly && editingSeatingId && typeof document !== 'undefined'
         ? createPortal(

@@ -15655,6 +15655,7 @@ function App() {
   const [workspaceProfile, setWorkspaceProfile] = useState(EMPTY_WORKSPACE_PROFILE)
   const [workspaceProfileDraft, setWorkspaceProfileDraft] = useState(EMPTY_WORKSPACE_PROFILE)
   const [isWorkspaceProfileLoading, setIsWorkspaceProfileLoading] = useState(true)
+  const [workspaceProfileRetryToken, setWorkspaceProfileRetryToken] = useState(0)
   const [isSavingWorkspaceProfile, setIsSavingWorkspaceProfile] = useState(false)
   const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
@@ -18060,7 +18061,7 @@ function App() {
     if (!file) return
 
     if (file.size > MAX_WORKSPACE_LOGO_BYTES) {
-      setWorkspaceProfileNotice(`Logo must be smaller than ${Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024)} KB.`)
+      setWorkspaceProfileNotice(t("Logo must be smaller than {{size}} KB.", { size: Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024) }))
       return
     }
 
@@ -18073,7 +18074,7 @@ function App() {
       setWorkspaceProfileNotice('')
     }
     reader.onerror = () => {
-      setWorkspaceProfileNotice('Unable to read logo file.')
+      setWorkspaceProfileNotice(t("Unable to read logo file."))
     }
     reader.readAsDataURL(file)
   }
@@ -18091,7 +18092,11 @@ function App() {
       setWorkspaceProfileNotice('')
 
       try {
-        const remoteProfile = applyDemoProfile(await getWorkspaceProfile(workspace?.id), getLocale())
+        const remoteProfile = applyDemoProfile(await withTimeout(
+          getWorkspaceProfile(workspace?.id),
+          8000,
+          "Couldn't load the business profile. Check your connection and try again.",
+        ), getLocale())
         if (!isMounted) return
         setWorkspaceProfile(remoteProfile)
         setWorkspaceProfileDraft(remoteProfile)
@@ -18099,7 +18104,8 @@ function App() {
         if (!isMounted) return
         setWorkspaceProfile(EMPTY_WORKSPACE_PROFILE)
         setWorkspaceProfileDraft(EMPTY_WORKSPACE_PROFILE)
-        setWorkspaceProfileNotice(presentLoadFailure(error, 'venue settings'))
+        logLoadFailure('the business profile', error)
+        setWorkspaceProfileNotice("Couldn't load the business profile. Check your connection and try again.")
       } finally {
         if (isMounted) {
           setIsWorkspaceProfileLoading(false)
@@ -18112,7 +18118,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  },[workspace?.id])
+  },[workspace?.id, workspaceProfileRetryToken])
 
   useEffect(() => {
     if (!isAuthDisabled) return
@@ -18232,7 +18238,11 @@ function App() {
       setPositionsNotice('')
 
       try {
-        const remotePositions = await getPositions(activeWorkspaceId)
+        const remotePositions = await withTimeout(
+          getPositions(activeWorkspaceId),
+          8000,
+          "Couldn't load positions. Check your connection and try again.",
+        )
         if (!isMounted) return
         if (remotePositions.length === 0 && shouldUseSchedulePreviewFixture(window.location.search)) {
           setPositions(buildSchedulePreviewPositions())
@@ -18246,7 +18256,8 @@ function App() {
           return
         }
         setPositions([])
-        setPositionsNotice(presentLoadFailure(error, 'positions'))
+        logLoadFailure('positions', error)
+        setPositionsNotice("Couldn't load positions. Check your connection and try again.")
       } finally {
         if (isMounted) {
           setIsPositionsLoading(false)
@@ -18302,13 +18313,18 @@ function App() {
       setReservationSeatingsNotice('')
 
       try {
-        const remoteSeatings = await getReservationSeatings(activeWorkspaceId, { includeInactive: true })
+        const remoteSeatings = await withTimeout(
+          getReservationSeatings(activeWorkspaceId, { includeInactive: true }),
+          8000,
+          "Couldn't load seating hours. Check your connection and try again.",
+        )
         if (!isMounted || requestId !== seatingLoadSeqRef.current) return
         reservationSeatingsRef.current = remoteSeatings
         setReservationSeatings(remoteSeatings)
       } catch (error) {
         if (!isMounted || requestId !== seatingLoadSeqRef.current) return
-        setReservationSeatingsNotice(presentLoadFailure(error, 'seating hours'))
+        logLoadFailure('seating hours', error)
+        setReservationSeatingsNotice("Couldn't load seating hours. Check your connection and try again.")
       } finally {
         if (isMounted && requestId === seatingLoadSeqRef.current) {
           setIsReservationSeatingsLoading(false)
@@ -25401,6 +25417,7 @@ function App() {
     onSaveAutoClose: handleWorkspaceProfileSubmit,
     isSavingAutoClose: isSavingWorkspaceProfile,
     autoCloseNotice: workspaceProfileNotice,
+    onRetry: () => setStaffLoadNonce((nonce) => nonce + 1),
   } : {
     seatings: [],
     isLoading: false,
@@ -26346,6 +26363,7 @@ function App() {
               onSubmit: handleWorkspaceProfileSubmit,
               onLogoFileChange: handleWorkspaceLogoFileChange,
               onClearLogo: handleClearWorkspaceLogo,
+              onRetry: () => setWorkspaceProfileRetryToken((token) => token + 1),
             }}
             positionsProps={{
               positions,
@@ -26361,6 +26379,7 @@ function App() {
               onRequestDelete: handleRequestDeletePosition,
               onMovePosition: handleMovePosition,
               getUsageCount: getPositionUsageCount,
+              onRetry: () => setStaffLoadNonce((nonce) => nonce + 1),
             }}
             venueSetupProps={{
               ...workspaceVenueSetupProps,

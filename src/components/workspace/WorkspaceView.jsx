@@ -114,7 +114,7 @@ export function WorkspaceView({
     <section className="staff-page workspace-page">
       <LanguagePicker className="mobile-profile-language" />
       {limitedAccess ? (
-        <p className="workspace-limited-note">{LIMITED_SETTINGS_SUBTITLE}.</p>
+        <p className="workspace-limited-note">{t(LIMITED_SETTINGS_SUBTITLE)}.</p>
       ) : null}
       <div className="workspace-layout">
         <aside className={navClass} aria-label={t("Settings sections")}>

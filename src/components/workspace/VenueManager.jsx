@@ -146,7 +146,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
         <footer className="venue-sheet-actions">
           <button type="button" className="ghost-btn" disabled={isSaving} onClick={onClose}>{t("Cancel")}</button>
           <button type="submit" className="primary-btn" disabled={isSaving || form.name.trim().length < 2}>
-            {isSaving ? 'Creating…' : 'Create'}
+            {isSaving ? t("Creating…") : t("Create")}
           </button>
         </footer>
       </form>
@@ -168,7 +168,7 @@ export function VenueManager() {
     <div className="venue-manager">
       <VenueSwitcher className="venue-manager-switcher" />
       <button type="button" className="primary-btn venue-manager-new" onClick={() => setIsSheetOpen(true)}>
-        + New venue
+        + {t("New venue")}
       </button>
       {isSheetOpen ? (
         <NewVenueSheet

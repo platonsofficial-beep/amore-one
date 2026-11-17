@@ -67,7 +67,7 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     const { container, cleanup } = renderSection({ isSaving: true })
     const button = container.querySelector('.workspace-action-btn')
 
-    expect(button?.textContent).toContain('Saving...')
+    expect(button?.textContent).toContain('Saving…')
 
     cleanup()
   })

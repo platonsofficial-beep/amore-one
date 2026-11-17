@@ -1,5 +1,16 @@
 import { VenueManager } from './VenueManager'
 import { t } from '../../i18n/i18n'
+const PRESET_AREA_LABELS = new Set([
+  'Bar', 'Service', 'Kitchen', 'Management', 'Other',
+  'Terrace', 'VIP', 'Lounge', 'Garden', 'Reception', 'Host', 'Private',
+  'Main Dining',
+])
+
+function displayPresetLabel(value) {
+  const text = `${value ?? ''}`.trim()
+  return PRESET_AREA_LABELS.has(text) ? t(text) : text
+}
+
 function WorkspaceVenueCard({ title, icon, items, fallbackNote }) {
   const hasItems = Array.isArray(items) && items.length > 0
 
@@ -14,7 +25,7 @@ function WorkspaceVenueCard({ title, icon, items, fallbackNote }) {
       {hasItems ? (
         <ul className="workspace-tag-list">
           {items.map((item) => (
-            <li key={item} className="workspace-tag">{item}</li>
+            <li key={item} className="workspace-tag">{displayPresetLabel(item)}</li>
           ))}
         </ul>
       ) : (
@@ -54,25 +65,25 @@ export function WorkspaceVenueSetupSection({
           title={t("Departments")}
           icon="🏷️"
           items={staffDepartments}
-          fallbackNote="Add departments in Team → People when creating employees."
+          fallbackNote={t("Add departments in Team → People when creating employees.")}
         />
         <WorkspaceVenueCard
           title={t("Schedule Areas")}
           icon="🕒"
           items={scheduleAreas}
-          fallbackNote="Set schedule areas in Team → Schedule."
+          fallbackNote={t("Set schedule areas in Team → Schedule.")}
         />
         <WorkspaceVenueCard
           title={t("Reservation Areas")}
           icon="🍽️"
           items={reservationAreas}
-          fallbackNote="Configure service seatings in Settings → Reservations."
+          fallbackNote={t("Configure service seatings in Settings → Reservations.")}
         />
         <WorkspaceVenueCard
           title={t("Task Boards")}
           icon="✓"
           items={taskBoards.map((item) => t(item))}
-          fallbackNote="Create task boards in Operations → Tasks."
+          fallbackNote={t("Create task boards in Operations → Tasks.")}
         />
       </div>
     </>

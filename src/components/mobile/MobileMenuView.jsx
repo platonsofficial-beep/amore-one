@@ -82,7 +82,7 @@ export function MobileMenuView({
   const showFullSchedule = canOpenMobileFullSchedule(role)
   const showSettings = canAccessMobileExpandedModule(role, 'settings')
   const settingsSubtitle = !canAccessModule(role, 'settings') && canConfigureReservationSeatings(role)
-    ? LIMITED_SETTINGS_SUBTITLE
+    ? t(LIMITED_SETTINGS_SUBTITLE)
     : t("Venue preferences")
   const isHostMenu = menuVariant === 'host'
   const allowedModuleIds = useMemo(

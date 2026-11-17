@@ -1,4 +1,6 @@
 import { t } from '../../i18n/i18n'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 const POSITION_DEPARTMENTS = ['Bar', 'Service', 'Kitchen', 'Management', 'Other']
 
 export function WorkspacePositionsSection({
@@ -15,6 +17,7 @@ export function WorkspacePositionsSection({
   onRequestDelete,
   onMovePosition,
   getUsageCount,
+  onRetry,
 }) {
   return (
     <>
@@ -31,8 +34,10 @@ export function WorkspacePositionsSection({
         </div>
       </div>
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
+      {isLoadFailureMessage(noticeMessage) ? (
+        <LoadFailureBanner message={noticeMessage} subject="positions" onRetry={onRetry} />
+      ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
@@ -52,7 +57,7 @@ export function WorkspacePositionsSection({
               <span>{t("Department")}</span>
               <select value={form.department} onChange={(event) => onFormChange({ ...form, department: event.target.value })}>
                 {POSITION_DEPARTMENTS.map((department) => (
-                  <option key={department} value={department}>{department}</option>
+                  <option key={department} value={department}>{t(department)}</option>
                 ))}
               </select>
             </label>
@@ -61,7 +66,7 @@ export function WorkspacePositionsSection({
           <div className="modal-actions">
             {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : editingPositionId ? t("Update Position") : t("Add Position")}
+              {isSaving ? t("Saving…") : editingPositionId ? t("Update Position") : t("Add Position")}
             </button>
           </div>
         </form>
@@ -71,7 +76,7 @@ export function WorkspacePositionsSection({
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Position list")}</p>
-            <h3>{positions.length} positions</h3>
+            <h3>{t("{{count}} position", { count: positions.length })}</h3>
           </div>
         </div>
 
@@ -89,8 +94,8 @@ export function WorkspacePositionsSection({
                 <article key={position.id} className="position-row">
                   <div>
                     <strong>{position.name}</strong>
-                    <p>{position.department}</p>
-                    {usage > 0 ? <small>Used by {usage} employee{usage === 1 ? '' : 's'}</small> : null}
+                    <p>{t(position.department)}</p>
+                    {usage > 0 ? <small>{t("Used by {{count}} employee", { count: usage })}</small> : null}
                   </div>
                   <div className="action-group">
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onMovePosition(position, 'up')} disabled={index === 0}>↑</button>

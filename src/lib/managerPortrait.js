@@ -173,7 +173,7 @@ export function buildManagerPortraitMoreItems(access, {
     items.push({
       id: 'settings',
       label: 'Settings',
-      subtitle: limitedSettings ? LIMITED_SETTINGS_SUBTITLE : t("Venue preferences"),
+      subtitle: limitedSettings ? t(LIMITED_SETTINGS_SUBTITLE) : t("Venue preferences"),
       icon: '⚙️',
     })
   }
