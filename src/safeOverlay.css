@@ -226,7 +226,7 @@ body.is-keyboard-open .stock-item-more-menu-panel.is-sheet {
 /* The short-landscape icon rail paints above the fixed chat column. */
 @media (orientation: landscape) and (max-height: 460px) and (max-width: 1024px) {
   .app-shell:not(.is-mobile-shell).is-chat-thread .chat-screen {
-    left: calc(var(--safe-l, 0px) + var(--one-landscape-rail, 112px));
+    left: calc(var(--safe-l, 0px) + var(--one-landscape-rail, 104px));
   }
 }
 

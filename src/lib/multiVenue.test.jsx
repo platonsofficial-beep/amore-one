@@ -163,6 +163,6 @@ describe('venue UI', () => {
     expect(css).toContain('--one-safe-top-chrome')
     expect(css).toContain('--safe-l')
     expect(css).toContain('max-height: min(100%, 340px)')
-    expect(css).toContain('calc(var(--safe-l, 0px) + var(--one-landscape-rail, 112px))')
+    expect(css).toContain('calc(var(--safe-l, 0px) + var(--one-landscape-rail, 104px))')
   })
 })

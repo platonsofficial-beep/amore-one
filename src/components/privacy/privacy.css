@@ -222,7 +222,7 @@
 
 @media (orientation: landscape) and (max-height: 460px) and (max-width: 1024px) {
   .permission-notice-backdrop {
-    left: calc(var(--safe-l, 0px) + var(--one-landscape-rail, 112px));
+    left: calc(var(--safe-l, 0px) + var(--one-landscape-rail, 104px));
     padding-left: 16px;
   }
 }
