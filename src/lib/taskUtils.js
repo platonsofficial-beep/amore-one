@@ -10,6 +10,32 @@ import {
 } from './taskDepartments'
 import { formatLocalDateKey } from './weekUtils'
 import { translateOperationsWord } from './operationsUtils'
+import { t } from '../i18n/i18n'
+
+const BOARD_PRIORITY_KEYS = {
+  low: 'Task priority low',
+  normal: 'Task priority normal',
+  high: 'Task priority high',
+  important: 'Task priority important',
+  urgent: 'Task priority urgent',
+}
+
+const BOARD_RECURRENCE_KEYS = {
+  none: 'None',
+  daily: 'Daily',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+}
+
+export function getBoardPriorityLabel(priority) {
+  const key = BOARD_PRIORITY_KEYS[`${priority ?? ''}`.trim().toLowerCase()] || 'Task priority normal'
+  return t(key)
+}
+
+export function getBoardRecurrenceLabel(recurrence) {
+  const key = BOARD_RECURRENCE_KEYS[`${recurrence ?? ''}`.trim().toLowerCase()]
+  return key ? t(key) : ''
+}
 
 export function getTodayKey(date = new Date()) {
   return formatLocalDateKey(date)

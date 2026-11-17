@@ -1,20 +1,8 @@
 import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
-import { getTaskDepartmentLabel, groupTaskTemplatesByDepartment } from '../../lib/taskUtils'
+import { getBoardPriorityLabel, getBoardRecurrenceLabel, getTaskDepartmentLabel, groupTaskTemplatesByDepartment } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { t } from '../../i18n/i18n'
 import { translateOperationsWord } from '../../lib/operationsUtils'
-
-const PRIORITY_LABELS = {
-  normal: 'Normal',
-  important: 'Important',
-  urgent: 'Urgent',
-}
-
-const RECURRENCE_LABELS = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
-}
 
 function truncateNotes(notes, maxLength = 120) {
   const value = `${notes ?? ''}`.trim()
@@ -56,9 +44,9 @@ function TemplateCard({
         {defaultTimeLabel ? (
           <span className="task-template-meta-item">{defaultTimeLabel}</span>
         ) : null}
-        <span className="task-template-meta-item">{PRIORITY_LABELS[template.priority] ?? 'Normal'}</span>
+        <span className="task-template-meta-item">{getBoardPriorityLabel(template.priority)}</span>
         <span className="task-template-meta-item">
-          {RECURRENCE_LABELS[template.recurrence] ?? 'Daily'}
+          {getBoardRecurrenceLabel(template.recurrence) || getBoardRecurrenceLabel('daily')}
         </span>
       </div>
 
@@ -72,7 +60,7 @@ function TemplateCard({
             <li key={item.id ?? item.title}>{item.title}</li>
           ))}
           {remainingChecklistCount > 0 ? (
-            <li className="task-template-checklist-more">+ {remainingChecklistCount} more</li>
+            <li className="task-template-checklist-more">+ {t("{{count}} more", { count: remainingChecklistCount })}</li>
           ) : null}
         </ul>
       ) : null}
@@ -132,7 +120,7 @@ export default function TaskTemplatesView({
       <header className="tasks-templates-header">
         <div className="tasks-templates-header-main">
           <button type="button" className="ghost-btn tasks-back-btn" onClick={onBack}>
-            ← Department Boards
+            ← {t("Department Boards")}
           </button>
           <div>
             <p className="eyebrow">{t("Daily operations")}</p>
@@ -150,7 +138,7 @@ export default function TaskTemplatesView({
             onClick={onGenerateToday}
             disabled={isGenerating || isSaving || tableUnavailable || activeTemplateCount === 0}
           >
-            {isGenerating ? 'Generating…' : t("Generate Today")}
+            {isGenerating ? t("Generating…") : t("Generate Today")}
           </button>
           <button
             type="button"
@@ -158,7 +146,7 @@ export default function TaskTemplatesView({
             onClick={onOpenNewTemplate}
             disabled={isSaving || tableUnavailable}
           >
-            + New Template
+            + {t("New template")}
           </button>
         </div>
       </header>

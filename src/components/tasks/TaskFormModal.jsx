@@ -7,9 +7,9 @@ import TaskDepartmentFields from './TaskDepartmentFields'
 import { t } from '../../i18n/i18n'
 
 const PRIORITY_OPTIONS = [
-  { value: 'normal', label: 'Normal' },
-  { value: 'important', label: 'Important' },
-  { value: 'urgent', label: 'Urgent' },
+  { value: 'normal', label: 'Task priority normal' },
+  { value: 'important', label: 'Task priority important' },
+  { value: 'urgent', label: 'Task priority urgent' },
 ]
 
 const RECURRENCE_OPTIONS = [
@@ -124,7 +124,7 @@ export default function TaskFormModal({
                 <option value="">{t("Unassigned")}</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={String(employee.id)}>
-                    {employee.full_name || employee.name || `Employee ${employee.id}`}
+                    {employee.full_name || employee.name || `${t("Employee")} ${employee.id}`}
                   </option>
                 ))}
               </select>
@@ -137,7 +137,7 @@ export default function TaskFormModal({
                 onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
               >
                 {PRIORITY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value}>{t(option.label)}</option>
                 ))}
               </select>
             </label>
@@ -168,7 +168,7 @@ export default function TaskFormModal({
                 onChange={(event) => setForm((current) => ({ ...current, recurrence: event.target.value }))}
               >
                 {RECURRENCE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                  <option key={option.value} value={option.value}>{t(option.label)}</option>
                 ))}
               </select>
             </label>
@@ -193,7 +193,7 @@ export default function TaskFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Save'}
+              {isSaving ? t("Saving…") : t("Save")}
             </button>
           </div>
         </form>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { translate } from '../i18n/i18n'
+import { setLocale, translate } from '../i18n/i18n'
+import { getBoardPriorityLabel, getBoardRecurrenceLabel } from './taskUtils'
 import { TASK_PRESET_DEPARTMENTS } from './taskDepartments'
 import {
   buildOperationsDashboardSummary,
@@ -72,6 +73,32 @@ describe('operations labels', () => {
     expect(labels.floor_manager).toBe('Floor Manager')
     expect(labels.fb).toBe('F&B')
     expect(labels.logistics).toBe('Logistics')
+  })
+
+  it('localizes the department board, templates, and checklist editor', () => {
+    expect(translate('No tasks due today for this department.', undefined, 'el')).toBe('Καμία εργασία για σήμερα σε αυτό το τμήμα.')
+    expect(translate('No upcoming tasks scheduled for this department.', undefined, 'el')).toBe('Καμία προγραμματισμένη εργασία για αυτό το τμήμα.')
+    expect(translate('No completed tasks yet for this department.', undefined, 'el')).toBe('Καμία ολοκληρωμένη εργασία ακόμα για αυτό το τμήμα.')
+    expect(translate('✓ Complete', undefined, 'el')).toBe('✓ Ολοκλήρωση')
+    expect(translate('✓ Completed', undefined, 'el')).toBe('✓ Ολοκληρώθηκε')
+    expect(translate('Completed {{when}}', { when: '17 Νοε 16:10' }, 'el')).toBe('Ολοκληρώθηκε 17 Νοε 16:10')
+    expect(translate('+ New Task', undefined, 'el')).toBe('+ Νέα εργασία')
+    expect(translate('Department Boards', undefined, 'el')).toBe('Πίνακες τμημάτων')
+    expect(translate('New template', undefined, 'el')).toBe('Νέο πρότυπο')
+    expect(translate('e.g. Bar Closing', undefined, 'el')).toBe('π.χ. Κλείσιμο μπαρ')
+    expect(translate('+ New Task', undefined, 'en')).toBe('+ New Task')
+    expect(translate('Department Boards', undefined, 'en')).toBe('Department Boards')
+    expect(translate('e.g. Bar Closing', undefined, 'en')).toBe('e.g. Bar Closing')
+    expect(translate('No tasks due today for this department.', undefined, 'en')).toBe('No tasks due today for this department.')
+    setLocale('el')
+    expect(getBoardPriorityLabel('important')).toBe('Σημαντική')
+    expect(getBoardPriorityLabel('normal')).toBe('Κανονική')
+    expect(getBoardPriorityLabel('urgent')).toBe('Επείγουσα')
+    expect(getBoardRecurrenceLabel('daily')).toBe('Καθημερινά')
+    setLocale('en')
+    expect(getBoardPriorityLabel('important')).toBe('Important')
+    expect(getBoardPriorityLabel('normal')).toBe('Normal')
+    expect(getBoardRecurrenceLabel('weekly')).toBe('Weekly')
   })
 })
 

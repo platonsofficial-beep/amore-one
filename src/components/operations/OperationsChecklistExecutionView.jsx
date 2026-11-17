@@ -50,7 +50,7 @@ export function OperationsChecklistExecutionView({
   onBack,
   onToggleComplete,
 }) {
-  const heading = template?.name || title || 'Checklist'
+  const heading = template?.name || title || t("Checklist")
   const checklistTasks = useMemo(() => (
     taskId
       ? getChecklistStepsForTask(tasks, taskId)

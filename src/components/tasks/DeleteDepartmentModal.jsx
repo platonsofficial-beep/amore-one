@@ -43,7 +43,7 @@ export default function DeleteDepartmentModal({
             {t("Cancel")}
           </button>
           <button type="button" className="primary-btn task-delete-department-confirm-btn" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting…' : t("Delete Department")}
+            {isDeleting ? t("Deleting…") : t("Delete Department")}
           </button>
         </div>
       </div>

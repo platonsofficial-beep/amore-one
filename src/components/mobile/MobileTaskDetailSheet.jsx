@@ -152,7 +152,7 @@ export function MobileTaskDetailSheet({
                 {t("Back")}
               </button>
               <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
-                {isSaving ? 'Saving…' : t("Mark complete")}
+                {isSaving ? t("Saving…") : t("Mark complete")}
               </button>
             </div>
           </form>

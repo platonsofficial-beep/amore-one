@@ -87,7 +87,7 @@ export default function TaskDepartmentFields({
             </optgroup>
           ) : null}
 
-          <option value={CUSTOM_DEPARTMENT_NEW_OPTION}>+ Custom department</option>
+          <option value={CUSTOM_DEPARTMENT_NEW_OPTION}>+ {t("Custom department")}</option>
         </select>
       </label>
 

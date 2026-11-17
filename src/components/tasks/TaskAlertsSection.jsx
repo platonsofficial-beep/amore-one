@@ -52,7 +52,7 @@ export default function TaskAlertsSection({
   employees = [],
   compact = false,
   title = t("Task alerts"),
-  emptyMessage = 'No task alerts. Operations are clear.',
+  emptyMessage = t("No task alerts. Operations are clear."),
 }) {
   if (!alerts?.hasAlerts) {
     return (

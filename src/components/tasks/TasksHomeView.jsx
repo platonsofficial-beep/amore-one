@@ -107,7 +107,7 @@ export default function TasksHomeView({
         employees={employees}
         compact={isMobileLayout}
         title={t("Needs attention")}
-        emptyMessage={loadFailed ? "Couldn't load what needs attention." : t("No tasks need attention right now.")}
+        emptyMessage={loadFailed ? t("Couldn't load what needs attention.") : t("No tasks need attention right now.")}
       />
 
       {loadFailed ? null : (
@@ -129,7 +129,7 @@ export default function TasksHomeView({
           >
             <span className="tasks-mobile-templates-btn-label">{t("Open daily templates")}</span>
             <span className="tasks-mobile-templates-btn-meta">
-              {templateCount > 0 ? `${templateCount} saved` : t("Set up routines")}
+              {templateCount > 0 ? t("{{count}} saved", { count: templateCount }) : t("Set up routines")}
             </span>
           </button>
         </section>
@@ -138,7 +138,7 @@ export default function TasksHomeView({
       <header className="tasks-home-header">
         <div>
           {!isMobileLayout ? <p className="eyebrow">{t("Departments")}</p> : null}
-          <h3>{isMobileLayout ? 'Departments' : t("Task boards")}</h3>
+          <h3>{isMobileLayout ? t("Departments") : t("Task boards")}</h3>
           {!isMobileLayout ? (
             <p className="staff-subtitle">
               {t("Choose a department to review today's work, upcoming tasks, and completion progress.")}

@@ -279,7 +279,7 @@ export function OperationsChecklistTemplateEditor({
           <h3>{isEditing ? t("Edit checklist") : t("Create checklist")}</h3>
         </div>
         <button type="button" className="ghost-btn operations-checklist-editor-back" onClick={onClose}>
-          ← Back
+          ← {t("Back")}
         </button>
       </header>
 
