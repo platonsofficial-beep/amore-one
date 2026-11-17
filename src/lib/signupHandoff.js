@@ -37,6 +37,7 @@ export function parseSignupHandoff(search = '') {
     name: sanitizeSignupText(params.get('name'), NAME_MAX),
     venue: sanitizeSignupText(params.get('venue'), VENUE_MAX),
     plan: sanitizeSignupPlan(params.get('plan')),
+    planSpecified: params.has('plan'),
     lang: lang === 'el' || lang === 'en' ? lang : '',
   }
 }
@@ -55,7 +56,9 @@ function readStored(storage) {
   try {
     const parsed = JSON.parse(storage.getItem(SIGNUP_HANDOFF_KEY) || 'null')
     if (!parsed || typeof parsed !== 'object') return null
-    return parseSignupHandoff(`?signup=1&email=${encodeURIComponent(parsed.email || '')}&name=${encodeURIComponent(parsed.name || '')}&venue=${encodeURIComponent(parsed.venue || '')}&plan=${encodeURIComponent(parsed.plan || '')}&lang=${encodeURIComponent(parsed.lang || '')}`)
+    const parsedHandoff = parseSignupHandoff(`?signup=1&email=${encodeURIComponent(parsed.email || '')}&name=${encodeURIComponent(parsed.name || '')}&venue=${encodeURIComponent(parsed.venue || '')}&plan=${encodeURIComponent(parsed.plan || '')}&lang=${encodeURIComponent(parsed.lang || '')}`)
+    if (!parsedHandoff) return null
+    return { ...parsedHandoff, planSpecified: Boolean(parsed.planSpecified) }
   } catch {
     return null
   }
@@ -77,6 +80,7 @@ export function writeSignupHandoff(handoff) {
     name: handoff.name || '',
     venue: handoff.venue || '',
     plan: sanitizeSignupPlan(handoff.plan),
+    planSpecified: Boolean(handoff.planSpecified),
     lang: handoff.lang || '',
   })
   try { sessionStorage.setItem(SIGNUP_HANDOFF_KEY, payload) } catch { /* private mode */ }

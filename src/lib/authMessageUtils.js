@@ -38,5 +38,6 @@ export function formatAuthErrorMessage(message = '') {
     return t("Too many attempts. Wait a moment and try again.")
   }
 
-  return normalized
+  console.error('[auth]', normalized)
+  return t("Something went wrong. Try again in a moment.")
 }

@@ -29404,6 +29404,29 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 44px;
 }
 
+.auth-password-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-password-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.auth-password-toggle {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.auth-signup-offer {
+  margin: 0;
+  color: var(--one-text-muted);
+  line-height: 1.45;
+}
+
 .auth-submit-btn,
 .auth-action-btn {
   min-height: 44px;
