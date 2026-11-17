@@ -89,7 +89,7 @@ function TeamProgressRow({ entry }) {
     <li className="mobile-manager-team-progress-item">
       <div className="mobile-manager-team-progress-copy">
         <strong>{entry.name}</strong>
-        <span>{entry.done} of {entry.total} done</span>
+        <span>{t("{{done}} of {{total}} done", { done: entry.done, total: entry.total, count: entry.total })}</span>
       </div>
       <div
         className="mobile-manager-team-progress-track"
@@ -97,7 +97,7 @@ function TeamProgressRow({ entry }) {
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`${entry.name}: ${percent}% complete`}
+        aria-label={t("{{name}}: {{percent}}% complete", { name: entry.name, percent })}
       >
         <span className="mobile-manager-team-progress-fill" style={{ width: `${percent}%` }} />
       </div>
@@ -121,7 +121,7 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
         onClick={() => onSelect?.(task)}
       >
         <div className="mobile-manager-today-task-header">
-          <h3 className="mobile-manager-today-task-title">{task.title ?? 'Task'}</h3>
+          <h3 className="mobile-manager-today-task-title">{task.title ?? t("Task")}</h3>
           <span className={`mobile-manager-today-task-priority priority-${priority}`}>
             {getOperationsPriorityLabel(task.priority)}
           </span>
@@ -129,7 +129,7 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
         <p className="mobile-manager-today-task-department">
           {getOperationsCategoryLabel(task.category)}
           {(task.checklistStepCount ?? task.checklistSteps?.length ?? 0) > 0
-            ? ` · ${task.checklistCompletedCount ?? 0}/${task.checklistStepCount ?? task.checklistSteps.length} steps`
+            ? ` · ${t("{{done}}/{{count}} steps", { done: task.checklistCompletedCount ?? 0, count: task.checklistStepCount ?? task.checklistSteps.length })}`
             : ''}
         </p>
         {assigneeName ? (
@@ -247,8 +247,8 @@ export function MobileManagerTasksView({
   )
 
   const selectedAssigneeName = selectedTask
-    ? getAssignmentLabel(selectedTask, employees) || 'Unassigned'
-    : 'Unassigned'
+    ? getAssignmentLabel(selectedTask, employees) || t("Unassigned")
+    : t("Unassigned")
 
   const handleOpenNewTask = () => {
     if (onCreateTask) {
@@ -282,7 +282,7 @@ export function MobileManagerTasksView({
               <p className="mobile-manager-tasks-block-label">{t("Today")}</p>
               <div className="mobile-manager-tasks-command-body">
                 <p className="mobile-manager-tasks-command-summary">
-                  <strong>{todayCompleted}</strong> {t("of")} <strong>{todayTotal}</strong> {t("complete")}
+                  {t("{{done}} of {{total}} complete", { done: todayCompleted, total: todayTotal, count: todayTotal })}
                 </p>
                 <span className="mobile-manager-tasks-command-percent">{completionPercent}%</span>
               </div>
@@ -290,14 +290,14 @@ export function MobileManagerTasksView({
               {Number.isFinite(boardOverdueCount) ? (
                 boardOverdueCount > 0 ? (
                   <p className="mobile-manager-tasks-command-alert" role="status">
-                    {`Task boards overdue: ${boardOverdueCount}`}
+                    {t("Task boards overdue: {{count}}", { count: boardOverdueCount })}
                   </p>
                 ) : null
               ) : overdueTodayCount > 0 || overdue > 0 ? (
                 <p className="mobile-manager-tasks-command-alert" role="status">
                   {overdueTodayCount > 0
-                    ? `${overdueTodayCount} overdue today`
-                    : `${overdue} overdue`}
+                    ? t("{{count}} overdue today", { count: overdueTodayCount })
+                    : t("{{count}} overdue", { count: overdue })}
                 </p>
               ) : null}
               <div
@@ -306,7 +306,7 @@ export function MobileManagerTasksView({
                 aria-valuenow={completionPercent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label={`${completionPercent}% of today's tasks complete`}
+                aria-label={t("{{percent}}% of today's tasks complete", { percent: completionPercent })}
               >
                 <span
                   className="mobile-manager-tasks-progress-fill"
@@ -325,7 +325,7 @@ export function MobileManagerTasksView({
                 onClick={handleOpenNewTask}
                 disabled={!onCreateTask || isSaving}
               >
-                + New
+                {t("+ New")}
               </button>
             </div>
             {hasTodayWork ? (
@@ -345,7 +345,7 @@ export function MobileManagerTasksView({
                 <p className="mobile-manager-tasks-empty-title">{t("Everything is on track")}</p>
                 <p className="mobile-manager-tasks-empty-message">
                   {completedToday > 0
-                    ? `${completedToday} completed today. No open tasks right now.`
+                    ? t("{{count}} completed today. No open tasks right now.", { count: completedToday })
                     : t("No pending tasks today")}
                 </p>
               </div>
@@ -374,7 +374,7 @@ export function MobileManagerTasksView({
                   disabled={isSaving}
                   data-testid="mobile-manager-new-announcement"
                 >
-                  + Announcement
+                  {t("+ Announcement")}
                 </button>
               </div>
             </section>

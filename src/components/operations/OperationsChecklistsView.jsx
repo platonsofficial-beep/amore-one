@@ -24,11 +24,11 @@ function ChecklistTemplateCard({
           <p className="operations-checklist-card-meta">
             {getChecklistDepartmentLabel(template.department)}
             <span aria-hidden="true">·</span>
-            {items.length} task{items.length === 1 ? '' : 's'}
+            {t("{{count}} task", { count: items.length })}
           </p>
         </div>
         <span className={`operations-checklist-status-badge${template.active === false ? ' is-inactive' : ''}`}>
-          {template.active === false ? 'Inactive' : 'Active'}
+          {template.active === false ? t("Checklist inactive") : t("Checklist active")}
         </span>
       </div>
 
@@ -38,7 +38,7 @@ function ChecklistTemplateCard({
             <li key={item.id}>☐ {item.title}</li>
           ))}
           {items.length > previewItems.length ? (
-            <li className="operations-checklist-card-more">+ {items.length - previewItems.length} more</li>
+            <li className="operations-checklist-card-more">+ {t("{{count}} more", { count: items.length - previewItems.length })}</li>
           ) : null}
         </ul>
       ) : (

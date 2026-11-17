@@ -317,7 +317,7 @@ export function OperationsChecklistTemplateEditor({
               onClick={() => setForm((current) => ({ ...current, active: !current.active }))}
               disabled={isSaving}
             >
-              {form.active ? 'Active' : 'Inactive'}
+              {form.active ? t("Checklist active") : t("Checklist inactive")}
             </button>
           </label>
         </div>
@@ -328,7 +328,7 @@ export function OperationsChecklistTemplateEditor({
               <p className="eyebrow">{t("Tasks")}</p>
               <h4>{t("Checklist items")}</h4>
             </div>
-            <p className="operations-section-count">{previewItems.length} item{previewItems.length === 1 ? '' : 's'}</p>
+            <p className="operations-section-count">{t("{{count}} item", { count: previewItems.length })}</p>
           </div>
 
           {previewItems.length === 0 ? (
@@ -381,7 +381,7 @@ export function OperationsChecklistTemplateEditor({
             {t("Cancel")}
           </button>
           <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-            {isSaving ? 'Saving…' : isEditing ? t("Save checklist") : t("Create checklist")}
+            {isSaving ? t("Saving…") : isEditing ? t("Save checklist") : t("Create checklist")}
           </button>
         </div>
       </form>

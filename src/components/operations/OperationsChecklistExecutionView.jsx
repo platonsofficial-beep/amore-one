@@ -64,15 +64,15 @@ export function OperationsChecklistExecutionView({
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   return (
-    <section className="operations-checklist-exec-page" aria-label={`${heading} execution`}>
+    <section className="operations-checklist-exec-page" aria-label={t("{{title}} execution", { title: heading })}>
       <header className="operations-checklist-exec-header">
         <button type="button" className="ghost-btn operations-checklist-exec-back" onClick={onBack}>
-          ← Back
+          ← {t("Back")}
         </button>
         <div className="operations-checklist-exec-heading">
           <h3>{heading}</h3>
           <p className="operations-checklist-exec-progress-label">
-            {completedCount}/{totalCount} done
+            {t("{{done}} of {{total}} done", { done: completedCount, total: totalCount, count: totalCount })}
           </p>
         </div>
       </header>
@@ -83,7 +83,7 @@ export function OperationsChecklistExecutionView({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progressPercent}
-        aria-label={`${heading} progress`}
+        aria-label={t("{{title}} progress", { title: heading })}
       >
         <span className="operations-checklist-exec-progress-fill" style={{ width: `${progressPercent}%` }} />
       </div>

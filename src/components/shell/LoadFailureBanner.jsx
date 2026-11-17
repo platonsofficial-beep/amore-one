@@ -1,6 +1,7 @@
 import {
   LOAD_RETRY_LABEL,
   formatUserFacingLoadError,
+  isPlainLoadFailure,
   isTechnicalErrorText,
 } from '../../lib/userFacingLoadError'
 import { t } from '../../i18n/i18n'
@@ -15,7 +16,9 @@ export function LoadFailureBanner({
   if (!raw) return null
 
   const technical = isTechnicalErrorText(raw)
-  const text = technical ? formatUserFacingLoadError(subject) : raw
+  const text = technical
+    ? formatUserFacingLoadError(subject)
+    : (isPlainLoadFailure(raw) ? t(raw) : raw)
 
   return (
     <div className={`staff-status-banner load-failure-banner${className ? ` ${className}` : ''}`} role="alert">

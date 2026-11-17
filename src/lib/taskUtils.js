@@ -9,6 +9,7 @@ import {
   resolveDepartmentBoardDisplay,
 } from './taskDepartments'
 import { formatLocalDateKey } from './weekUtils'
+import { translateOperationsWord } from './operationsUtils'
 
 export function getTodayKey(date = new Date()) {
   return formatLocalDateKey(date)
@@ -50,11 +51,11 @@ export function getTaskDepartmentLabel(task) {
 
   if (departmentKey === CUSTOM_DEPARTMENT_TYPE) {
     const customLabel = `${task?.departmentCustom ?? task?.department_custom ?? ''}`.trim()
-    return customLabel || 'Custom'
+    return customLabel || translateOperationsWord('Custom')
   }
 
   const display = resolveDepartmentBoardDisplay(departmentKey)
-  return display.label || departmentKey || 'Unknown'
+  return translateOperationsWord(display.label || departmentKey || 'Unknown')
 }
 
 export function collectCustomDepartmentNames(tasks = [], templates = []) {
@@ -363,7 +364,7 @@ export function calculateDepartmentPerformanceSummaries(
 
       return {
         departmentKey: boardKey,
-        departmentLabel: display.label,
+        departmentLabel: translateOperationsWord(display.label),
         departmentIcon: display.icon,
         totalToday: stats.totalToday,
         completedToday: stats.completedToday,

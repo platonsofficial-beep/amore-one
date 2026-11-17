@@ -100,18 +100,24 @@ async function main() {
   const port = address && typeof address === 'object' ? address.port : 4173
   const base = `http://127.0.0.1:${port}/?devRole=owner&scheduleFixture=1`
   const userDataDir = await mkdtemp(join(tmpdir(), 'one-right-edge-chrome-'))
-  const chrome = spawn('/usr/bin/google-chrome', ['--headless=new', '--remote-debugging-port=0', `--user-data-dir=${userDataDir}`, '--no-first-run', '--disable-gpu', '--no-sandbox', 'about:blank'], { stdio: ['ignore', 'pipe', 'pipe'] })
-  const endpoint = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Chrome did not start')), 15000)
-    const on = (chunk) => {
-      const match = String(chunk).match(/DevTools listening on (ws:\/\/\S+)/)
-      if (!match) return
-      clearTimeout(timer)
-      resolve(match[1])
-    }
-    chrome.stderr.on('data', on)
-    chrome.stdout.on('data', on)
-  })
+  const debugPort = 9223
+  const chrome = spawn('/usr/bin/google-chrome', ['--headless=new', `--remote-debugging-port=${debugPort}`, `--user-data-dir=${userDataDir}`, '--no-first-run', '--disable-gpu', '--disable-dev-shm-usage', '--no-sandbox', 'about:blank'], { stdio: ['ignore', 'pipe', 'pipe'] })
+  chrome.stdout.on('data', () => {})
+  chrome.stderr.on('data', () => {})
+  const started = Date.now()
+  let endpoint = ''
+  while (Date.now() - started < 45000) {
+    if (chrome.exitCode != null) throw new Error(`Chrome exited before DevTools was ready (${chrome.exitCode})`)
+    try {
+      const response = await fetch(`http://127.0.0.1:${debugPort}/json/version`, { signal: AbortSignal.timeout(1000) })
+      if (response.ok) {
+        const body = await response.json()
+        if (body.webSocketDebuggerUrl) { endpoint = body.webSocketDebuggerUrl; break }
+      }
+    } catch {}
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  if (!endpoint) throw new Error('Chrome did not start')
   const failures = []
   try {
     const version = await fetch(`http://127.0.0.1:${new URL(endpoint).port}/json/version`).then((r) => r.json())

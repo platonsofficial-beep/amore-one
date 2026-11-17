@@ -3,6 +3,7 @@ import { calculateDepartmentStats, taskMatchesDepartmentBoard } from '../../lib/
 import DepartmentPerformanceSummary from './DepartmentPerformanceSummary'
 import TaskAlertsSection from './TaskAlertsSection'
 import { t } from '../../i18n/i18n'
+import { translateOperationsWord } from '../../lib/operationsUtils'
 
 function DepartmentBoardCard({
   board,
@@ -27,7 +28,7 @@ function DepartmentBoardCard({
           className="ghost-btn tasks-department-delete-btn"
           onClick={() => onDeleteDepartment?.(board)}
           disabled={isDeletingDepartment}
-          aria-label={`Delete ${board.label} department`}
+          aria-label={t("Delete {{name}} department", { name: board.label })}
         >
           {t("Delete")}
         </button>
@@ -41,14 +42,14 @@ function DepartmentBoardCard({
       >
         <div className="tasks-department-sticker-top">
           <span className="tasks-department-icon" aria-hidden="true">{board.icon}</span>
-          <h4 className="tasks-department-name">{board.label}</h4>
+          <h4 className="tasks-department-name">{translateOperationsWord(board.label)}</h4>
         </div>
 
         {hasTasks ? (
           <>
             <div className="tasks-department-metrics">
               <p className="tasks-department-metric">
-                <strong>{stats.active}</strong> {t("Active")}
+                <strong>{stats.active}</strong> {t("{{count}} active", { count: stats.active })}
               </p>
               <p className={`tasks-department-metric${stats.overdue > 0 ? ' is-alert' : ''}`}>
                 <strong>{stats.overdue}</strong> {t("Overdue")}

@@ -663,9 +663,10 @@ function openSocket(url) {
 
 async function launchChrome() {
   const userDataDir = await mkdtemp(join(tmpdir(), 'one-phone-viewport-'))
+  const port = 9222
   const chrome = spawn(chromePath(), [
     '--headless=new',
-    '--remote-debugging-port=0',
+    `--remote-debugging-port=${port}`,
     `--user-data-dir=${userDataDir}`,
     '--no-first-run',
     '--no-default-browser-check',
@@ -675,22 +676,32 @@ async function launchChrome() {
     '--hide-scrollbars',
     'about:blank',
   ], { stdio: ['ignore', 'pipe', 'pipe'] })
+  chrome.stdout.on('data', () => {})
+  chrome.stderr.on('data', () => {})
 
-  const endpoint = await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('Chrome did not open a DevTools port')), 15000)
-    const onData = (chunk) => {
-      const match = String(chunk).match(/DevTools listening on (ws:\/\/\S+)/)
-      if (!match) return
-      clearTimeout(timer)
-      resolve(match[1])
+  const started = Date.now()
+  let endpoint = ''
+  let lastError = 'no response'
+  while (Date.now() - started < 45000) {
+    if (chrome.exitCode != null) {
+      throw new Error(`Chrome exited before DevTools was ready (${chrome.exitCode})`)
     }
-    chrome.stderr.on('data', onData)
-    chrome.stdout.on('data', onData)
-    chrome.on('exit', (code) => {
-      clearTimeout(timer)
-      reject(new Error(`Chrome exited before DevTools was ready (${code})`))
-    })
-  })
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(1000) })
+      if (response.ok) {
+        const body = await response.json()
+        if (body.webSocketDebuggerUrl) {
+          endpoint = body.webSocketDebuggerUrl
+          break
+        }
+      }
+      lastError = `HTTP ${response.status}`
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : String(error)
+    }
+    await sleep(250)
+  }
+  if (!endpoint) throw new Error(`Chrome did not open a DevTools port (${lastError})`)
 
   return {
     endpoint,

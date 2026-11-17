@@ -15,15 +15,19 @@ import { combineDateAndTime } from '../../lib/timeFormatUtils'
 import { TimeSelect } from '../TimeSelect'
 import { t } from '../../i18n/i18n'
 
-const PRIORITY_OPTIONS = ANNOUNCEMENT_PRIORITIES.map((id) => ({
-  id,
-  label: getAnnouncementPriorityLabel(id),
-}))
+function priorityOptions() {
+  return ANNOUNCEMENT_PRIORITIES.map((id) => ({
+    id,
+    label: getAnnouncementPriorityLabel(id),
+  }))
+}
 
-const AUDIENCE_OPTIONS = ANNOUNCEMENT_AUDIENCES.map((id) => ({
-  id,
-  label: getAnnouncementAudienceLabel(id),
-}))
+function audienceOptions() {
+  return ANNOUNCEMENT_AUDIENCES.map((id) => ({
+    id,
+    label: getAnnouncementAudienceLabel(id),
+  }))
+}
 
 export function OperationsAnnouncementFormModal({
   isOpen,
@@ -98,7 +102,7 @@ export function OperationsAnnouncementFormModal({
           <div>
             <p className="eyebrow">{t("Announcements")}</p>
             <h3 id="operations-announcement-form-title">
-              {announcement ? 'Edit' : 'New'}
+              {announcement ? t("Edit announcement") : t("New announcement")}
             </h3>
           </div>
           <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label={t("Close")}>
@@ -142,7 +146,7 @@ export function OperationsAnnouncementFormModal({
             <fieldset className="operations-announcement-toggle-fieldset full-width">
               <legend>{t("Priority")}</legend>
               <div className="operations-announcement-toggle-group" role="group" aria-label={t("Priority")}>
-                {PRIORITY_OPTIONS.map((option) => (
+                {priorityOptions().map((option) => (
                   <button
                     key={option.id}
                     type="button"
@@ -170,7 +174,7 @@ export function OperationsAnnouncementFormModal({
                 <fieldset className="operations-announcement-toggle-fieldset full-width">
                   <legend>{t("Audience")}</legend>
                   <div className="operations-announcement-toggle-group is-wrap" role="group" aria-label={t("Audience")}>
-                    {AUDIENCE_OPTIONS.map((option) => (
+                    {audienceOptions().map((option) => (
                       <button
                         key={option.id}
                         type="button"
@@ -238,7 +242,7 @@ export function OperationsAnnouncementFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Publishing…' : 'Publish'}
+              {isSaving ? t("Publishing…") : t("Publish")}
             </button>
           </div>
         </form>

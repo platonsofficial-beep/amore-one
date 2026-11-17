@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { translate } from '../i18n/i18n'
 import {
   buildOperationsDashboardSummary,
   buildOperationsTaskSubmitPayload,
   canStaffCompleteTask,
+  getOperationsCategoryLabel,
+  getOperationsPriorityLabel,
   getTaskAssigneeId,
   operationsTaskToForm,
+  resolveEmployeeName,
   validateOperationsTaskForm,
 } from './operationsUtils'
 
@@ -20,6 +24,27 @@ function task(overrides = {}) {
     ...overrides,
   }
 }
+
+describe('operations labels', () => {
+  it('translates categories, priorities, and unassigned', () => {
+    expect(getOperationsCategoryLabel('bar')).toBe('Bar')
+    expect(getOperationsPriorityLabel('low')).toBe('Low')
+    expect(resolveEmployeeName('', [])).toBe('Unassigned')
+    expect(translate('Service', undefined, 'el')).toBe('Σερβίρισμα')
+    expect(translate('Category opening', undefined, 'el')).toBe('Άνοιγμα')
+    expect(translate('Task priority high', undefined, 'el')).toBe('Υψηλή')
+    expect(translate('Unassigned', undefined, 'el')).toBe('Χωρίς ανάθεση')
+    expect(translate('{{count}} task', { count: 5 }, 'el')).toBe('5 εργασίες')
+    expect(translate('{{count}} task', { count: 1 }, 'el')).toBe('1 εργασία')
+    expect(translate('{{count}} active', { count: 2 }, 'el')).toBe('ενεργές')
+    expect(translate('{{count}} active', { count: 1 }, 'el')).toBe('ενεργή')
+    expect(translate('{{done}}/{{total}} completed', { done: 0, total: 1, count: 1 }, 'el')).toBe('0/1 ολοκληρώθηκε')
+    expect(translate('{{done}} of {{total}} complete', { done: 0, total: 2, count: 2 }, 'el')).toBe('0 από 2 έτοιμα')
+    expect(translate('{{done}} of {{total}} complete', { done: 1, total: 1, count: 1 }, 'el')).toBe('1 από 1 έτοιμο')
+    expect(translate('Assign to', undefined, 'el')).toBe('Ανάθεση σε')
+    expect(translate('{{count}} task', { count: 5 }, 'en')).toBe('5 tasks')
+  })
+})
 
 describe('operationsUtils task completion scope', () => {
   describe('getTaskAssigneeId', () => {

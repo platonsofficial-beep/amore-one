@@ -126,7 +126,7 @@ export function OperationsLogFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : log ? t("Save note") : t("Add note")}
+              {isSaving ? t("Saving…") : log ? t("Save note") : t("Add note")}
             </button>
           </div>
         </form>

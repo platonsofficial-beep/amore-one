@@ -1,15 +1,8 @@
-import { normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
+import { getOperationsCategoryLabel, normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
 import { formatTimestampTime24 } from './timeFormatUtils'
 import { t } from '../i18n/i18n'
 
 export const CHECKLIST_DEPARTMENTS = ['bar', 'service', 'kitchen', 'management']
-
-const DEPARTMENT_LABELS = {
-  bar: 'Bar',
-  service: 'Service',
-  kitchen: 'Kitchen',
-  management: 'Management',
-}
 
 const DEPARTMENT_CATEGORY_MAP = {
   bar: 'bar',
@@ -24,7 +17,7 @@ export function normalizeChecklistDepartment(value) {
 }
 
 export function getChecklistDepartmentLabel(department) {
-  return DEPARTMENT_LABELS[normalizeChecklistDepartment(department)] ?? 'Service'
+  return getOperationsCategoryLabel(DEPARTMENT_CATEGORY_MAP[normalizeChecklistDepartment(department)] ?? 'service')
 }
 
 export function inferChecklistCategory(templateName = '', department = 'service') {

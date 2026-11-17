@@ -4,6 +4,7 @@ import {
   buildEmptyOperationsTaskForm,
   buildOperationsTaskSubmitPayload,
   getOperationsCategoryLabel,
+  getOperationsPriorityLabel,
   OPERATIONS_CATEGORIES,
   OPERATIONS_PRIORITIES,
   operationsTaskToForm,
@@ -134,7 +135,7 @@ export function OperationsTaskFormModal({
                 onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value }))}
               >
                 {OPERATIONS_PRIORITIES.map((priority) => (
-                  <option key={priority} value={priority}>{priority.charAt(0).toUpperCase() + priority.slice(1)}</option>
+                  <option key={priority} value={priority}>{getOperationsPriorityLabel(priority)}</option>
                 ))}
               </select>
             </label>
@@ -148,7 +149,7 @@ export function OperationsTaskFormModal({
                 <option value="">{t("Unassigned")}</option>
                 {employees.map((employee) => (
                   <option key={employee.id} value={employee.id}>
-                    {employee.full_name ?? employee.name ?? 'Employee'}
+                    {employee.full_name ?? employee.name ?? t("Employee")}
                   </option>
                 ))}
               </select>
@@ -223,7 +224,7 @@ export function OperationsTaskFormModal({
               {t("Cancel")}
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : task ? t("Save task") : t("Create task")}
+              {isSaving ? t("Saving…") : task ? t("Save task") : t("Create task")}
             </button>
           </div>
         </form>
