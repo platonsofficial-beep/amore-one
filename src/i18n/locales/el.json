@@ -3884,6 +3884,7 @@
   "Delete chat": "Διαγραφή {{noun:chat:genitive}}",
   "Delete permanently": "Οριστική διαγραφή",
   "Type “{{word}}” to confirm": "Γράψε «{{word}}» για επιβεβαίωση",
+  "Type {{word}} to confirm": "Γράψε «{{word}}» για επιβεβαίωση",
   "This venue is closed and will be deleted permanently on {{date}}": "Το κατάστημα είναι κλειστό και θα διαγραφεί οριστικά στις {{date}}",
   "The venue “{{name}}” will close for the whole team.": "Το κατάστημα «{{name}}» θα κλείσει για όλη την ομάδα.",
   "After that, all of its data is deleted permanently.": "Μετά, όλα τα δεδομένα του διαγράφονται οριστικά.",

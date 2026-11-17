@@ -6,7 +6,7 @@ You can delete your account and personal data at any time.
 1. Sign in to ONE.
 2. Open **Profile** (or **Settings → Privacy**).
 3. Optionally tap **"Download my data"** to download a copy of your data first.
-4. Tap **"Delete account"**, type **ΔΙΑΓΡΑΦΗ** and confirm.
+4. Tap **"Delete account"** and type **DELETE** to confirm.
 
 If you are the only owner of a venue, you must first make someone else an owner or close the venue.
 
