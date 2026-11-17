@@ -149,12 +149,12 @@ export function WorkspaceTeamSection({
     const employeeId = `${selectedEmployeeId ?? ''}`.trim()
 
     if (!authUserId) {
-      setLinkEmployeeError('Authenticated user is not available.')
+      setLinkEmployeeError(t("Authenticated user is not available."))
       return
     }
 
     if (!employeeId) {
-      setLinkEmployeeError('Select an employee to link.')
+      setLinkEmployeeError(t("Select an employee to link."))
       return
     }
 
@@ -189,7 +189,7 @@ export function WorkspaceTeamSection({
           </p>
         </div>
         <button type="button" className="ghost-btn workspace-action-btn workspace-link-btn" onClick={onManageStaff}>
-          Manage Staff →
+          {t("Manage Staff →")}
         </button>
       </div>
 
@@ -219,7 +219,7 @@ export function WorkspaceTeamSection({
               <div className="workspace-member-linked-value">
                 <span>{linkedEmployeeName || t("Not linked")}</span>
                 {linkedEmployee.matchedByName ? (
-                  <span className="workspace-member-meta">Name match · not saved</span>
+                  <span className="workspace-member-meta">{t("Name match · not saved")}</span>
                 ) : null}
                 {canLinkEmployee ? (
                   <button
@@ -239,7 +239,7 @@ export function WorkspaceTeamSection({
               <div className="workspace-member-linked-value">
                 <span>{workspaceIdentity.primary}</span>
                 {workspaceIdentity.technicalName ? (
-                  <span className="workspace-member-meta">Account: {workspaceIdentity.technicalName}</span>
+                  <span className="workspace-member-meta">{t("Account: {{name}}", { name: workspaceIdentity.technicalName })}</span>
                 ) : null}
                 {workspaceIdentity.hint ? (
                   <span className="workspace-member-meta">{workspaceIdentity.hint}</span>

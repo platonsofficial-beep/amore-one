@@ -7,6 +7,8 @@ import { useState } from 'react'
 import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 import { t } from '../../i18n/i18n'
+import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
 export function WorkspaceBusinessProfileSection({
   workspaceProfile,
@@ -18,6 +20,7 @@ export function WorkspaceBusinessProfileSection({
   onSubmit,
   onLogoFileChange,
   onClearLogo,
+  onRetry,
 }) {
   const noticeIsError = Boolean(
     noticeMessage && !/saved|updated|success/i.test(noticeMessage),
@@ -52,12 +55,14 @@ export function WorkspaceBusinessProfileSection({
         </div>
       </div>
 
-      {noticeMessage ? (
+      {isLoadFailureMessage(noticeMessage) ? (
+        <LoadFailureBanner message={noticeMessage} subject="the business profile" onRetry={onRetry} />
+      ) : noticeMessage ? (
         <div className={`staff-status-banner${noticeIsError ? ' auth-banner-error' : ' auth-banner-success'}`} role="status">
           {noticeMessage}
         </div>
       ) : null}
-      {isLoading ? <div className="staff-status-banner">{t("Loading business profile…")}</div> : null}
+      {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading business profile…")}</div> : null}
       {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
         <div className="staff-status-banner">
           {t("Set your business name and manager details so ONE can personalize dashboards and reports.")}
@@ -195,7 +200,7 @@ export function WorkspaceBusinessProfileSection({
                     </button>
                   ) : null}
                 </div>
-                <small className="workspace-logo-hint">PNG, JPG, WEBP, or SVG up to {Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024)} KB.</small>
+                <small className="workspace-logo-hint">{t("PNG, JPG, WEBP, or SVG up to {{size}} KB.", { size: Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024) })}</small>
               </div>
             </label>
           </div>
@@ -205,7 +210,7 @@ export function WorkspaceBusinessProfileSection({
               type="submit"
               className="workspace-action-btn"
               loading={isSavePending}
-              loadingLabel="Saving..."
+              loadingLabel={t("Saving…")}
               disabled={isLoading || !isDirty}
             >
               {t("Save Profile")}

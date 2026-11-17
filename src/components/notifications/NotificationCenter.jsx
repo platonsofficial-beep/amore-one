@@ -209,13 +209,13 @@ export function NotificationSettingsPanel({
         />
         <div className="notification-quiet-times">
           <QuietTimeField
-            label="From"
+            label={t("From")}
             value={quiet.quietStart}
             disabled={busy || !quiet.quietEnabled}
             onChange={(quietStart) => onQuietChange?.({ ...quiet, quietStart })}
           />
           <QuietTimeField
-            label="Until"
+            label={t("Until")}
             value={quiet.quietEnd}
             disabled={busy || !quiet.quietEnabled}
             onChange={(quietEnd) => onQuietChange?.({ ...quiet, quietEnd })}
@@ -228,7 +228,7 @@ export function NotificationSettingsPanel({
           <ToggleRow
             key={group.id}
             icon={group.icon}
-            label={group.label}
+            label={t(group.label)}
             detail={group.detail}
             checked={quiet.pushEnabled && isGroupPushEnabled(preferences, group.types)}
             disabled={busy || !quiet.pushEnabled}

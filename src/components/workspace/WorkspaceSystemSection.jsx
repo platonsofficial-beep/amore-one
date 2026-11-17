@@ -9,14 +9,14 @@ const MODULE_ROWS = [
   { key: 'schedule', label: 'Schedule' },
   { key: 'tasks', label: 'Tasks' },
   { key: 'stock', label: 'Stock' },
-  { key: 'suppliers', label: 'Suppliers', detail: t("Part of Stock") },
+  { key: 'suppliers', label: 'Suppliers', detail: 'Part of Stock' },
   { key: 'reports', label: 'Insights' },
 ]
 
 function resolveModuleStatus(connected) {
   if (connected === true) return { label: 'Connected', tone: 'connected' }
-  if (connected === false) return { label: t("Not connected"), tone: 'disconnected' }
-  return { label: t("No live check"), tone: 'available' }
+  if (connected === false) return { label: 'Not connected', tone: 'disconnected' }
+  return { label: 'No live check', tone: 'available' }
 }
 
 function BuildInfoBadge() {
@@ -52,12 +52,12 @@ function BuildInfoBadge() {
     <div className="build-info-badge workspace-build-info">
       <div>
         <p className="build-info-name">{APP_NAME}</p>
-        <p className="build-info-version">Version {APP_VERSION}</p>
+        <p className="build-info-version">{t("Version {{version}}", { version: APP_VERSION })}</p>
       </div>
       <button type="button" className="ghost-btn small build-copy-btn workspace-action-btn" onClick={handleCopyBuildInfo}>
         {t("Copy Build Info")}
       </button>
-      {copyMessage ? <small className="build-copy-note">{copyMessage}</small> : null}
+      {copyMessage ? <small className="build-copy-note">{t(copyMessage)}</small> : null}
     </div>
   )
 }
@@ -105,11 +105,11 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
             return (
               <li key={key} className="workspace-module-row">
                 <span className="workspace-module-label">
-                  {label}
-                  {detail ? <span className="workspace-module-detail">{detail}</span> : null}
+                  {t(label)}
+                  {detail ? <span className="workspace-module-detail">{t(detail)}</span> : null}
                 </span>
                 <span className={`workspace-module-status workspace-module-status-${status.tone}`}>
-                  {status.label}
+                  {t(status.label)}
                 </span>
               </li>
             )

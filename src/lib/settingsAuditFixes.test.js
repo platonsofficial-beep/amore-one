@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '../i18n/i18n'
 import { buildManagerPortraitMoreItems } from './managerPortrait'
 
 const app = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8')
@@ -43,7 +44,7 @@ describe('Settings audit fixes', () => {
     expect(privacy).toMatch(/Download my data/)
     expect(privacy).toMatch(/Venue data/)
     expect(privacy).not.toMatch(/Απόρρητο|Λήψη|Διαγραφή|Κλείσιμο venue/)
-    expect(venue).toMatch(/\+ New venue/)
+    expect(venue).toMatch(/\+ \{t\("New venue"\)\}/)
     expect(venue).toMatch(/New venue/)
     expect(venue).not.toMatch(/Νέο venue/)
   })
@@ -65,6 +66,7 @@ describe('Settings audit fixes', () => {
   })
 
   it('SET-08 tells a limited manager which sections they get, and staff get none', () => {
+    setLocale('en')
     expect(buildManagerPortraitMoreItems('manager').find((item) => item.id === 'settings').subtitle)
       .toBe('Seatings, notifications & privacy')
     expect(buildManagerPortraitMoreItems('staff').some((item) => item.id === 'settings')).toBe(false)

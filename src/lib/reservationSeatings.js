@@ -490,7 +490,10 @@ export function formatSeatingDaysLabel(daysOfWeek = []) {
   if (normalized.length === ALL_DAYS_OF_WEEK.length) return t("Every day")
 
   return normalized
-    .map((day) => DAY_OF_WEEK_OPTIONS.find((entry) => entry.value === day)?.label ?? '')
+    .map((day) => {
+      const label = DAY_OF_WEEK_OPTIONS.find((entry) => entry.value === day)?.label ?? ''
+      return label ? t(label) : ''
+    })
     .filter(Boolean)
     .join(', ')
 }

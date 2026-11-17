@@ -62,7 +62,7 @@ describe('WorkspaceBusinessProfileSection async save render tree', () => {
     })
 
     expect(onSave).toHaveBeenCalledTimes(1)
-    expect(button?.textContent).toContain('Saving...')
+    expect(button?.textContent).toContain('Saving…')
     expect(button?.querySelector('.btn-loading-content')).not.toBeNull()
     expect(button?.querySelector('.btn-loading-spinner')).not.toBeNull()
 
