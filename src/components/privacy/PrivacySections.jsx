@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useOptionalAuth } from '../../context/AuthContext'
 import {
-  DELETE_ACCOUNT_CONFIRM_WORD,
   buildExportFilename,
   closeVenue,
+  deleteConfirmWord,
   deleteMyAccount,
   downloadJson,
   exportMyData,
@@ -31,7 +31,7 @@ export function LegalLinks({ className = '' }) {
   )
 }
 
-export function ConfirmSheet({ title, children, confirmLabel, expected, danger = true, onConfirm, onClose }) {
+export function ConfirmSheet({ title, children, confirmLabel, expected, prompt, danger = true, onConfirm, onClose }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -61,7 +61,7 @@ export function ConfirmSheet({ title, children, confirmLabel, expected, danger =
         <div className="privacy-sheet-body">{children}</div>
         {expected ? (
           <label className="venue-field">
-            <span>{t('Type “{{word}}” to confirm', { word: expected })}</span>
+            <span>{prompt || t('Type “{{word}}” to confirm', { word: expected })}</span>
             <input value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" autoCapitalize="characters" />
           </label>
         ) : null}
@@ -118,10 +118,13 @@ export function PrivacyAccountSection() {
         <ConfirmSheet
           title={t("Delete account")}
           confirmLabel={t('Delete permanently')}
-          expected={DELETE_ACCOUNT_CONFIRM_WORD}
+          expected={deleteConfirmWord()}
+          prompt={getLocale() === 'el'
+            ? t('Type “{{word}}” to confirm', { word: deleteConfirmWord() })
+            : t('Type {{word}} to confirm', { word: deleteConfirmWord() })}
           onClose={() => setIsDeleteOpen(false)}
-          onConfirm={async () => {
-            await deleteMyAccount(DELETE_ACCOUNT_CONFIRM_WORD, { avatarPath: auth?.membership?.avatarPath ?? '' })
+          onConfirm={async (typed) => {
+            await deleteMyAccount(typed, { avatarPath: auth?.membership?.avatarPath ?? '' })
             try { localStorage.removeItem('one.activeWorkspaceId') } catch { /* ignore */ }
             await auth?.signOut?.().catch(() => null)
             window.location.assign('/delete-account?done=1')

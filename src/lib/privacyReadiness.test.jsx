@@ -17,10 +17,13 @@ vi.mock('./supabaseClient', () => ({
   },
 }))
 
+import { setLocale } from '../i18n/i18n'
 import {
   DELETE_ACCOUNT_CONFIRM_WORD,
+  acceptsDeleteConfirmation,
   buildExportFilename,
   closeVenue,
+  deleteConfirmWord,
   deleteMyAccount,
   exportMyData,
   formatPrivacyError,
@@ -49,8 +52,27 @@ describe('privacyService', () => {
   })
 
   it('requires the confirmation word before deleting', async () => {
-    await expect(deleteMyAccount('nope')).rejects.toThrow(DELETE_ACCOUNT_CONFIRM_WORD)
+    setLocale('en')
+    await expect(deleteMyAccount('nope')).rejects.toThrow('Type DELETE to confirm')
     expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('accepts DELETE in any case and still sends the live Greek token', async () => {
+    setLocale('en')
+    rpcMock.mockResolvedValue({ data: { deleted: true }, error: null })
+    await deleteMyAccount('  delete  ')
+    expect(rpcMock).toHaveBeenCalledWith('delete_my_account', { p_confirm: 'ΔΙΑΓΡΑΦΗ' })
+    expect(acceptsDeleteConfirmation('Delete')).toBe(true)
+    expect(acceptsDeleteConfirmation('διαγραφή')).toBe(true)
+    expect(acceptsDeleteConfirmation('nope')).toBe(false)
+  })
+
+  it('asks for ΔΙΑΓΡΑΦΗ in Greek', async () => {
+    setLocale('el')
+    expect(deleteConfirmWord()).toBe('ΔΙΑΓΡΑΦΗ')
+    await expect(deleteMyAccount('nope')).rejects.toThrow('Γράψε «ΔΙΑΓΡΑΦΗ» για επιβεβαίωση')
+    setLocale('en')
+    expect(deleteConfirmWord()).toBe('DELETE')
   })
 
   it('deletes the account first, then removes the avatar', async () => {
@@ -58,6 +80,12 @@ describe('privacyService', () => {
     await deleteMyAccount(DELETE_ACCOUNT_CONFIRM_WORD, { avatarPath: 'u/a.jpg' })
     expect(rpcMock).toHaveBeenCalledWith('delete_my_account', { p_confirm: 'ΔΙΑΓΡΑΦΗ' })
     expect(removeMock).toHaveBeenCalledWith(['u/a.jpg'])
+  })
+
+  it('keeps the unapplied SQL ready to accept either word', () => {
+    const sql = readFileSync(join(__dirname, '../../supabase/privacy_03_delete_confirm_word.sql'), 'utf8')
+    expect(sql).toMatch(/NOT APPLIED/)
+    expect(sql).toContain("v_confirm <> 'ΔΙΑΓΡΑΦΗ' and upper(v_confirm) <> 'DELETE'")
   })
 
   it('keeps the avatar when deletion is blocked for a sole owner', async () => {
@@ -155,10 +183,60 @@ describe('privacy UI', () => {
   })
 
   it('profile shows export and delete actions in English', () => {
+    setLocale('en')
     const container = render(<PrivacyAccountSection />)
     expect(container.textContent).toContain('Download my data')
     expect(container.textContent).toContain('Delete account')
     expect(container.textContent).not.toMatch(/Απόρρητο|Λήψη|Διαγραφή/)
+  })
+
+  function openDeleteSheet() {
+    const open = [...document.querySelectorAll('button')].find((button) => button.textContent === 'Delete account' || button.textContent === 'Διαγραφή λογαριασμού')
+    act(() => open.click())
+    return document.querySelector('[role="dialog"]')
+  }
+
+  function typeConfirm(dialog, value) {
+    const input = dialog.querySelector('input')
+    const set = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+    act(() => {
+      set.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    return dialog.querySelector('button[type="submit"]')
+  }
+
+  it('enables English deletion only after DELETE', () => {
+    setLocale('en')
+    document.body.innerHTML = ''
+    render(<PrivacyAccountSection />)
+    const dialog = openDeleteSheet()
+    expect(dialog.textContent).toContain('Type DELETE to confirm')
+    expect(dialog.textContent).not.toContain('ΔΙΑΓΡΑΦΗ')
+    expect(dialog.querySelector('button[type="submit"]').disabled).toBe(true)
+    expect(typeConfirm(dialog, 'ΔΙΑΓΡΑΦΗ').disabled).toBe(true)
+    expect(typeConfirm(dialog, ' delete ').disabled).toBe(false)
+  })
+
+  it('keeps the Greek confirmation on ΔΙΑΓΡΑΦΗ', () => {
+    setLocale('el')
+    document.body.innerHTML = ''
+    render(<PrivacyAccountSection />)
+    const dialog = openDeleteSheet()
+    expect(dialog.textContent).toContain('Γράψε «ΔΙΑΓΡΑΦΗ» για επιβεβαίωση')
+    expect(dialog.textContent).not.toContain('DELETE')
+    expect(typeConfirm(dialog, 'DELETE').disabled).toBe(true)
+    expect(typeConfirm(dialog, ' ΔΙΑΓΡΑΦΗ ').disabled).toBe(false)
+    setLocale('en')
+  })
+
+  it('tells the English delete page to type DELETE', () => {
+    const english = readFileSync(join(__dirname, '../legal/delete-account-en.md'), 'utf8')
+    const greek = readFileSync(join(__dirname, '../legal/delete-account-el.md'), 'utf8')
+    expect(english).toContain('type **DELETE** to confirm')
+    expect(english).not.toContain('ΔΙΑΓΡΑΦΗ')
+    expect(greek).toContain('γράψτε **ΔΙΑΓΡΑΦΗ**')
+    expect(greek).not.toContain('DELETE')
   })
 
   it('blocks closed venues for non-owners only', () => {

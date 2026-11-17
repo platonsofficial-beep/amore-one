@@ -3884,6 +3884,7 @@
   "Delete chat": "Delete chat",
   "Delete permanently": "Delete permanently",
   "Type “{{word}}” to confirm": "Type “{{word}}” to confirm",
+  "Type {{word}} to confirm": "Type {{word}} to confirm",
   "This venue is closed and will be deleted permanently on {{date}}": "This venue is closed and will be deleted permanently on {{date}}",
   "The venue “{{name}}” will close for the whole team.": "The venue “{{name}}” will close for the whole team.",
   "After that, all of its data is deleted permanently.": "After that, all of its data is deleted permanently.",
