@@ -111,7 +111,7 @@ export function VenueClockSettings({
       </p>
       <div className="attendance-venue-actions">
         <button type="button" className="attendance-action attendance-action-in" onClick={useMyLocation} disabled={busy}>
-          📍 Use my current location
+          📍 {t('Use my current location')}
         </button>
       </div>
       <div className="attendance-venue-grid">
@@ -134,7 +134,7 @@ export function VenueClockSettings({
               className={`attendance-choice${Number(radiusM) === choice ? ' is-selected' : ''}`}
               onClick={() => setRadiusM(String(choice))}
             >
-              {choice} m
+              {t('{{count}} m', { count: choice })}
             </button>
           ))}
         </div>

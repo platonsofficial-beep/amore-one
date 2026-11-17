@@ -370,7 +370,7 @@ export const HELP_ARTICLES = [
     title: { en: t("Chat with the team"), el: 'Συνομιλίες' },
     summary: {
       en: t("Chat is for direct messages and channels. Unread chats show a badge."),
-      el: 'Το Chat είναι για προσωπικά μηνύματα και κανάλια. Τα αδιάβαστα έχουν σήμα.',
+      el: 'Η συνομιλία είναι για προσωπικά μηνύματα και κανάλια. Τα αδιάβαστα έχουν σήμα.',
     },
     keywords: ['chat', 'message', 'channel', 'unread', 'μηνυμα', 'συνομιλια'],
     questions: {
@@ -385,10 +385,10 @@ export const HELP_ARTICLES = [
         'Some channels are limited so only managers can post.',
       ],
       el: [
-        'Άνοιξε το Chat.',
-        'Πάτα Νέα συνομιλία ή, αν διαχειρίζεσαι το chat, Νέο κανάλι.',
+        'Άνοιξε τις Συνομιλίες.',
+        'Πάτα Νέα συνομιλία ή, αν διαχειρίζεσαι τις συνομιλίες, Νέο κανάλι.',
         'Γράψε και στείλε. Μπορείς να βάλεις φωτογραφία.',
-        'Σε κάποια κανάλια γράφουν μόνο managers.',
+        'Σε κάποια κανάλια γράφουν μόνο οι υπεύθυνοι.',
       ],
     },
   },

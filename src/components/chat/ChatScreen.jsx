@@ -14,6 +14,7 @@ import {
   chatIdentityHints,
   clipChatBody,
   conversationTitle,
+  teamChatName,
   dayLabel,
   filterInboxByName,
   groupReactions,
@@ -670,7 +671,7 @@ export function ChatScreen({
   }
 
   const deleteCopy = pendingDelete?.kind === 'team'
-    ? t('Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.')
+    ? t('{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.', { name: teamChatName(pendingDelete) })
     : t('This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.')
 
   return (

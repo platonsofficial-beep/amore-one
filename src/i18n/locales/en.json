@@ -3890,7 +3890,7 @@
   "The venue export downloaded.": "The venue export downloaded.",
   "The venue is open again.": "The venue is open again.",
   "Your data downloaded as a JSON file.": "Your data downloaded as a JSON file.",
-  "Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.": "Team stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.",
+  "{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.": "{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.",
   "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.": "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.",
   "No one on shift now": "No one on shift now",
   "{{count}} on shift_one": "{{count}} on shift",
@@ -4321,5 +4321,15 @@
   "{{count}} selected_other": "{{count}} selected",
   "Read": "Read",
   "Member": "Member",
-  "Scroll to latest, {{count}} new": "Scroll to latest, {{count}} new"
+  "Scroll to latest, {{count}} new": "Scroll to latest, {{count}} new",
+  "End break": "End break",
+  "Start break": "Start break",
+  "Fix time": "Fix time",
+  "now": "now",
+  "Approve": "Approve",
+  "Reject": "Reject",
+  "About {{distance}} m away": "About {{distance}} m away",
+  "Send to manager": "Send to manager",
+  "Use my current location": "Use my current location",
+  "{{count}} m": "{{count}} m"
 }

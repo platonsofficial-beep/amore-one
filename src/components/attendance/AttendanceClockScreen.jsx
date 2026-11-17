@@ -425,10 +425,10 @@ export function AttendanceClockScreen({
         ) : (
           <>
             <button type="button" className="attendance-action attendance-action-break" data-help="timeclock.break" onClick={toggleBreak} disabled={busy || !settingsLoaded}>
-              {openBreak ? '▶ End break' : '☕ Start break'}
+              {openBreak ? `▶ ${t('End break')}` : `☕ ${t('Start break')}`}
             </button>
             <button type="button" className="attendance-action attendance-action-out" data-help="timeclock.clock-out" onClick={() => beginClock('out')} disabled={busy || !settingsLoaded}>
-              ■ Clock out
+              ■ {t('Clock out')}
             </button>
           </>
         )}
@@ -453,7 +453,7 @@ export function AttendanceClockScreen({
             />
           </label>
           <button type="submit" className="attendance-action attendance-action-send" disabled={busy}>
-            ✉ Send to manager
+            ✉ {t('Send to manager')}
           </button>
         </form>
       ) : null}
@@ -506,7 +506,7 @@ export function AttendanceClockScreen({
               <textarea value={editReason} onChange={(event) => setEditReason(event.target.value)} rows={3} required />
             </label>
             <button type="submit" className="attendance-action attendance-action-send" disabled={busy}>
-              ✉ Send to manager
+              ✉ {t('Send to manager')}
             </button>
           </form>
         ) : null}
