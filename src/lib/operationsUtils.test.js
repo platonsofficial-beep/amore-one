@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { translate } from '../i18n/i18n'
+import { TASK_PRESET_DEPARTMENTS } from './taskDepartments'
 import {
   buildOperationsDashboardSummary,
   buildOperationsTaskSubmitPayload,
@@ -43,6 +44,34 @@ describe('operations labels', () => {
     expect(translate('{{done}} of {{total}} complete', { done: 1, total: 1, count: 1 }, 'el')).toBe('1 από 1 έτοιμο')
     expect(translate('Assign to', undefined, 'el')).toBe('Ανάθεση σε')
     expect(translate('{{count}} task', { count: 5 }, 'en')).toBe('5 tasks')
+  })
+
+  it('agrees department-card counts and translates preset board names', () => {
+    expect(translate('{{count}} card completed today', { count: 1 }, 'el')).toBe('Ολοκληρώθηκε σήμερα')
+    expect(translate('{{count}} card completed today', { count: 0 }, 'el')).toBe('Ολοκληρώθηκαν σήμερα')
+    expect(translate('{{count}} card completed today', { count: 2 }, 'el')).toBe('Ολοκληρώθηκαν σήμερα')
+    expect(translate('{{count}} card overdue', { count: 1 }, 'el')).toBe('Εκπρόθεσμη')
+    expect(translate('{{count}} card overdue', { count: 0 }, 'el')).toBe('Εκπρόθεσμες')
+    expect(translate('{{count}} card overdue', { count: 2 }, 'el')).toBe('Εκπρόθεσμες')
+    expect(translate('{{count}} card completed today', { count: 1 }, 'en')).toBe('Completed today')
+    expect(translate('{{count}} card completed today', { count: 2 }, 'en')).toBe('Completed today')
+    expect(translate('{{count}} card overdue', { count: 1 }, 'en')).toBe('Overdue')
+    expect(translate('{{count}} card overdue', { count: 2 }, 'en')).toBe('Overdue')
+    expect(translate('Bar Manager', undefined, 'el')).toBe('Υπεύθυνος Μπαρ')
+    expect(translate('Bar Manager', undefined, 'en')).toBe('Bar Manager')
+    expect(translate('F&B', undefined, 'el')).toBe('Τροφοδοσία & Ποτά')
+    expect(translate('F&B', undefined, 'en')).toBe('F&B')
+    expect(translate('Logistics', undefined, 'el')).toBe('Εφοδιασμός')
+    expect(translate('Logistics', undefined, 'en')).toBe('Logistics')
+    expect(translate('Add Kitchen, Cleaning, Delivery, or any custom team.', undefined, 'el'))
+      .toBe('Πρόσθεσε Κουζίνα, Καθαριότητα, Διανομή ή όποια ομάδα θέλεις.')
+    expect(translate('Add Kitchen, Cleaning, Delivery, or any custom team.', undefined, 'en'))
+      .toBe('Add Kitchen, Cleaning, Delivery, or any custom team.')
+    const labels = Object.fromEntries(TASK_PRESET_DEPARTMENTS.map((department) => [department.key, department.label]))
+    expect(labels.bar_manager).toBe('Bar Manager')
+    expect(labels.floor_manager).toBe('Floor Manager')
+    expect(labels.fb).toBe('F&B')
+    expect(labels.logistics).toBe('Logistics')
   })
 })
 

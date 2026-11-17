@@ -52,10 +52,10 @@ function DepartmentBoardCard({
                 <strong>{stats.active}</strong> {t("{{count}} active", { count: stats.active })}
               </p>
               <p className={`tasks-department-metric${stats.overdue > 0 ? ' is-alert' : ''}`}>
-                <strong>{stats.overdue}</strong> {t("Overdue")}
+                <strong>{stats.overdue}</strong> {t("{{count}} card overdue", { count: stats.overdue })}
               </p>
               <p className="tasks-department-metric">
-                <strong>{stats.completedToday}</strong> {t("Completed today")}
+                <strong>{stats.completedToday}</strong> {t("{{count}} card completed today", { count: stats.completedToday })}
               </p>
             </div>
 

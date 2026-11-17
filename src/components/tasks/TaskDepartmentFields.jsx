@@ -9,7 +9,7 @@ import {
   parseCustomDepartmentOptionValue,
   resolveDepartmentFormSelectValue,
 } from '../../lib/taskDepartments'
-import { getOperationsCategoryLabel } from '../../lib/operationsUtils'
+import { getOperationsCategoryLabel, translateOperationsWord } from '../../lib/operationsUtils'
 import { t } from '../../i18n/i18n'
 
 export default function TaskDepartmentFields({
@@ -66,7 +66,7 @@ export default function TaskDepartmentFields({
         <select value={selectValue} onChange={handleDepartmentChange}>
           {TASK_PRESET_DEPARTMENTS.map((preset) => (
             <option key={preset.key} value={preset.key}>
-              {preset.label}
+              {translateOperationsWord(preset.label)}
             </option>
           ))}
 

@@ -14,13 +14,13 @@ export const TASK_PRESET_DEPARTMENTS = [
   },
   {
     key: 'bar_manager',
-    label: t("Bar Manager"),
+    label: 'Bar Manager',
     icon: '🥃',
     description: t("Bar leadership, standards, and shift oversight."),
   },
   {
     key: 'floor_manager',
-    label: t("Floor Manager"),
+    label: 'Floor Manager',
     icon: '🧭',
     description: t("Floor flow, section coverage, and service coordination."),
   },
