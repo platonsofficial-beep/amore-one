@@ -19,7 +19,56 @@ import '../../legal/legalGate.css'
 import { getLocale, t } from '../../i18n/i18n'
 import { writePendingSignup } from '../../legal/acceptance'
 import { LEGAL_BUNDLE } from '../../legal/provider'
-import { readSignupHandoff, signupAuthMetadata } from '../../lib/signupHandoff'
+import { readSignupHandoff, sanitizeSignupEmail, signupAuthMetadata } from '../../lib/signupHandoff'
+
+const PASSWORD_MIN_LENGTH = 8
+
+function PasswordField({
+  id,
+  label,
+  name,
+  autoComplete,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  invalid,
+  describedBy,
+  error,
+}) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <label className="form-field auth-field" htmlFor={id}>
+      <span>{label}</span>
+      <span className="auth-password-row">
+        <input
+          id={id}
+          name={name}
+          type={visible ? 'text' : 'password'}
+          autoComplete={autoComplete}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          disabled={disabled}
+          aria-invalid={invalid || undefined}
+          aria-describedby={describedBy}
+          required
+        />
+        <button
+          type="button"
+          className="auth-password-toggle"
+          aria-label={visible ? t("Hide password") : t("Show password")}
+          aria-pressed={visible}
+          onClick={() => setVisible((current) => !current)}
+          disabled={disabled}
+        >
+          <span aria-hidden="true">{visible ? '🙈' : '👁'}</span>
+        </button>
+      </span>
+      {error}
+    </label>
+  )
+}
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -87,17 +136,27 @@ export function LoginView() {
 
     const trimmedEmail = email.trim()
     if (!trimmedEmail) {
-      setErrorMessage('Email is required.')
+      setErrorMessage(t("Email is required."))
+      return
+    }
+
+    if (!sanitizeSignupEmail(trimmedEmail)) {
+      setErrorMessage(t("Enter a valid email address."))
       return
     }
 
     if (mode !== MODES.RESET && !password) {
-      setErrorMessage('Password is required.')
+      setErrorMessage(t("Password is required."))
+      return
+    }
+
+    if (mode === MODES.SIGN_UP && password.length < PASSWORD_MIN_LENGTH) {
+      setErrorMessage(t("Use at least 8 characters."))
       return
     }
 
     if (mode === MODES.SIGN_UP && !passwordsMatch(password, confirmPassword)) {
-      setErrorMessage(PASSWORD_MISMATCH_MESSAGE)
+      setErrorMessage(t(PASSWORD_MISMATCH_MESSAGE))
       return
     }
 
@@ -128,7 +187,7 @@ export function LoginView() {
         if (result.session) {
           return
         }
-        setSuccessMessage('Account created. Check your email to confirm your address, then sign in.')
+        setSuccessMessage(t("Account created. Check your email to confirm your address, then sign in."))
         setMode(MODES.SIGN_IN)
         setPassword('')
         setConfirmPassword('')
@@ -136,7 +195,7 @@ export function LoginView() {
       }
 
       await resetPassword(trimmedEmail)
-      setSuccessMessage('Password reset email sent. Check your inbox for the link.')
+      setSuccessMessage(t("Password reset email sent. Check your inbox for the link."))
       setMode(MODES.SIGN_IN)
       setPassword('')
     } catch (error) {
@@ -148,7 +207,7 @@ export function LoginView() {
 
   // Inline error once both fields have text and they differ (or after a blocked submit).
   const showMismatch = mode === MODES.SIGN_UP && (
-    errorMessage === PASSWORD_MISMATCH_MESSAGE
+    errorMessage === t(PASSWORD_MISMATCH_MESSAGE)
     || (confirmPassword.length > 0 && !passwordsMatch(password, confirmPassword))
   )
 
@@ -190,58 +249,64 @@ export function LoginView() {
         {errorMessage && errorMessage !== PASSWORD_MISMATCH_MESSAGE ? <div className="auth-banner auth-banner-error">{errorMessage}</div> : null}
         {successMessage ? <div className="auth-banner auth-banner-success">{successMessage}</div> : null}
 
-        <form className="auth-form" onSubmit={handleSubmit}>
-          <label className="form-field auth-field">
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <label className="form-field auth-field" htmlFor="auth-email">
             <span>{t("Email")}</span>
             <input
+              id="auth-email"
+              name="email"
               type="email"
               autoComplete="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@venue.com"
+              placeholder={t("you@venue.com")}
               disabled={isSubmitting}
               required
             />
           </label>
 
           {mode !== MODES.RESET ? (
-            <label className="form-field auth-field">
-              <span>{t("Password")}</span>
-              <input
-                type="password"
-                autoComplete={mode === MODES.SIGN_UP ? 'new-password' : 'current-password'}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={t("Enter password")}
-                disabled={isSubmitting}
-                required
-              />
-            </label>
+            <PasswordField
+              id="auth-password"
+              label={t("Password")}
+              name="password"
+              autoComplete={mode === MODES.SIGN_UP ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={t("Enter password")}
+              disabled={isSubmitting}
+            />
           ) : null}
 
           {mode === MODES.SIGN_UP ? (
-            <label className="form-field auth-field">
-              <span>{t("Confirm password")}</span>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) => {
-                  setConfirmPassword(event.target.value)
-                  if (errorMessage === PASSWORD_MISMATCH_MESSAGE) setErrorMessage('')
-                }}
-                placeholder={t("Enter password again")}
-                disabled={isSubmitting}
-                aria-invalid={showMismatch || undefined}
-                aria-describedby={showMismatch ? 'auth-confirm-password-error' : undefined}
-                required
-              />
-              {showMismatch ? (
+            <PasswordField
+              id="auth-confirm-password"
+              label={t("Confirm password")}
+              name="confirmPassword"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value)
+                if (errorMessage === t(PASSWORD_MISMATCH_MESSAGE)) setErrorMessage('')
+              }}
+              placeholder={t("Enter password again")}
+              disabled={isSubmitting}
+              invalid={showMismatch}
+              describedBy={showMismatch ? 'auth-confirm-password-error' : undefined}
+              error={showMismatch ? (
                 <small id="auth-confirm-password-error" className="auth-field-error" role="alert">
-                  {PASSWORD_MISMATCH_MESSAGE}
+                  {t(PASSWORD_MISMATCH_MESSAGE)}
                 </small>
               ) : null}
-            </label>
+            />
+          ) : null}
+
+          {mode === MODES.SIGN_UP ? (
+            <p className="auth-signup-offer">
+              {handoff?.planSpecified
+                ? t("{{plan}} includes 1 free month, with no card.", { plan: handoff.plan === 'pro' ? 'Pro' : 'Start' })
+                : t("A new venue includes 1 free month, with no card.")}
+            </p>
           ) : null}
 
           {mode === MODES.SIGN_UP ? (

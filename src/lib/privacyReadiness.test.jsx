@@ -124,7 +124,8 @@ describe('legal pages', () => {
       const english = legalDocument(id, 'en').markdown
       const greek = legalDocument(id, 'el').markdown
       expect(english).toContain('Spyrou Hadjiyiakoumi 20A')
-      expect(greek).toContain('Spyrou Hadjiyiakoumi 20A')
+      expect(greek).toContain('Σπύρου Χατζηγιακούμη 20Α')
+      expect(greek).not.toMatch(/\bblacklist\b|\bclock in\b|\bgeneral manager\b/i)
       expect(english).toContain('not VAT-registered')
       expect(english).not.toMatch(/FILL IN|company number|registration no/i)
     }

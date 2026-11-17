@@ -90,7 +90,7 @@ export function buildInvitePreviewSummary(preview = {}) {
     }
   }
 
-  const workspaceName = `${preview.workspaceName ?? ''}`.trim() || 'this workspace'
+  const workspaceName = `${preview.workspaceName ?? ''}`.trim() || t("this workspace")
   const employeeName = `${preview.employeeName ?? ''}`.trim()
   const invitedEmail = `${preview.email ?? ''}`.trim()
 
@@ -100,9 +100,9 @@ export function buildInvitePreviewSummary(preview = {}) {
 
   return {
     tone: 'info',
-    title: `Join ${workspaceName}`,
+    title: t("Join {{venue}}", { venue: workspaceName }),
     message: detailParts.length > 0
-      ? `You were invited as ${detailParts.join(' · ')}. Sign in or create an account to continue.`
+      ? t("You were invited as {{who}}. Sign in or create an account to continue.", { who: detailParts.join(' · ') })
       : t("Sign in or create an account to join this workspace."),
     canJoin: true,
     workspaceName,
@@ -114,6 +114,6 @@ export function buildInvitePreviewSummary(preview = {}) {
 export function buildInviteAcceptedNotice(workspaceName = '') {
   const trimmed = `${workspaceName ?? ''}`.trim()
   return trimmed
-    ? `Welcome to ${trimmed}. Your workspace invite was accepted.`
+    ? t("Welcome to {{venue}}. Your workspace invite was accepted.", { venue: trimmed })
     : t("Welcome to ONE. Your workspace invite was accepted.")
 }

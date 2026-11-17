@@ -99,7 +99,7 @@ export function EmployeeInviteModal({
 
     const normalizedEmail = `${email ?? ''}`.trim()
     if (!normalizedEmail) {
-      setErrorMessage('Email is required.')
+      setErrorMessage(t("Email is required."))
       return
     }
 

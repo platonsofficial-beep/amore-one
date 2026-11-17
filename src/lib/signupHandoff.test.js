@@ -25,6 +25,7 @@ describe('signup handoff', () => {
       name: 'Μαρία Γεωργίου',
       venue: 'Kafeneio Laiki',
       plan: 'pro',
+      planSpecified: true,
       lang: 'el',
     })
     expect(parseSignupHandoff('?email=maria@example.com')).toBeNull()
@@ -33,6 +34,7 @@ describe('signup handoff', () => {
       name: '',
       venue: '',
       plan: 'start',
+      planSpecified: true,
       lang: '',
     })
   })

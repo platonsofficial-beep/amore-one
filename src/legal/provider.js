@@ -16,7 +16,8 @@ export const LEGAL_PROVIDER = {
   vatRegistered: false,
 }
 
-export function providerAddress(provider = LEGAL_PROVIDER) {
+export function providerAddress(provider = LEGAL_PROVIDER, lang = 'en') {
+  if (lang === 'el') return 'Σπύρου Χατζηγιακούμη 20Α, 2416 Λευκωσία, Κύπρος'
   return `${provider.addressLine}, ${provider.postalCode} ${provider.city}, ${provider.country}`
 }
 
