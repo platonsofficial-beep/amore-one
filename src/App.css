@@ -55435,10 +55435,11 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   align-items: center;
   min-width: 0;
   box-sizing: border-box;
-  width: calc(100% - 56px);
-  max-width: calc(100% - 56px);
+  width: 100%;
+  max-width: 100%;
   margin-inline-end: 0;
-  padding-inline-end: 0;
+  /* Help is fixed over the row (44px) with a bell slot beside it. */
+  padding-inline-end: calc(64px + var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .module-section-tabs,
@@ -55453,7 +55454,8 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
   -webkit-mask-image: none;
   mask-image: none;
   margin-inline-end: 0;
-  padding-inline-end: 12px;
+  padding-inline-end: 0;
+  gap: 4px;
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs {
@@ -55464,15 +55466,21 @@ html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tab {
   flex: 0 0 auto;
   padding-inline: 6px;
+  font-size: 13px;
 }
 
 /* The scrollport ends before the search icon, and tabs clip inside it,
    so a pill is never painted under search or the help button. */
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .module-section-tabs,
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome > .stock-section-nav {
-  margin-inline-end: 10px;
+  margin-inline-end: 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .module-section-tabs[data-overflow='true'] {
+  -webkit-mask-image: linear-gradient(to left, transparent, #000 32px);
+  mask-image: linear-gradient(to left, transparent, #000 32px);
 }
 
 html.one-phone-landscape .app-shell.stock-focus-mode .main-panel-stock:not(:has(.inventory-count-session)):not(.is-inventory-count-session-lock) .stock-focus-chrome .stock-focus-search {
