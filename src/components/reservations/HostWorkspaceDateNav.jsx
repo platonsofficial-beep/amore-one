@@ -89,7 +89,7 @@ export function HostWorkspaceDateNav({
 
       <button
         type="button"
-        className="host-workspace-date-nav-today"
+        className={`host-workspace-date-nav-today${isViewingToday ? '' : ' is-other-day'}`}
         onClick={onGoToToday}
         disabled={isViewingToday}
         aria-current={isViewingToday ? 'date' : undefined}
