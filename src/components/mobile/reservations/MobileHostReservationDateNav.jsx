@@ -130,7 +130,7 @@ export function MobileHostReservationDateNav({
         </button>
         <button
           type="button"
-          className="mobile-host-sticky-date-step-btn mobile-host-sticky-date-today-btn"
+          className={`mobile-host-sticky-date-step-btn mobile-host-sticky-date-today-btn${isViewingToday ? '' : ' is-other-day'}`}
           onClick={() => onSelectDate?.(normalizedWorkspaceTodayKey)}
           disabled={!onSelectDate || !normalizedWorkspaceTodayKey || isViewingToday}
           aria-current={isViewingToday ? 'date' : undefined}

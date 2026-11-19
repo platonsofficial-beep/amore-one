@@ -348,7 +348,12 @@ export function MobileManagerReservationsView({
 
       <div className="manager-portrait-date-nav" aria-label={t("Reservation day")}>
         <button type="button" onClick={() => shiftDate(-1)} aria-label={t("Previous day")}>‹</button>
-        <button type="button" onClick={() => onDateChange?.(todayKey)} disabled={!todayKey || isToday}>
+        <button
+          type="button"
+          className={todayKey && !isToday ? 'is-other-day' : undefined}
+          onClick={() => onDateChange?.(todayKey)}
+          disabled={!todayKey || isToday}
+        >
           {t("Today")}
         </button>
         <button type="button" onClick={() => shiftDate(1)} aria-label={t("Next day")}>›</button>

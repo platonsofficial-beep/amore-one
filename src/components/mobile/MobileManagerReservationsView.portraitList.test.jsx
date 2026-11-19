@@ -71,6 +71,31 @@ describe('portrait reservations list', () => {
     expect(container.querySelector('.manager-portrait-banner')).toBeNull()
   })
 
+  it('highlights Today in gold only when the selected day is not today', () => {
+    render({ reservations: [], dateKey: '2026-11-07', todayKey: '2026-11-06' })
+    const todayButton = () => [...container.querySelectorAll('.manager-portrait-date-nav button')]
+      .find((node) => node.textContent === 'Today')
+    expect(todayButton().classList.contains('is-other-day')).toBe(true)
+    expect(todayButton().disabled).toBe(false)
+    const css = readFileSync(resolve(process.cwd(), 'src/safeOverlay.css'), 'utf8')
+    expect(css).toContain('.manager-portrait-date-nav > button.is-other-day')
+    expect(css).toContain('.host-workspace-date-nav-today.is-other-day')
+    expect(css).toContain('.mobile-host-sticky-date-today-btn.is-other-day')
+    expect(css).toContain('background: var(--one-gold) !important')
+    expect(css).toContain('color: var(--one-on-gold) !important')
+    act(() => {
+      root.render(createElement(MobileManagerReservationsView, {
+        reservations: [],
+        seatings: SEATINGS,
+        dateKey: '2026-11-06',
+        todayKey: '2026-11-06',
+        canManage: true,
+      }))
+    })
+    expect(todayButton().classList.contains('is-other-day')).toBe(false)
+    expect(todayButton().disabled).toBe(true)
+  })
+
   it('keeps the empty day as text only, with the header actions once', () => {
     render({ reservations: [], dateKey: '2026-11-07', todayKey: '2026-11-07' })
     expect(container.querySelector('.manager-portrait-empty')?.textContent).toContain('No bookings for this day.')
