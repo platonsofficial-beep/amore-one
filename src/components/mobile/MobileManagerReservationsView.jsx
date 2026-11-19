@@ -378,17 +378,6 @@ export function MobileManagerReservationsView({
                 ? t("No bookings match.")
                 : t("No bookings for this day.")}</p>
             {loadFailed ? <p>{t("Retry to load the queue. An empty list is not confirmed.")}</p> : null}
-            {canManage && !loadFailed && !searchTerm.trim() && !problemsOnly && !selectedSeating ? (
-              <div className="manager-portrait-create-actions">
-                <button type="button" className="manager-portrait-add" onClick={() => openCreate('walk-in')}>
-                  {t("Walk-in")}
-                </button>
-                <button type="button" className="manager-portrait-add" onClick={() => openCreate('create')}>
-                  {t("+ Reservation")}
-                </button>
-                <GuestsButton onClick={() => setGuestsOpen(true)} />
-              </div>
-            ) : null}
           </div>
         ) : null}
         <ul className="manager-portrait-reservation-list">

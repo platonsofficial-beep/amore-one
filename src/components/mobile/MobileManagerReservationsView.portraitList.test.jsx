@@ -71,6 +71,15 @@ describe('portrait reservations list', () => {
     expect(container.querySelector('.manager-portrait-banner')).toBeNull()
   })
 
+  it('keeps the empty day as text only, with the header actions once', () => {
+    render({ reservations: [], dateKey: '2026-11-07', todayKey: '2026-11-07' })
+    expect(container.querySelector('.manager-portrait-empty')?.textContent).toContain('No bookings for this day.')
+    const actionRows = container.querySelectorAll('.manager-portrait-create-actions')
+    expect(actionRows).toHaveLength(1)
+    expect(actionRows[0].closest('.manager-portrait-screen-header')).toBeTruthy()
+    expect(container.querySelector('.manager-portrait-empty button')).toBeNull()
+  })
+
   it('filters the list when a seating chip is tapped', () => {
     render()
     const dinner = [...container.querySelectorAll('[data-testid="portrait-seatings"] button')]
