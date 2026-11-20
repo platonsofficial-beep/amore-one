@@ -92,20 +92,22 @@ function tableIsInServiceNow(tableState) {
   return isReservationInHouseStatus(reservation?.status)
 }
 
-/** All services: do not paint one free or reserved status across the day.
- *  A party seated right now stays occupied, the same as a seating chip. */
-export function applyHostFloorAllServicesScope(tableStates = []) {
+/** All: a party seated right now stays occupied. Every other table is a
+ *  normal open table (solid, with capacity), not a day-long reserved or
+ *  dashed empty shell. lockAssignment keeps a booking with no service
+ *  from being seated on those open tables. */
+export function applyHostFloorAllServicesScope(tableStates = [], { lockAssignment = false } = {}) {
   return tableStates.map((tableState) => {
     if (tableIsInServiceNow(tableState)) return tableState
 
     return {
       ...tableState,
       reservation: null,
-      status: 'all-services',
+      status: 'available',
       operational: {
-        phase: 'all-services',
-        hostIndicator: 'all-services',
-        floorStatus: 'all-services',
+        phase: FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE,
+        hostIndicator: 'empty',
+        floorStatus: 'available',
         displayReservation: null,
         activeReservation: null,
         nextReservation: null,
@@ -113,6 +115,7 @@ export function applyHostFloorAllServicesScope(tableStates = []) {
         reservationCount: 0,
         upcomingCount: 0,
         hasSeatingConflict: false,
+        assignmentLocked: lockAssignment,
       },
     }
   })

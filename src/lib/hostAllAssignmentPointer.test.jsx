@@ -11,6 +11,7 @@ import {
   resolveAllAssignmentFloorSeating,
 } from './hostAssignmentPanelUtils'
 import { HostMultiTableSelectionBar } from '../components/floor/HostMultiTableSelectionBar'
+import { applyHostFloorAllServicesScope } from './hostFloorTableVisualState'
 
 const DATE = '2026-11-09'
 const SEATINGS = [
@@ -119,6 +120,17 @@ describe('All assignment uses the booking service', () => {
       dateKey: DATE,
       assignmentActive: true,
     })).toMatchObject({ source: 'missing', missingService: true, seating: null })
+  })
+
+  it('keeps a no-service booking from assigning onto All open tables', () => {
+    const [open] = applyHostFloorAllServicesScope([{
+      table: { id: 't12', label: 'T12', seats: 4 },
+      status: 'upcoming',
+      reservation: { id: 'later' },
+      operational: { phase: 'upcoming', hostIndicator: 'confirmed' },
+    }], { lockAssignment: true })
+    expect(open.status).toBe('available')
+    expect(canAssignReservationToFloorTable(open)).toBe(false)
   })
 
   it('blocks All-neutral tables and allows Dinner availability, including deselect and conflict', () => {

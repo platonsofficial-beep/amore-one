@@ -129,8 +129,15 @@ describe('hostFloorTableVisualState', () => {
     expect(content.mode).toBe('occupied')
     expect(content.timeLabel).toBe('15:15')
     expect(content.partyLabel).toBe('👤2')
-    expect(resolveHostFloorSemanticClass(all[1].operational)).toBe('is-all-services')
+    expect(resolveHostFloorSemanticClass(all[1].operational)).toBe('is-available')
+    expect(all[1].status).toBe('available')
     expect(all[1].reservation).toBeNull()
+    const openTable = buildHostFloorCompactTableContent({
+      table: LAYOUT.tables[0],
+      operational: all[1].operational,
+    })
+    expect(openTable.mode).toBe('available')
+    expect(openTable.partyLabel).toBe('👤4')
 
     const lunchView = applyHostFloorSelectedSeatingContext([states[0]], {
       selectedSeating: lunch,
@@ -141,6 +148,16 @@ describe('hostFloorTableVisualState', () => {
       nowMinutes: 960,
     })
     expect(resolveHostFloorSemanticClass(lunchView[0].operational)).toBe('is-seated')
+
+    const otherSeating = applyHostFloorSelectedSeatingContext([states[0]], {
+      selectedSeating: SEATINGS.get('dinner-2'),
+      enrichedReservations: [seated],
+      todayKey: '2026-07-09',
+      seatingsById: seatings,
+      layout: { tables: [t10] },
+      nowMinutes: 960,
+    })
+    expect(resolveHostFloorSemanticClass(otherSeating[0].operational)).toBe('is-seated')
   })
 
   it('keeps a checked-in party seated when another service is selected', () => {

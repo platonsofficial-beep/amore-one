@@ -9411,6 +9411,7 @@ function buildFloorPlanSnapshot({
   selectedReservation = null,
   bookingCertainty = 'current',
   assignmentSeating = null,
+  lockAllAssignment = false,
 }) {
   if (!layout?.tables?.length) {
     return {
@@ -9499,7 +9500,7 @@ function buildFloorPlanSnapshot({
       bookingCertainty,
     })
   } else if (seatings.length > 0) {
-    tableStates = applyHostFloorAllServicesScope(tableStates)
+    tableStates = applyHostFloorAllServicesScope(tableStates, { lockAssignment: lockAllAssignment })
   }
 
   return {
@@ -10708,6 +10709,7 @@ function FloorPlanView({
       seatings: effectiveSeatings,
       selectedReservation,
       bookingCertainty,
+      lockAllAssignment: assignmentFloor.missingService,
     })
   ), [
     assignmentReservations,
@@ -10720,6 +10722,7 @@ function FloorPlanView({
     bookingCertainty,
     selectedSeating,
     assignmentFloor.seating,
+    assignmentFloor.missingService,
     seatingsById,
     todayKey,
   ])
