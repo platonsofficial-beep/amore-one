@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { buildSeatingsById } from './reservationSeatings'
 import { getConflictingUnitIds } from './reservationTableOptions'
 import { resolveFloorTableOperationalState } from './floorTableOperationalState'
+import { buildHostFloorCompactTableContent } from './hostFloorTableContent'
 import {
+  applyHostFloorAllServicesScope,
   applyHostFloorSelectedSeatingContext,
   resolveHostFloorSemanticClass,
 } from './hostFloorTableVisualState'
@@ -75,6 +77,70 @@ describe('hostFloorTableVisualState', () => {
 
     expect(operational.hostIndicator).toBe('seated')
     expect(resolveHostFloorSemanticClass(operational)).toBe('is-seated')
+  })
+
+  it('All keeps a party seated right now occupied and leaves later bookings neutral', () => {
+    const lunch = {
+      id: 'lunch',
+      name: 'Lunch',
+      startTime: '13:00',
+      durationMinutes: 150,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      isActive: true,
+    }
+    const seatings = buildSeatingsById([lunch, ...SEATINGS.values()])
+    const seated = buildReservation({
+      id: 'res-lunch',
+      guestName: 'Platon Lolakos',
+      time: '15:15',
+      guests: 2,
+      status: 'Checked In',
+      seatingId: 'lunch',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't10', label: 'T10', seatedCapacity: 4, maxGuestCapacity: 4 }],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    })
+    const later = buildReservation({
+      id: 'res-dinner',
+      guestName: 'Later Guest',
+      time: '21:00',
+      guests: 4,
+      status: 'Confirmed',
+      seatingId: 'dinner-2',
+    })
+    const t10 = { id: 't10', label: 'T10', zoneId: 'main', seats: 4, maxGuestCapacity: 4 }
+    const states = [
+      buildTableState(t10, [seated], 960),
+      buildTableState(LAYOUT.tables[0], [later], 960),
+    ]
+
+    const all = applyHostFloorAllServicesScope(states)
+
+    expect(resolveHostFloorSemanticClass(all[0].operational)).toBe('is-seated')
+    expect(all[0].status).toBe('seated')
+    expect(all[0].reservation.guestName).toBe('Platon Lolakos')
+    const content = buildHostFloorCompactTableContent({
+      table: t10,
+      operational: all[0].operational,
+      displayReservation: all[0].operational.displayReservation,
+    })
+    expect(content.mode).toBe('occupied')
+    expect(content.timeLabel).toBe('15:15')
+    expect(content.partyLabel).toBe('👤2')
+    expect(resolveHostFloorSemanticClass(all[1].operational)).toBe('is-all-services')
+    expect(all[1].reservation).toBeNull()
+
+    const lunchView = applyHostFloorSelectedSeatingContext([states[0]], {
+      selectedSeating: lunch,
+      enrichedReservations: [seated],
+      todayKey: '2026-07-09',
+      seatingsById: seatings,
+      layout: { tables: [t10] },
+      nowMinutes: 960,
+    })
+    expect(resolveHostFloorSemanticClass(lunchView[0].operational)).toBe('is-seated')
   })
 
   it('keeps a checked-in party seated when another service is selected', () => {
