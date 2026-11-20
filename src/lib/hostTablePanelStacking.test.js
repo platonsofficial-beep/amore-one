@@ -33,6 +33,22 @@ describe('table panel stacking above the multi-table bar', () => {
     expect(dialog).toBeGreaterThan(handle)
   })
 
+  it('hides the table panel scrollbar and keeps the card clear of the right edge', () => {
+    const list = rule(mobileShell, '.host-table-inspector-list {')
+    expect(list).toContain('overflow-y: auto')
+    expect(list).toContain('scrollbar-width: none')
+
+    const hidden = rule(mobileShell, '.host-table-inspector-list::-webkit-scrollbar {')
+    expect(hidden).toContain('display: none')
+
+    const inset = rule(mobileShell, '.host-table-inspector .host-table-inspector-list {')
+    expect(inset).toContain('padding-inline-end: 16px')
+
+    const card = rule(mobileShell, '.host-table-inspector .floor-table-day-row-head,')
+    expect(card).toContain('padding-inline-end: 16px')
+    expect(card).toContain('.host-table-inspector .floor-table-day-row-body')
+  })
+
   it('traps floor chrome only while the table panel is open', () => {
     const openFloor = rule(mobileShell, '.mobile-host-reservations-right-pane.has-table-inspector > .mobile-host-floor-stage {')
     expect(openFloor).toContain('isolation: isolate')
