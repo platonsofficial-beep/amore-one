@@ -46,22 +46,22 @@ describe('host day seating filter', () => {
     expect(resolveHostDaySeatingFilter('missing', SEATINGS)).toBe('')
   })
 
-  it('All does not mark a booked table available for the whole day', () => {
+  it('All shows an unseated table as a normal open table, not reserved all day', () => {
     const scoped = applyHostFloorAllServicesScope([{
-      table: { id: 't1', label: 'T1' },
+      table: { id: 't1', label: 'T1', seats: 4 },
       reservation: BOOKINGS[2],
-      status: 'available',
-      operational: { floorStatus: 'available', hostIndicator: 'empty', phase: 'available' },
+      status: 'upcoming',
+      operational: { floorStatus: 'upcoming', hostIndicator: 'confirmed', phase: 'upcoming', displayReservation: BOOKINGS[2] },
     }])
-    expect(scoped[0].status).toBe('all-services')
+    expect(scoped[0].status).toBe('available')
     expect(scoped[0].reservation).toBeNull()
-    expect(resolveHostFloorSemanticClass(scoped[0].operational)).toBe('is-all-services')
+    expect(resolveHostFloorSemanticClass(scoped[0].operational)).toBe('is-available')
     const content = buildHostFloorCompactTableContent({
       table: { id: 't1', label: 'T1', seats: 4 },
       operational: scoped[0].operational,
     })
-    expect(content.mode).toBe('all-services')
-    expect(content.mode).not.toBe('available')
-    expect(content.statusBadgeText).toBeNull()
+    expect(content.mode).toBe('available')
+    expect(content.partyLabel).toBe('👤4')
+    expect(content.timeLabel).toBeNull()
   })
 })

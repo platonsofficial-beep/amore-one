@@ -80,6 +80,7 @@ export function resolveAllAssignmentFloorSeating({
 
 export function canAssignReservationToFloorTable(tableState) {
   if (!tableState) return false
+  if (tableState.operational?.assignmentLocked) return false
   if (tableState.operational?.hostIndicator === 'all-services' || tableState.status === 'all-services') {
     return false
   }

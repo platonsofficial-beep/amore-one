@@ -77,25 +77,48 @@ function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
-/** All services: do not paint one free/reserved status across the day. */
-export function applyHostFloorAllServicesScope(tableStates = []) {
-  return tableStates.map((tableState) => ({
-    ...tableState,
-    reservation: null,
-    status: 'all-services',
-    operational: {
-      phase: 'all-services',
-      hostIndicator: 'all-services',
-      floorStatus: 'all-services',
-      displayReservation: null,
-      activeReservation: null,
-      nextReservation: null,
-      nextReservationTime: null,
-      reservationCount: 0,
-      upcomingCount: 0,
-      hasSeatingConflict: false,
-    },
-  }))
+function tableIsInServiceNow(tableState) {
+  const operational = tableState?.operational
+  if (
+    operational?.phase === FLOOR_TABLE_OPERATIONAL_PHASES.SEATED
+    || operational?.hostIndicator === 'seated'
+  ) {
+    return true
+  }
+
+  const reservation = operational?.displayReservation
+    ?? operational?.activeReservation
+    ?? tableState?.reservation
+  return isReservationInHouseStatus(reservation?.status)
+}
+
+/** All: a party seated right now stays occupied. Every other table is a
+ *  normal open table (solid, with capacity), not a day-long reserved or
+ *  dashed empty shell. lockAssignment keeps a booking with no service
+ *  from being seated on those open tables. */
+export function applyHostFloorAllServicesScope(tableStates = [], { lockAssignment = false } = {}) {
+  return tableStates.map((tableState) => {
+    if (tableIsInServiceNow(tableState)) return tableState
+
+    return {
+      ...tableState,
+      reservation: null,
+      status: 'available',
+      operational: {
+        phase: FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE,
+        hostIndicator: 'empty',
+        floorStatus: 'available',
+        displayReservation: null,
+        activeReservation: null,
+        nextReservation: null,
+        nextReservationTime: null,
+        reservationCount: 0,
+        upcomingCount: 0,
+        hasSeatingConflict: false,
+        assignmentLocked: lockAssignment,
+      },
+    }
+  })
 }
 
 export function applyHostFloorSelectedSeatingContext(
