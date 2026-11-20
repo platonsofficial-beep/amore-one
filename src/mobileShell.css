@@ -8689,10 +8689,35 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   overflow-x: hidden;
   overscroll-behavior: contain;
   padding: 2px 12px 12px;
+  scrollbar-width: none;
+}
+
+.host-table-inspector .host-table-inspector-list {
+  padding-inline-end: 16px;
+}
+
+.host-table-inspector-list::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .host-table-inspector-list.floor-table-seating-dialog-list {
   padding: 2px 12px 12px;
+}
+
+.host-table-inspector .host-table-inspector-list.floor-table-seating-dialog-list {
+  padding-inline-end: 16px;
+}
+
+.host-table-inspector .floor-table-day-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.host-table-inspector .floor-table-day-row-head,
+.host-table-inspector .floor-table-day-row-body {
+  padding-inline-end: 16px;
 }
 
 .host-table-inspector-seating-timeline {
