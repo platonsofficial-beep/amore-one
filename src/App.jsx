@@ -19017,6 +19017,23 @@ function App() {
     setReservationSeatingsNotice('')
   }
 
+  useEffect(() => {
+    if (!isSeatingHoursOpen || !canConfigureReservationSeatingsRole || editingReservationSeatingId) return undefined
+    const progress = readTutorial(user?.id, activeWorkspaceId, localStorage)
+    if (progress.choice !== 'yes' || progress.seen['reservations:hours']) return undefined
+    const first = reservationSeatings.find((seating) => seating?.isActive !== false) || reservationSeatings[0]
+    if (!first) return undefined
+    handleStartEditReservationSeating(first)
+    return undefined
+  }, [
+    isSeatingHoursOpen,
+    canConfigureReservationSeatingsRole,
+    editingReservationSeatingId,
+    user?.id,
+    activeWorkspaceId,
+    reservationSeatings,
+  ])
+
   const handleCancelEditReservationSeating = () => {
     setEditingReservationSeatingId(null)
     setReservationSeatingForm(createDefaultSeatingForm())
@@ -25769,6 +25786,7 @@ function App() {
           settingsSection,
           mobile: useDedicatedShell,
           mobileTab: activeMobileTab,
+          seatingHours: isSeatingHoursOpen && canConfigureReservationSeatingsRole,
         })}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />

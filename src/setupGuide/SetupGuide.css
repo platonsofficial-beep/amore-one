@@ -73,7 +73,7 @@
 
 .setup-guide-coach-ring {
   position: fixed;
-  z-index: 70;
+  z-index: 140;
   border: 2px solid var(--one-gold);
   border-radius: 12px;
   pointer-events: none;
@@ -82,7 +82,7 @@
 
 .setup-guide-coach {
   position: fixed;
-  z-index: 71;
+  z-index: 141;
   display: flex;
   flex-direction: column;
   gap: 10px;

@@ -91,7 +91,7 @@ function SeatingDayHours({ form, onFormChange }) {
   return (
     <div className="seating-day-hours">
       <span>{t("Hours by day")}</span>
-      <div className="workspace-seating-days" role="group" aria-label={t("Hours by day")}>
+      <div className="workspace-seating-days" role="group" aria-label={t("Hours by day")} data-help="hours.day">
         {WEEK_FROM_MONDAY.map((value) => DAY_OF_WEEK_OPTIONS.find((option) => option.value === value)).map((option) => {
           const row = hours[option.value]
           const selected = option.value === selectedDay
@@ -108,7 +108,7 @@ function SeatingDayHours({ form, onFormChange }) {
           )
         })}
       </div>
-      <label className="seating-day-open">
+      <label className="seating-day-open" data-help="hours.open">
         <input
           type="checkbox"
           checked={Boolean(day?.open)}
@@ -117,7 +117,7 @@ function SeatingDayHours({ form, onFormChange }) {
         <span className="seating-day-check" aria-hidden="true" />
         <span>{day?.open ? t("Open this day") : t("Closed this day")}</span>
       </label>
-      <div className="seating-day-times">
+      <div className="seating-day-times" data-help="hours.times">
         <label className="form-field">
           <span>{t("Start time")}</span>
           <ReservationTimeSelect
@@ -132,7 +132,7 @@ function SeatingDayHours({ form, onFormChange }) {
             onChange={(end) => patchDay({ end })}
           />
         </label>
-        <label className="form-field">
+        <label className="form-field" data-help="hours.last">
           <span>{t("Last arrival")}</span>
           <ReservationTimeSelect
             value={day?.lastArrival || ''}
@@ -146,7 +146,7 @@ function SeatingDayHours({ form, onFormChange }) {
           ) : null}
         </label>
       </div>
-      <div className="seating-day-copy">
+      <div className="seating-day-copy" data-help="hours.copy">
         <span>{t("Copy to other days")}</span>
         <div className="workspace-seating-days" role="group" aria-label={t("Copy to other days")}>
           {WEEK_FROM_MONDAY.filter((value) => value !== selectedDay).map((value) => DAY_OF_WEEK_OPTIONS.find((option) => option.value === value)).map((option) => {
@@ -351,7 +351,7 @@ export function WorkspaceReservationSeatingsSection({
               {t("Cancel edit")}
             </button>
           ) : null}
-          <button type="submit" className="primary-btn workspace-action-btn" data-help="setup.add-seating" disabled={isSaving}>
+          <button type="submit" className="primary-btn workspace-action-btn" data-help="hours.save" disabled={isSaving}>
             {isSaving ? t("Saving…") : editingSeatingId ? t("Update seating") : t("Add seating")}
           </button>
         </div>
@@ -615,7 +615,7 @@ export function WorkspaceReservationSeatingsSection({
                 {t("Cancel edit")}
               </button>
             ) : null}
-            <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
+            <button type="submit" className="primary-btn workspace-action-btn" data-help="setup.add-seating" disabled={isSaving}>
               {isSaving ? t("Saving…") : editingSeatingId ? t("Update seating") : t("Add seating")}
             </button>
           </div>
