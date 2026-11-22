@@ -12,9 +12,10 @@
 --   SUPABASE_URL
 --   SUPABASE_SERVICE_ROLE_KEY     server only
 --   CRON_SECRET                   Vercel cron sends Authorization: Bearer <CRON_SECRET>
--- Schedule: Vercel cron every 15 minutes
---   GET /api/online-booking-reminders
---   { "path": "/api/online-booking-reminders", "schedule": "*/15 * * * *" }
+-- Schedule: GET /api/online-booking-reminders every 15 minutes.
+-- Hobby Vercel rejects */15 (only one cron run per day), so it is not in vercel.json.
+-- On Pro, add { "path": "/api/online-booking-reminders", "schedule": "*/15 * * * *" }
+-- with Authorization: Bearer CRON_SECRET. A daily Hobby cron would miss the reminder window.
 -- Also enable Realtime for public.reservations (this file adds it to supabase_realtime
 -- when the publication exists) so the staff list refreshes when a guest books.
 

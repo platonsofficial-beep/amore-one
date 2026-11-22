@@ -1,7 +1,11 @@
 import { sendBookingEmail, supabaseRpc } from './online-booking-mail.js'
 
-// Vercel cron: every 15 minutes. Requires CRON_SECRET, RESEND_API_KEY,
-// ONLINE_BOOKING_FROM_EMAIL, SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY.
+// Called on a schedule. Hobby Vercel allows only one cron run per day, so the
+// 15-minute expression is not in vercel.json. On Pro, schedule
+// GET /api/online-booking-reminders as */15 * * * * with
+// Authorization: Bearer CRON_SECRET.
+// Requires CRON_SECRET, RESEND_API_KEY, ONLINE_BOOKING_FROM_EMAIL,
+// SUPABASE_URL, and SUPABASE_SERVICE_ROLE_KEY.
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') {
     res.status(405).json({ ok: false })
