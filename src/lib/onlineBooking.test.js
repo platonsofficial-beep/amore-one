@@ -8,6 +8,8 @@ import {
   normalizeOnlineBookingSettings,
   splitExceedsDailyTotal,
   normalizeOnlineCapacity,
+  commitPublicSlug,
+  draftPublicSlug,
   onlineBookingUrl,
   slugifyVenueName,
   sumVenueCovers,
@@ -18,6 +20,24 @@ describe('online booking settings', () => {
   it('builds a public slug and link from the venue name', () => {
     expect(slugifyVenueName('Amoré  Kitchen')).toBe('amore-kitchen')
     expect(onlineBookingUrl('Amoré  Kitchen')).toBe('https://app.onehospitality.app/book/amore-kitchen')
+  })
+
+  it('keeps a public link draft editable and commits it on blur', () => {
+    expect(draftPublicSlug('')).toBe('')
+    expect(draftPublicSlug('Amore-')).toBe('amore-')
+    expect(draftPublicSlug('amore.nicosia')).toBe('amore-nicosia')
+    expect(draftPublicSlug('Amore Nicosia')).toBe('amore-nicosia')
+    expect(draftPublicSlug('amore__nicosia')).toBe('amore--nicosia')
+    expect(draftPublicSlug('Καφέ Αθήνα')).toBe('kafe-athina')
+    expect(commitPublicSlug('Sentio.Nicosia')).toBe('sentio-nicosia')
+    expect(commitPublicSlug('Σέντιο Λευκωσία')).toBe('sentio-lefkosia')
+    expect(commitPublicSlug('venue')).not.toBe('')
+    expect(commitPublicSlug('amore-')).toBe('amore')
+    expect(commitPublicSlug('amore--nicosia')).toBe('amore-nicosia')
+    expect(commitPublicSlug('')).toBe('')
+    expect(commitPublicSlug('ab')).toBe('')
+    expect(commitPublicSlug('---')).toBe('')
+    expect(commitPublicSlug('amore-nicosia')).toBe('amore-nicosia')
   })
 
   it('defaults to instant confirmation, 8 guests, 30 days, 2 hours notice, and 12 hours before email', () => {
@@ -93,6 +113,19 @@ describe('online booking settings', () => {
     expect(floor.smoking).toBe(true)
     expect(floor.onlineBookingVisible).toBe(true)
     expect(next.hasUnsavedChanges).toBe(true)
+  })
+
+  it('lets the public link field stay empty while typing', () => {
+    const source = readFileSync('src/components/workspace/OnlineReservationsSection.jsx', 'utf8')
+    expect(source).toContain('setSlugDraft(event.target.value)')
+    expect(source).not.toContain("'venue'")
+    expect(source).not.toContain('slugifyVenueName')
+    expect(source).toContain('autoComplete="off"')
+    expect(source).toContain('autoCorrect="off"')
+    expect(source).toContain('autoCapitalize="none"')
+    expect(source).toContain('spellCheck={false}')
+    expect(source).toContain('name="booking-public-slug"')
+    expect(source).not.toContain('slugifyVenueName(event.target.value)')
   })
 
   it('keeps the Greek booking-window label on one short line', () => {

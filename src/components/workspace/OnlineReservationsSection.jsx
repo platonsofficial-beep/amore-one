@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import {
   allocatedOnlineCovers,
+  commitPublicSlug,
   normalizeDailyOnlineCovers,
   normalizeOnlineCapacity,
-  onlineBookingUrl,
-  slugifyVenueName,
+  publicBookingLink,
   splitExceedsDailyTotal,
 } from '../../lib/onlineBooking'
 import { renderBookingSocialImage } from '../../lib/bookingSocialImage'
@@ -48,6 +48,8 @@ export function OnlineReservationsSection({
 }) {
   const [settings, setSettings] = useState(previewSettings)
   const [notice, setNotice] = useState('')
+  const [slugDraft, setSlugDraft] = useState(null)
+  const [slugHint, setSlugHint] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [qr, setQr] = useState('')
   const [socialFormat, setSocialFormat] = useState('square')
@@ -82,29 +84,32 @@ export function OnlineReservationsSection({
     })
   }, [activeSeatings])
 
-  const slug = slugifyVenueName(settings?.slug || venueName)
-  const link = onlineBookingUrl(slug)
+  const savedSlug = commitPublicSlug(settings?.slug)
+  const slugField = slugDraft == null ? savedSlug : slugDraft
+  const liveSlug = commitPublicSlug(slugField)
+  const linkSlug = liveSlug || savedSlug
+  const link = publicBookingLink(linkSlug)
 
   useEffect(() => {
     let cancelled = false
-    if (!slug) return undefined
+    if (!link) return undefined
     QRCode.toDataURL(link, { margin: 1, width: 320 })
       .then((dataUrl) => { if (!cancelled) setQr(dataUrl) })
       .catch(() => { if (!cancelled) setQr('') })
     return () => { cancelled = true }
-  }, [link, slug])
+  }, [link])
 
   useEffect(() => {
     let cancelled = false
     renderBookingSocialImage({
-      venueName: venueName || slug,
+      venueName: venueName || linkSlug,
       url: link,
       format: socialFormat,
     })
       .then((dataUrl) => { if (!cancelled) setSocialPreview(dataUrl) })
       .catch(() => { if (!cancelled) setSocialPreview('') })
     return () => { cancelled = true }
-  }, [venueName, slug, link, socialFormat])
+  }, [venueName, linkSlug, link, socialFormat])
 
   const update = (patch) => setSettings((current) => ({ ...current, ...patch }))
 
@@ -125,13 +130,41 @@ export function OnlineReservationsSection({
     anchor.click()
   }
 
-  const downloadQr = () => downloadFile(qr, `${slug}-booking-qr.png`)
-  const downloadSocial = () => downloadFile(socialPreview, `${slug}-booking-${socialFormat}.png`)
+  const downloadQr = () => downloadFile(qr, `${linkSlug || 'booking'}-qr.png`)
+  const downloadSocial = () => downloadFile(socialPreview, `${linkSlug || 'booking'}-${socialFormat}.png`)
 
   const capValues = activeSeatings.map((seating) => caps[seating.id])
   const dailyTotal = normalizeDailyOnlineCovers(settings?.dailyOnlineCovers)
   const allocated = allocatedOnlineCovers(capValues)
   const splitOver = splitExceedsDailyTotal(capValues, settings?.dailyOnlineCovers)
+
+  const applySlugDraft = async () => {
+    const committed = commitPublicSlug(slugField)
+    if (!committed) {
+      setSlugHint(t("Enter a link name with at least 3 characters."))
+      return savedSlug || null
+    }
+    if (committed === savedSlug) {
+      setSlugDraft(committed)
+      setSlugHint('')
+      return savedSlug
+    }
+    let taken = false
+    try {
+      taken = await isOnlineBookingSlugTaken(committed, workspaceId)
+    } catch (error) {
+      setSlugHint(error.message)
+      return null
+    }
+    if (taken) {
+      setSlugHint(t("This link name is already used."))
+      return null
+    }
+    setSlugDraft(committed)
+    setSlugHint('')
+    update({ slug: committed })
+    return committed
+  }
 
   const save = async (event) => {
     event.preventDefault()
@@ -139,15 +172,12 @@ export function OnlineReservationsSection({
       setNotice(t("The seating split is over the daily total."))
       return
     }
+    const nextSlug = await applySlugDraft()
+    if (!nextSlug) return
     setIsSaving(true)
     setNotice('')
     try {
-      const taken = await isOnlineBookingSlugTaken(slug, workspaceId)
-      if (taken) {
-        setNotice(t("This link name is already used."))
-        return
-      }
-      const saved = await saveOnlineBookingSettings(workspaceId, { ...settings, slug }, venueName)
+      const saved = await saveOnlineBookingSettings(workspaceId, { ...settings, slug: nextSlug }, venueName)
       setSettings(saved)
       for (const seating of activeSeatings) {
         const nextCap = normalizeOnlineCapacity(caps[seating.id])
@@ -226,15 +256,27 @@ export function OnlineReservationsSection({
         <label className="form-field">
           <span>{t("Public link name")}</span>
           <input
-            value={settings.slug}
-            onChange={(event) => update({ slug: slugifyVenueName(event.target.value) })}
+            className={slugHint ? 'online-booking-slug-input is-invalid' : 'online-booking-slug-input'}
+            name="booking-public-slug"
+            value={slugField}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            inputMode="text"
             aria-label={t("Public link name")}
-            required
+            aria-invalid={slugHint ? true : undefined}
+            onChange={(event) => {
+              setSlugHint('')
+              setSlugDraft(event.target.value)
+            }}
+            onBlur={() => { void applySlugDraft() }}
           />
+          {slugHint ? <p className="online-booking-slug-hint" role="alert">{slugHint}</p> : null}
         </label>
 
         <div className="online-booking-link-row">
-          <a className="online-booking-link" href={link}>{link}</a>
+          <a className="online-booking-link" href={link || undefined}>{link ? t("Your link: {{url}}", { url: link }) : ''}</a>
           <button type="button" className="ghost-btn" onClick={copyLink}>{t("Copy link")}</button>
         </div>
 
