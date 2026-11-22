@@ -707,7 +707,6 @@ import {
   filterNavItemsByRole,
   filterOperationsSections,
   getMobileBottomTabs,
-  getTodayQuickActions,
   isHostMobileRole,
   isManagerRole,
   isManagementMobileRole,
@@ -1283,14 +1282,14 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label={t("Today")}>
-      {reminderCard}
-      {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
       <TodayQuickActions
         access={quickActionAccess}
         userId={quickActionUserId}
         workspaceId={quickActionWorkspaceId}
         onRun={onRunTodayShortcut}
       />
+      {reminderCard}
+      {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
       <TodayAnnouncementsPanel
         announcements={announcements}
         role={announcementRole}
@@ -16013,11 +16012,6 @@ function App() {
     [permissionAccess],
   )
 
-  const permittedTodayQuickActions = useMemo(
-    () => getTodayQuickActions(permissionAccess),
-    [permissionAccess],
-  )
-
   const canOpenWorkspaceProfile = useMemo(
     () => canAccessModule(permissionAccess, 'settings'),
     [permissionAccess],
@@ -24928,6 +24922,22 @@ function App() {
   }, [permissionAccess, handleActiveViewChange])
 
   const runTodayShortcut = (shortcutId) => {
+    if (shortcutId === 'new-reservation' && !useDedicatedShell) {
+      handleDashboardQuickAction('add-reservation')
+      return
+    }
+    if (shortcutId === 'new-task') {
+      handleDashboardQuickAction('add-task')
+      return
+    }
+    if (shortcutId === 'new-announcement') {
+      handleDashboardQuickAction('add-announcement')
+      return
+    }
+    if (shortcutId === 'new-order') {
+      handleDashboardQuickAction('create-order')
+      return
+    }
     if (shortcutId === 'new-reservation' || shortcutId === 'walk-in') {
       setReservationLaunch(shortcutId === 'walk-in' ? 'walk-in' : 'create')
       handleMobileManagerOpenReservations()
@@ -27026,10 +27036,8 @@ function App() {
                     workspaceBadge={todayWorkspaceBadge}
                     chips={todayCommandHeaderChipsWithStatus}
                     onChipSelect={handleTodayChipSelect}
-                    quickActions={permittedTodayQuickActions}
                     profileChipDisplay={profileChipDisplay}
                     employees={scheduleEmployees}
-                    onQuickAction={handleDashboardQuickAction}
                     onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                     canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                     notificationBell={notificationBell}

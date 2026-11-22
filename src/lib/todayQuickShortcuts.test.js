@@ -8,6 +8,7 @@ import {
   availableTodayShortcuts,
   clearStoredTodayShortcutIds,
   defaultTodayShortcutIds,
+  shortcutIsAllowed,
   readStoredTodayShortcutIds,
   resolveTodayShortcutIds,
   toggleTodayShortcut,
@@ -37,11 +38,21 @@ describe('today quick shortcuts', () => {
 
   it('renders the same quick actions on the workspace Today page used by phone landscape and tablets', () => {
     const app = readFileSync('src/App.jsx', 'utf8')
+    const header = readFileSync('src/components/today/TodayCommandHeader.jsx', 'utf8')
     const view = app.slice(app.indexOf('function CommandCenterView'), app.indexOf('function toDateInputValue'))
-    expect(view).toContain('<TodayQuickActions')
+    const quick = view.indexOf('<TodayQuickActions')
+    const clock = view.indexOf('today-attendance-clock')
+    expect(quick).toBeGreaterThan(-1)
+    expect(clock).toBeGreaterThan(quick)
     expect(view).toContain('onRun={onRunTodayShortcut}')
     expect(app).toContain('quickActionAccess={permissionAccess}')
     expect(app).toContain('quickActionWorkspaceId={activeWorkspaceId || \'\'}')
+    expect(app).toContain("shortcutId === 'new-task'")
+    expect(app).toContain("handleDashboardQuickAction('add-task')")
+    expect(app).toContain("handleDashboardQuickAction('add-announcement')")
+    expect(app).toContain("handleDashboardQuickAction('create-order')")
+    expect(app).toContain("handleDashboardQuickAction('add-reservation')")
+    expect(header).not.toContain('today-command-action-pill')
   })
 
   it('gives managers and owners the role default, with Operations in place of a missing invoice shortcut', () => {
@@ -73,6 +84,21 @@ describe('today quick shortcuts', () => {
       expect.arrayContaining(['reservations', 'team-today', 'stock-orders', 'operations']),
     )
     expect(availableTodayShortcuts('host').map((shortcut) => shortcut.id)).not.toContain('stock')
+    expect(availableTodayShortcuts('manager').map((shortcut) => shortcut.id)).toEqual(
+      expect.arrayContaining(['new-reservation', 'new-task', 'new-announcement', 'new-order']),
+    )
+    expect(shortcutIsAllowed('new-task', 'manager')).toBe(true)
+    expect(shortcutIsAllowed('new-announcement', 'manager')).toBe(true)
+    expect(shortcutIsAllowed('new-order', 'manager')).toBe(true)
+    expect(shortcutIsAllowed('new-task', 'staff')).toBe(false)
+    expect(shortcutIsAllowed('new-announcement', 'staff')).toBe(false)
+    expect(shortcutIsAllowed('new-order', 'staff')).toBe(false)
+    expect(shortcutIsAllowed('new-task', 'host')).toBe(false)
+    expect(shortcutIsAllowed('new-announcement', 'host')).toBe(false)
+    expect(shortcutIsAllowed('new-order', 'host')).toBe(false)
+    expect(defaultTodayShortcutIds('manager')).not.toContain('new-task')
+    expect(defaultTodayShortcutIds('manager')).not.toContain('new-announcement')
+    expect(defaultTodayShortcutIds('manager')).not.toContain('new-order')
   })
 
   it('stops at six selected shortcuts', () => {
