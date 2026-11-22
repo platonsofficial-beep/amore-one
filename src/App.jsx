@@ -78,8 +78,8 @@ import { ReservationSeatingSelect } from './components/reservations/ReservationS
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
-import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost } from './setupGuide/SetupGuideUI'
-import { consumeFloorEditorRequest, requestFloorEditor, setupGuideAudience, writeSetupProgress, writeStaffTourProgress } from './setupGuide/setupGuide'
+import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost, StockTourHost } from './setupGuide/SetupGuideUI'
+import { consumeFloorEditorRequest, requestFloorEditor, setupGuideAudience, writeSetupProgress, writeStaffTourProgress, writeStockTourProgress } from './setupGuide/setupGuide'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
@@ -25680,6 +25680,14 @@ function App() {
     handleOperationsSectionChange,
   ])
 
+  const openStockTourStep = useCallback((step) => {
+    if (!step?.section) return
+    stockEntryRequestRef.current = step.section
+    if (useDedicatedShell) handleMobileNavigateModule('stock')
+    else handleActiveViewChange('stock')
+    handleStockSectionChange(step.section)
+  }, [useDedicatedShell, handleMobileNavigateModule, handleActiveViewChange, handleStockSectionChange])
+
   useEffect(() => {
     const replay = () => {
       if (setupGuideAudience(permissionAccess) === 'staff') {
@@ -25694,6 +25702,16 @@ function App() {
     window.addEventListener('one-setup-replay', replay)
     return () => window.removeEventListener('one-setup-replay', replay)
   }, [user?.id, activeWorkspaceId, handleActiveViewChange, permissionAccess])
+
+  useEffect(() => {
+    const replay = () => {
+      writeStockTourProgress(user?.id, activeWorkspaceId, { skipped: false, replay: true, finished: false }, localStorage)
+      window.dispatchEvent(new Event('one-stock-tour-progress'))
+      openStockTourStep({ section: canManageStockRole ? 'dashboard' : 'take' })
+    }
+    window.addEventListener('one-stock-tour-replay', replay)
+    return () => window.removeEventListener('one-stock-tour-replay', replay)
+  }, [user?.id, activeWorkspaceId, openStockTourStep, canManageStockRole])
 
   return (
     <PublishedFloorPlanProvider
@@ -25714,6 +25732,13 @@ function App() {
         workspaceId={activeWorkspaceId}
         mobile={useDedicatedShell}
         onOpenStep={openStaffTourStep}
+      />
+      <StockTourHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        activeView={activeView}
+        onOpenStep={openStockTourStep}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {subscriptionUi.showBanner ? (

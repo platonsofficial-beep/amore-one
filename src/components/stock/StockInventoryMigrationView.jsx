@@ -42,6 +42,7 @@ export function StockInventoryMigrationView({
               type="button"
               className="primary-btn stock-migration-ownership-open-import"
               data-stock-migration-open-import="true"
+              data-help="stock.start-import"
               onClick={() => onOpenInventoryImport?.()}
             >
               {t("Start Import")}

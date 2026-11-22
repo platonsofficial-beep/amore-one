@@ -8,8 +8,8 @@ import { resolveUserDisplayName } from '../../lib/userDisplayName'
 import { placeUserMenuPanel } from '../../lib/userMenuPlacement'
 import { readCssPx } from '../../lib/safeInline'
 import { t } from '../../i18n/i18n'
-import { setupGuideAudience } from '../../setupGuide/setupGuide'
-import { replaySetupGuide } from '../../setupGuide/SetupGuideUI'
+import { canShowStockTour, setupGuideAudience } from '../../setupGuide/setupGuide'
+import { replaySetupGuide, replayStockTour } from '../../setupGuide/SetupGuideUI'
 
 function presentMemberName(name) {
   const trimmed = `${name ?? ''}`.trim()
@@ -240,6 +240,19 @@ export function UserMenu({
               }}
             >
               {setupGuideAudience(role || membership?.role) === 'staff' ? t("Replay the tour") : t("Replay setup guide")}
+            </button>
+          ) : null}
+          {canShowStockTour(role || membership?.role) ? (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false)
+                replayStockTour()
+              }}
+            >
+              {t("Replay the stock tour")}
             </button>
           ) : null}
           {!isAuthDisabled ? (

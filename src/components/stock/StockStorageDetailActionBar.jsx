@@ -127,6 +127,7 @@ function ManagerActionBar({
         type="button"
         className="ghost-btn stock-storage-detail-action-btn"
         data-storage-action="receive"
+        data-help="stock.receive"
         disabled={isArchived || isLaunchingFastCount}
         title={unavailableReason}
         onClick={() => onReceive?.(storage)}
@@ -162,6 +163,7 @@ function ManagerActionBar({
         type="button"
         className="ghost-btn stock-storage-detail-action-btn"
         data-storage-action="transfer"
+        data-help="stock.transfer"
         disabled={isArchived || isLaunchingFastCount}
         title={unavailableReason}
         onClick={() => runMore(onTransfer)}

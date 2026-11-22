@@ -4,6 +4,7 @@ import {
   canAccessMobileExpandedModule,
   canAccessModule,
   canAccessTeamSection,
+  canManageStock,
   canOpenMobileFullSchedule,
   canUseChat,
 } from '../lib/permissions'
@@ -11,6 +12,7 @@ import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 
 export const SETUP_GUIDE_STORAGE_PREFIX = 'one.setupGuide.v1'
 export const STAFF_TOUR_STORAGE_PREFIX = 'one.staffTour.v1'
+export const STOCK_TOUR_STORAGE_PREFIX = 'one.stockTour.v1'
 
 export const SETUP_STEPS = [
   {
@@ -190,6 +192,125 @@ export function visibleStaffTourSteps(role, options = {}) {
   return STAFF_TOUR_STEPS.filter((step) => staffTourStepAllowed(role, step, mobile))
 }
 
+export const STOCK_TOUR_STEPS = [
+  {
+    id: 'stock-dashboard',
+    section: 'dashboard',
+    manageOnly: true,
+    targets: ['stock.dashboard'],
+    titleKey: 'The stock home',
+    bodyKey: 'The dashboard shows what is on hand, what is low, and what needs an order.',
+  },
+  {
+    id: 'stock-take',
+    section: 'take',
+    targets: ['stock.take', 'stock.take-page', 'stock.more-sections'],
+    titleKey: 'Take from a storage',
+    bodyKey: 'Open a storage, tap the product, set how many, and confirm. That quantity leaves the storage.',
+  },
+  {
+    id: 'stock-take-where',
+    section: 'take',
+    targets: ['stock.take-storage', 'stock.take-page'],
+    titleKey: 'Choose the storage',
+    bodyKey: 'Start with the storage you are taking from. Then pick the product and confirm.',
+  },
+  {
+    id: 'stock-count',
+    section: 'count',
+    manageOnly: true,
+    targets: ['stock.count', 'stock.count-page'],
+    titleKey: 'Inventory counts',
+    bodyKey: 'Start a count, enter what is on the shelf, review the difference, then post the verified levels.',
+  },
+  {
+    id: 'stock-count-staff',
+    section: 'count',
+    staffOnly: true,
+    targets: ['stock.count', 'stock.count-page'],
+    titleKey: 'Your counts',
+    bodyKey: 'Open the count a manager started and enter what is on the shelf. A manager posts the result.',
+  },
+  {
+    id: 'stock-start-count',
+    section: 'count',
+    manageOnly: true,
+    targets: ['stock.start-count', 'stock.count'],
+    titleKey: 'Start the count',
+    bodyKey: 'Press Start count. Choose the locations or products, then count them one by one.',
+  },
+  {
+    id: 'stock-storages',
+    section: 'storages',
+    manageOnly: true,
+    targets: ['stock.storages', 'stock.storages-page'],
+    titleKey: 'Stock storages',
+    bodyKey: 'Each storage is a place that holds products. Open one to receive a delivery, transfer to another storage, adjust a quantity, or record waste.',
+  },
+  {
+    id: 'stock-receive',
+    section: 'storages',
+    manageOnly: true,
+    targets: ['stock.receive', 'stock.storages', 'stock.storages-page'],
+    titleKey: 'Receive a delivery',
+    bodyKey: 'Open a storage and press Receive to add stock from a delivery. You can also receive a supplier order into a storage.',
+  },
+  {
+    id: 'stock-transfer',
+    section: 'storages',
+    manageOnly: true,
+    targets: ['stock.transfer', 'stock.storages', 'stock.storages-page'],
+    titleKey: 'Transfer between storages',
+    bodyKey: 'Open a storage, press Transfer, and choose the storage that should receive the product.',
+  },
+  {
+    id: 'stock-orders',
+    section: 'orders',
+    manageOnly: true,
+    targets: ['stock.orders'],
+    titleKey: 'Supplier orders',
+    bodyKey: 'Create an order or use Suggest order. When the delivery arrives, receive it into a storage.',
+  },
+  {
+    id: 'stock-create-order',
+    section: 'orders',
+    manageOnly: true,
+    targets: ['stock.create-order', 'stock.orders'],
+    titleKey: 'Create the order',
+    bodyKey: 'Press Create order and add the lines, or let Suggest order draft them from what is under par.',
+  },
+  {
+    id: 'stock-suppliers',
+    section: 'suppliers',
+    manageOnly: true,
+    targets: ['stock.suppliers', 'stock.add-supplier'],
+    titleKey: 'Your suppliers',
+    bodyKey: 'Suppliers are who you buy from. Add one here before you order.',
+  },
+  {
+    id: 'stock-import',
+    section: 'migration',
+    manageOnly: true,
+    targets: ['stock.migration', 'stock.start-import'],
+    titleKey: 'Import products',
+    bodyKey: 'Import brings products in from a spreadsheet. Review every row before it is saved.',
+  },
+]
+
+export function canShowStockTour(role) {
+  return canAccessModule(role, 'stock')
+}
+
+export function visibleStockTourSteps(role) {
+  if (!canShowStockTour(role)) return []
+  const manage = canManageStock(role)
+  return STOCK_TOUR_STEPS.filter((step) => {
+    if (step.manageOnly && !manage) return false
+    if (step.staffOnly && manage) return false
+    return true
+  })
+}
+
 export function visibleSetupSteps(role) {
   const audience = setupGuideAudience(role)
   if (audience !== 'full' && audience !== 'limited') return []
@@ -258,6 +379,10 @@ export function staffTourStorageKey(userId, workspaceId) {
   return `${STAFF_TOUR_STORAGE_PREFIX}:${userId || 'local'}:${workspaceId || 'local'}`
 }
 
+export function stockTourStorageKey(userId, workspaceId) {
+  return `${STOCK_TOUR_STORAGE_PREFIX}:${userId || 'local'}:${workspaceId || 'local'}`
+}
+
 export function readSetupProgress(userId, workspaceId, storage) {
   const fallback = emptySetupProgress()
   if (!storage) return fallback
@@ -301,6 +426,38 @@ export function writeStaffTourProgress(userId, workspaceId, progress, storage) {
   }
   storage.setItem(staffTourStorageKey(userId, workspaceId), JSON.stringify(next))
   return next
+}
+
+export function readStockTourProgress(userId, workspaceId, storage) {
+  const fallback = emptyStaffTourProgress()
+  if (!storage) return fallback
+  try {
+    const raw = storage.getItem(stockTourStorageKey(userId, workspaceId))
+    if (!raw) return fallback
+    const parsed = JSON.parse(raw)
+    return {
+      skipped: Boolean(parsed?.skipped),
+      replay: Boolean(parsed?.replay),
+      finished: Boolean(parsed?.finished),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+export function writeStockTourProgress(userId, workspaceId, progress, storage) {
+  if (!storage) return progress
+  const next = {
+    skipped: Boolean(progress?.skipped),
+    replay: Boolean(progress?.replay),
+    finished: Boolean(progress?.finished),
+  }
+  storage.setItem(stockTourStorageKey(userId, workspaceId), JSON.stringify(next))
+  return next
+}
+
+export function shouldShowStockTour({ steps, progress }) {
+  return shouldShowStaffTour({ steps, progress })
 }
 
 export function shouldShowStaffTour({ steps, progress }) {

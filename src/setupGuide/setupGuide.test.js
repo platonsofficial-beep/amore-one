@@ -6,13 +6,17 @@ import {
   nextDateKey,
   readSetupProgress,
   readStaffTourProgress,
+  readStockTourProgress,
   shouldShowSetupChecklist,
   shouldShowStaffTour,
+  shouldShowStockTour,
   visibleSetupSteps,
   visibleStaffTourSteps,
+  visibleStockTourSteps,
   withSetupDone,
   writeSetupProgress,
   writeStaffTourProgress,
+  writeStockTourProgress,
 } from './setupGuide'
 
 function memoryStorage() {
@@ -126,6 +130,38 @@ describe('setup guide', () => {
     expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(false)
     writeStaffTourProgress('u', 'v', { skipped: true, replay: true, finished: true }, storage)
     expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(true)
+    expect(readSetupProgress('u', 'v', storage).skipped).toBe(false)
+  })
+
+  it('walks managers through every stock tab and staff through take and counts', () => {
+    const manager = visibleStockTourSteps('owner').map((step) => step.id)
+    expect(manager).toEqual([
+      'stock-dashboard',
+      'stock-take',
+      'stock-take-where',
+      'stock-count',
+      'stock-start-count',
+      'stock-storages',
+      'stock-receive',
+      'stock-transfer',
+      'stock-orders',
+      'stock-create-order',
+      'stock-suppliers',
+      'stock-import',
+    ])
+    expect(visibleStockTourSteps('manager').map((step) => step.section)).toContain('orders')
+    expect(visibleStockTourSteps('staff').map((step) => step.id)).toEqual([
+      'stock-take',
+      'stock-take-where',
+      'stock-count-staff',
+    ])
+    expect(visibleStockTourSteps('host')).toEqual([])
+    const storage = memoryStorage()
+    writeStockTourProgress('u', 'v', { skipped: true, replay: false, finished: false }, storage)
+    expect(shouldShowStockTour({
+      steps: visibleStockTourSteps('staff'),
+      progress: readStockTourProgress('u', 'v', storage),
+    })).toBe(false)
     expect(readSetupProgress('u', 'v', storage).skipped).toBe(false)
   })
 

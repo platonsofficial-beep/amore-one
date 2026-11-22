@@ -656,7 +656,7 @@ export function StockStorageCenter({
     <section className="stock-storage-center-page" aria-label={t("Storages")}>
       <header className="stock-storage-center-header">
         <div className="stock-storage-center-header-copy">
-          <h2 className="stock-storage-center-title">{t("Storages")}</h2>
+          <h2 className="stock-storage-center-title" data-help="stock.storages-page">{t("Storages")}</h2>
           <p className="stock-storage-center-subtitle">
             {t("Stock by physical location.")}
           </p>

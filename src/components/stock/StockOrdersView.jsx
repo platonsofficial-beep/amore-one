@@ -330,6 +330,7 @@ export function StockOrdersView({
             <button
               type="button"
               className="ghost-btn stock-create-order-btn"
+              data-help="stock.create-order"
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!isWorkspaceReady || isActionBusy}
             >
@@ -408,6 +409,7 @@ export function StockOrdersView({
               <button
                 type="button"
                 className="ghost-btn"
+                data-help="stock.create-order"
                 onClick={() => setIsCreateModalOpen(true)}
                 disabled={!isWorkspaceReady || isActionBusy}
               >

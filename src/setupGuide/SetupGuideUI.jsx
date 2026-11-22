@@ -7,14 +7,18 @@ import {
   nextDateKey,
   readSetupProgress,
   readStaffTourProgress,
+  readStockTourProgress,
   shouldShowSetupChecklist,
   shouldShowStaffTour,
+  shouldShowStockTour,
   useSetupCoachStep,
   visibleSetupSteps,
   visibleStaffTourSteps,
+  visibleStockTourSteps,
   withSetupDone,
   writeSetupProgress,
   writeStaffTourProgress,
+  writeStockTourProgress,
 } from './setupGuide'
 import './SetupGuide.css'
 
@@ -148,7 +152,7 @@ export function SetupGuideCoachHost({
   })
 
   return (
-    <SetupCoachMount activeId={activeId} steps={steps} onActive={setActiveId} onOpenStep={onOpenStep} />
+    <SetupCoachMount activeId={activeId} steps={steps} onActive={setActiveId} onOpenStep={onOpenStep} tourId="setup" />
   )
 }
 
@@ -165,6 +169,7 @@ function SetupCoachMount({
   onDismiss,
   onFinish,
   dismissLabel = 'Skip this step',
+  tourId = '',
 }) {
   const helpOn = useHelpModeEnabled()
   const [box, setBox] = useState(null)
@@ -212,6 +217,22 @@ function SetupCoachMount({
       window.removeEventListener('scroll', measure, true)
     }
   }, [step, helpOn])
+
+  useEffect(function markTour() {
+    if (!tourId || typeof document === 'undefined') return undefined
+    if (!step || helpOn) {
+      if (document.body.dataset.oneActiveTour === tourId) {
+        delete document.body.dataset.oneActiveTour
+        window.dispatchEvent(new Event('one-tour-idle'))
+      }
+      return undefined
+    }
+    document.body.dataset.oneActiveTour = tourId
+    return function cleanup() {
+      if (document.body.dataset.oneActiveTour === tourId) delete document.body.dataset.oneActiveTour
+      window.dispatchEvent(new Event('one-tour-idle'))
+    }
+  }, [step, helpOn, tourId])
 
   if (!step || helpOn || typeof document === 'undefined') return null
 
@@ -332,12 +353,101 @@ export function StaffTourHost({
         persist({ skipped: false, replay: false, finished: true })
         setActiveId('')
       }}
+      tourId="staff"
+    />
+  )
+}
+
+export function StockTourHost({
+  role = '',
+  userId = '',
+  workspaceId = '',
+  activeView = '',
+  onOpenStep,
+}) {
+  const steps = visibleStockTourSteps(role)
+  const [progress, setProgress] = useState(function initialProgress() {
+    return readStockTourProgress(userId, workspaceId, storage())
+  })
+  const [activeId, setActiveId] = useState('')
+  const [idleTick, setIdleTick] = useState(0)
+  const startedRef = useRef(false)
+  const openRef = useRef(onOpenStep)
+  openRef.current = onOpenStep
+
+  useEffect(function loadProgress() {
+    setProgress(readStockTourProgress(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(function listenForReplay() {
+    function refresh() {
+      setProgress(readStockTourProgress(userId, workspaceId, storage()))
+    }
+    function bump() {
+      setIdleTick((value) => value + 1)
+    }
+    window.addEventListener('one-stock-tour-progress', refresh)
+    window.addEventListener('one-tour-idle', bump)
+    return function cleanup() {
+      window.removeEventListener('one-stock-tour-progress', refresh)
+      window.removeEventListener('one-tour-idle', bump)
+    }
+  }, [userId, workspaceId])
+
+  useEffect(function autostart() {
+    const otherTour = typeof document !== 'undefined' && document.body.dataset.oneActiveTour && document.body.dataset.oneActiveTour !== 'stock'
+    const onStock = activeView === 'stock' || progress.replay
+    if (!onStock || otherTour || !shouldShowStockTour({ steps, progress })) return undefined
+    if (startedRef.current && !progress.replay) return undefined
+    startedRef.current = true
+    const first = steps[0]
+    if (!first) return undefined
+    setActiveId(first.id)
+    if (openRef.current) openRef.current(first)
+    if (progress.replay) {
+      setProgress(writeStockTourProgress(userId, workspaceId, {
+        skipped: false,
+        replay: false,
+        finished: false,
+      }, storage()))
+    }
+    return undefined
+  }, [steps, progress, userId, workspaceId, activeView, idleTick])
+
+  function persist(next) {
+    const stored = writeStockTourProgress(userId, workspaceId, next, storage())
+    setProgress(stored)
+    window.dispatchEvent(new Event('one-stock-tour-progress'))
+  }
+
+  return (
+    <SetupCoachMount
+      activeId={activeId}
+      steps={steps}
+      onActive={setActiveId}
+      onOpenStep={onOpenStep}
+      dismissLabel="Skip the tour"
+      onDismiss={function skipTour() {
+        startedRef.current = true
+        persist({ skipped: true, replay: false, finished: false })
+        setActiveId('')
+      }}
+      onFinish={function finishTour() {
+        startedRef.current = true
+        persist({ skipped: false, replay: false, finished: true })
+        setActiveId('')
+      }}
+      tourId="stock"
     />
   )
 }
 
 export function replaySetupGuide() {
   window.dispatchEvent(new Event('one-setup-replay'))
+}
+
+export function replayStockTour() {
+  window.dispatchEvent(new Event('one-stock-tour-replay'))
 }
 
 export function SetupGuideReplayButton() {

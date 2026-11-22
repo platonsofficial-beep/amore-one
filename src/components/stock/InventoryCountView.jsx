@@ -811,7 +811,7 @@ export function InventoryCountView({
   }
 
   return (
-    <section className="inventory-count-page" aria-label={t("Counts")}>
+    <section className="inventory-count-page" aria-label={t("Counts")} data-help="stock.count-page">
       <header className="inventory-count-header">
         <div className="inventory-count-header-copy">
           <h2 className="inventory-count-title">{t("Counts")}</h2>
@@ -823,6 +823,7 @@ export function InventoryCountView({
           <button
             type="button"
             className="primary-btn inventory-count-start-btn"
+            data-help="stock.start-count"
             onClick={() => setIsWizardOpen(true)}
           >
             {t("Start count")}
