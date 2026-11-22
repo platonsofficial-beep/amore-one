@@ -154,6 +154,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
           <button
             type="button"
             className="fpb-area-action-btn"
+            data-help="setup.create-area"
             onClick={handleCreateArea}
             disabled={!isEditing || !newAreaName.trim()}
           >
@@ -213,6 +214,7 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
               key={tableType.id}
               type="button"
               className="fpb-toolbox-add-shape-btn"
+              data-help={tableType.id === basicTableTypes[0]?.id ? 'setup.add-table' : undefined}
               disabled={!isEditing}
               onClick={() => placeTable(tableType)}
             >

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { t } from '../../i18n/i18n'
+import { SetupGuideReplayButton } from '../../setupGuide/SetupGuideUI'
 
 const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.0.0-core'
@@ -115,6 +116,7 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
             )
           })}
         </ul>
+        <SetupGuideReplayButton />
       </div>
     </>
   )

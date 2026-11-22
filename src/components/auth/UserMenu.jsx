@@ -8,6 +8,8 @@ import { resolveUserDisplayName } from '../../lib/userDisplayName'
 import { placeUserMenuPanel } from '../../lib/userMenuPlacement'
 import { readCssPx } from '../../lib/safeInline'
 import { t } from '../../i18n/i18n'
+import { setupGuideAudience } from '../../setupGuide/setupGuide'
+import { replaySetupGuide } from '../../setupGuide/SetupGuideUI'
 
 function presentMemberName(name) {
   const trimmed = `${name ?? ''}`.trim()
@@ -227,6 +229,19 @@ export function UserMenu({
               {action.label}
             </button>
           ))}
+          {setupGuideAudience(role || membership?.role) !== 'none' ? (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setIsOpen(false)
+                replaySetupGuide()
+              }}
+            >
+              {t("Replay setup guide")}
+            </button>
+          ) : null}
           {!isAuthDisabled ? (
             <button
               type="button"

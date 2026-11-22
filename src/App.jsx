@@ -78,6 +78,8 @@ import { ReservationSeatingSelect } from './components/reservations/ReservationS
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
+import { SetupGuideCoachHost, SetupGuideTodaySlot } from './setupGuide/SetupGuideUI'
+import { consumeFloorEditorRequest, requestFloorEditor, writeSetupProgress } from './setupGuide/setupGuide'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
@@ -1264,6 +1266,7 @@ function CommandCenterView({
   quickActionUserId = '',
   quickActionWorkspaceId = '',
   onRunTodayShortcut,
+  setupGuide = null,
 }) {
   const attentionStatus = dataStatus?.attention ?? 'ready'
   const scheduleStatus = dataStatus?.schedule ?? 'ready'
@@ -1283,6 +1286,7 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label={t("Today")}>
+      {setupGuide ? <SetupGuideTodaySlot {...setupGuide} /> : null}
       <TodayQuickActions
         access={quickActionAccess}
         userId={quickActionUserId}
@@ -8052,6 +8056,13 @@ function ReservationWorkspaceProvider({
   const [floorPlanMode, setFloorPlanMode] = useState('view')
 
   useEffect(() => {
+    if (consumeFloorEditorRequest()) setFloorPlanMode('edit')
+    const openEditor = () => setFloorPlanMode('edit')
+    window.addEventListener('one-setup-open-floor', openEditor)
+    return () => window.removeEventListener('one-setup-open-floor', openEditor)
+  }, [])
+
+  useEffect(() => {
     if (floorPlanMode !== 'edit') return
     setHostEditingReservation(null)
     setHostEditForm(null)
@@ -11841,7 +11852,7 @@ function FloorPlanView({
           {canEditFloorPlan ? (
             <>
               <p>{t("Open Reservations, click Edit layout, arrange your tables, then publish.")}</p>
-              <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
+              <button type="button" className="floor-plan-empty-action" data-help="reservations.edit-layout" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
                 {t("Edit layout")}
               </button>
             </>
@@ -25612,12 +25623,42 @@ function App() {
     }
   }, [isAuthDisabled, workspace?.id])
 
+  const openSetupStep = useCallback((step) => {
+    if (!step) return
+    if (step.view === 'settings') {
+      handleActiveViewChange('settings')
+      handleSettingsSectionChange(step.settingsSection)
+      return
+    }
+    if (step.view === 'reservations') {
+      requestFloorEditor()
+      handleActiveViewChange('reservations')
+    }
+  }, [handleActiveViewChange, handleSettingsSectionChange])
+
+  useEffect(() => {
+    const replay = () => {
+      writeSetupProgress(user?.id, activeWorkspaceId, { skipped: false, remindAfter: '', replay: true }, localStorage)
+      window.dispatchEvent(new Event('one-setup-progress'))
+      handleActiveViewChange('today')
+    }
+    window.addEventListener('one-setup-replay', replay)
+    return () => window.removeEventListener('one-setup-replay', replay)
+  }, [user?.id, activeWorkspaceId, handleActiveViewChange])
+
   return (
     <PublishedFloorPlanProvider
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
     <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+      <SetupGuideCoachHost
+        role={permissionAccess}
+        profile={workspaceProfile}
+        positions={positions}
+        seatings={reservationSeatings}
+        onOpenStep={openSetupStep}
+      />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {subscriptionUi.showBanner ? (
         <SubscriptionBanner
@@ -25913,6 +25954,16 @@ function App() {
             quickActionUserId={user?.id || ''}
             quickActionWorkspaceId={activeWorkspaceId || ''}
             onRunTodayShortcut={runTodayShortcut}
+            setupGuide={{
+              role: permissionAccess,
+              userId: user?.id || '',
+              workspaceId: activeWorkspaceId || '',
+              todayKey: currentDateKey,
+              profile: workspaceProfile,
+              positions,
+              seatings: reservationSeatings,
+              onOpenStep: openSetupStep,
+            }}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
               loadStatus: todayDataStatus.stock,
               onRetry: () => retryTodayData('stock'),
