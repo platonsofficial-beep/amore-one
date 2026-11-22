@@ -1,4 +1,4 @@
-import { normalizeOnlineCapacity } from './onlineBooking'
+import { normalizeOnlineCapacity } from './onlineBooking.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const CLOSED_STATUSES = new Set(['Cancelled', 'Not Shown', 'Rejected', 'No Show'])

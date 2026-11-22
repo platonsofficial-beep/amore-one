@@ -19,6 +19,8 @@ jobs:
       - run: npm run lint
       - run: npm run i18n:check
       - run: npm test
+      - name: Booking API loads in plain Node ESM
+        run: node -e "import('./api/online-booking-reminders.js')"
       - run: npm run build
       - name: Install Chrome for the phone viewport matrix
         run: |
