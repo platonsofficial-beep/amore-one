@@ -947,17 +947,23 @@ export async function runPhoneViewportMatrix({
       const navigate = async (width, height) => {
         await setViewport(send, width, height)
         const token = `${page.id}-${width}x${height}-${Date.now()}`
-        await send('Page.navigate', { url: `${baseUrl}&viewportCase=${token}` })
-        const started = Date.now()
-        while (Date.now() - started < 45000) {
-          const located = await send('Runtime.evaluate', {
-            expression: `location.search.includes(${JSON.stringify(token)}) && document.querySelector('.app-shell') ? 'ready' : ''`,
-            returnByValue: true,
-          })
-          if (located.result?.value === 'ready') break
-          await new Promise((resolve) => setTimeout(resolve, 150))
+        const openCase = async () => {
+          await send('Page.navigate', { url: `${baseUrl}&viewportCase=${token}` })
+          const started = Date.now()
+          while (Date.now() - started < 45000) {
+            const located = await send('Runtime.evaluate', {
+              expression: `location.search.includes(${JSON.stringify(token)}) && document.querySelector('.app-shell') ? 'ready' : ''`,
+              returnByValue: true,
+            })
+            if (located.result?.value === 'ready') return true
+            await new Promise((resolve) => setTimeout(resolve, 150))
+          }
+          return false
         }
-        await waitForApp(send)
+        if (!await openCase()) {
+          await send('Page.reload', { ignoreCache: true })
+          if (!await openCase()) await waitForApp(send)
+        }
         await applySimulatedSafeArea(send)
         await new Promise((resolve) => setTimeout(resolve, 200))
       }

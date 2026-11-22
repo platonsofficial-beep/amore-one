@@ -90,6 +90,7 @@ function HostReservationListRow({
   isAttentionFocus = false,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  seatings = [],
 }) {
   const {
     formatReservationGuestName,
@@ -126,6 +127,11 @@ function HostReservationListRow({
     && quickActions.some((action) => action.id === 'call-guest')
   const isCompactTablet = layout === 'compactTablet'
   const metaLine = formatHostListMetaLine(guestCount, tableLabel)
+  const matchedSeating = (seatings ?? []).find((seating) => String(seating.id) === String(reservation.seatingId))
+  const onlineSeatingName = `${reservation.seatingName || matchedSeating?.name || ''}`.trim()
+  const onlineWhen = reservation.source === 'online' && onlineSeatingName
+    ? `${onlineSeatingName} · ${scheduleLabel}`
+    : ''
 
   const handleCardActivate = () => {
     onOpenEdit(reservation)
@@ -230,6 +236,7 @@ function HostReservationListRow({
           ) : null}
           <div className="host-reservation-card-subline">
             <OnlineReservationBadge reservation={reservation} />
+            {onlineWhen ? <span className="host-reservation-online-when">{onlineWhen}</span> : null}
             {useHostQueuePresentation ? (
               <HostQueueReservationDetails
                 reservation={reservation}
@@ -324,6 +331,7 @@ export function HostReservationList({
   timeZone = '',
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  seatings = [],
 }) {
   const operationalSections = useMemo(
     () => (
@@ -571,6 +579,7 @@ export function HostReservationList({
                             isAttentionFocus={String(reservation.id) === focusId}
                             canUndoAutoClose={canUndoAutoClose}
                             onUndoAutoClose={onUndoAutoClose}
+                            seatings={seatings}
                           />
                         ))}
                       </div>
@@ -603,6 +612,7 @@ export function HostReservationList({
                       isAttentionFocus={String(reservation.id) === focusId}
                       canUndoAutoClose={canUndoAutoClose}
                       onUndoAutoClose={onUndoAutoClose}
+                      seatings={seatings}
                     />
                   ))}
                 </div>

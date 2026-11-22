@@ -4,7 +4,9 @@ import { createInitialBuilderState, floorPlanBuilderReducer } from '../floor-pla
 import {
   isOnlineReservation,
   needsVenueCallConfirm,
+  allocatedOnlineCovers,
   normalizeOnlineBookingSettings,
+  splitExceedsDailyTotal,
   normalizeOnlineCapacity,
   onlineBookingUrl,
   slugifyVenueName,
@@ -28,8 +30,19 @@ describe('online booking settings', () => {
       bookingWindowDays: 30,
       minNoticeMinutes: 120,
       venuePhone: '',
+      dailyOnlineCovers: null,
     })
     expect(normalizeOnlineBookingSettings({ auto_confirm: false }).confirmationMethod).toBe('venue_call')
+    expect(normalizeOnlineBookingSettings({ daily_online_covers: 80 }).dailyOnlineCovers).toBe(80)
+    expect(normalizeOnlineBookingSettings({ dailyOnlineCovers: '' }).dailyOnlineCovers).toBeNull()
+  })
+
+  it('blocks a seating split that is over the daily total', () => {
+    const caps = [50, 30]
+    expect(allocatedOnlineCovers(caps)).toBe(80)
+    expect(splitExceedsDailyTotal(caps, 80)).toBe(false)
+    expect(splitExceedsDailyTotal([50, 40], 80)).toBe(true)
+    expect(splitExceedsDailyTotal([50, 40], '')).toBe(false)
   })
 
   it('sums table covers and keeps seating online capacity optional', () => {
