@@ -1,0 +1,235 @@
+import { PHONE_COUNTRIES, findPhoneCountryByIso2 } from '../lib/phoneCountries'
+import { confirmationCopyKey } from '../lib/publicBooking'
+import { getLocale, setLocale, t, uiLocale } from '../i18n/i18n'
+
+function formatDateLabel(dateKey, timeZone) {
+  const at = new Date(`${dateKey}T12:00:00Z`)
+  try {
+    return new Intl.DateTimeFormat(uiLocale(), {
+      timeZone: timeZone || 'UTC',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    }).format(at)
+  } catch {
+    return dateKey
+  }
+}
+
+function reasonText(reason, maxParty) {
+  if (reason === 'email') return t('Enter an email address so we can confirm the reservation.')
+  if (reason === 'name') return t('Enter the name for the reservation.')
+  if (reason === 'phone') return t('Enter a phone number.')
+  if (reason === 'consent') return t('Please agree so the venue can handle the reservation.')
+  if (reason === 'full') return t('That time was just taken. Choose another.')
+  if (reason === 'rate') return t('Please wait a few minutes and try again.')
+  if (reason === 'call_us') return t('Parties larger than {{count}} should call the venue.', { count: maxParty })
+  return t('Online reservations are not available right now.')
+}
+
+export function PublicBookingView({
+  phase = 'book',
+  info = null,
+  step = 'date',
+  dates = [],
+  date = '',
+  party = 2,
+  times = [],
+  timesReady = true,
+  seatingId = '',
+  areaId = '',
+  form = {},
+  error = '',
+  result = null,
+  confirm = null,
+  onDate,
+  onParty,
+  onTime,
+  onArea,
+  onForm,
+  onBack,
+  onNext,
+  onSubmit,
+  onConfirmChoice,
+}) {
+  const locale = getLocale()
+  const venue = info?.venueName || t('Reservations')
+  const dialDefault = info?.phoneCountryCode
+    || findPhoneCountryByIso2(info?.countryCode)?.code
+    || '+30'
+
+  return (
+    <main className="public-booking">
+      <header className="public-booking-top">
+        <div className="public-booking-brand">
+          {info?.logoUrl ? <img src={info.logoUrl} alt="" /> : <span className="public-booking-mark">{'ONE'}</span>}
+          <div>
+            <p>{t('Reservations')}</p>
+            <h1>{venue}</h1>
+          </div>
+        </div>
+        <div className="public-booking-lang" role="group" aria-label={t('Language')}>
+          <button type="button" aria-pressed={locale === 'el'} onClick={() => setLocale('el')}>{'EL'}</button>
+          <button type="button" aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>{'EN'}</button>
+        </div>
+      </header>
+
+      {phase === 'loading' ? <p className="public-booking-status">{t('Loading online reservations…')}</p> : null}
+
+      {phase === 'unavailable' ? (
+        <section className="public-booking-card">
+          <h2>{t('Online reservations are not available right now.')}</h2>
+          {info?.venuePhone ? (
+            <a className="public-booking-primary" href={`tel:${info.venuePhone}`}>{t('Call us')}</a>
+          ) : null}
+        </section>
+      ) : null}
+
+      {phase === 'confirm' ? (
+        <section className="public-booking-card" data-step="confirm">
+          <h2>{confirm?.status === 'Cancelled' ? t('This reservation is cancelled.') : confirm?.status === 'Confirmed' ? t('This reservation is confirmed.') : t('Confirm reservation')}</h2>
+          {confirm?.reason === 'expired' || confirm?.reason === 'invalid' ? (
+            <p>{t('This link is no longer valid.')}</p>
+          ) : (
+            <>
+              <p className="public-booking-summary">{confirm?.guestName}</p>
+              <p>{confirm?.date} · {confirm?.time}</p>
+              <p>{t('{{count}} guest', { count: confirm?.party || 0 })} · {confirm?.areaLabel}</p>
+              {confirm?.status !== 'Confirmed' && confirm?.status !== 'Cancelled' ? (
+                <div className="public-booking-actions">
+                  <button type="button" className="public-booking-primary" onClick={() => onConfirmChoice?.('confirm')}>{t('Confirm')}</button>
+                  <button type="button" className="public-booking-secondary" onClick={() => onConfirmChoice?.('cancel')}>{t('Cancel')}</button>
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
+      ) : null}
+
+      {phase === 'done' && result ? (
+        <section className="public-booking-card" data-step="done">
+          <h2>{t(confirmationCopyKey(result.confirmationMethod || info?.confirmationMethod))}</h2>
+          <p className="public-booking-summary">{result.date} · {result.time}</p>
+          <p>{t('{{count}} guest', { count: result.party })} · {result.areaLabel}</p>
+          {result.smoking ? <p>{t('Smoking')}</p> : <p>{t('Non-smoking')}</p>}
+        </section>
+      ) : null}
+
+      {phase === 'book' ? (
+        <form className="public-booking-card" data-step={step} onSubmit={(event) => { event.preventDefault(); onSubmit?.() }}>
+          <p className="public-booking-step">{t('Book a table')}</p>
+          {step === 'date' ? (
+            <>
+              <h2>{t('Choose a date')}</h2>
+              <div className="public-booking-choice-row">
+                {dates.map((key) => (
+                  <button key={key} type="button" className={key === date ? 'is-selected' : ''} onClick={() => onDate?.(key)}>
+                    {formatDateLabel(key, info?.timeZone)}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+          {step === 'party' || step === 'call' ? (
+            <>
+              <h2>{t('Party size')}</h2>
+              <div className="public-booking-choice-row">
+                {Array.from({ length: Math.max(1, info?.maxPartySize || 8) }, (_, index) => index + 1).map((count) => {
+                  return (
+                    <button key={count} type="button" className={count === party ? 'is-selected' : ''} onClick={() => onParty?.(count)}>{count}</button>
+                  )
+                })}
+                <button type="button" className={step === 'call' ? 'is-selected' : ''} onClick={() => onParty?.((info?.maxPartySize || 8) + 1)}>
+                  {(info?.maxPartySize || 8) + 1}+
+                </button>
+              </div>
+              {step === 'call' ? (
+                <div data-step="call">
+                  <p>{t('Parties larger than {{count}} should call the venue.', { count: info?.maxPartySize || 8 })}</p>
+                  {info?.venuePhone ? <a className="public-booking-primary" href={`tel:${info.venuePhone}`}>{t('Call us')}</a> : null}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+          {step === 'time' ? (
+            <>
+              <h2>{t('Choose a time')}</h2>
+              {!timesReady ? <p>{t('Loading online reservations…')}</p> : null}
+              {timesReady && times.length === 0 ? <p data-step="empty">{t('No times are available on this day.')}</p> : null}
+              <div className="public-booking-stack">
+                {times.map((slot) => {
+                  return (
+                    <button key={slot.seatingId} type="button" className={slot.seatingId === seatingId ? 'is-selected' : ''} onClick={function pickTime() { onTime?.(slot) }}>
+                      <strong>{slot.time}</strong>
+                      <span>{slot.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          ) : null}
+          {step === 'area' ? (
+            <>
+              <h2>{t('Choose an area')}</h2>
+              <div className="public-booking-stack" data-step="areas">
+                {(times.find((slot) => slot.seatingId === seatingId)?.areas ?? []).map((area) => {
+                  return (
+                    <button key={area.id} type="button" className={area.id === areaId ? 'is-selected' : ''} onClick={function pickArea() { onArea?.(area) }}>
+                      <strong>{area.label}</strong>
+                      <span>{area.smoking ? t('Smoking') : t('Non-smoking')}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          ) : null}
+          {step === 'details' ? (
+            <>
+              <h2>{t('Your details')}</h2>
+              <label>
+                <span>{t('Guest name')}</span>
+                <input value={form.name || ''} autoComplete="name" onChange={(event) => onForm?.({ name: event.target.value })} required />
+              </label>
+              <label>
+                <span>{t('Phone')}</span>
+                <span className="public-booking-phone">
+                  <select aria-label={t('Phone')} value={form.dial || dialDefault} onChange={(event) => onForm?.({ dial: event.target.value })}>
+                    {PHONE_COUNTRIES.map((country) => (
+                      <option key={country.iso2} value={country.code}>{country.iso2} {country.code}</option>
+                    ))}
+                  </select>
+                  <input value={form.localPhone || ''} inputMode="tel" autoComplete="tel-national" onChange={(event) => onForm?.({ localPhone: event.target.value })} />
+                </span>
+              </label>
+              <label>
+                <span>{t('Email')}{info?.confirmationMethod === 'email' ? '' : ` (${t('Optional')})`}</span>
+                <input type="email" value={form.email || ''} autoComplete="email" onChange={(event) => onForm?.({ email: event.target.value })} required={info?.confirmationMethod === 'email'} />
+              </label>
+              <label>
+                <span>{t('Note')}</span>
+                <textarea value={form.note || ''} maxLength={500} onChange={(event) => onForm?.({ note: event.target.value })} />
+              </label>
+              <label className="public-booking-consent">
+                <input type="checkbox" checked={Boolean(form.consent)} onChange={(event) => onForm?.({ consent: event.target.checked })} />
+                <span>{t('I agree that the venue may use my name, phone, and email to handle this reservation.')}</span>
+              </label>
+              <label className="public-booking-honeypot" aria-hidden="true">
+                <span>{'Company'}</span>
+                <input tabIndex={-1} autoComplete="off" value={form.honeypot || ''} onChange={(event) => onForm?.({ honeypot: event.target.value })} />
+              </label>
+            </>
+          ) : null}
+          {error ? <p className="public-booking-error" role="alert">{reasonText(error, info?.maxPartySize)}</p> : null}
+          <div className="public-booking-actions">
+            {step !== 'date' ? <button type="button" className="public-booking-secondary" onClick={onBack}>{t('Back')}</button> : null}
+            {step === 'details' ? (
+              <button type="submit" className="public-booking-primary">{t('Request booking')}</button>
+            ) : step !== 'call' ? (
+              <button type="button" className="public-booking-primary" onClick={onNext}>{t('Continue')}</button>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
+    </main>
+  )
+}

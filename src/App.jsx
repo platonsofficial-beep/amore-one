@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { supabase } from './lib/supabaseClient'
 import { getLocale, subscribeLocale, t, uiLocale, upper } from './i18n/i18n'
 import { resolveDemoDisplayName } from './lib/demoAttendance'
 import { applyDemoProfile } from './lib/demoMediaDataset'
@@ -18813,6 +18814,24 @@ function App() {
 
     return () => {
       isMounted = false
+    }
+  }, [activeWorkspaceId, refreshReservations])
+
+  useEffect(() => {
+    if (!supabase || !activeWorkspaceId) return undefined
+    const channel = supabase
+      .channel(`reservations-online:${activeWorkspaceId}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'reservations',
+        filter: `workspace_id=eq.${activeWorkspaceId}`,
+      }, () => {
+        refreshReservations().catch(() => {})
+      })
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
     }
   }, [activeWorkspaceId, refreshReservations])
 
