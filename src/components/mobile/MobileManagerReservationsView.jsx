@@ -88,6 +88,8 @@ export function MobileManagerReservationsView({
   onDateChange,
   onOpenReservationServices = null,
   onCreateReservation,
+  launchCreate = '',
+  onLaunchCreateHandled,
   onEditReservation,
   onQuickStatusUpdate = null,
   role = '',
@@ -225,6 +227,13 @@ export function MobileManagerReservationsView({
       : null)
     setCreateOpen(true)
   }
+
+  useEffect(() => {
+    if (launchCreate !== 'create' && launchCreate !== 'walk-in') return
+    if (!canManage || isLoading || loadFailed) return
+    openCreate(launchCreate)
+    onLaunchCreateHandled?.()
+  }, [launchCreate, canManage, isLoading, loadFailed])
 
   const handleCreate = async (form) => {
     const created = await onCreateReservation?.(form)

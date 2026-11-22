@@ -1,4 +1,5 @@
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
+import { TodayQuickActions } from '../today/TodayQuickActions'
 import { t } from '../../i18n/i18n'
 
 export function MobileHomeView({
@@ -17,6 +18,10 @@ export function MobileHomeView({
   clockCard = null,
   reminderCard = null,
   onOpenTasks,
+  role = '',
+  userId = '',
+  workspaceId = '',
+  onRunTodayShortcut,
 }) {
   const {
     active = 0,
@@ -47,6 +52,17 @@ export function MobileHomeView({
       {reminderCard}
 
       {clockCard}
+
+      {role ? (
+        <section className="mobile-manager-command-block" aria-label={t("Quick actions")}>
+          <TodayQuickActions
+            access={role}
+            userId={userId}
+            workspaceId={workspaceId}
+            onRun={onRunTodayShortcut}
+          />
+        </section>
+      ) : null}
 
       <section className={`mobile-card mobile-shift-card tone-${shiftSummary.tone ?? 'neutral'}`} aria-label={t("Today shift status")}>
         <p className="mobile-card-label">{t("Today shift")}</p>

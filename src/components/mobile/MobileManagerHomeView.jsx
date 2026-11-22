@@ -6,6 +6,7 @@ import { StockLiveCard } from '../stock/StockLiveCard'
 import { OnShiftSheet } from '../today/OnShiftSheet'
 import { PendingValue } from '../common/DataPending'
 import { areaStatus } from '../../lib/loadStatus'
+import { TodayQuickActions } from '../today/TodayQuickActions'
 import { t } from '../../i18n/i18n'
 
 const ATTENTION_PREVIEW_LIMIT = 3
@@ -50,56 +51,6 @@ function MobileManagerStatusCard({ label, value, tone = 'default', onClick, stat
   )
 }
 
-function MobileManagerQuickActions({
-  canOpenReservations,
-  canOpenTasks,
-  canOpenStock,
-  canOpenTeam,
-  canReceiveDeliveries,
-  pendingDeliveries,
-  onOpenReservations,
-  onOpenTasks,
-  onOpenStock,
-  onOpenTeamToday,
-  onReceiveDeliveries,
-}) {
-  return (
-    <div className="mobile-manager-quick-actions is-dense">
-      {canReceiveDeliveries && pendingDeliveries > 0 ? (
-        <button
-          type="button"
-          className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
-          onClick={onReceiveDeliveries}
-        >
-          {t("Receive delivery")}
-        </button>
-      ) : null}
-      <div className="mobile-manager-actions-grid">
-        {canOpenReservations ? (
-          <button type="button" className="mobile-manager-action-btn" onClick={onOpenReservations}>
-            {t("Reservations")}
-          </button>
-        ) : null}
-        {canOpenTasks ? (
-          <button type="button" className="mobile-manager-action-btn" onClick={onOpenTasks}>
-            {t("Operations")}
-          </button>
-        ) : null}
-        {canOpenStock ? (
-          <button type="button" className="mobile-manager-action-btn" onClick={onOpenStock}>
-            {t("Stock")}
-          </button>
-        ) : null}
-        {canOpenTeam ? (
-          <button type="button" className="mobile-manager-action-btn" onClick={onOpenTeamToday}>
-            {t("Team today")}
-          </button>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 export function MobileManagerHomeView({
   venueName = '',
   greeting = '',
@@ -133,6 +84,9 @@ export function MobileManagerHomeView({
   onOpenTasks,
   onOpenTeamToday,
   onOpenReservations,
+  role = '',
+  userId = '',
+  onRunTodayShortcut,
   onAttentionItemClick,
   onCompleteAttentionItem,
   attentionPermissions = {},
@@ -263,18 +217,12 @@ export function MobileManagerHomeView({
           <>
             <div className="mobile-manager-command-divider" aria-hidden="true" />
             <div className="mobile-manager-command-block mobile-manager-command-actions-block">
-              <h2 className="mobile-manager-block-title">{t("Quick actions")}</h2>
-              <MobileManagerQuickActions
-                canOpenReservations={canOpenReservations}
-                canOpenTasks={canOpenTasks}
-                canOpenStock={canOpenStock}
-                canOpenTeam={canOpenTeam}
-                canReceiveDeliveries={canReceiveDeliveries}
-                pendingDeliveries={pendingDeliveries}
-                onOpenReservations={onOpenReservations}
-                onOpenTasks={onOpenTasks}
-                onOpenStock={onOpenStock}
-                onOpenTeamToday={onOpenTeamToday}
+              <TodayQuickActions
+                access={role}
+                userId={userId}
+                workspaceId={workspaceId}
+                onRun={onRunTodayShortcut}
+                showReceiveDelivery={canReceiveDeliveries && pendingDeliveries > 0}
                 onReceiveDeliveries={onReceiveDeliveries}
               />
             </div>
