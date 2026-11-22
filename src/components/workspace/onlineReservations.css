@@ -109,6 +109,16 @@
   min-height: 44px;
 }
 
+.online-booking-slug-input.is-invalid {
+  border-color: var(--one-gold);
+}
+
+.online-booking-slug-hint {
+  margin: 0;
+  color: var(--one-danger);
+  font-weight: 700;
+}
+
 .online-booking-link-row {
   display: flex;
   flex-wrap: wrap;

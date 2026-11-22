@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import {
   allocatedOnlineCovers,
+  commitPublicSlug,
+  draftPublicSlug,
   normalizeDailyOnlineCovers,
   normalizeOnlineCapacity,
   onlineBookingUrl,
@@ -48,6 +50,8 @@ export function OnlineReservationsSection({
 }) {
   const [settings, setSettings] = useState(previewSettings)
   const [notice, setNotice] = useState('')
+  const [slugDraft, setSlugDraft] = useState(null)
+  const [slugHint, setSlugHint] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [qr, setQr] = useState('')
   const [socialFormat, setSocialFormat] = useState('square')
@@ -83,6 +87,7 @@ export function OnlineReservationsSection({
   }, [activeSeatings])
 
   const slug = slugifyVenueName(settings?.slug || venueName)
+  const slugField = slugDraft == null ? slug : slugDraft
   const link = onlineBookingUrl(slug)
 
   useEffect(() => {
@@ -133,21 +138,46 @@ export function OnlineReservationsSection({
   const allocated = allocatedOnlineCovers(capValues)
   const splitOver = splitExceedsDailyTotal(capValues, settings?.dailyOnlineCovers)
 
+  const applySlugDraft = async () => {
+    const committed = commitPublicSlug(slugField)
+    if (!committed) {
+      setSlugHint(t("Enter a link name with at least 3 characters."))
+      return slug
+    }
+    if (committed === slug) {
+      setSlugDraft(null)
+      setSlugHint('')
+      return slug
+    }
+    let taken = false
+    try {
+      taken = await isOnlineBookingSlugTaken(committed, workspaceId)
+    } catch (error) {
+      setSlugHint(error.message)
+      return null
+    }
+    if (taken) {
+      setSlugHint(t("This link name is already used."))
+      return null
+    }
+    setSlugDraft(null)
+    setSlugHint('')
+    update({ slug: committed })
+    return committed
+  }
+
   const save = async (event) => {
     event.preventDefault()
     if (splitExceedsDailyTotal(capValues, settings?.dailyOnlineCovers)) {
       setNotice(t("The seating split is over the daily total."))
       return
     }
+    const nextSlug = await applySlugDraft()
+    if (!nextSlug) return
     setIsSaving(true)
     setNotice('')
     try {
-      const taken = await isOnlineBookingSlugTaken(slug, workspaceId)
-      if (taken) {
-        setNotice(t("This link name is already used."))
-        return
-      }
-      const saved = await saveOnlineBookingSettings(workspaceId, { ...settings, slug }, venueName)
+      const saved = await saveOnlineBookingSettings(workspaceId, { ...settings, slug: nextSlug }, venueName)
       setSettings(saved)
       for (const seating of activeSeatings) {
         const nextCap = normalizeOnlineCapacity(caps[seating.id])
@@ -226,11 +256,23 @@ export function OnlineReservationsSection({
         <label className="form-field">
           <span>{t("Public link name")}</span>
           <input
-            value={settings.slug}
-            onChange={(event) => update({ slug: slugifyVenueName(event.target.value) })}
+            className={slugHint ? 'online-booking-slug-input is-invalid' : 'online-booking-slug-input'}
+            name="booking-public-slug"
+            value={slugField}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            inputMode="text"
             aria-label={t("Public link name")}
-            required
+            aria-invalid={slugHint ? true : undefined}
+            onChange={(event) => {
+              setSlugHint('')
+              setSlugDraft(draftPublicSlug(event.target.value))
+            }}
+            onBlur={() => { void applySlugDraft() }}
           />
+          {slugHint ? <p className="online-booking-slug-hint" role="alert">{slugHint}</p> : null}
         </label>
 
         <div className="online-booking-link-row">

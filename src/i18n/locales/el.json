@@ -1522,6 +1522,7 @@
   "Confirm": "Επιβεβαίωση",
   "Guests book from a public link. Confirm instantly, after the venue calls, or after the guest confirms by email.": "Οι επισκέπτες κλείνουν από δημόσιο σύνδεσμο. Επιβεβαίωση αμέσως, αφού καλέσει το μαγαζί, ή αφού επιβεβαιώσει ο επισκέπτης με email.",
   "Public link name": "Δημόσιο όνομα συνδέσμου",
+  "Enter a link name with at least 3 characters.": "Βάλτε όνομα συνδέσμου με τουλάχιστον 3 χαρακτήρες.",
   "Link copied.": "Ο σύνδεσμος αντιγράφηκε.",
   "Booking QR code": "QR κράτησης",
   "Download QR code": "Λήψη QR",

@@ -11,16 +11,41 @@ function clampInt(value, min, max, fallback) {
   return Math.max(min, Math.min(max, number))
 }
 
-export function slugifyVenueName(name) {
-  const base = `${name ?? ''}`
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+const GREEK_TO_LATIN = {
+  α: 'a', ά: 'a', β: 'b', γ: 'g', δ: 'd', ε: 'e', έ: 'e', ζ: 'z',
+  η: 'i', ή: 'i', θ: 'th', ι: 'i', ί: 'i', ϊ: 'i', ΐ: 'i',
+  κ: 'k', λ: 'l', μ: 'm', ν: 'n', ξ: 'x', ο: 'o', ό: 'o',
+  π: 'p', ρ: 'r', σ: 's', ς: 's', τ: 't',
+  υ: 'y', ύ: 'y', ϋ: 'y', ΰ: 'y',
+  φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o', ώ: 'o',
+}
+
+function latinizeSlug(value) {
+  const lower = `${value ?? ''}`.toLowerCase()
+  let mapped = ''
+  for (const char of lower) mapped += GREEK_TO_LATIN[char] ?? char
+  return mapped.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+/** Live typing. Empty is allowed. Trailing hyphens stay until blur. */
+export function draftPublicSlug(value) {
+  return latinizeSlug(value)
+    .replace(/[.\s_]/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
     .slice(0, 48)
-  return base || 'venue'
+}
+
+/** Blur and save. Empty string means keep the last saved slug. */
+export function commitPublicSlug(value) {
+  const collapsed = draftPublicSlug(value).replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+  if (collapsed.length < 3) return ''
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(collapsed)) return ''
+  return collapsed
+}
+
+export function slugifyVenueName(name) {
+  const collapsed = draftPublicSlug(name).replace(/-+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)
+  return collapsed || 'venue'
 }
 
 export function onlineBookingUrl(slug) {
