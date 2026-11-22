@@ -122,6 +122,22 @@ export function AttendanceClockScreen({
 
   const reload = useCallback(async () => {
     if (!`${workspaceId ?? ''}`.trim()) return
+    if (demoFixtures) {
+      setSnapshot(withDemoAttendance({
+        settings: { venue_lat: 35.185, venue_lng: 33.382 },
+        entries: [],
+        breaks: [],
+        shifts: [],
+      }, {
+        employeeId,
+        todayKey: dateKeyInZone(new Date(), timeZone),
+        area: t("Main Dining"),
+      }))
+      setSettingsLoaded(true)
+      setLoadError('')
+      setMessage('')
+      return
+    }
     const range = attendanceRange(new Date(), timeZone)
     const [settings, entries, shifts] = await Promise.all([
       loadAttendanceSettings(workspaceId),

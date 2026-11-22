@@ -6,6 +6,8 @@
  */
 
 import { supabase } from '../lib/supabaseClient'
+import { isDemoMode } from '../lib/demoMediaDataset'
+import { t } from '../i18n/i18n'
 import {
   normalizeStockCategory,
   normalizeStockItemType,
@@ -258,10 +260,66 @@ export function peekWorkspaceStorageSummaries(workspaceId) {
   return storageSummaryCache.get(asTrimmedString(workspaceId)) ?? null
 }
 
+function demoVenueStorages(workspaceId) {
+  const bar = 'demo-storage-bar'
+  const kitchen = 'demo-storage-kitchen'
+  const balances = [
+    { workspace_storage_id: bar, stock_item_id: 'demo-ouzo', quantity: 8 },
+    { workspace_storage_id: bar, stock_item_id: 'demo-gin', quantity: 5 },
+    { workspace_storage_id: kitchen, stock_item_id: 'demo-oil', quantity: 12 },
+    { workspace_storage_id: kitchen, stock_item_id: 'demo-flour', quantity: 6 },
+  ]
+  return {
+    ...buildWorkspaceStorageSummaries({
+      storages: [
+        { id: bar, workspaceId, name: t("Bar"), active: true, isSupply: true, isBuying: true, sortOrder: 1 },
+        { id: kitchen, workspaceId, name: t("Kitchen"), active: true, isSupply: true, isBuying: true, sortOrder: 2 },
+      ],
+      balances,
+    }),
+    departmentsAvailable: false,
+    buyingAvailable: true,
+    parsAvailable: false,
+    balances,
+  }
+}
+
+function demoVenueProducts(storageId) {
+  const fixture = demoVenueStorages('')
+  const items = [
+    { id: 'demo-ouzo', name: t("Ouzo"), unit: 'btl', category: 'Bar', current_quantity: 8 },
+    { id: 'demo-gin', name: t("Gin"), unit: 'btl', category: 'Bar', current_quantity: 5 },
+    { id: 'demo-oil', name: t("Olive oil"), unit: 'btl', category: 'Kitchen', current_quantity: 12 },
+    { id: 'demo-flour', name: t("Flour"), unit: 'kg', category: 'Kitchen', current_quantity: 6 },
+  ]
+  const products = buildStorageProductRows({
+    balances: fixture.balances.filter((row) => row.workspace_storage_id === storageId),
+    items,
+    pars: [],
+  })
+  let totalQuantity = 0
+  for (const row of products) totalQuantity += row.quantity
+  return Object.freeze({
+    storageId,
+    parsAvailable: true,
+    products: Object.freeze(products),
+    summary: Object.freeze({
+      productCount: products.length,
+      totalQuantity,
+      nonZeroBalanceCount: products.length,
+      inventoryValue: 0,
+    }),
+  })
+}
+
 export async function getWorkspaceStorageSummaries(workspaceId) {
   const normalizedWorkspaceId = asTrimmedString(workspaceId)
   if (!normalizedWorkspaceId) {
     throw new Error('Workspace is required to load storage summaries.')
+  }
+  if (isDemoMode() && !supabase) {
+    const { balances: _balances, ...summary } = demoVenueStorages(normalizedWorkspaceId)
+    return summary
   }
 
   const inflight = storageSummaryInflight.get(normalizedWorkspaceId)
@@ -598,6 +656,9 @@ export function sortStorageProductRows(rows = [], sortKey = 'name-asc') {
 export async function getWorkspaceStorageProducts(workspaceId, storageId) {
   const normalizedWorkspaceId = asTrimmedString(workspaceId)
   const normalizedStorageId = asTrimmedString(storageId)
+  if (isDemoMode() && !supabase && normalizedStorageId) {
+    return demoVenueProducts(normalizedStorageId)
+  }
   if (!normalizedWorkspaceId) {
     throw new Error('Workspace is required to load storage products.')
   }
