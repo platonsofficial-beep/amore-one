@@ -578,7 +578,10 @@ function EmbeddedFloorPlanEditorShell({
               onChange={handleAreaChange}
             />
             {hasUnpublishedDraft ? (
-              <span className="unified-floor-editor-draft-badge" role="status">{t("Unpublished draft")}</span>
+              <>
+                <span className="unified-floor-editor-draft-break" aria-hidden="true" />
+                <span className="unified-floor-editor-draft-badge" role="status">{t("Unpublished draft")}</span>
+              </>
             ) : null}
           </div>
           <div className="unified-floor-editor-toolbar-actions">
