@@ -276,7 +276,8 @@
   flex: 0 0 108px;
 }
 
-.public-booking-consent {
+.public-booking label.public-booking-consent {
+  flex-direction: row;
   align-items: flex-start;
   gap: 10px;
   min-height: 44px;
@@ -323,6 +324,22 @@
   padding: 0 16px;
   text-decoration: none;
   cursor: pointer;
+}
+
+.public-booking-end-notice {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-gold-a12);
+  color: var(--one-text);
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.public-booking-primary:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .public-booking-primary {

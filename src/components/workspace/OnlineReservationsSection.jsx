@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'qrcode'
 import {
+  allocatedOnlineCovers,
+  normalizeDailyOnlineCovers,
+  normalizeOnlineCapacity,
   onlineBookingUrl,
   slugifyVenueName,
+  splitExceedsDailyTotal,
 } from '../../lib/onlineBooking'
+import { seatingWindow } from '../../lib/publicBooking'
 import {
   isOnlineBookingSlugTaken,
   loadOnlineBookingSettings,
   saveOnlineBookingSettings,
 } from '../../services/onlineBookingService'
+import { updateReservationSeating } from '../../services/reservationSeatingService'
 import { t } from '../../i18n/i18n'
 import './onlineReservations.css'
 
@@ -26,22 +32,52 @@ function Toggle({ pressed, label, onClick }) {
   )
 }
 
+function seatingRange(seating) {
+  const window = seatingWindow(seating)
+  if (!window) return seating?.name || ''
+  return `${window.startTime}–${window.endTime}`
+}
+
 export function OnlineReservationsSection({
   workspaceId = '',
   venueName = '',
+  seatings = [],
+  onSeatingsSaved,
+  previewSettings = null,
 }) {
-  const [settings, setSettings] = useState(null)
+  const [settings, setSettings] = useState(previewSettings)
   const [notice, setNotice] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [qr, setQr] = useState('')
+  const [caps, setCaps] = useState({})
+  const activeSeatings = useMemo(() => (
+    (seatings ?? [])
+      .filter((seating) => seating && seating.isActive !== false && seating.id)
+      .slice()
+      .sort((left, right) => `${left.startTime ?? ''}`.localeCompare(`${right.startTime ?? ''}`))
+  ), [seatings])
 
   useEffect(() => {
+    if (previewSettings) return undefined
     let cancelled = false
     loadOnlineBookingSettings(workspaceId, venueName)
       .then((next) => { if (!cancelled) setSettings(next) })
       .catch((error) => { if (!cancelled) setNotice(error.message) })
     return () => { cancelled = true }
-  }, [workspaceId, venueName])
+  }, [workspaceId, venueName, previewSettings])
+
+  useEffect(() => {
+    setCaps((current) => {
+      const next = {}
+      let changed = Object.keys(current).length !== activeSeatings.length
+      activeSeatings.forEach((seating) => {
+        const value = current[seating.id] ?? (seating.onlineCapacity ?? '')
+        next[seating.id] = value
+        if (current[seating.id] !== value) changed = true
+      })
+      return changed ? next : current
+    })
+  }, [activeSeatings])
 
   const slug = slugifyVenueName(settings?.slug || venueName)
   const link = onlineBookingUrl(slug)
@@ -74,8 +110,17 @@ export function OnlineReservationsSection({
     anchor.click()
   }
 
+  const capValues = activeSeatings.map((seating) => caps[seating.id])
+  const dailyTotal = normalizeDailyOnlineCovers(settings?.dailyOnlineCovers)
+  const allocated = allocatedOnlineCovers(capValues)
+  const splitOver = splitExceedsDailyTotal(capValues, settings?.dailyOnlineCovers)
+
   const save = async (event) => {
     event.preventDefault()
+    if (splitExceedsDailyTotal(capValues, settings?.dailyOnlineCovers)) {
+      setNotice(t("The seating split is over the daily total."))
+      return
+    }
     setIsSaving(true)
     setNotice('')
     try {
@@ -86,6 +131,16 @@ export function OnlineReservationsSection({
       }
       const saved = await saveOnlineBookingSettings(workspaceId, { ...settings, slug }, venueName)
       setSettings(saved)
+      for (const seating of activeSeatings) {
+        const nextCap = normalizeOnlineCapacity(caps[seating.id])
+        if (nextCap === normalizeOnlineCapacity(seating.onlineCapacity)) continue
+        await updateReservationSeating({
+          workspaceId,
+          id: seating.id,
+          seating: { ...seating, onlineCapacity: caps[seating.id] },
+        })
+      }
+      if (onSeatingsSaved) await onSeatingsSaved()
       setNotice(t("Online reservations saved."))
     } catch (error) {
       setNotice(error.code === 'slug-taken' ? t("This link name is already used.") : error.message)
@@ -98,7 +153,7 @@ export function OnlineReservationsSection({
     return <div className="staff-status-banner">{t("Loading online reservations…")}</div>
   }
 
-  const noticeIsError = /used|unable|error|required/i.test(notice)
+  const noticeIsError = splitOver || /used|unable|error|required/i.test(notice)
 
   return (
     <section className="online-booking-panel" aria-label={t("Online reservations")}>
@@ -217,6 +272,59 @@ export function OnlineReservationsSection({
           {t("Parties larger than the online limit are asked to call the venue.")}
         </p>
 
+        <label className="form-field">
+          <span>{t("Total online covers per day")}</span>
+          <input
+            type="number"
+            min="1"
+            max="9999"
+            inputMode="numeric"
+            value={settings.dailyOnlineCovers ?? ''}
+            aria-label={t("Total online covers per day")}
+            onChange={(event) => update({ dailyOnlineCovers: event.target.value })}
+          />
+        </label>
+
+        <div className="online-booking-split">
+          <p className="workspace-section-subtitle">{t("Split that total across the seatings.")}</p>
+          {activeSeatings.length === 0 ? (
+            <p className="workspace-section-subtitle">{t("Add an active seating to split online covers.")}</p>
+          ) : activeSeatings.map((seating) => {
+            const label = seatingRange(seating)
+            return (
+              <label key={seating.id} className="online-booking-split-row">
+                <span>
+                  <strong>{label}</strong>
+                  {seating.name ? <small>{seating.name}</small> : null}
+                </span>
+                <input
+                  type="number"
+                  min="1"
+                  max="9999"
+                  inputMode="numeric"
+                  value={caps[seating.id] ?? ''}
+                  aria-label={t("Online covers for {{window}}", { window: label })}
+                  onChange={(event) => setCaps((current) => ({ ...current, [seating.id]: event.target.value }))}
+                />
+              </label>
+            )
+          })}
+          <p
+            className={`online-booking-allocated${splitOver ? ' is-over' : ''}`}
+            role="status"
+            data-step="allocated"
+          >
+            {dailyTotal == null
+              ? t("Allocated {{used}}", { used: allocated })
+              : t("Allocated {{used}} of {{total}}", { used: allocated, total: dailyTotal })}
+          </p>
+          {splitOver ? (
+            <p className="online-booking-allocated is-over" role="alert">
+              {t("The seating split is over the daily total.")}
+            </p>
+          ) : null}
+        </div>
+
         {notice ? (
           <div className={`staff-status-banner${noticeIsError ? ' auth-banner-error' : ''}`} role="status">
             {notice}
@@ -224,7 +332,7 @@ export function OnlineReservationsSection({
         ) : null}
 
         <div className="online-booking-actions">
-          <button type="submit" className="primary-btn" disabled={isSaving}>
+          <button type="submit" className="primary-btn" disabled={isSaving || splitOver}>
             {isSaving ? t("Saving…") : t("Save online reservations")}
           </button>
         </div>

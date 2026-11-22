@@ -29,12 +29,15 @@ export async function sendBookingEmail(payload, { kind = 'received', locale = 'e
   if (!key || !from) throw new Error('Email is not configured.')
   const mail = buildPublicBookingEmail({
     kind,
-    locale,
+    locale: payload.locale || locale,
     venueName: payload.venueName,
     guestName: payload.guestName,
     date: payload.date,
     time: payload.time,
     party: payload.party,
+    seatingName: payload.seatingName,
+    startTime: payload.startTime,
+    endTime: payload.endTime,
     areaLabel: payload.areaLabel,
     smoking: Boolean(payload.smoking),
     confirmationMethod: payload.confirmationMethod,

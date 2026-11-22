@@ -26467,6 +26467,8 @@ function App() {
             onlineBookingProps={{
               workspaceId: activeWorkspaceId,
               venueName: workspaceProfile.businessName || workspace?.name || '',
+              seatings: reservationSeatings,
+              onSeatingsSaved: refreshReservationSeatings,
             }}
             workspace={workspace}
             businessProfileProps={{

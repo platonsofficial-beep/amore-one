@@ -1535,6 +1535,13 @@
   "Guests book from a public link. Bookings are confirmed automatically unless the party is larger than the online limit.": "Οι επισκέπτες κλείνουν από δημόσιο σύνδεσμο. Οι κρατήσεις επιβεβαιώνονται αυτόματα, εκτός αν η παρέα ξεπερνά το online όριο.",
   "Save online reservations": "Αποθήκευση online κρατήσεων",
   "Online reservations saved.": "Οι online κρατήσεις αποθηκεύτηκαν.",
+  "Total online covers per day": "Συνολικά online άτομα ανά ημέρα",
+  "Split that total across the seatings.": "Μοιράστε το σύνολο στα seatings.",
+  "Add an active seating to split online covers.": "Προσθέστε ενεργό seating για να μοιράσετε τα online άτομα.",
+  "Online covers for {{window}}": "Online άτομα για {{window}}",
+  "Allocated {{used}}": "Δεσμευμένα {{used}}",
+  "Allocated {{used}} of {{total}}": "Δεσμευμένα {{used}} από {{total}}",
+  "The seating split is over the daily total.": "Το μοίρασμα στα seatings ξεπερνά το ημερήσιο σύνολο.",
   "This link name is already used.": "Αυτό το όνομα συνδέσμου χρησιμοποιείται ήδη.",
   "Loading online reservations…": "Φόρτωση online κρατήσεων…",
   "Online capacity (max covers)": "Online χωρητικότητα (μέγιστα άτομα)",
@@ -4566,5 +4573,8 @@
   "Few seats left": "Λίγες θέσεις",
   "Seating full": "Πλήρες",
   "Your table is until {{time}}": "Το τραπέζι είναι δικό σας μέχρι τις {{time}}",
+  "Your booking is for the {{window}} seating. Please have the table free by {{end}} for the next guests.": "Η κράτησή σας είναι για το seating {{window}}. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις {{end}} για τους επόμενους επισκέπτες.",
+  "I understand": "Το κατάλαβα",
+  "Please confirm that you understand when the table must be free.": "Επιβεβαιώστε ότι καταλάβατε πότε πρέπει να ελευθερωθεί το τραπέζι.",
   "This seating is full": "Αυτό το σερβίρισμα είναι πλήρες"
 }

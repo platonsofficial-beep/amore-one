@@ -1535,6 +1535,13 @@
   "Guests book from a public link. Bookings are confirmed automatically unless the party is larger than the online limit.": "Guests book from a public link. Bookings are confirmed automatically unless the party is larger than the online limit.",
   "Save online reservations": "Save online reservations",
   "Online reservations saved.": "Online reservations saved.",
+  "Total online covers per day": "Total online covers per day",
+  "Split that total across the seatings.": "Split that total across the seatings.",
+  "Add an active seating to split online covers.": "Add an active seating to split online covers.",
+  "Online covers for {{window}}": "Online covers for {{window}}",
+  "Allocated {{used}}": "Allocated {{used}}",
+  "Allocated {{used}} of {{total}}": "Allocated {{used}} of {{total}}",
+  "The seating split is over the daily total.": "The seating split is over the daily total.",
   "This link name is already used.": "This link name is already used.",
   "Loading online reservations…": "Loading online reservations…",
   "Online capacity (max covers)": "Online capacity (max covers)",
@@ -4566,5 +4573,8 @@
   "Few seats left": "Few left",
   "Seating full": "Full",
   "Your table is until {{time}}": "Your table is until {{time}}",
+  "Your booking is for the {{window}} seating. Please have the table free by {{end}} for the next guests.": "Your booking is for the {{window}} seating. Please have the table free by {{end}} for the next guests.",
+  "I understand": "I understand",
+  "Please confirm that you understand when the table must be free.": "Please confirm that you understand when the table must be free.",
   "This seating is full": "This seating is full"
 }

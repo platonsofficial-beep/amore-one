@@ -68,7 +68,34 @@ export function normalizeOnlineBookingSettings(record, { venueName = '' } = {}) 
       DEFAULT_ONLINE_NOTICE_MINUTES,
     ),
     venuePhone: `${record?.venuePhone ?? record?.venue_phone ?? ''}`.trim(),
+    dailyOnlineCovers: normalizeDailyOnlineCovers(
+      record?.dailyOnlineCovers ?? record?.daily_online_covers,
+    ),
   }
+}
+
+export function normalizeDailyOnlineCovers(value) {
+  if (value === '' || value === null || value === undefined) return null
+  const number = Math.trunc(Number(value))
+  if (!Number.isFinite(number) || number < 1) return null
+  return Math.min(number, 9999)
+}
+
+export function allocatedOnlineCovers(capacities = []) {
+  return (capacities ?? []).reduce((sum, value) => {
+    const cap = normalizeOnlineCapacity(
+      value && typeof value === 'object'
+        ? (value.onlineCapacity ?? value.online_capacity)
+        : value,
+    )
+    return sum + (cap ?? 0)
+  }, 0)
+}
+
+export function splitExceedsDailyTotal(capacities, dailyTotal) {
+  const total = normalizeDailyOnlineCovers(dailyTotal)
+  if (total == null) return false
+  return allocatedOnlineCovers(capacities) > total
 }
 
 export function normalizeOnlineCapacity(value) {

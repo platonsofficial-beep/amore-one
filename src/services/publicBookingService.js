@@ -1,3 +1,4 @@
+import { getLocale } from '../i18n/i18n'
 import { supabase } from '../lib/supabaseClient'
 
 const CLIENT_KEY = 'one.publicBooking.client'
@@ -56,6 +57,8 @@ export async function createPublicReservation(slug, input) {
     p_email: input.email || '',
     p_note: input.note || '',
     p_consent: Boolean(input.consent),
+    p_understand: Boolean(input.understand),
+    p_locale: getLocale() === 'el' ? 'el' : 'en',
     p_honeypot: input.honeypot || '',
     p_client_key: clientKey(),
   })

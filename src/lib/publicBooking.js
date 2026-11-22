@@ -130,6 +130,21 @@ export function countsTowardOnlineCapacity(reservation) {
   return !CLOSED_STATUSES.has(`${reservation?.status ?? ''}`)
 }
 
+export function usedOnlineCoversForDate(reservations = [], dateKey = '') {
+  return (reservations ?? []).reduce((sum, reservation) => {
+    if (!countsTowardOnlineCapacity(reservation)) return sum
+    if (`${reservation.date ?? reservation.reservation_date ?? ''}`.slice(0, 10) !== `${dateKey}`.slice(0, 10)) return sum
+    const party = Math.trunc(Number(reservation.party ?? reservation.party_size ?? reservation.guests) || 0)
+    return sum + Math.max(0, party)
+  }, 0)
+}
+
+function tighterAvailability(left, right) {
+  if (left === 'full' || right === 'full') return 'full'
+  if (left === 'few' || right === 'few') return 'few'
+  return 'available'
+}
+
 export function usedOnlineCovers(reservations = [], { seatingId = '', dateKey = '', areaId = '' } = {}) {
   return (reservations ?? []).reduce((sum, reservation) => {
     if (!countsTowardOnlineCapacity(reservation)) return sum
@@ -244,6 +259,7 @@ export function availablePublicSlots({
   now = new Date(),
   timeZone = 'UTC',
   minNoticeMinutes = 0,
+  dailyOnlineCovers = null,
 } = {}) {
   const covers = Math.trunc(Number(party) || 0)
   if (covers < 1) return []
@@ -251,6 +267,11 @@ export function availablePublicSlots({
   if (weekday == null) return []
   const openAreas = visibleOnlineAreas(areas)
   if (openAreas.length === 0) return []
+  const dayState = seatingAvailabilityState(
+    { onlineCapacity: dailyOnlineCovers },
+    usedOnlineCoversForDate(reservations, dateKey),
+    covers,
+  )
 
   return (seatings ?? []).filter((seating) => seating?.isActive !== false && seating?.id).flatMap((seating) => {
     const days = Array.isArray(seating.daysOfWeek ?? seating.days_of_week)
@@ -260,7 +281,10 @@ export function availablePublicSlots({
     const window = seatingWindow(seating)
     if (!window) return []
     const seatingUsed = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey })
-    const state = seatingAvailabilityState(seating, seatingUsed, covers)
+    const state = tighterAvailability(
+      seatingAvailabilityState(seating, seatingUsed, covers),
+      dayState,
+    )
     const areasOpen = openAreas.filter((area) => {
       const cap = areaCapFor(seating, area.id)
       const used = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey, areaId: area.id })
@@ -333,6 +357,7 @@ export function validatePublicReservation(input, info) {
   }
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { ok: false, reason: 'email' }
   if (!input?.consent) return { ok: false, reason: 'consent' }
+  if (!input?.understand) return { ok: false, reason: 'understand' }
 
   const dates = listBookableDateKeys({
     now: input.now,
@@ -369,6 +394,7 @@ export function validatePublicReservation(input, info) {
     now: input.now,
     timeZone: info.timeZone,
     minNoticeMinutes: info.minNoticeMinutes,
+    dailyOnlineCovers: info.dailyOnlineCovers,
   })
   const card = cards[0]
   if (!card || card.state === 'full') return { ok: false, reason: 'full' }
@@ -428,4 +454,13 @@ export function confirmationCopyKey(method) {
   if (method === 'instant') return 'Your reservation is confirmed.'
   if (method === 'email') return 'Check your email to confirm this reservation.'
   return 'The venue will call you to confirm.'
+}
+
+export function seatingEndNotice(start, end, locale = 'en') {
+  if (!start || !end) return ''
+  const window = `${start}–${end}`
+  if (locale === 'el') {
+    return `Η κράτησή σας είναι για το seating ${window}. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις ${end} για τους επόμενους επισκέπτες.`
+  }
+  return `Your booking is for the ${window} seating. Please have the table free by ${end} for the next guests.`
 }

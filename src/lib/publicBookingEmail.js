@@ -1,4 +1,4 @@
-import { formatPublicBookingWhen } from './publicBooking.js'
+import { formatPublicBookingWhen, seatingEndNotice } from './publicBooking.js'
 
 function escapeHtml(value) {
   return `${value ?? ''}`
@@ -21,6 +21,7 @@ export function buildPublicBookingEmail({
   time = '',
   party = 1,
   seatingName = '',
+  startTime = '',
   endTime = '',
   areaLabel = '',
   smoking = false,
@@ -37,6 +38,7 @@ export function buildPublicBookingEmail({
     ? (el ? 'Καπνιστές' : 'Smoking')
     : (el ? 'Μη καπνιστές' : 'Non-smoking')
   const confirmUrl = token ? publicConfirmUrl(slug, token) : ''
+  const hold = escapeHtml(seatingEndNotice(startTime, endTime, el ? 'el' : 'en'))
   const title = kind === 'reminder'
     ? (el ? 'Επιβεβαιώστε την κράτηση' : 'Confirm your reservation')
     : confirmationMethod === 'instant'
@@ -68,7 +70,7 @@ export function buildPublicBookingEmail({
             <p style="margin:0 0 8px;color:#f3d27a;letter-spacing:0.14em;font-size:12px;">${venue}</p>
             <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-family:Inter, Arial, Helvetica, sans-serif;">${title}</h1>
             <p style="margin:0 0 18px;color:#a9c0d6;font-family:Arial, sans-serif;font-size:15px;line-height:1.5;">${guest ? `${guest}, ` : ''}${intro}</p>
-            <p style="margin:0;font-family:Arial, sans-serif;font-size:16px;"><strong>${when}</strong><br>${seatingName ? `${escapeHtml(seatingName)} · ` : ''}${escapeHtml(String(party))} · ${area}${area ? ` · ${smokingLabel}` : ''}${endTime ? `<br>${el ? `Το τραπέζι είναι δικό σας μέχρι τις ${escapeHtml(endTime)}` : `Your table is until ${escapeHtml(endTime)}`}` : ''}</p>
+            <p style="margin:0;font-family:Arial, sans-serif;font-size:16px;"><strong>${when}</strong><br>${seatingName ? `${escapeHtml(seatingName)} · ` : ''}${escapeHtml(String(party))} · ${area}${area ? ` · ${smokingLabel}` : ''}${hold ? `<br>${hold}` : ''}</p>
             ${actions}
           </td></tr>
         </table>

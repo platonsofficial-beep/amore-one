@@ -39,7 +39,19 @@ function toRow(workspaceId, settings) {
     booking_window_days: settings.bookingWindowDays,
     min_notice_minutes: settings.minNoticeMinutes,
     venue_phone: settings.venuePhone,
+    daily_online_covers: settings.dailyOnlineCovers,
   }
+}
+
+function withoutDaily(row) {
+  const next = { ...row }
+  delete next.daily_online_covers
+  return next
+}
+
+function isMissingDailyColumn(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return message.includes('daily_online_covers')
 }
 
 export async function loadOnlineBookingSettings(workspaceId, venueName = '') {
@@ -107,6 +119,21 @@ export async function saveOnlineBookingSettings(workspaceId, draft, venueName = 
 
   if (error) {
     if (isMissingTableError(error)) return settings
+    if (isMissingDailyColumn(error)) {
+      const retry = await supabase
+        .from(TABLE)
+        .upsert(withoutDaily(toRow(normalizedWorkspaceId, settings)), { onConflict: 'workspace_id' })
+        .select('*')
+        .single()
+      if (retry.error) {
+        if (isMissingTableError(retry.error)) return settings
+        throw new Error(retry.error.message || 'Unable to save online reservations.')
+      }
+      return {
+        ...normalizeOnlineBookingSettings(retry.data, { venueName }),
+        dailyOnlineCovers: settings.dailyOnlineCovers,
+      }
+    }
     throw new Error(error.message || 'Unable to save online reservations.')
   }
 

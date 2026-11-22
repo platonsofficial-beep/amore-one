@@ -28,6 +28,7 @@ export function PublicBookingApp({
   const [timesReady, setTimesReady] = useState(preview ? true : false)
   const [seatingId, setSeatingId] = useState(preview?.seatingId ?? '')
   const [arrival, setArrival] = useState(preview?.arrival ?? '')
+  const [startTime, setStartTime] = useState(preview?.startTime ?? '')
   const [endTime, setEndTime] = useState(preview?.endTime ?? '')
   const [seatingName, setSeatingName] = useState(preview?.seatingName ?? '')
   const [areaId, setAreaId] = useState(preview?.areaId ?? '')
@@ -130,6 +131,10 @@ export function PublicBookingApp({
 
   const submit = async () => {
     setError('')
+    if (!form.understand) {
+      setError('understand')
+      return
+    }
     const phone = `${form.dial || ''}${form.localPhone || ''}`.replace(/[^\d+]/g, '')
     const response = await createPublicReservation(slug, {
       date,
@@ -142,6 +147,7 @@ export function PublicBookingApp({
       email: form.email,
       note: form.note,
       consent: form.consent,
+      understand: form.understand,
       honeypot: form.honeypot,
     })
     if (!response?.ok) {
@@ -162,6 +168,7 @@ export function PublicBookingApp({
         date,
         time: arrival,
         seatingName,
+        startTime: card?.startTime || startTime,
         endTime,
         party,
         areaLabel: area?.label,
@@ -171,6 +178,7 @@ export function PublicBookingApp({
       setResult({
         ...response,
         seatingName: response.seatingName || seatingName,
+        startTime: response.startTime || card?.startTime || startTime,
         endTime: response.endTime || endTime,
         time: response.time || arrival,
       })
@@ -206,6 +214,7 @@ export function PublicBookingApp({
       onTime={(slot) => {
         setSeatingId(slot.seatingId)
         setArrival('')
+        setStartTime(slot.startTime || '')
         setEndTime(slot.endTime || '')
         setSeatingName(slot.name || '')
         setFullNotice(slot.state === 'full')
@@ -216,6 +225,7 @@ export function PublicBookingApp({
         const card = times.find((slot) => slot.seatingId === choice.seatingId)
         setSeatingId(choice.seatingId || '')
         setArrival(choice.time || '')
+        setStartTime(choice.startTime || card?.startTime || '')
         setEndTime(choice.endTime || card?.endTime || '')
         setSeatingName(choice.seatingName || card?.name || '')
         setAreaId('')
@@ -231,6 +241,7 @@ export function PublicBookingApp({
         const keepsArea = (slot.areas ?? []).some((area) => area.id === areaId)
         setSeatingId(slot.seatingId)
         setSeatingName(slot.name || '')
+        setStartTime(slot.startTime || '')
         setEndTime(slot.endTime || '')
         setArrival(slot.slots?.[0] || '')
         setFullNotice(false)

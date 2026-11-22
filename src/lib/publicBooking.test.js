@@ -77,6 +77,17 @@ describe('public booking availability', () => {
     expect(full[0].state).toBe('full')
     expect(full[0].slots).toEqual([])
 
+    const dayFull = availablePublicSlots({
+      ...INFO,
+      dailyOnlineCovers: 6,
+      reservations: [{ source: 'online', seatingId: 'other', date: '2026-07-10', party: 4, status: 'Confirmed' }],
+      dateKey: '2026-07-10',
+      party: 4,
+      now: NOW,
+    })
+    expect(dayFull[0].state).toBe('full')
+    expect(dayFull[0].slots).toEqual([])
+
     const areaFull = availablePublicSlots({
       ...INFO,
       reservations: [{ source: 'online', seatingId: 'dinner', date: '2026-07-10', areaId: 'terrace', party: 4, status: 'Pending' }],
@@ -104,6 +115,7 @@ describe('public booking availability', () => {
     expect(accepted.reservation.status).toBe('Pending')
     expect(accepted.reservation.areaLabel).toBe('Βεράντα')
     expect(validatePublicReservation({ ...draft(), honeypot: 'spam' }, INFO)).toEqual({ ok: true, ignored: true })
+    expect(validatePublicReservation({ ...draft(), understand: false }, INFO).reason).toBe('understand')
   })
 })
 
@@ -166,6 +178,8 @@ describe('public booking email', () => {
       time: '20:00',
       party: 4,
       areaLabel: 'Βεράντα',
+      startTime: '19:00',
+      endTime: '21:00',
       smoking: true,
       confirmationMethod: 'email',
       slug: 'amore',
@@ -177,6 +191,7 @@ describe('public booking email', () => {
     expect(mail.html).toContain('action=cancel')
     expect(mail.html).toContain('Παρασκευή 10 Ιουλίου · 20:00')
     expect(mail.html).toContain('Καπνιστές')
+    expect(mail.html).toContain('Η κράτησή σας είναι για το seating 19:00–21:00. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις 21:00 για τους επόμενους επισκέπτες.')
     expect(mail.html).not.toContain('2026-07-10')
     expect(mail.html).not.toContain('<script')
   })
@@ -199,6 +214,8 @@ describe('public booking wiring', () => {
     expect(sql).toContain('grant execute')
     expect(sql).toContain('to anon')
     expect(sql).toContain("source = 'online'")
+    expect(sql).toContain('daily_online_covers')
+    expect(sql).toContain('p_understand')
     expect(sql).not.toMatch(/apply this file/i)
   })
 })
@@ -216,6 +233,7 @@ function draft() {
     email: 'elena@example.com',
     note: 'Window',
     consent: true,
+    understand: true,
     honeypot: '',
   }
 }

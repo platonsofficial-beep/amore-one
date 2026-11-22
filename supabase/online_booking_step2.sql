@@ -22,6 +22,21 @@
 alter table public.reservations add column if not exists guest_email text not null default '';
 alter table public.reservations add column if not exists online_area_id text not null default '';
 alter table public.reservations add column if not exists guest_consent_at timestamptz;
+alter table public.reservations add column if not exists guest_locale text not null default 'en';
+
+alter table public.workspace_online_booking
+  add column if not exists daily_online_covers integer;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'workspace_online_booking_daily_covers_check'
+  ) then
+    alter table public.workspace_online_booking
+      add constraint workspace_online_booking_daily_covers_check
+      check (daily_online_covers is null or (daily_online_covers >= 1 and daily_online_covers <= 9999));
+  end if;
+end $$;
 alter table public.reservations add column if not exists booking_email_sent_at timestamptz;
 alter table public.reservations add column if not exists email_reminder_sent_at timestamptz;
 
@@ -138,6 +153,7 @@ begin
     'maxPartySize', v.max_party_size,
     'bookingWindowDays', v.booking_window_days,
     'minNoticeMinutes', v.min_notice_minutes,
+    'dailyOnlineCovers', v.daily_online_covers,
     'areas', v_areas,
     'seatings', v_seatings
   );
@@ -209,6 +225,7 @@ declare
   v_dow int;
   v_layout jsonb := '{}'::jsonb;
   v_seatings jsonb := '[]'::jsonb;
+  v_day_used integer := 0;
 begin
   v := public.public_booking_settings(p_slug);
   if v is null or v.workspace_id is null then
@@ -237,6 +254,13 @@ begin
   end if;
   v_dow := extract(dow from p_date)::int;
 
+  select coalesce(sum(r.party_size), 0) into v_day_used
+  from public.reservations r
+  where r.workspace_id = v.workspace_id
+    and r.source = 'online'
+    and r.reservation_date = p_date
+    and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show');
+
   select layout_json into v_layout
   from public.floor_plans
   where workspace_id = v.workspace_id and is_active = true
@@ -255,25 +279,36 @@ begin
       'durationMinutes', s.duration_minutes,
       'isActive', true,
       'state', case
-        when s.online_capacity is null then 'available'
-        when s.online_capacity - (
-          select coalesce(sum(r.party_size), 0)
-          from public.reservations r
-          where r.workspace_id = v.workspace_id
-            and r.source = 'online'
-            and r.seating_id = s.id
-            and r.reservation_date = p_date
-            and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
-        ) < p_party then 'full'
-        when s.online_capacity - (
-          select coalesce(sum(r.party_size), 0)
-          from public.reservations r
-          where r.workspace_id = v.workspace_id
-            and r.source = 'online'
-            and r.seating_id = s.id
-            and r.reservation_date = p_date
-            and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
-        ) <= greatest(p_party, ceil(s.online_capacity * 0.25)) then 'few'
+        when (
+          v.daily_online_covers is not null
+          and v.daily_online_covers - v_day_used < p_party
+        ) or (
+          s.online_capacity is not null
+          and s.online_capacity - (
+            select coalesce(sum(r.party_size), 0)
+            from public.reservations r
+            where r.workspace_id = v.workspace_id
+              and r.source = 'online'
+              and r.seating_id = s.id
+              and r.reservation_date = p_date
+              and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
+          ) < p_party
+        ) then 'full'
+        when (
+          v.daily_online_covers is not null
+          and v.daily_online_covers - v_day_used <= greatest(p_party, ceil(v.daily_online_covers * 0.25))
+        ) or (
+          s.online_capacity is not null
+          and s.online_capacity - (
+            select coalesce(sum(r.party_size), 0)
+            from public.reservations r
+            where r.workspace_id = v.workspace_id
+              and r.source = 'online'
+              and r.seating_id = s.id
+              and r.reservation_date = p_date
+              and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
+          ) <= greatest(p_party, ceil(s.online_capacity * 0.25))
+        ) then 'few'
         else 'available'
       end,
       'slots', (
@@ -320,6 +355,8 @@ end;
 $$;
 
 drop function if exists public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text);
+drop function if exists public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text);
+drop function if exists public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text, boolean);
 
 create or replace function public.create_public_reservation(
   p_slug text,
@@ -334,7 +371,9 @@ create or replace function public.create_public_reservation(
   p_consent boolean,
   p_honeypot text,
   p_client_key text,
-  p_arrival text
+  p_arrival text,
+  p_understand boolean,
+  p_locale text
 )
 returns jsonb
 language plpgsql
@@ -366,6 +405,9 @@ declare
   v_status text;
   v_venue text := '';
   v_ip text := '';
+  v_day_used integer := 0;
+  v_locale text := 'en';
+  v_start text := '';
   u uuid;
 begin
   if nullif(btrim(coalesce(p_honeypot, '')), '') is not null then
@@ -379,6 +421,10 @@ begin
   if p_consent is not true then
     return jsonb_build_object('ok', false, 'reason', 'consent');
   end if;
+  if p_understand is not true then
+    return jsonb_build_object('ok', false, 'reason', 'understand');
+  end if;
+  v_locale := case when btrim(coalesce(p_locale, '')) = 'el' then 'el' else 'en' end;
 
   v_name := btrim(coalesce(p_name, ''));
   v_phone := regexp_replace(coalesce(p_phone, ''), '[^0-9+]', '', 'g');
@@ -467,6 +513,7 @@ begin
   end if;
   v_cap := v_assigned.online_capacity;
   v_area_cap := nullif(v_assigned.online_area_caps->>v_area, '')::int;
+  v_start := to_char(v_assigned.start_time::time, 'HH24:MI');
   v_end := to_char(v_assigned.start_time::time + make_interval(mins => v_assigned.duration_minutes), 'HH24:MI');
 
   select layout_json into v_layout
@@ -502,7 +549,15 @@ begin
     and online_area_id = v_area
     and status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show');
 
+  select coalesce(sum(party_size), 0) into v_day_used
+  from public.reservations
+  where workspace_id = v.workspace_id
+    and source = 'online'
+    and reservation_date = p_date
+    and status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show');
+
   if (v_cap is not null and v_used + p_party > v_cap)
+    or (v.daily_online_covers is not null and v_day_used + p_party > v.daily_online_covers)
     or (v_area_cap is not null and v_area_used + p_party > v_area_cap) then
     return jsonb_build_object('ok', false, 'reason', 'full', 'seatingId', v_assigned.id);
   end if;
@@ -516,14 +571,14 @@ begin
     workspace_id, guest_name, phone, guest_email, reservation_date, reservation_time,
     party_size, guests, area, online_area_id, status, notes, seating_id,
     source, confirmation_method, confirm_token, confirm_token_expires_at, email_confirm_hours,
-    guest_consent_at
+    guest_consent_at, guest_locale
   ) values (
     v.workspace_id, v_name, v_phone, v_email, p_date, v_time,
     p_party, p_party, v_area_label, v_area, v_status, v_note, v_assigned.id,
     'online', v.confirmation_method, v_token,
     case when v_token is null then null else (p_date::timestamp + v_time::time) at time zone v_tz end,
     case when v.confirmation_method = 'email' then v.email_confirm_hours else null end,
-    now()
+    now(), v_locale
   )
   returning id into v_id;
 
@@ -568,7 +623,9 @@ begin
     'time', v_time,
     'seatingId', v_assigned.id,
     'seatingName', v_assigned.name,
+    'startTime', v_start,
     'endTime', v_end,
+    'locale', v_locale,
     'party', p_party,
     'areaLabel', v_area_label,
     'smoking', v_smoking,
@@ -593,6 +650,9 @@ declare
   v public.workspace_online_booking;
   r public.reservations;
   v_next text;
+  v_start text := '';
+  v_end text := '';
+  v_seating text := '';
 begin
   v := public.public_booking_settings(p_slug);
   if v is null or v.workspace_id is null or nullif(btrim(coalesce(p_token, '')), '') is null then
@@ -610,9 +670,18 @@ begin
     return jsonb_build_object('ok', false, 'reason', 'invalid');
   end if;
 
+  select
+    coalesce(s.name, ''),
+    to_char(s.start_time::time, 'HH24:MI'),
+    to_char(s.start_time::time + make_interval(mins => s.duration_minutes), 'HH24:MI')
+  into v_seating, v_start, v_end
+  from public.reservation_seatings s
+  where s.id = r.seating_id;
+
   if r.status in ('Confirmed', 'Cancelled') then
     return jsonb_build_object('ok', true, 'status', r.status, 'guestName', r.guest_name,
-      'date', r.reservation_date, 'time', r.reservation_time, 'party', r.party_size, 'areaLabel', r.area);
+      'date', r.reservation_date, 'time', r.reservation_time, 'party', r.party_size, 'areaLabel', r.area,
+      'seatingName', v_seating, 'startTime', v_start, 'endTime', v_end);
   end if;
 
   if r.confirm_token_expires_at is not null and r.confirm_token_expires_at < now() then
@@ -633,7 +702,10 @@ begin
     'date', r.reservation_date,
     'time', r.reservation_time,
     'party', r.party_size,
-    'areaLabel', r.area
+    'areaLabel', r.area,
+    'seatingName', v_seating,
+    'startTime', v_start,
+    'endTime', v_end
   );
 end;
 $$;
@@ -686,7 +758,7 @@ begin
     from due
     where r.id = due.id
     returning r.id, r.guest_email, r.guest_name, r.confirm_token, r.reservation_date,
-      r.reservation_time, r.party_size, r.area, r.workspace_id
+      r.reservation_time, r.party_size, r.area, r.workspace_id, r.seating_id, r.guest_locale
   )
   select coalesce(jsonb_agg(jsonb_build_object(
     'id', m.id,
@@ -697,6 +769,10 @@ begin
     'time', m.reservation_time,
     'party', m.party_size,
     'areaLabel', m.area,
+    'locale', case when m.guest_locale = 'el' then 'el' else 'en' end,
+    'seatingName', coalesce(s.name, ''),
+    'startTime', to_char(s.start_time::time, 'HH24:MI'),
+    'endTime', to_char(s.start_time::time + make_interval(mins => s.duration_minutes), 'HH24:MI'),
     'slug', b.slug,
     'venueName', coalesce((
       select coalesce(nullif(btrim(p.business_name), ''), w.name)
@@ -709,7 +785,8 @@ begin
   )), '[]'::jsonb)
   into v_rows
   from marked m
-  join public.workspace_online_booking b on b.workspace_id = m.workspace_id;
+  join public.workspace_online_booking b on b.workspace_id = m.workspace_id
+  left join public.reservation_seatings s on s.id = m.seating_id;
 
   return coalesce(v_rows, '[]'::jsonb);
 end;
@@ -737,6 +814,9 @@ declare
   r public.reservations;
   v_slug text;
   v_venue text := '';
+  v_start text := '';
+  v_end text := '';
+  v_seating text := '';
 begin
   select * into r
   from public.reservations
@@ -754,6 +834,13 @@ begin
   left join public.workspace_profiles p on p.workspace_id = w.id
   where w.id = r.workspace_id
   limit 1;
+  select
+    coalesce(s.name, ''),
+    to_char(s.start_time::time, 'HH24:MI'),
+    to_char(s.start_time::time + make_interval(mins => s.duration_minutes), 'HH24:MI')
+  into v_seating, v_start, v_end
+  from public.reservation_seatings s
+  where s.id = r.seating_id;
   return jsonb_build_object(
     'ok', true,
     'id', r.id,
@@ -763,6 +850,10 @@ begin
     'time', r.reservation_time,
     'party', r.party_size,
     'areaLabel', r.area,
+    'locale', case when r.guest_locale = 'el' then 'el' else 'en' end,
+    'seatingName', v_seating,
+    'startTime', v_start,
+    'endTime', v_end,
     'slug', v_slug,
     'venueName', v_venue,
     'confirmationMethod', r.confirmation_method,
@@ -785,7 +876,7 @@ $$;
 
 revoke all on function public.get_public_booking_info(text) from public;
 revoke all on function public.get_public_availability(text, date, integer) from public;
-revoke all on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text) from public;
+revoke all on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text, boolean, text) from public;
 revoke all on function public.confirm_public_reservation(text, text, text) from public;
 revoke all on function public.claim_public_booking_reminders() from public;
 revoke all on function public.release_public_booking_reminder(uuid) from public;
@@ -794,7 +885,7 @@ revoke all on function public.mark_public_booking_email_sent(uuid, text) from pu
 
 grant execute on function public.get_public_booking_info(text) to anon, authenticated;
 grant execute on function public.get_public_availability(text, date, integer) to anon, authenticated;
-grant execute on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text) to anon, authenticated;
+grant execute on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text, boolean, text) to anon, authenticated;
 grant execute on function public.confirm_public_reservation(text, text, text) to anon, authenticated;
 grant execute on function public.claim_public_booking_reminders() to service_role;
 grant execute on function public.release_public_booking_reminder(uuid) to service_role;

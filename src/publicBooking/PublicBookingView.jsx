@@ -43,6 +43,18 @@ function AreaChip({ smoking }) {
   )
 }
 
+function SeatingEndNotice({ start, end }) {
+  if (!start || !end) return null
+  return (
+    <p className="public-booking-end-notice" data-step="end-notice">
+      {t('Your booking is for the {{window}} seating. Please have the table free by {{end}} for the next guests.', {
+        window: `${start}–${end}`,
+        end,
+      })}
+    </p>
+  )
+}
+
 function BookingSummary({
   venue,
   date,
@@ -53,6 +65,7 @@ function BookingSummary({
   status,
   timeZone,
   seatingName = '',
+  startTime = '',
   endTime = '',
 }) {
   const confirmed = status === 'Confirmed'
@@ -61,7 +74,7 @@ function BookingSummary({
       <p className="public-booking-summary-venue">{venue}</p>
       <p className="public-booking-summary-when">{formatPublicBookingWhen(date, time, getLocale(), timeZone)}</p>
       {seatingName ? <p>{seatingName}</p> : null}
-      {endTime ? <p data-step="until">{t('Your table is until {{time}}', { time: endTime })}</p> : null}
+      <SeatingEndNotice start={startTime} end={endTime} />
       <p>{t('{{count}} guest', { count: party || 0 })}</p>
       {areaLabel ? <p>{areaLabel}</p> : null}
       <AreaChip smoking={smoking} />
@@ -77,6 +90,7 @@ function reasonText(reason, maxParty) {
   if (reason === 'name') return t('Enter the name for the reservation.')
   if (reason === 'phone') return t('Enter a phone number.')
   if (reason === 'consent') return t('Please agree so the venue can handle the reservation.')
+  if (reason === 'understand') return t('Please confirm that you understand when the table must be free.')
   if (reason === 'full') return t('This seating is full')
   if (reason === 'rate') return t('Please wait a few minutes and try again.')
   if (reason === 'call_us') return t('Parties larger than {{count}} should call the venue.', { count: maxParty })
@@ -123,11 +137,15 @@ export function PublicBookingView({
     onArrival?.({
       time: value,
       seatingId: assigned.seating?.seatingId || assigned.seating?.id || '',
+      startTime: window?.startTime || '',
       endTime: window?.endTime || '',
       seatingName: assigned.seating?.name || '',
       contained: assigned.contained,
     })
   }
+  const selectedCard = (times ?? []).find((slot) => slot.seatingId === seatingId)
+  const noticeStart = selectedCard?.startTime || ''
+  const noticeEnd = selectedCard?.endTime || endTime || ''
   const venue = info?.venueName || t('Reservations')
   const dialDefault = info?.phoneCountryCode
     || findPhoneCountryByIso2(info?.countryCode)?.code
@@ -177,6 +195,7 @@ export function PublicBookingView({
                 status={confirm?.status === 'Confirmed' ? 'Confirmed' : 'Pending'}
                 timeZone={info?.timeZone}
                 seatingName={confirm?.seatingName}
+                startTime={confirm?.startTime}
                 endTime={confirm?.endTime}
               />
               {confirm?.status !== 'Confirmed' && confirm?.status !== 'Cancelled' ? (
@@ -203,6 +222,7 @@ export function PublicBookingView({
             status={result.status || (result.confirmationMethod === 'instant' ? 'Confirmed' : 'Pending')}
             timeZone={info?.timeZone}
             seatingName={result.seatingName}
+            startTime={result.startTime}
             endTime={result.endTime}
           />
         </section>
@@ -326,7 +346,7 @@ export function PublicBookingView({
                   </select>
                 </span>
               </label>
-              {endTime && !showFull ? <p data-step="until">{t('Your table is until {{time}}', { time: endTime })}</p> : null}
+              {noticeStart && noticeEnd && !showFull ? <SeatingEndNotice start={noticeStart} end={noticeEnd} /> : null}
               {showFull ? (
                 <div data-step="full" className="public-booking-full">
                   <p>{t('This seating is full')}</p>
@@ -398,9 +418,18 @@ export function PublicBookingView({
                 <span>{t('Note')}</span>
                 <textarea value={form.note || ''} maxLength={500} onChange={(event) => onForm?.({ note: event.target.value })} />
               </label>
+              <SeatingEndNotice start={noticeStart} end={noticeEnd} />
               <label className="public-booking-consent">
                 <input type="checkbox" checked={Boolean(form.consent)} onChange={(event) => onForm?.({ consent: event.target.checked })} />
                 <span>{t('I agree that the venue may use my name, phone, and email to handle this reservation.')}</span>
+              </label>
+              <label className="public-booking-consent">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.understand)}
+                  onChange={(event) => onForm?.({ understand: event.target.checked })}
+                />
+                <span>{t('I understand')}</span>
               </label>
               <label className="public-booking-honeypot" aria-hidden="true">
                 <span>{'Company'}</span>
@@ -418,7 +447,7 @@ export function PublicBookingView({
               </>
             ) : null}
             {step === 'details' ? (
-              <button type="submit" className="public-booking-primary">{t('Request booking')}</button>
+              <button type="submit" className="public-booking-primary" disabled={!form.understand}>{t('Request booking')}</button>
             ) : step !== 'call' && !(step === 'time' && (timesReady && times.length === 0 || !arrival)) ? (
               <button type="button" className="public-booking-primary" onClick={onNext}>{t('Continue')}</button>
             ) : null}
