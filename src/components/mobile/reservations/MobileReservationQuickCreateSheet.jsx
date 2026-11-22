@@ -13,7 +13,7 @@ import {
 import { currentReservationQuarterTime, normalizeReservationDateKey, normalizeReservationTimeValue } from '../../../lib/timeFormatUtils'
 import { validateReservationFormFields } from '../../../lib/reservationFormValidation'
 import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
-import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
+import { getActiveSeatingsForDate, getSeatingWindowTimeOptions } from '../../../lib/reservationSeatings'
 import { getLayoutUnitsForArea } from '../../../lib/reservationTableOptions'
 import {
   applyHostQuickCreateFormPatch,
@@ -262,6 +262,12 @@ function HostReservationQuickCreateFields({
           <HostQuickCreateTimePicker
             value={form.time}
             onChange={(time) => updateForm({ time })}
+            allowedSlots={form.seatingId
+              ? getSeatingWindowTimeOptions(
+                activeSeatings.find((entry) => entry.id === form.seatingId),
+                { dateKey: form.date || todayKey },
+              )
+              : null}
           />
         </label>
 

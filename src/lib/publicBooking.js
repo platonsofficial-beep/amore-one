@@ -1,4 +1,5 @@
 import { normalizeOnlineCapacity } from './onlineBooking.js'
+import { getSeatingWindowTimeOptions, seatingScheduleForDate } from './reservationSeatings.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const CLOSED_STATUSES = new Set(['Cancelled', 'Not Shown', 'Rejected', 'No Show'])
@@ -186,7 +187,19 @@ export function minutesToTime(total) {
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
 }
 
-export function seatingWindow(seating) {
+export function seatingWindow(seating, dateKey = '') {
+  if (dateKey) {
+    const schedule = seatingScheduleForDate(seating, dateKey)
+    if (!schedule?.open) return null
+    return {
+      start: schedule.start,
+      end: schedule.end,
+      last: schedule.last,
+      startTime: schedule.startTime,
+      endTime: schedule.endTime,
+      lastArrivalTime: schedule.lastArrivalTime,
+    }
+  }
   const start = timeToMinutes(seating?.startTime ?? seating?.start_time)
   const rawDuration = Number(seating?.durationMinutes ?? seating?.duration_minutes)
   const duration = Number.isFinite(rawDuration) && rawDuration >= 15 ? rawDuration : 120
@@ -199,7 +212,8 @@ export function seatingWindow(seating) {
   }
 }
 
-export function arrivalSlotsForSeating(seating) {
+export function arrivalSlotsForSeating(seating, dateKey = '') {
+  if (dateKey) return getSeatingWindowTimeOptions(seating, { dateKey })
   const window = seatingWindow(seating)
   if (!window) return []
   const last = window.end - ARRIVAL_END_BUFFER_MINUTES
@@ -223,11 +237,15 @@ export function isLastSeatingOfDay(seatings = [], seating) {
   })
 }
 
+function explicitLastArrival(seating) {
+  return timeToMinutes(seating?.lastArrival ?? seating?.lastArrivalTime ?? seating?.last_arrival)
+}
+
 export function arrivalHourOptions(seating) {
   const window = seatingWindow(seating)
   if (!window) return []
   const hours = []
-  const last = window.end - 1
+  const last = explicitLastArrival(seating) ?? window.end - 1
   for (let hour = Math.floor(window.start / 60); hour <= Math.floor(last / 60); hour += 1) {
     hours.push(String(hour).padStart(2, '0'))
   }
@@ -238,33 +256,39 @@ export function arrivalMinuteOptions(seating, hour) {
   const window = seatingWindow(seating)
   const hourNumber = Number(hour)
   if (!window || !Number.isInteger(hourNumber)) return []
+  const lastBound = explicitLastArrival(seating)
   const minutes = []
   for (let minute = 0; minute < 60; minute += 1) {
     const total = hourNumber * 60 + minute
-    if (total >= window.start && total < window.end) minutes.push(String(minute).padStart(2, '0'))
+    const inside = lastBound != null
+      ? total >= window.start && total <= lastBound
+      : total >= window.start && total < window.end
+    if (inside) minutes.push(String(minute).padStart(2, '0'))
   }
   return minutes
 }
 
-export function seatingContainsTime(seating, time) {
-  const window = seatingWindow(seating)
+export function seatingContainsTime(seating, time, dateKey = '') {
+  const window = seatingWindow(seating, dateKey)
   const minutes = timeToMinutes(time)
   if (!window || minutes == null) return false
+  if (dateKey && window.last != null) return minutes >= window.start && minutes <= window.last
   return minutes >= window.start && minutes < window.end
 }
 
-export function assignSeatingForArrival(seatings = [], time) {
+export function assignSeatingForArrival(seatings = [], time, dateKey = '') {
   const minutes = timeToMinutes(time)
-  const list = (seatings ?? []).filter((seating) => seating && seating.isActive !== false && seatingWindow(seating))
+  const list = (seatings ?? []).filter((seating) => seating && seating.isActive !== false && seatingWindow(seating, dateKey))
   if (minutes == null || list.length === 0) return { seating: null, contained: false }
   const containing = list
-    .filter((seating) => seatingContainsTime(seating, time))
-    .sort((left, right) => seatingWindow(left).start - seatingWindow(right).start)
+    .filter((seating) => seatingContainsTime(seating, time, dateKey))
+    .sort((left, right) => seatingWindow(left, dateKey).start - seatingWindow(right, dateKey).start)
   if (containing[0]) return { seating: containing[0], contained: true }
+  if (dateKey) return { seating: null, contained: false }
   let best = null
   let bestDistance = Infinity
   list.forEach((seating) => {
-    const window = seatingWindow(seating)
+    const window = seatingWindow(seating, dateKey)
     const distance = Math.min(Math.abs(minutes - window.start), Math.abs(minutes - window.end))
     const better = distance < bestDistance
       || (distance === bestDistance && best && window.start < seatingWindow(best).start)
@@ -309,11 +333,7 @@ export function availablePublicSlots({
   )
 
   return (seatings ?? []).filter((seating) => seating?.isActive !== false && seating?.id).flatMap((seating) => {
-    const days = Array.isArray(seating.daysOfWeek ?? seating.days_of_week)
-      ? (seating.daysOfWeek ?? seating.days_of_week).map(Number)
-      : [0, 1, 2, 3, 4, 5, 6]
-    if (!days.includes(weekday)) return []
-    const window = seatingWindow(seating)
+    const window = seatingWindow(seating, dateKey)
     if (!window) return []
     const seatingUsed = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey })
     const state = tighterAvailability(
@@ -325,7 +345,7 @@ export function availablePublicSlots({
       const used = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey, areaId: area.id })
       return hasCoverRoom(cap, used, covers)
     })
-    const slots = arrivalSlotsForSeating(seating).filter((time) => (
+    const slots = arrivalSlotsForSeating(seating, dateKey).filter((time) => (
       isSlotAfterNotice({ dateKey, time, now, minNoticeMinutes, timeZone })
     ))
     const bookable = state !== 'full' && areasOpen.length > 0 && slots.length > 0
@@ -335,6 +355,7 @@ export function availablePublicSlots({
       name: seating.name,
       startTime: window.startTime,
       endTime: window.endTime,
+      lastArrival: window.lastArrivalTime || '',
       time: window.startTime,
       state: bookable ? state : 'full',
       slots: bookable ? slots : [],
@@ -411,14 +432,10 @@ export function validatePublicReservation(input, info) {
     timeZone: info.timeZone,
   })) return { ok: false, reason: 'time' }
 
-  const daySeatings = (info.seatings ?? []).filter((seating) => {
-    const days = Array.isArray(seating.daysOfWeek ?? seating.days_of_week)
-      ? (seating.daysOfWeek ?? seating.days_of_week).map(Number)
-      : [0, 1, 2, 3, 4, 5, 6]
-    const weekday = weekdayIndexInTimeZone(input.date, info.timeZone)
-    return seating?.isActive !== false && days.includes(weekday)
-  })
-  const assigned = assignSeatingForArrival(daySeatings, arrival)
+  const daySeatings = (info.seatings ?? []).filter((seating) => (
+    seating?.isActive !== false && Boolean(seatingScheduleForDate(seating, input.date)?.open)
+  ))
+  const assigned = assignSeatingForArrival(daySeatings, arrival, input.date)
   if (!assigned.seating || !assigned.contained) return { ok: false, reason: 'time' }
   const cards = availablePublicSlots({
     seatings: [assigned.seating],
@@ -483,6 +500,61 @@ export function formatPublicBookingWhen(dateKey, time, locale = 'en', timeZone =
   const value = (type) => parts.find((part) => part.type === type)?.value || ''
   const day = `${value('weekday')} ${value('day')} ${value('month')}`.trim()
   return clock ? `${day} · ${clock}` : day
+}
+
+export function seatingDaysPreviewState(params) {
+  if (!import.meta.env.DEV) return null
+  const search = params instanceof URLSearchParams ? params : new URLSearchParams(`${params || ''}`)
+  if (search.get('seatingDaysPreview') !== '1') return null
+  const weekend = search.get('day') === 'weekend'
+  const dateKey = weekend ? '2026-11-22' : '2026-11-19'
+  const dayHours = {}
+  ;[1, 2, 3, 4, 5].forEach((day) => {
+    dayHours[day] = { open: true, start: '18:00', end: '23:00', lastArrival: '' }
+  })
+  ;[0, 6].forEach((day) => {
+    dayHours[day] = { open: true, start: '18:00', end: '23:30', lastArrival: '' }
+  })
+  const seating = {
+    id: 'dinner',
+    name: 'Dinner',
+    startTime: '18:00',
+    durationMinutes: 330,
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    isActive: true,
+    dayHours,
+  }
+  const areas = [{ id: 'main', label: 'Main Dining' }]
+  const times = availablePublicSlots({
+    seatings: [seating],
+    areas,
+    dateKey,
+    party: 2,
+    now: new Date('2026-11-01T08:00:00Z'),
+    timeZone: 'Europe/Nicosia',
+    minNoticeMinutes: 0,
+  })
+  return {
+    info: {
+      ok: true,
+      venueName: 'SENTIO',
+      timeZone: 'Europe/Nicosia',
+      maxPartySize: 8,
+      bookingWindowDays: 60,
+      phoneCountryCode: '+357',
+      confirmationMethod: 'staff',
+      areas,
+      seatings: [seating],
+    },
+    phase: 'book',
+    step: 'time',
+    date: dateKey,
+    party: 2,
+    times,
+    seatingId: times[0]?.seatingId || '',
+    arrival: times[0]?.slots?.[0] || '',
+    dates: [dateKey],
+  }
 }
 
 export function confirmationCopyKey(method) {

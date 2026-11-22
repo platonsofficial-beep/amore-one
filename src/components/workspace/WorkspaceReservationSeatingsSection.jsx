@@ -1,7 +1,9 @@
 import {
   buildSeatingFormDefaults,
+  copyDayHours,
   DAY_OF_WEEK_OPTIONS,
   formatSeatingDaysLabel,
+  normalizeDayHours,
   normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
 import { normalizeReservationAutoCloseTime } from '../../lib/reservationAutoClose'
@@ -65,28 +67,116 @@ function HostDiningTimerSettings() {
   )
 }
 
-function SeatingDaysToggle({ daysOfWeek, onChange }) {
+const WEEK_FROM_MONDAY = [1, 2, 3, 4, 5, 6, 0]
+
+function SeatingDayHours({ form, onFormChange }) {
+  const hours = normalizeDayHours(form.dayHours, form)
+  const [selectedDay, setSelectedDay] = useState(() => hours[1]?.open ? 1 : DAY_OF_WEEK_OPTIONS.find((day) => hours[day.value]?.open)?.value ?? 1)
+  const [copyDays, setCopyDays] = useState([])
+  const day = hours[selectedDay] || hours[1]
+  const applyHours = (nextHours) => {
+    onFormChange({
+      ...form,
+      dayHours: nextHours,
+      daysOfWeek: DAY_OF_WEEK_OPTIONS.map((entry) => entry.value).filter((value) => nextHours[value]?.open),
+    })
+  }
+  const patchDay = (patch) => {
+    applyHours({
+      ...hours,
+      [selectedDay]: { ...day, ...patch },
+    })
+  }
+
   return (
-    <div className="workspace-seating-days" role="group" aria-label={t("Days of week")}>
-      {DAY_OF_WEEK_OPTIONS.map((day) => {
-        const isActive = daysOfWeek.includes(day.value)
-        return (
-          <button
-            key={day.value}
-            type="button"
-            className={`workspace-seating-day-chip${isActive ? ' is-active' : ''}`}
-            aria-pressed={isActive}
-            onClick={() => {
-              const next = isActive
-                ? daysOfWeek.filter((entry) => entry !== day.value)
-                : [...daysOfWeek, day.value].sort((left, right) => left - right)
-              onChange(next.length > 0 ? next : [day.value])
-            }}
-          >
-            {t(day.label)}
-          </button>
-        )
-      })}
+    <div className="seating-day-hours">
+      <span>{t("Hours by day")}</span>
+      <div className="workspace-seating-days" role="group" aria-label={t("Hours by day")}>
+        {WEEK_FROM_MONDAY.map((value) => DAY_OF_WEEK_OPTIONS.find((option) => option.value === value)).map((option) => {
+          const row = hours[option.value]
+          const selected = option.value === selectedDay
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`workspace-seating-day-chip${row?.open ? ' is-active' : ''}${selected ? ' is-selected' : ''}`}
+              aria-pressed={Boolean(row?.open)}
+              onClick={() => setSelectedDay(option.value)}
+            >
+              {t(option.label)}
+            </button>
+          )
+        })}
+      </div>
+      <label className="seating-day-open">
+        <input
+          type="checkbox"
+          checked={Boolean(day?.open)}
+          onChange={(event) => patchDay({ open: event.target.checked })}
+        />
+        <span>{day?.open ? t("Open this day") : t("Closed this day")}</span>
+      </label>
+      <div className="seating-day-times">
+        <label className="form-field">
+          <span>{t("Start time")}</span>
+          <ReservationTimeSelect
+            value={day?.start || form.startTime}
+            onChange={(start) => patchDay({ start })}
+          />
+        </label>
+        <label className="form-field">
+          <span>{t("End time")}</span>
+          <ReservationTimeSelect
+            value={day?.end || ''}
+            onChange={(end) => patchDay({ end })}
+          />
+        </label>
+        <label className="form-field">
+          <span>{t("Last arrival")}</span>
+          <ReservationTimeSelect
+            value={day?.lastArrival || ''}
+            onChange={(lastArrival) => patchDay({ lastArrival })}
+          />
+          <small>{t("Blank means 30 minutes before the end.")}</small>
+          {day?.lastArrival ? (
+            <button type="button" className="ghost-btn workspace-action-btn" onClick={() => patchDay({ lastArrival: '' })}>
+              {t("Use the usual last arrival")}
+            </button>
+          ) : null}
+        </label>
+      </div>
+      <div className="seating-day-copy">
+        <span>{t("Copy to other days")}</span>
+        <div className="workspace-seating-days" role="group" aria-label={t("Copy to other days")}>
+          {WEEK_FROM_MONDAY.filter((value) => value !== selectedDay).map((value) => DAY_OF_WEEK_OPTIONS.find((option) => option.value === value)).map((option) => {
+            const picked = copyDays.includes(option.value)
+            return (
+              <button
+                key={option.value}
+                type="button"
+                className={`workspace-seating-day-chip${picked ? ' is-active' : ''}`}
+                aria-pressed={picked}
+                onClick={() => setCopyDays((current) => (
+                  picked ? current.filter((value) => value !== option.value) : [...current, option.value]
+                ))}
+              >
+                {t(option.label)}
+              </button>
+            )
+          })}
+        </div>
+        <button
+          type="button"
+          className="ghost-btn workspace-action-btn"
+          disabled={copyDays.length === 0}
+          onClick={() => {
+            applyHours(copyDayHours(hours, selectedDay, copyDays))
+            setCopyDays([])
+          }}
+        >
+          {t("Copy hours")}
+        </button>
+      </div>
     </div>
   )
 }
@@ -249,11 +339,7 @@ export function WorkspaceReservationSeatingsSection({
         </div>
 
         <div className="form-field full-width seating-hours-editor-days">
-          <span>{t("Days of week")}</span>
-          <SeatingDaysToggle
-            daysOfWeek={form.daysOfWeek}
-            onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
-          />
+          <SeatingDayHours form={form} onFormChange={onFormChange} />
         </div>
 
         <OnlineCapacityFields form={form} onFormChange={onFormChange} />
@@ -516,12 +602,8 @@ export function WorkspaceReservationSeatingsSection({
             </label>
           </div>
 
-          <div className="form-field full-width">
-            <span>{t("Days of week")}</span>
-            <SeatingDaysToggle
-              daysOfWeek={form.daysOfWeek}
-              onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
-            />
+          <div className="form-field full-width seating-hours-editor-days">
+            <SeatingDayHours form={form} onFormChange={onFormChange} />
           </div>
 
           <OnlineCapacityFields form={form} onFormChange={onFormChange} />

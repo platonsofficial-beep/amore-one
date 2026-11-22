@@ -48,6 +48,7 @@ export function normalizeReservationSeatingInput(record) {
     startTime,
     durationMinutes,
     daysOfWeek: normalizeDaysOfWeek(record.daysOfWeek ?? record.days_of_week),
+    dayHours: record.dayHours ?? record.day_hours ?? null,
     sortOrder: Math.max(0, Number(record.sortOrder ?? record.sort_order) || 0),
     isActive: record.isActive ?? record.is_active ?? true,
     onlineCapacity: normalizeOnlineCapacity(record.onlineCapacity ?? record.online_capacity),
@@ -89,6 +90,7 @@ export function validateReservationSeatingForm(form) {
       startTime,
       durationMinutes: Math.max(15, Math.min(480, durationMinutes)),
       daysOfWeek,
+      dayHours: form?.dayHours ?? form?.day_hours ?? null,
       sortOrder: Math.max(0, Number(form?.sortOrder ?? form?.sort_order) || 0),
       isActive: form?.isActive ?? form?.is_active ?? true,
       onlineCapacity: normalizeOnlineCapacity(form?.onlineCapacity ?? form?.online_capacity),
@@ -109,6 +111,7 @@ export function serializeReservationSeatingRow(seating, workspaceId) {
     start_time: normalized.startTime,
     duration_minutes: normalized.durationMinutes,
     days_of_week: normalized.daysOfWeek,
+    ...(normalized.dayHours ? { day_hours: normalizeDayHours(normalized.dayHours, normalized) } : {}),
     sort_order: normalized.sortOrder,
     is_active: normalized.isActive,
     online_capacity: normalized.onlineCapacity,
@@ -162,12 +165,97 @@ export function getDayOfWeekFromDateKey(dateKey) {
   return parsed.getDay()
 }
 
+function clockMinutes(value) {
+  const match = `${value ?? ''}`.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59) return null
+  return hours * 60 + minutes
+}
+
+function legacyDayRow(seating, day) {
+  const start = seating.startTime
+  const startMinutes = clockMinutes(start) ?? 19 * 60
+  const endMinutes = startMinutes + (Number(seating.durationMinutes) || DEFAULT_RESERVATION_DURATION_MINUTES)
+  return {
+    open: seating.daysOfWeek.includes(day),
+    start,
+    end: formatMinutesAsTime(endMinutes),
+    lastArrival: '',
+  }
+}
+
+export function normalizeDayHours(raw, seating) {
+  const source = raw && typeof raw === 'object' ? raw : {}
+  const hours = {}
+  ALL_DAYS_OF_WEEK.forEach((day) => {
+    const legacy = legacyDayRow(seating, day)
+    const spec = source[day] ?? source[String(day)]
+    if (!spec || typeof spec !== 'object') {
+      hours[day] = legacy
+      return
+    }
+    const start = normalizeReservationTimeValue(spec.start ?? spec.startTime) || legacy.start
+    let end = normalizeReservationTimeValue(spec.end ?? spec.endTime) || legacy.end
+    const startMinutes = clockMinutes(start)
+    let endMinutes = clockMinutes(end)
+    if (startMinutes != null && (endMinutes == null || endMinutes <= startMinutes)) {
+      endMinutes = Math.min(startMinutes + 15, (24 * 60) - 1)
+      end = formatMinutesAsTime(endMinutes)
+    }
+    hours[day] = {
+      open: spec.open === undefined ? legacy.open : Boolean(spec.open),
+      start,
+      end,
+      lastArrival: normalizeReservationTimeValue(spec.lastArrival ?? spec.last_arrival) || '',
+    }
+  })
+  return hours
+}
+
+export function seatingScheduleForDate(seating, dateKey) {
+  const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
+  const day = getDayOfWeekFromDateKey(dateKey)
+  if (!normalized || day == null) return null
+  const row = normalizeDayHours(normalized.dayHours, normalized)[day]
+  const start = clockMinutes(row.start)
+  let end = clockMinutes(row.end)
+  if (start == null || end == null) return null
+  if (end <= start) end = Math.min(start + 15, (24 * 60) - 1)
+  let last = row.lastArrival ? clockMinutes(row.lastArrival) : end - 30
+  if (last == null || last < start) last = start
+  if (last > end) last = end
+  return {
+    open: row.open,
+    start,
+    end,
+    last,
+    startTime: row.start,
+    endTime: formatMinutesAsTime(end),
+    lastArrivalTime: formatMinutesAsTime(last),
+  }
+}
+
+export function copyDayHours(hours, fromDay, toDays = []) {
+  const source = hours?.[fromDay] ?? hours?.[String(fromDay)]
+  if (!source) return hours
+  const next = { ...hours }
+  toDays.forEach((day) => {
+    const key = Number(day)
+    if (!Number.isInteger(key) || key === Number(fromDay)) return
+    next[key] = { ...source }
+  })
+  return next
+}
+
 export function isSeatingActiveOnDate(seating, dateKey) {
   const normalized = normalizeReservationSeating(seating)
   if (!normalized?.isActive) return false
 
   const dayOfWeek = getDayOfWeekFromDateKey(dateKey)
   if (dayOfWeek === null) return false
+  if (normalized.dayHours) return Boolean(seatingScheduleForDate(normalized, dateKey)?.open)
   return normalized.daysOfWeek.includes(dayOfWeek)
 }
 
@@ -441,6 +529,7 @@ export function buildSeatingFormDefaults(seating = null) {
       startTime: '19:00',
       durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
       daysOfWeek: [...ALL_DAYS_OF_WEEK],
+      dayHours: null,
       sortOrder: 0,
       isActive: true,
       onlineCapacity: null,
@@ -453,6 +542,7 @@ export function buildSeatingFormDefaults(seating = null) {
     startTime: normalized.startTime,
     durationMinutes: normalized.durationMinutes,
     daysOfWeek: [...normalized.daysOfWeek],
+    dayHours: normalizeDayHours(normalized.dayHours, normalized),
     sortOrder: normalized.sortOrder,
     isActive: normalized.isActive,
   }
@@ -470,9 +560,19 @@ export const DAY_OF_WEEK_OPTIONS = [
 
 export const SEATING_TIME_INTERVAL_MINUTES = 15
 
-export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING_TIME_INTERVAL_MINUTES } = {}) {
+export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING_TIME_INTERVAL_MINUTES, dateKey = '' } = {}) {
   const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
   if (!normalized) return []
+
+  if (dateKey) {
+    const schedule = seatingScheduleForDate(normalized, dateKey)
+    if (!schedule?.open) return []
+    const options = []
+    for (let minute = schedule.start; minute <= schedule.last; minute += SEATING_TIME_INTERVAL_MINUTES) {
+      options.push(formatMinutesAsTime(minute))
+    }
+    return options
+  }
 
   const startMinutes = parseReservationTimeToMinutes(normalized.startTime)
   if (startMinutes === null) return []

@@ -9246,6 +9246,32 @@ a.ghost-btn.reservation-call-link {
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.65);
 }
 
+.seating-day-hours,
+.seating-day-times,
+.seating-day-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seating-day-open {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.seating-day-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.workspace-seating-day-chip.is-selected {
+  outline: 2px solid var(--one-gold-light);
+  outline-offset: 2px;
+}
+
 .workspace-seating-row.is-inactive {
   opacity: 0.72;
 }
@@ -46852,6 +46878,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .seating-hours-editor .modal-actions {
   flex: 0 0 auto;
 }
+.seating-hours-editor .employee-form {
+  overflow-y: auto;
+}
+.seating-hours-editor-days {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.seating-hours-editor .modal-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+.seating-day-open input {
+  width: 22px;
+  height: 22px;
+}
+.seating-day-copy .workspace-action-btn {
+  min-height: 44px;
+}
 .seating-hours-editor .form-field input,
 .seating-hours-editor .form-field select,
 .seating-hours-editor .form-field .reservation-time-select-trigger,
@@ -46901,6 +46946,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 @media (max-height: 520px) and (min-width: 560px) {
   .seating-hours-editor .workspace-seating-days {
     flex-wrap: nowrap;
+  }
+  .seating-hours-editor .seating-day-hours .workspace-seating-days {
+    flex-wrap: wrap;
   }
 }
 .employee-modal.seating-hours-sheet {

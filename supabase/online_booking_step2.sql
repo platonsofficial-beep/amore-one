@@ -134,7 +134,8 @@ begin
     'daysOfWeek', to_jsonb(s.days_of_week),
     'isActive', s.is_active,
     'onlineCapacity', s.online_capacity,
-    'onlineAreaCaps', coalesce(s.online_area_caps, '{}'::jsonb)
+    'onlineAreaCaps', coalesce(s.online_area_caps, '{}'::jsonb),
+    'dayHours', coalesce(s.day_hours, '{}'::jsonb)
   ) order by s.sort_order, s.name), '[]'::jsonb)
   into v_seatings
   from public.reservation_seatings s
@@ -160,8 +161,67 @@ begin
 end;
 $$;
 
--- 15-minute arrivals stop 30 minutes before the seating ends.
--- A time inside a window uses that seating; otherwise the nearest window.
+-- Per weekday hours. Null day_hours keeps the seating start, duration, and open days.
+alter table public.reservation_seatings
+  add column if not exists day_hours jsonb;
+
+create or replace function public.seating_day_bounds(
+  p_start text,
+  p_duration integer,
+  p_days integer[],
+  p_hours jsonb,
+  p_dow integer
+)
+returns table(is_open boolean, start_at time, end_at time, last_arrival time)
+language plpgsql
+stable
+as $$
+declare
+  legacy_start time;
+  legacy_end time;
+  spec jsonb;
+  start_txt text;
+  end_txt text;
+  last_txt text;
+begin
+  legacy_start := coalesce(nullif(btrim(coalesce(p_start, '')), '')::time, time '19:00');
+  legacy_end := (legacy_start + make_interval(mins => greatest(15, least(coalesce(p_duration, 120), 480))))::time;
+  spec := case when p_hours is null then null else p_hours -> p_dow::text end;
+  if spec is null then
+    is_open := p_dow = any (coalesce(p_days, array[0, 1, 2, 3, 4, 5, 6]));
+    start_at := legacy_start;
+    end_at := legacy_end;
+    last_arrival := case
+      when (legacy_end - interval '30 minutes')::time < legacy_start then legacy_start
+      else (legacy_end - interval '30 minutes')::time
+    end;
+    return next;
+    return;
+  end if;
+  start_txt := nullif(btrim(coalesce(spec->>'start', '')), '');
+  end_txt := nullif(btrim(coalesce(spec->>'end', '')), '');
+  last_txt := nullif(btrim(coalesce(spec->>'lastArrival', '')), '');
+  start_at := coalesce(start_txt::time, legacy_start);
+  end_at := coalesce(end_txt::time, legacy_end);
+  if end_at <= start_at then
+    end_at := (start_at + interval '15 minutes')::time;
+  end if;
+  if last_txt is null then
+    last_arrival := case
+      when (end_at - interval '30 minutes')::time < start_at then start_at
+      else (end_at - interval '30 minutes')::time
+    end;
+  else
+    last_arrival := last_txt::time;
+    if last_arrival < start_at then last_arrival := start_at; end if;
+    if last_arrival > end_at then last_arrival := end_at; end if;
+  end if;
+  is_open := coalesce((spec->>'open')::boolean, true);
+  return next;
+end;
+$$;
+
+-- Arrivals run from the day's start through its last arrival.
 create or replace function public.assign_public_seating(
   p_workspace uuid,
   p_date date,
@@ -178,28 +238,15 @@ declare
 begin
   select s.* into chosen
   from public.reservation_seatings s
+  cross join lateral public.seating_day_bounds(
+    s.start_time, s.duration_minutes, s.days_of_week, s.day_hours, extract(dow from p_date)::int
+  ) b
   where s.workspace_id = p_workspace
     and s.is_active
-    and extract(dow from p_date)::int = any (s.days_of_week)
-    and p_arrival >= s.start_time::time
-    and p_arrival < s.start_time::time + make_interval(mins => s.duration_minutes)
-  order by s.start_time::time, s.sort_order
-  limit 1;
-  if chosen.id is not null then
-    return chosen;
-  end if;
-
-  select s.* into chosen
-  from public.reservation_seatings s
-  where s.workspace_id = p_workspace
-    and s.is_active
-    and extract(dow from p_date)::int = any (s.days_of_week)
-  order by least(
-      abs(p_arrival - s.start_time::time),
-      abs(p_arrival - (s.start_time::time + make_interval(mins => s.duration_minutes)))
-    ),
-    s.start_time::time,
-    s.sort_order
+    and b.is_open
+    and p_arrival >= b.start_at
+    and p_arrival <= b.last_arrival
+  order by b.start_at, s.sort_order
   limit 1;
   return chosen;
 end;
@@ -274,8 +321,9 @@ begin
       'seatingId', s.id,
       'id', s.id,
       'name', s.name,
-      'startTime', to_char(s.start_time::time, 'HH24:MI'),
-      'endTime', to_char(s.start_time::time + make_interval(mins => s.duration_minutes), 'HH24:MI'),
+      'startTime', to_char(b.start_at, 'HH24:MI'),
+      'endTime', to_char(b.end_at, 'HH24:MI'),
+      'lastArrival', to_char(b.last_arrival, 'HH24:MI'),
       'durationMinutes', s.duration_minutes,
       'isActive', true,
       'state', case
@@ -313,12 +361,13 @@ begin
       end,
       'slots', (
         select coalesce(jsonb_agg(to_char(timed.slot, 'HH24:MI') order by timed.slot), '[]'::jsonb)
-        from generate_series(0, greatest(s.duration_minutes - 30, 0) / 15) as step
+        from generate_series(0, greatest((extract(epoch from (b.last_arrival - b.start_at)) / 60)::int, 0) / 15) as step
         cross join lateral (
-          select s.start_time::time + make_interval(mins => step * 15) as slot
+          select (b.start_at + make_interval(mins => step * 15))::time as slot
         ) timed
-        where (p_date::timestamp + timed.slot) at time zone v_tz
-          >= now() + make_interval(mins => v.min_notice_minutes)
+        where timed.slot <= b.last_arrival
+          and (p_date::timestamp + timed.slot) at time zone v_tz
+            >= now() + make_interval(mins => v.min_notice_minutes)
       ),
       'areas', (
         select coalesce(jsonb_agg(jsonb_build_object(
@@ -345,9 +394,12 @@ begin
       )
     ) as card
     from public.reservation_seatings s
+    cross join lateral public.seating_day_bounds(
+      s.start_time, s.duration_minutes, s.days_of_week, s.day_hours, v_dow
+    ) b
     where s.workspace_id = v.workspace_id
       and s.is_active
-      and v_dow = any (s.days_of_week)
+      and b.is_open
   ) day_seatings;
 
   return jsonb_build_object('ok', true, 'seatings', v_seatings);
@@ -408,6 +460,10 @@ declare
   v_day_used integer := 0;
   v_locale text := 'en';
   v_start text := '';
+  v_day_open boolean := false;
+  v_day_start time;
+  v_day_end time;
+  v_day_last time;
   u uuid;
 begin
   if nullif(btrim(coalesce(p_honeypot, '')), '') is not null then
@@ -508,15 +564,22 @@ begin
   end if;
 
   v_assigned := public.assign_public_seating(v.workspace_id, p_date, v_arrival);
-  if v_assigned.id is null
-     or v_arrival < v_assigned.start_time::time
-     or v_arrival >= v_assigned.start_time::time + make_interval(mins => v_assigned.duration_minutes) then
+  if v_assigned.id is null then
+    return jsonb_build_object('ok', false, 'reason', 'time');
+  end if;
+  select b.is_open, b.start_at, b.end_at, b.last_arrival
+    into v_day_open, v_day_start, v_day_end, v_day_last
+  from public.seating_day_bounds(
+    v_assigned.start_time, v_assigned.duration_minutes, v_assigned.days_of_week, v_assigned.day_hours,
+    extract(dow from p_date)::int
+  ) b;
+  if v_day_open is not true or v_arrival < v_day_start or v_arrival > v_day_last then
     return jsonb_build_object('ok', false, 'reason', 'time');
   end if;
   v_cap := v_assigned.online_capacity;
   v_area_cap := nullif(v_assigned.online_area_caps->>v_area, '')::int;
-  v_start := to_char(v_assigned.start_time::time, 'HH24:MI');
-  v_end := to_char(v_assigned.start_time::time + make_interval(mins => v_assigned.duration_minutes), 'HH24:MI');
+  v_start := to_char(v_day_start, 'HH24:MI');
+  v_end := to_char(v_day_end, 'HH24:MI');
 
   select layout_json into v_layout
   from public.floor_plans

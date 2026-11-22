@@ -329,6 +329,7 @@ export function HostReservationEditPanel({
                 value={form.time}
                 onChange={(time) => updateField({ time })}
                 seating={selectedSeating}
+                dateKey={form.date || todayKey}
                 required
               />
             </label>

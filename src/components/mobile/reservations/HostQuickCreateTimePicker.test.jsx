@@ -118,13 +118,13 @@ describe('MobileReservationQuickCreateSheet time picker', () => {
 
     await act(async () => {
       [...document.querySelectorAll('[data-testid="host-quick-create-time-slot"]')]
-        .find((button) => button.textContent === '20:30')
+        .find((button) => button.textContent === '22:00')
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     expect(document.querySelector('[data-testid="host-quick-create-time-picker"]')).toBeNull()
     expect(container.querySelector('[data-testid="host-quick-create-time-trigger"]')?.textContent)
-      .toContain('20:30')
+      .toContain('22:00')
 
     unmount()
   })
