@@ -9255,10 +9255,49 @@ a.ghost-btn.reservation-call-link {
 }
 
 .seating-day-open {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   min-height: 44px;
+}
+
+.seating-day-open input {
+  position: absolute;
+  opacity: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}
+
+.seating-day-check {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border: 2px solid var(--one-gold);
+  border-radius: 6px;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.seating-day-open input:checked + .seating-day-check {
+  background: var(--one-gold);
+}
+
+.seating-day-open input:checked + .seating-day-check::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  margin: 2px 0 0 6px;
+  border: solid var(--one-gold-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.seating-day-open input:focus-visible + .seating-day-check {
+  outline: 2px solid var(--one-gold-light);
+  outline-offset: 2px;
 }
 
 .seating-day-times {
@@ -46890,9 +46929,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   bottom: 0;
   z-index: 1;
 }
-.seating-day-open input {
-  width: 22px;
-  height: 22px;
+.seating-hours-editor .seating-day-open input {
+  width: 44px;
+  height: 44px;
 }
 .seating-day-copy .workspace-action-btn {
   min-height: 44px;

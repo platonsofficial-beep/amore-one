@@ -114,6 +114,7 @@ function SeatingDayHours({ form, onFormChange }) {
           checked={Boolean(day?.open)}
           onChange={(event) => patchDay({ open: event.target.checked })}
         />
+        <span className="seating-day-check" aria-hidden="true" />
         <span>{day?.open ? t("Open this day") : t("Closed this day")}</span>
       </label>
       <div className="seating-day-times">
