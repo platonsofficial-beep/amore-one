@@ -15814,6 +15814,7 @@ function App() {
 
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [clockOpenToken, setClockOpenToken] = useState(0)
+  const [reservationLaunch, setReservationLaunch] = useState('')
   const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false)
   const [mobileReservationsHostMode, setMobileReservationsHostMode] = useState(false)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
@@ -24915,6 +24916,67 @@ function App() {
     setMobileExpandedView(null)
   }, [permissionAccess, handleActiveViewChange])
 
+  const runTodayShortcut = (shortcutId) => {
+    if (shortcutId === 'new-reservation' || shortcutId === 'walk-in') {
+      setReservationLaunch(shortcutId === 'walk-in' ? 'walk-in' : 'create')
+      handleMobileManagerOpenReservations()
+      return
+    }
+    if (shortcutId === 'reservations') {
+      handleMobileManagerOpenReservations()
+      return
+    }
+    if (shortcutId === 'stock') {
+      handleMobileManagerOpenStock()
+      return
+    }
+    if (shortcutId === 'stock-orders') {
+      handleOpenStockLiveSection('orders', 'draft')
+      return
+    }
+    if (shortcutId === 'inventory-count') {
+      handleOpenStockCountWizard()
+      return
+    }
+    if (shortcutId === 'schedule') {
+      if (canOpenMobileFullSchedule(permissionAccess)) handleMobileOpenFullSchedule()
+      else handleMobileTabChange('schedule')
+      return
+    }
+    if (shortcutId === 'team-today') {
+      handleMobileManagerOpenTeamToday()
+      return
+    }
+    if (shortcutId === 'clock') {
+      if (canManageAttendance(permissionAccess)) {
+        handleOpenAttendance()
+        return
+      }
+      openStaffHostPersonalView('clock')
+      setClockOpenToken((value) => value + 1)
+      return
+    }
+    if (shortcutId === 'operations') {
+      handleMobileManagerOpenTasks()
+      return
+    }
+    if (shortcutId === 'tasks') {
+      if (canAccessMobileExpandedModule(permissionAccess, 'operations')) {
+        handleActiveViewChange('operations')
+        handleOperationsSectionChange('tasks')
+        setMobileExpandedView(isManagementMobileRole(role) && useMobileExperience ? null : 'workspace')
+        return
+      }
+      handleMobileTabChange('tasks')
+      return
+    }
+    if (shortcutId === 'chat') {
+      setChatConversationId('')
+      if (useMobileExperience) handleMobileTabChange('chat')
+      else handleActiveViewChange('chat')
+    }
+  }
+
   const handleMobileOpenReservationsHostMode = useCallback(() => {
     if (!canOpenReservationsHostMode(permissionAccess)) return
 
@@ -26480,6 +26542,9 @@ function App() {
                       onOpenTasks: handleMobileManagerOpenTasks,
                       onOpenTeamToday: handleMobileManagerOpenTeamToday,
                       onOpenReservations: handleMobileManagerOpenReservations,
+                      role: permissionAccess,
+                      userId: user?.id || '',
+                      onRunTodayShortcut: runTodayShortcut,
                       onAttentionItemClick: handleTodayAttentionItemClick,
                       onCompleteAttentionItem: handleCompleteStaleSeatedReservation,
                       attentionPermissions: todayAttentionPermissions,
@@ -26502,6 +26567,10 @@ function App() {
                       clockCard: attendanceClockCard,
                       reminderCard: shiftReminderCard,
                       onOpenTasks: isHostMobileShellLocal ? () => handleMobileTabChange('tasks') : undefined,
+                      role: permissionAccess,
+                      userId: user?.id || '',
+                      workspaceId: activeWorkspaceId,
+                      onRunTodayShortcut: runTodayShortcut,
                     }
 
                   const sharedMenuProps = {
@@ -26764,6 +26833,8 @@ function App() {
                           seatings: reservationSeatings,
                           onDateChange: setReservationViewDateKey,
                           onCreateReservation: handleMobileHostReservationCreate,
+                          launchCreate: reservationLaunch,
+                          onLaunchCreateHandled: () => setReservationLaunch(''),
                           onEditReservation: handleHostEditSave,
                           onQuickStatusUpdate: handleQuickReservationStatus,
                           canEditFloorPlan: canEditFloorPlanRole,
