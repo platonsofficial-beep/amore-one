@@ -1523,6 +1523,7 @@
   "Guests book from a public link. Confirm instantly, after the venue calls, or after the guest confirms by email.": "Guests book from a public link. Confirm instantly, after the venue calls, or after the guest confirms by email.",
   "Public link name": "Public link name",
   "Enter a link name with at least 3 characters.": "Enter a link name with at least 3 characters.",
+  "Your link: {{url}}": "Your link: {{url}}",
   "Link copied.": "Link copied.",
   "Booking QR code": "Booking QR code",
   "Download QR code": "Download QR code",

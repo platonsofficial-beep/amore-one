@@ -20,10 +20,32 @@ const GREEK_TO_LATIN = {
   φ: 'f', χ: 'ch', ψ: 'ps', ω: 'o', ώ: 'o',
 }
 
+const GREEK_VOICED = new Set(['β', 'γ', 'δ', 'ζ', 'λ', 'μ', 'ν', 'ρ'])
+
 function latinizeSlug(value) {
-  const lower = `${value ?? ''}`.toLowerCase()
+  const lower = `${value ?? ''}`.toLowerCase().normalize('NFC')
   let mapped = ''
-  for (const char of lower) mapped += GREEK_TO_LATIN[char] ?? char
+  for (let index = 0; index < lower.length; index += 1) {
+    const char = lower[index]
+    const next = lower[index + 1] || ''
+    const after = lower[index + 2] || ''
+    if ((char === 'α' || char === 'ά') && (next === 'υ' || next === 'ύ')) {
+      mapped += GREEK_VOICED.has(after) ? 'av' : 'af'
+      index += 1
+      continue
+    }
+    if ((char === 'ε' || char === 'έ') && (next === 'υ' || next === 'ύ')) {
+      mapped += GREEK_VOICED.has(after) ? 'ev' : 'ef'
+      index += 1
+      continue
+    }
+    if ((char === 'ο' || char === 'ό') && (next === 'υ' || next === 'ύ')) {
+      mapped += 'ou'
+      index += 1
+      continue
+    }
+    mapped += GREEK_TO_LATIN[char] ?? char
+  }
   return mapped.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
@@ -52,6 +74,12 @@ export function onlineBookingUrl(slug) {
   return `${ONLINE_BOOKING_ORIGIN}/book/${slugifyVenueName(slug)}`
 }
 
+/** Link for a slug that is already valid. Empty stays empty — never "venue". */
+export function publicBookingLink(slug) {
+  const committed = commitPublicSlug(slug)
+  return committed ? `${ONLINE_BOOKING_ORIGIN}/book/${committed}` : ''
+}
+
 export function normalizeConfirmationMethod(value, autoConfirm) {
   const method = `${value ?? ''}`.trim()
   if (CONFIRMATION_METHODS.includes(method)) return method
@@ -63,7 +91,7 @@ export function normalizeOnlineBookingSettings(record, { venueName = '' } = {}) 
   const storedSlug = `${record?.slug ?? record?.public_slug ?? ''}`.trim()
   return {
     enabled: Boolean(record?.enabled),
-    slug: slugifyVenueName(storedSlug || venueName),
+    slug: commitPublicSlug(storedSlug || venueName),
     confirmationMethod: normalizeConfirmationMethod(
       record?.confirmationMethod ?? record?.confirmation_method,
       record?.autoConfirm ?? record?.auto_confirm,

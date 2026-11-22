@@ -3,11 +3,9 @@ import QRCode from 'qrcode'
 import {
   allocatedOnlineCovers,
   commitPublicSlug,
-  draftPublicSlug,
   normalizeDailyOnlineCovers,
   normalizeOnlineCapacity,
-  onlineBookingUrl,
-  slugifyVenueName,
+  publicBookingLink,
   splitExceedsDailyTotal,
 } from '../../lib/onlineBooking'
 import { renderBookingSocialImage } from '../../lib/bookingSocialImage'
@@ -86,30 +84,32 @@ export function OnlineReservationsSection({
     })
   }, [activeSeatings])
 
-  const slug = slugifyVenueName(settings?.slug || venueName)
-  const slugField = slugDraft == null ? slug : slugDraft
-  const link = onlineBookingUrl(slug)
+  const savedSlug = commitPublicSlug(settings?.slug)
+  const slugField = slugDraft == null ? savedSlug : slugDraft
+  const liveSlug = commitPublicSlug(slugField)
+  const linkSlug = liveSlug || savedSlug
+  const link = publicBookingLink(linkSlug)
 
   useEffect(() => {
     let cancelled = false
-    if (!slug) return undefined
+    if (!link) return undefined
     QRCode.toDataURL(link, { margin: 1, width: 320 })
       .then((dataUrl) => { if (!cancelled) setQr(dataUrl) })
       .catch(() => { if (!cancelled) setQr('') })
     return () => { cancelled = true }
-  }, [link, slug])
+  }, [link])
 
   useEffect(() => {
     let cancelled = false
     renderBookingSocialImage({
-      venueName: venueName || slug,
+      venueName: venueName || linkSlug,
       url: link,
       format: socialFormat,
     })
       .then((dataUrl) => { if (!cancelled) setSocialPreview(dataUrl) })
       .catch(() => { if (!cancelled) setSocialPreview('') })
     return () => { cancelled = true }
-  }, [venueName, slug, link, socialFormat])
+  }, [venueName, linkSlug, link, socialFormat])
 
   const update = (patch) => setSettings((current) => ({ ...current, ...patch }))
 
@@ -130,8 +130,8 @@ export function OnlineReservationsSection({
     anchor.click()
   }
 
-  const downloadQr = () => downloadFile(qr, `${slug}-booking-qr.png`)
-  const downloadSocial = () => downloadFile(socialPreview, `${slug}-booking-${socialFormat}.png`)
+  const downloadQr = () => downloadFile(qr, `${linkSlug || 'booking'}-qr.png`)
+  const downloadSocial = () => downloadFile(socialPreview, `${linkSlug || 'booking'}-${socialFormat}.png`)
 
   const capValues = activeSeatings.map((seating) => caps[seating.id])
   const dailyTotal = normalizeDailyOnlineCovers(settings?.dailyOnlineCovers)
@@ -142,12 +142,12 @@ export function OnlineReservationsSection({
     const committed = commitPublicSlug(slugField)
     if (!committed) {
       setSlugHint(t("Enter a link name with at least 3 characters."))
-      return slug
+      return savedSlug || null
     }
-    if (committed === slug) {
-      setSlugDraft(null)
+    if (committed === savedSlug) {
+      setSlugDraft(committed)
       setSlugHint('')
-      return slug
+      return savedSlug
     }
     let taken = false
     try {
@@ -160,7 +160,7 @@ export function OnlineReservationsSection({
       setSlugHint(t("This link name is already used."))
       return null
     }
-    setSlugDraft(null)
+    setSlugDraft(committed)
     setSlugHint('')
     update({ slug: committed })
     return committed
@@ -268,7 +268,7 @@ export function OnlineReservationsSection({
             aria-invalid={slugHint ? true : undefined}
             onChange={(event) => {
               setSlugHint('')
-              setSlugDraft(draftPublicSlug(event.target.value))
+              setSlugDraft(event.target.value)
             }}
             onBlur={() => { void applySlugDraft() }}
           />
@@ -276,7 +276,7 @@ export function OnlineReservationsSection({
         </label>
 
         <div className="online-booking-link-row">
-          <a className="online-booking-link" href={link}>{link}</a>
+          <a className="online-booking-link" href={link || undefined}>{link ? t("Your link: {{url}}", { url: link }) : ''}</a>
           <button type="button" className="ghost-btn" onClick={copyLink}>{t("Copy link")}</button>
         </div>
 

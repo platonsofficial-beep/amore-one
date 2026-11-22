@@ -29,6 +29,9 @@ describe('online booking settings', () => {
     expect(draftPublicSlug('Amore Nicosia')).toBe('amore-nicosia')
     expect(draftPublicSlug('amore__nicosia')).toBe('amore--nicosia')
     expect(draftPublicSlug('Καφέ Αθήνα')).toBe('kafe-athina')
+    expect(commitPublicSlug('Sentio.Nicosia')).toBe('sentio-nicosia')
+    expect(commitPublicSlug('Σέντιο Λευκωσία')).toBe('sentio-lefkosia')
+    expect(commitPublicSlug('venue')).not.toBe('')
     expect(commitPublicSlug('amore-')).toBe('amore')
     expect(commitPublicSlug('amore--nicosia')).toBe('amore-nicosia')
     expect(commitPublicSlug('')).toBe('')
@@ -114,7 +117,9 @@ describe('online booking settings', () => {
 
   it('lets the public link field stay empty while typing', () => {
     const source = readFileSync('src/components/workspace/OnlineReservationsSection.jsx', 'utf8')
-    expect(source).toContain('draftPublicSlug')
+    expect(source).toContain('setSlugDraft(event.target.value)')
+    expect(source).not.toContain("'venue'")
+    expect(source).not.toContain('slugifyVenueName')
     expect(source).toContain('autoComplete="off"')
     expect(source).toContain('autoCorrect="off"')
     expect(source).toContain('autoCapitalize="none"')
