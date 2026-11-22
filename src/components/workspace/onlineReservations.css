@@ -8,6 +8,12 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
+  align-items: stretch;
+}
+
+.online-booking-grid > .form-field {
+  justify-content: flex-end;
+  height: 100%;
 }
 
 .online-booking-toggle {

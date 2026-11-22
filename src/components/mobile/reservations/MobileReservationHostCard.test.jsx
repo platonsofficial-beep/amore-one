@@ -130,6 +130,25 @@ describe('MobileReservationHostCard compact tablet row', () => {
     unmount()
   })
 
+  it('keeps the Online badge on the detail line when the guest name is long', () => {
+    const { container, unmount } = renderCard({
+      reservation: {
+        ...reservation,
+        guestName: 'Έλενα Κώστα Παπαδοπούλου',
+        source: 'online',
+        tableNumber: 'T12',
+      },
+    })
+
+    const name = container.querySelector('.mobile-host-reservation-row-name')
+    const meta = container.querySelector('.mobile-host-reservation-row-meta')
+    expect(name?.querySelector('.reservation-online-badge')).toBeNull()
+    expect(meta?.querySelector('.reservation-online-badge')?.textContent).toBe('Online')
+    expect(meta?.textContent).toContain('T12')
+
+    unmount()
+  })
+
   it('does not render guest type badge for Normal guests', () => {
     const { container, unmount } = renderCard({
       reservation: {

@@ -171,10 +171,7 @@ function HostReservationListRow({
             />
           ) : null}
           <div className="host-reservation-card-name-purpose">
-          <strong className="host-reservation-card-guest">
-            {guestName}
-            <OnlineReservationBadge reservation={reservation} />
-          </strong>
+          <strong className="host-reservation-card-guest">{guestName}</strong>
           <HostReservationPurposeLabel reservation={reservation} />
           {stillSeatedLabel ? (
             <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
@@ -198,17 +195,20 @@ function HostReservationListRow({
               <HostReservationGuestTypeBadge badge={guestTypeBadge} />
             </div>
           ) : null}
-          {useHostQueuePresentation ? (
-            <HostQueueReservationDetails
-              reservation={reservation}
-              layout={floorLayout}
-              className="host-reservation-card-details host-queue-row-details"
-            />
-          ) : (
-            <div className="host-reservation-card-details">
-              <HostReservationMetaLine metaLine={metaLine} />
-            </div>
-          )}
+          <div className="host-reservation-card-subline">
+            <OnlineReservationBadge reservation={reservation} />
+            {useHostQueuePresentation ? (
+              <HostQueueReservationDetails
+                reservation={reservation}
+                layout={floorLayout}
+                className="host-reservation-card-details host-queue-row-details"
+              />
+            ) : (
+              <div className="host-reservation-card-details">
+                <HostReservationMetaLine metaLine={metaLine} />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="host-reservation-card-trailing">

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { createInitialBuilderState, floorPlanBuilderReducer } from '../floor-plan-builder/context/floorPlanBuilderContextState'
 import {
@@ -66,5 +67,10 @@ describe('online booking settings', () => {
     expect(floor.smoking).toBe(true)
     expect(floor.onlineBookingVisible).toBe(true)
     expect(next.hasUnsavedChanges).toBe(true)
+  })
+
+  it('keeps the Greek booking-window label on one short line', () => {
+    const el = JSON.parse(readFileSync('src/i18n/locales/el.json', 'utf8'))
+    expect(el['Days guests can book ahead']).toBe('Κρατήσεις έως (ημέρες)')
   })
 })

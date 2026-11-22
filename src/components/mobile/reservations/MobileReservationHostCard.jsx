@@ -84,7 +84,6 @@ function MobileHostReservationCompactRow({
               <div className="host-reservation-card-name-purpose mobile-host-reservation-row-name-line">
                 <span className="mobile-host-reservation-row-name">
                   {guestName}
-                  <OnlineReservationBadge reservation={reservation} />
                   <HostQueueNameIndicators indicators={nameIndicators} />
                 </span>
                 <HostReservationPurposeLabel reservation={reservation} />
@@ -106,14 +105,18 @@ function MobileHostReservationCompactRow({
             </div>
           </div>
           {useHostQueuePresentation ? (
-            <HostQueueReservationDetails
-              reservation={reservation}
-              layout={floorLayout}
-              className="host-queue-row-details mobile-host-reservation-row-meta"
-            />
+            <div className="mobile-host-reservation-row-meta">
+              <OnlineReservationBadge reservation={reservation} />
+              <HostQueueReservationDetails
+                reservation={reservation}
+                layout={floorLayout}
+                className="host-queue-row-details"
+              />
+            </div>
           ) : (
             <p className="mobile-host-reservation-row-meta">
-              {t('{{count}} guest', { count: partySize })} · {tableSection}
+              <OnlineReservationBadge reservation={reservation} />
+              <span>{t('{{count}} guest', { count: partySize })} · {tableSection}</span>
             </p>
           )}
         </button>
