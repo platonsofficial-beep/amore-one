@@ -20,7 +20,7 @@ export function LoadingLines({ lines = 1, label = 'Loading', className = '' }) {
 export function LoadFailed({ onRetry, message = "Couldn't load", insideButton = false, className = '' }) {
   return (
     <span className={`data-pending-failed ${className}`.trim()} role="alert">
-      <span className="data-pending-failed-text">{message}</span>
+      <span className="data-pending-failed-text">{t(message)}</span>
       {insideButton ? <span className="data-pending-retry is-label">{t("Tap to retry")}</span> : null}
       {!insideButton && typeof onRetry === 'function' ? (
         <button

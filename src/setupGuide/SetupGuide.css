@@ -1,0 +1,225 @@
+.setup-guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+  color: var(--one-text);
+}
+
+.setup-guide-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setup-guide-card h2,
+.setup-guide-card p {
+  margin: 0;
+}
+
+.setup-guide-card h2 {
+  font-size: 1.05rem;
+}
+
+.setup-guide-count {
+  color: var(--one-gold-light);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.setup-guide-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-04);
+  color: var(--one-text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.setup-guide-step.is-done {
+  color: var(--one-gold-light);
+  border-color: var(--one-gold-line);
+}
+
+.setup-guide-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-guide-actions button,
+.setup-guide-replay {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--one-gold-line);
+  background: transparent;
+  color: var(--one-gold-light);
+  font: inherit;
+  font-weight: 700;
+}
+
+.setup-guide-coach-ring {
+  position: fixed;
+  z-index: 70;
+  border: 2px solid var(--one-gold);
+  border-radius: 12px;
+  pointer-events: none;
+  box-shadow: 0 0 0 9999px var(--one-overlay-55);
+}
+
+.setup-guide-coach {
+  position: fixed;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+  color: var(--one-text);
+}
+
+.setup-guide-coach h2,
+.setup-guide-coach p {
+  margin: 0;
+}
+
+.setup-guide-coach-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.setup-guide-coach-actions button {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+}
+
+.setup-guide-coach-actions .primary-btn {
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+}
+
+.setup-guide-coach-actions .ghost-btn {
+  border: 1px solid var(--one-gold-line);
+  background: transparent;
+  color: var(--one-gold-light);
+}
+
+@media (max-height: 500px) {
+  .setup-guide-coach {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+  }
+}
+
+.tutorial-optin-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  background: var(--one-overlay-55);
+}
+
+.tutorial-optin,
+.tutorial-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(440px, 100%);
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+  color: var(--one-text);
+}
+
+.tutorial-settings {
+  width: auto;
+  margin-top: 16px;
+}
+
+.tutorial-optin h2,
+.tutorial-optin p,
+.tutorial-settings h3,
+.tutorial-settings p {
+  margin: 0;
+}
+
+.tutorial-optin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tutorial-optin-actions button {
+  flex: 1 1 140px;
+  min-height: 44px;
+}
+
+.tutorial-settings .setup-guide-replay {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-height: 44px;
+}
+
+.tutorial-optin-actions .primary-btn {
+  border: 0;
+  border-radius: 999px;
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+  font: inherit;
+  font-weight: 700;
+}
+
+.tutorial-optin-actions .ghost-btn {
+  border: 1px solid var(--one-gold-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--one-gold-light);
+  font: inherit;
+  font-weight: 700;
+}
+
+@media (min-width: 700px) {
+  .tutorial-optin-scrim {
+    align-items: center;
+  }
+}
+
+@media (max-height: 500px) {
+  .tutorial-optin-scrim {
+    align-items: flex-end;
+    overflow: auto;
+  }
+
+  .tutorial-optin {
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+  }
+}

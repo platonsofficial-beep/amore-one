@@ -183,7 +183,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
     <section className="stock-quick-take" aria-label={t("Take from storage")}>
       {!storageId ? (
         <>
-          <header className="stock-quick-take-head">
+          <header className="stock-quick-take-head" data-help="stock.take-page">
             <h2>{t("Take from storage")}</h2>
             <p>{t("Where are you taking from?")}</p>
           </header>
@@ -205,7 +205,7 @@ export function StockQuickTakeView({ workspaceId = '', stockItems = [], searchTe
           <ul className="stock-quick-take-list">
             {storageState.storages.map((s, index) => (
               <li key={s.id}>
-                <button type="button" className="stock-quick-take-tile" onClick={() => openStorage(s.id)}>
+                <button type="button" className="stock-quick-take-tile" data-help={index === 0 ? 'stock.take-storage' : undefined} onClick={() => openStorage(s.id)}>
                   <span>
                     <strong>{translateStockPlaceName(s.name)}</strong>
                     <small>{index === 0 && readLocal(LAST_STORAGE_KEY, '') === s.id ? t("Last used · ") : ''}{t('{{count}} products', { count: s.productCount ?? 0 })}</small>

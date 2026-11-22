@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
+import { isDemoMode } from '../lib/demoMediaDataset'
+import { t } from '../i18n/i18n'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 
 const CREATE_SESSION_RPC = 'create_inventory_count_session'
@@ -981,6 +983,19 @@ export function formatInventoryCountHomeProgress(session) {
  * Includes location/item progress and operator display names when available.
  */
 export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
+  if (isDemoMode() && !supabase) {
+    return partitionInventoryCountHomeSessions([{
+      id: 'demo-count-bar',
+      status: 'in_progress',
+      statusLabel: 'In progress',
+      countTypeLabel: 'Fast Count',
+      startedAt: new Date().toISOString(),
+      operatorName: t("Elena Christodoulou"),
+      locations: ['Bar'],
+      totalLocations: 2,
+      completedLocations: 1,
+    }])
+  }
   requireConfiguredSupabase()
 
   const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')

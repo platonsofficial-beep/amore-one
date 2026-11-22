@@ -40,7 +40,7 @@ export function MobileHomeView({
     <div className="mobile-screen mobile-home">
       {/* Same Today header as managers: greeting, then date and venue · role. */}
       <header className="mobile-manager-command-header">
-        <h1 className="mobile-manager-command-greeting">{greeting || 'Welcome'}</h1>
+        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || 'Welcome'}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
           {workspaceContext ? (

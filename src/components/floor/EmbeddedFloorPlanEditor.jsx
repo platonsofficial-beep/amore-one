@@ -697,6 +697,7 @@ function EmbeddedFloorPlanEditorShell({
               <button
                 type="button"
                 className="fpb-toolbar-btn fpb-toolbar-btn-touch fpb-toolbar-btn-primary"
+                data-help="setup.publish-layout"
                 onClick={requestPublishLayout}
                 disabled={isBusy}
                 title={t("Publish to the host floor")}

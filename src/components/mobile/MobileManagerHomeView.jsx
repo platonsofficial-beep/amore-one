@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtils'
 import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
+import { SetupGuideTodaySlot } from '../../setupGuide/SetupGuideUI'
 import { StockLiveCard } from '../stock/StockLiveCard'
 import { OnShiftSheet } from '../today/OnShiftSheet'
 import { PendingValue } from '../common/DataPending'
@@ -90,6 +91,7 @@ export function MobileManagerHomeView({
   onAttentionItemClick,
   onCompleteAttentionItem,
   attentionPermissions = {},
+  setupGuide = null,
   clockCard = null,
   reminderCard = null,
   canViewOnShift = false,
@@ -127,7 +129,7 @@ export function MobileManagerHomeView({
   return (
     <div className="mobile-screen mobile-home mobile-manager-home mobile-manager-command-center">
       <header className="mobile-manager-command-header">
-        <h1 className="mobile-manager-command-greeting">{greeting || 'Welcome'}</h1>
+        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || 'Welcome'}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
           {workspaceContext ? (
@@ -135,6 +137,8 @@ export function MobileManagerHomeView({
           ) : null}
         </p>
       </header>
+
+      {setupGuide ? <SetupGuideTodaySlot {...setupGuide} /> : null}
 
       {reminderCard}
 

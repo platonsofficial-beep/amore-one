@@ -264,7 +264,7 @@ export function WorkspaceReservationSeatingsSection({
               {t("Cancel edit")}
             </button>
           ) : null}
-          <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
+          <button type="submit" className="primary-btn workspace-action-btn" data-help="setup.add-seating" disabled={isSaving}>
             {isSaving ? t("Saving…") : editingSeatingId ? t("Update seating") : t("Add seating")}
           </button>
         </div>

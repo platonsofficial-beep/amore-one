@@ -108,7 +108,7 @@ export function TodayAnnouncementsPanel({
   }, [collapsible, defaultExpanded])
 
   const collapsedSummary = activeAnnouncements.length === 0 && loadStatus !== 'ready'
-    ? (loadStatus === 'error' ? "Couldn't load" : 'Loading…')
+    ? (loadStatus === 'error' ? t("Couldn't load") : t("Loading…"))
     : formatTodayAnnouncementsCollapsedSummary(activeAnnouncements)
 
   const handlePanelToggle = () => {

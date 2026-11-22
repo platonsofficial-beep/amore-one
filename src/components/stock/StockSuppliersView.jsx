@@ -347,6 +347,7 @@ export function StockSuppliersView({
           <button
             type="button"
             className="primary-btn stock-suppliers-add-btn"
+            data-help="stock.add-supplier"
             onClick={handleOpenCreate}
             disabled={isSaving}
           >

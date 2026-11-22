@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { t } from '../../i18n/i18n'
+import { SetupGuideReplayButton, TutorialSettings } from '../../setupGuide/SetupGuideUI'
 
 const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.0.0-core'
@@ -62,7 +63,7 @@ function BuildInfoBadge() {
   )
 }
 
-export function WorkspaceSystemSection({ moduleConnections = {} }) {
+export function WorkspaceSystemSection({ moduleConnections = {}, userId = '', workspaceId = '' }) {
   return (
     <>
       <div className="workspace-section-header">
@@ -115,6 +116,8 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
             )
           })}
         </ul>
+        <SetupGuideReplayButton />
+        <TutorialSettings userId={userId} workspaceId={workspaceId} />
       </div>
     </>
   )

@@ -134,11 +134,11 @@ export function MobileMenuView({
               </button>
             ) : null}
             {onOpenClock ? (
-              <button type="button" className="mobile-menu-btn" onClick={onOpenClock}>
+              <button type="button" className="mobile-menu-btn" data-help="staff.clock" onClick={onOpenClock}>
                 ⏱ Clock in/out
               </button>
             ) : null}
-            <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
+            <button type="button" className="mobile-menu-btn" data-help="staff.profile" onClick={onOpenProfile}>
               {t("Profile")}
             </button>
             <button type="button" className="mobile-menu-btn is-danger" onClick={onSignOut}>
@@ -268,7 +268,7 @@ export function MobileMenuView({
           <h2 className="mobile-menu-section-title">{t("Venue")}</h2>
           <div className="mobile-menu-actions">
             {showFullSchedule ? (
-              <button type="button" className="mobile-menu-btn" onClick={onOpenFullSchedule}>
+              <button type="button" className="mobile-menu-btn" data-help="staff.full-schedule" onClick={onOpenFullSchedule}>
                 {t("Full team schedule")}
               </button>
             ) : null}
@@ -277,6 +277,7 @@ export function MobileMenuView({
                 key={item.id}
                 type="button"
                 className="mobile-menu-btn"
+                data-help={`nav.${item.id}`}
                 onClick={() => onNavigateModule?.(item.id)}
               >
                 <span aria-hidden="true">{item.icon}</span>
@@ -321,11 +322,11 @@ export function MobileMenuView({
             </button>
           ) : null}
           {onOpenClock ? (
-            <button type="button" className="mobile-menu-btn" onClick={onOpenClock}>
+            <button type="button" className="mobile-menu-btn" data-help="staff.clock" onClick={onOpenClock}>
               ⏱ Clock in/out
             </button>
           ) : null}
-          <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
+          <button type="button" className="mobile-menu-btn" data-help="staff.profile" onClick={onOpenProfile}>
             {t("Profile")}
           </button>
           {onOpenNotifications ? (

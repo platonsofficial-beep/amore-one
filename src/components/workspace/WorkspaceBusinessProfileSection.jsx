@@ -88,6 +88,7 @@ export function WorkspaceBusinessProfileSection({
             <label className="form-field">
               <span>{t("Business Name")}</span>
               <input
+                data-help="setup.profile-name"
                 value={workspaceProfile.businessName}
                 onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
                 placeholder={t("e.g. Amore Nicosia")}

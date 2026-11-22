@@ -78,6 +78,9 @@ import { ReservationSeatingSelect } from './components/reservations/ReservationS
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
+import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost, StockTourHost, TutorialOptIn, ScreenGuideHost } from './setupGuide/SetupGuideUI'
+import { readTutorial, tutorialScreenId } from './setupGuide/tutorial'
+import { consumeFloorEditorRequest, requestFloorEditor, setupGuideAudience, writeSetupProgress, writeStaffTourProgress, writeStockTourProgress } from './setupGuide/setupGuide'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
@@ -1264,6 +1267,7 @@ function CommandCenterView({
   quickActionUserId = '',
   quickActionWorkspaceId = '',
   onRunTodayShortcut,
+  setupGuide = null,
 }) {
   const attentionStatus = dataStatus?.attention ?? 'ready'
   const scheduleStatus = dataStatus?.schedule ?? 'ready'
@@ -1283,6 +1287,7 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label={t("Today")}>
+      {setupGuide ? <SetupGuideTodaySlot {...setupGuide} /> : null}
       <TodayQuickActions
         access={quickActionAccess}
         userId={quickActionUserId}
@@ -1367,7 +1372,7 @@ function CommandCenterView({
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.ATTENTION, { hasUrgentAttention: attentionHasUrgent })}
             title={t("Attention")}
             ariaLabel="Attention"
-            summary={attentionPending ? (attentionStatus === 'error' ? "Couldn't load" : 'Loading…') : formatAttentionCollapsedSummary(attentionItems)}
+            summary={attentionPending ? (attentionStatus === 'error' ? t("Couldn't load") : t("Loading…")) : formatAttentionCollapsedSummary(attentionItems)}
           >
             {attentionPending ? (
               <div className="today-empty-note">
@@ -8052,6 +8057,13 @@ function ReservationWorkspaceProvider({
   const [floorPlanMode, setFloorPlanMode] = useState('view')
 
   useEffect(() => {
+    if (consumeFloorEditorRequest()) setFloorPlanMode('edit')
+    const openEditor = () => setFloorPlanMode('edit')
+    window.addEventListener('one-setup-open-floor', openEditor)
+    return () => window.removeEventListener('one-setup-open-floor', openEditor)
+  }, [])
+
+  useEffect(() => {
     if (floorPlanMode !== 'edit') return
     setHostEditingReservation(null)
     setHostEditForm(null)
@@ -11841,7 +11853,7 @@ function FloorPlanView({
           {canEditFloorPlan ? (
             <>
               <p>{t("Open Reservations, click Edit layout, arrange your tables, then publish.")}</p>
-              <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
+              <button type="button" className="floor-plan-empty-action" data-help="reservations.edit-layout" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
                 {t("Edit layout")}
               </button>
             </>
@@ -14550,11 +14562,12 @@ function ReservationsUnifiedCanvas({
     <div
       ref={canvasRef}
       className="host-operations-canvas"
+      data-help="reservations.floor"
       data-timeline-collapsed={isTimelineCollapsed ? 'true' : 'false'}
       data-floor-plan-mode={floorPlanMode}
     >
       {floorPlanMode !== 'edit' ? (
-      <section className="host-operations-list" aria-label={t("Reservation list")}>
+      <section className="host-operations-list" aria-label={t("Reservation list")} data-help="reservations.list">
         <div className="host-operations-list-sticky">
           <HostManagerSummaryBar
             dashboard={hostServiceDashboard}
@@ -25612,12 +25625,152 @@ function App() {
     }
   }, [isAuthDisabled, workspace?.id])
 
+  const openSetupStep = useCallback((step) => {
+    if (!step) return
+    if (step.view === 'settings') {
+      handleActiveViewChange('settings')
+      handleSettingsSectionChange(step.settingsSection)
+      return
+    }
+    if (step.view === 'reservations') {
+      requestFloorEditor()
+      handleActiveViewChange('reservations')
+    }
+  }, [handleActiveViewChange, handleSettingsSectionChange])
+
+  const openStaffTourStep = useCallback((step) => {
+    if (!step) return
+    if (step.personal) {
+      openStaffHostPersonalView(step.view)
+      return
+    }
+    if (useDedicatedShell && step.view === 'stock') {
+      handleMobileNavigateModule('stock')
+      return
+    }
+    if (useDedicatedShell && step.view === 'team') {
+      handleMobileOpenFullSchedule()
+      return
+    }
+    if (useDedicatedShell && step.mobileTab) {
+      handleMobileTabChange(step.mobileTab)
+      return
+    }
+    if (step.view === 'team') {
+      handleActiveViewChange('team')
+      handleTeamSectionChange('schedule')
+      return
+    }
+    if (step.view === 'operations') {
+      handleActiveViewChange('operations')
+      handleOperationsSectionChange('dashboard')
+      return
+    }
+    if (step.view === 'stock') {
+      handleActiveViewChange('stock')
+      return
+    }
+    if (step.view) handleActiveViewChange(step.view)
+  }, [
+    useDedicatedShell,
+    openStaffHostPersonalView,
+    handleMobileNavigateModule,
+    handleMobileOpenFullSchedule,
+    handleMobileTabChange,
+    handleActiveViewChange,
+    handleTeamSectionChange,
+    handleOperationsSectionChange,
+  ])
+
+  const [tutorialChoice, setTutorialChoice] = useState(function initialTutorial() {
+    return readTutorial(user?.id, activeWorkspaceId, localStorage).choice
+  })
+  useEffect(function syncTutorial() {
+    function refresh() {
+      setTutorialChoice(readTutorial(user?.id, activeWorkspaceId, localStorage).choice)
+    }
+    refresh()
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [user?.id, activeWorkspaceId])
+
+  const openStockTourStep = useCallback((step) => {
+    if (!step?.section) return
+    stockEntryRequestRef.current = step.section
+    if (useDedicatedShell) handleMobileNavigateModule('stock')
+    else handleActiveViewChange('stock')
+    handleStockSectionChange(step.section)
+  }, [useDedicatedShell, handleMobileNavigateModule, handleActiveViewChange, handleStockSectionChange])
+
+  useEffect(() => {
+    const replay = () => {
+      if (setupGuideAudience(permissionAccess) === 'staff') {
+        writeStaffTourProgress(user?.id, activeWorkspaceId, { skipped: false, replay: true, finished: false }, localStorage)
+        window.dispatchEvent(new Event('one-staff-tour-progress'))
+        return
+      }
+      writeSetupProgress(user?.id, activeWorkspaceId, { skipped: false, remindAfter: '', replay: true }, localStorage)
+      window.dispatchEvent(new Event('one-setup-progress'))
+      handleActiveViewChange('today')
+    }
+    window.addEventListener('one-setup-replay', replay)
+    return () => window.removeEventListener('one-setup-replay', replay)
+  }, [user?.id, activeWorkspaceId, handleActiveViewChange, permissionAccess])
+
+  useEffect(() => {
+    const replay = () => {
+      writeStockTourProgress(user?.id, activeWorkspaceId, { skipped: false, replay: true, finished: false }, localStorage)
+      window.dispatchEvent(new Event('one-stock-tour-progress'))
+      openStockTourStep({ section: canManageStockRole ? 'dashboard' : 'take' })
+    }
+    window.addEventListener('one-stock-tour-replay', replay)
+    return () => window.removeEventListener('one-stock-tour-replay', replay)
+  }, [user?.id, activeWorkspaceId, openStockTourStep, canManageStockRole])
+
   return (
     <PublishedFloorPlanProvider
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
     <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+      <SetupGuideCoachHost
+        role={permissionAccess}
+        profile={workspaceProfile}
+        positions={positions}
+        seatings={reservationSeatings}
+        onOpenStep={openSetupStep}
+      />
+      <StaffTourHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        mobile={useDedicatedShell}
+        onOpenStep={openStaffTourStep}
+      />
+      <StockTourHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        activeView={activeView}
+        onOpenStep={openStockTourStep}
+      />
+      <TutorialOptIn userId={user?.id || ''} workspaceId={activeWorkspaceId} />
+      <ScreenGuideHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        screenId={tutorialScreenId({
+          view: activeView,
+          teamSection,
+          stockSection,
+          operationsSection,
+          settingsSection,
+          mobile: useDedicatedShell,
+          mobileTab: activeMobileTab,
+        })}
+      />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {subscriptionUi.showBanner ? (
         <SubscriptionBanner
@@ -25913,6 +26066,17 @@ function App() {
             quickActionUserId={user?.id || ''}
             quickActionWorkspaceId={activeWorkspaceId || ''}
             onRunTodayShortcut={runTodayShortcut}
+            setupGuide={{
+              role: permissionAccess,
+              userId: user?.id || '',
+              workspaceId: activeWorkspaceId || '',
+              todayKey: currentDateKey,
+              profile: workspaceProfile,
+              positions,
+              seatings: reservationSeatings,
+              onOpenStep: openSetupStep,
+              tutorialOn: tutorialChoice === 'yes',
+            }}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
               loadStatus: todayDataStatus.stock,
               onRetry: () => retryTodayData('stock'),
@@ -26519,6 +26683,8 @@ function App() {
             }}
             systemProps={{
               moduleConnections: workspaceModuleConnections,
+              userId: user?.id || '',
+              workspaceId: activeWorkspaceId || '',
             }}
             notificationSettings={notificationSettingsPanel}
             billingSection={subscriptionUi.enabled && subscriptionUi.manager ? (
@@ -26589,6 +26755,17 @@ function App() {
                       onShiftEmployees: employees,
                       onShiftTodayShifts,
                       timeZone: workspaceTimeZone,
+                      setupGuide: {
+                        role: permissionAccess,
+                        userId: user?.id || '',
+                        workspaceId: activeWorkspaceId || '',
+                        todayKey: currentDateKey,
+                        profile: workspaceProfile,
+                        positions,
+                        seatings: reservationSeatings,
+                        onOpenStep: openSetupStep,
+                        tutorialOn: tutorialChoice === 'yes',
+                      },
                       stockItems,
                       stockOrders,
                       onReceiveDeliveries: handleMobileManagerReceiveDeliveries,

@@ -122,6 +122,22 @@ export function AttendanceClockScreen({
 
   const reload = useCallback(async () => {
     if (!`${workspaceId ?? ''}`.trim()) return
+    if (demoFixtures) {
+      setSnapshot(withDemoAttendance({
+        settings: { venue_lat: 35.185, venue_lng: 33.382 },
+        entries: [],
+        breaks: [],
+        shifts: [],
+      }, {
+        employeeId,
+        todayKey: dateKeyInZone(new Date(), timeZone),
+        area: t("Main Dining"),
+      }))
+      setSettingsLoaded(true)
+      setLoadError('')
+      setMessage('')
+      return
+    }
     const range = attendanceRange(new Date(), timeZone)
     const [settings, entries, shifts] = await Promise.all([
       loadAttendanceSettings(workspaceId),
@@ -415,7 +431,7 @@ export function AttendanceClockScreen({
           <LoadFailed message={loadError} onRetry={() => { setLoadError(''); reload().catch((error) => setLoadError(attendanceErrorMessage(error))) }} />
         </div>
       ) : null}
-      {message ? <p className="attendance-clock-message" role="status">{message}</p> : null}
+      {message ? <p className="attendance-clock-message" role="status">{message === OFFLINE_MESSAGE ? t(OFFLINE_MESSAGE) : message}</p> : null}
 
       <div className="attendance-clock-actions">
         {!openEntry ? (
