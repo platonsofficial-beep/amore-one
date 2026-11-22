@@ -730,7 +730,7 @@ export function StockStorageCenter({
 
       {status === 'error' ? (
         <div className="stock-storage-center-state is-error" role="alert" data-testid="stock-storage-center-error">
-          <p>{t("Storages couldn't be loaded")}</p>
+          <p>{/not an object|supabase|is not configured/i.test(`${errorMessage ?? ''}`) ? t("Storages couldn't be loaded") : errorMessage}</p>
           <button
             type="button"
             className="stock-storage-center-retry"
