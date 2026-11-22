@@ -20,6 +20,13 @@ import {
   writeStaffTourProgress,
   writeStockTourProgress,
 } from './setupGuide'
+import {
+  markScreenSeen,
+  readTutorial,
+  replayTutorial,
+  screenGuide,
+  setTutorialChoice,
+} from './tutorial'
 import './SetupGuide.css'
 
 function storage() {
@@ -54,6 +61,7 @@ export function SetupGuideTodaySlot({
   positions = [],
   seatings = [],
   onOpenStep,
+  tutorialOn = false,
 }) {
   const floor = usePublishedFloorPlan()
   const [progress, setProgress] = useState(() => readSetupProgress(userId, workspaceId, storage()))
@@ -78,7 +86,7 @@ export function SetupGuideTodaySlot({
     return () => window.removeEventListener('one-setup-progress', refresh)
   }, [userId, workspaceId])
 
-  if (!shouldShowSetupChecklist({ steps, progress, todayKey })) return null
+  if (!tutorialOn || !shouldShowSetupChecklist({ steps, progress, todayKey })) return null
 
   const doneCount = steps.filter((step) => step.done).length
   const save = (next) => {
@@ -313,7 +321,7 @@ export function StaffTourHost({
   }, [userId, workspaceId])
 
   useEffect(function autostart() {
-    if (!shouldShowStaffTour({ steps, progress })) return undefined
+    if (!progress.replay || !shouldShowStaffTour({ steps, progress })) return undefined
     if (startedRef.current && !progress.replay) return undefined
     startedRef.current = true
     const first = steps[0]
@@ -397,7 +405,7 @@ export function StockTourHost({
   useEffect(function autostart() {
     const otherTour = typeof document !== 'undefined' && document.body.dataset.oneActiveTour && document.body.dataset.oneActiveTour !== 'stock'
     const onStock = activeView === 'stock' || progress.replay
-    if (!onStock || otherTour || !shouldShowStockTour({ steps, progress })) return undefined
+    if (!progress.replay || !onStock || otherTour || !shouldShowStockTour({ steps, progress })) return undefined
     if (startedRef.current && !progress.replay) return undefined
     startedRef.current = true
     const first = steps[0]
@@ -455,5 +463,161 @@ export function SetupGuideReplayButton() {
     <button type="button" className="setup-guide-replay" onClick={replaySetupGuide}>
       {t('Replay setup guide')}
     </button>
+  )
+}
+
+function publishTutorial(userId, workspaceId, next) {
+  window.dispatchEvent(new CustomEvent('one-tutorial-progress', { detail: next }))
+  return next
+}
+
+export function TutorialOptIn({ userId = '', workspaceId = '' }) {
+  const [progress, setProgress] = useState(function initial() {
+    return readTutorial(userId, workspaceId, storage())
+  })
+
+  useEffect(function load() {
+    setProgress(readTutorial(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(function listen() {
+    function refresh() {
+      setProgress(readTutorial(userId, workspaceId, storage()))
+    }
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [userId, workspaceId])
+
+  if (progress.choice || typeof document === 'undefined') return null
+
+  function choose(choice) {
+    const next = setTutorialChoice(userId, workspaceId, choice, storage())
+    setProgress(next)
+    publishTutorial(userId, workspaceId, next)
+  }
+
+  return createPortal(
+    <div className="tutorial-optin-scrim">
+      <section className="tutorial-optin" role="dialog" aria-modal="true" aria-labelledby="tutorial-optin-title">
+        <h2 id="tutorial-optin-title">{t('Want a short guide?')}</h2>
+        <p>{t('The first time you open a screen, ONE explains what it does and how to use it. You can change this later in Settings or from your name menu.')}</p>
+        <div className="tutorial-optin-actions">
+          <button type="button" className="ghost-btn" onClick={function no() { choose('no') }}>{t('No')}</button>
+          <button type="button" className="primary-btn" onClick={function yes() { choose('yes') }}>{t('Yes')}</button>
+        </div>
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
+export function ScreenGuideHost({
+  role = '',
+  userId = '',
+  workspaceId = '',
+  screenId = '',
+}) {
+  const guide = screenGuide(role, screenId)
+  const [progress, setProgress] = useState(function initial() {
+    return readTutorial(userId, workspaceId, storage())
+  })
+  const [activeId, setActiveId] = useState('')
+
+  useEffect(function load() {
+    setProgress(readTutorial(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(function listen() {
+    function refresh() {
+      setProgress(readTutorial(userId, workspaceId, storage()))
+    }
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [userId, workspaceId])
+
+  const seen = Boolean(screenId && progress.seen[screenId])
+  useEffect(function openScreen() {
+    const otherTour = typeof document !== 'undefined'
+      && document.body.dataset.oneActiveTour
+      && document.body.dataset.oneActiveTour !== 'screen'
+    const nextGuide = screenGuide(role, screenId)
+    if (progress.choice !== 'yes' || !nextGuide || seen || otherTour) {
+      setActiveId('')
+      return undefined
+    }
+    setActiveId(function keep(current) {
+      if (current && nextGuide.steps.some(function match(entry) { return entry.id === current })) return current
+      return nextGuide.steps[0]?.id || ''
+    })
+    return undefined
+  }, [progress.choice, seen, screenId, role])
+
+  function remember() {
+    const next = markScreenSeen(userId, workspaceId, screenId, storage())
+    setProgress(next)
+    setActiveId('')
+    publishTutorial(userId, workspaceId, next)
+  }
+
+  if (!guide) return null
+
+  return (
+    <SetupCoachMount
+      activeId={activeId}
+      steps={guide.steps}
+      onActive={setActiveId}
+      dismissLabel="Skip this screen"
+      onDismiss={remember}
+      onFinish={remember}
+      tourId="screen"
+    />
+  )
+}
+
+export function TutorialSettings({ userId = '', workspaceId = '' }) {
+  const [progress, setProgress] = useState(function initial() {
+    return readTutorial(userId, workspaceId, storage())
+  })
+
+  useEffect(function load() {
+    setProgress(readTutorial(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(function listen() {
+    function refresh() {
+      setProgress(readTutorial(userId, workspaceId, storage()))
+    }
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [userId, workspaceId])
+
+  function choose(choice) {
+    const next = setTutorialChoice(userId, workspaceId, choice, storage())
+    setProgress(next)
+    publishTutorial(userId, workspaceId, next)
+  }
+
+  function replay() {
+    const next = replayTutorial(userId, workspaceId, storage())
+    setProgress(next)
+    publishTutorial(userId, workspaceId, next)
+  }
+
+  return (
+    <div className="tutorial-settings" data-help="tutorial.settings">
+      <h3>{t('Tutorial')}</h3>
+      <p>{t('Show a guide the first time you open each screen.')}</p>
+      <div className="tutorial-optin-actions">
+        <button type="button" className={progress.choice === 'yes' ? 'primary-btn' : 'ghost-btn'} aria-pressed={progress.choice === 'yes'} onClick={function yes() { choose('yes') }}>{t('Yes')}</button>
+        <button type="button" className={progress.choice === 'no' ? 'primary-btn' : 'ghost-btn'} aria-pressed={progress.choice === 'no'} onClick={function no() { choose('no') }}>{t('No')}</button>
+      </div>
+      <button type="button" className="setup-guide-replay" onClick={replay}>{t('Replay guides')}</button>
+    </div>
   )
 }

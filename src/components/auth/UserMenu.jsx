@@ -10,6 +10,7 @@ import { readCssPx } from '../../lib/safeInline'
 import { t } from '../../i18n/i18n'
 import { canShowStockTour, setupGuideAudience } from '../../setupGuide/setupGuide'
 import { replaySetupGuide, replayStockTour } from '../../setupGuide/SetupGuideUI'
+import { readTutorial, replayTutorial, setTutorialChoice } from '../../setupGuide/tutorial'
 
 function presentMemberName(name) {
   const trimmed = `${name ?? ''}`.trim()
@@ -49,6 +50,20 @@ export function UserMenu({
     signOut,
   } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const tutorialWorkspaceId = `${membership?.workspaceId ?? ''}`
+  const [tutorialChoice, setTutorialChoiceState] = useState(function initialTutorial() {
+    return readTutorial(user?.id, tutorialWorkspaceId, window.localStorage).choice
+  })
+  useEffect(function syncTutorial() {
+    function refresh() {
+      setTutorialChoiceState(readTutorial(user?.id, tutorialWorkspaceId, window.localStorage).choice)
+    }
+    refresh()
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [user?.id, tutorialWorkspaceId])
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [placement, setPlacement] = useState(null)
   const containerRef = useRef(null)
@@ -242,6 +257,33 @@ export function UserMenu({
               {setupGuideAudience(role || membership?.role) === 'staff' ? t("Replay the tour") : t("Replay setup guide")}
             </button>
           ) : null}
+          <button
+            type="button"
+            className="user-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setIsOpen(false)
+              const next = tutorialChoice === 'yes' ? 'no' : 'yes'
+              const stored = setTutorialChoice(user?.id, tutorialWorkspaceId, next, window.localStorage)
+              setTutorialChoiceState(stored.choice)
+              window.dispatchEvent(new CustomEvent('one-tutorial-progress', { detail: stored }))
+            }}
+          >
+            {tutorialChoice === 'yes' ? t("Turn the tutorial off") : t("Turn the tutorial on")}
+          </button>
+          <button
+            type="button"
+            className="user-menu-item"
+            role="menuitem"
+            onClick={() => {
+              setIsOpen(false)
+              const stored = replayTutorial(user?.id, tutorialWorkspaceId, window.localStorage)
+              setTutorialChoiceState(stored.choice)
+              window.dispatchEvent(new CustomEvent('one-tutorial-progress', { detail: stored }))
+            }}
+          >
+            {t("Replay guides")}
+          </button>
           {canShowStockTour(role || membership?.role) ? (
             <button
               type="button"

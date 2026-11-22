@@ -78,7 +78,8 @@ import { ReservationSeatingSelect } from './components/reservations/ReservationS
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
-import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost, StockTourHost } from './setupGuide/SetupGuideUI'
+import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost, StockTourHost, TutorialOptIn, ScreenGuideHost } from './setupGuide/SetupGuideUI'
+import { readTutorial, tutorialScreenId } from './setupGuide/tutorial'
 import { consumeFloorEditorRequest, requestFloorEditor, setupGuideAudience, writeSetupProgress, writeStaffTourProgress, writeStockTourProgress } from './setupGuide/setupGuide'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
@@ -25680,6 +25681,20 @@ function App() {
     handleOperationsSectionChange,
   ])
 
+  const [tutorialChoice, setTutorialChoice] = useState(function initialTutorial() {
+    return readTutorial(user?.id, activeWorkspaceId, localStorage).choice
+  })
+  useEffect(function syncTutorial() {
+    function refresh() {
+      setTutorialChoice(readTutorial(user?.id, activeWorkspaceId, localStorage).choice)
+    }
+    refresh()
+    window.addEventListener('one-tutorial-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-tutorial-progress', refresh)
+    }
+  }, [user?.id, activeWorkspaceId])
+
   const openStockTourStep = useCallback((step) => {
     if (!step?.section) return
     stockEntryRequestRef.current = step.section
@@ -25739,6 +25754,19 @@ function App() {
         workspaceId={activeWorkspaceId}
         activeView={activeView}
         onOpenStep={openStockTourStep}
+      />
+      <TutorialOptIn userId={user?.id || ''} workspaceId={activeWorkspaceId} />
+      <ScreenGuideHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        screenId={tutorialScreenId({
+          view: activeView,
+          teamSection,
+          stockSection,
+          operationsSection,
+          settingsSection,
+        })}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {subscriptionUi.showBanner ? (
@@ -26044,6 +26072,7 @@ function App() {
               positions,
               seatings: reservationSeatings,
               onOpenStep: openSetupStep,
+              tutorialOn: tutorialChoice === 'yes',
             }}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
               loadStatus: todayDataStatus.stock,
@@ -26651,6 +26680,8 @@ function App() {
             }}
             systemProps={{
               moduleConnections: workspaceModuleConnections,
+              userId: user?.id || '',
+              workspaceId: activeWorkspaceId || '',
             }}
             notificationSettings={notificationSettingsPanel}
             billingSection={subscriptionUi.enabled && subscriptionUi.manager ? (
