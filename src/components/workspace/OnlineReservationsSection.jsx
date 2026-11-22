@@ -107,7 +107,7 @@ export function OnlineReservationsSection({
           <p className="eyebrow">{t("Reservations")}</p>
           <h3 className="workspace-section-heading">{t("Online reservations")}</h3>
           <p className="workspace-section-subtitle">
-            {t("Guests book from a public link. Bookings are confirmed automatically unless the party is larger than the online limit.")}
+            {t("Guests book from a public link. Confirm instantly, after the venue calls, or after the guest confirms by email.")}
           </p>
         </div>
       </div>
@@ -118,11 +118,37 @@ export function OnlineReservationsSection({
           label={t("Enable online reservations")}
           onClick={() => update({ enabled: !settings.enabled })}
         />
-        <Toggle
-          pressed={settings.autoConfirm}
-          label={t("Auto-confirm bookings")}
-          onClick={() => update({ autoConfirm: !settings.autoConfirm })}
-        />
+
+        <fieldset className="online-booking-methods">
+          <legend>{t("Confirmation method")}</legend>
+          {[
+            ['instant', t("Instant auto-confirm")],
+            ['venue_call', t("Venue calls the guest")],
+            ['email', t("Email before the booking")],
+          ].map(([id, label]) => (
+            <label key={id} className={`online-booking-method${settings.confirmationMethod === id ? ' is-selected' : ''}`}>
+              <input
+                type="radio"
+                name="confirmation-method"
+                checked={settings.confirmationMethod === id}
+                onChange={() => update({ confirmationMethod: id })}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+          {settings.confirmationMethod === 'email' ? (
+            <label className="form-field">
+              <span>{t("Hours before the booking")}</span>
+              <input
+                type="number"
+                min="1"
+                max="168"
+                value={settings.emailConfirmHours}
+                onChange={(event) => update({ emailConfirmHours: event.target.value })}
+              />
+            </label>
+          ) : null}
+        </fieldset>
 
         <label className="form-field">
           <span>{t("Public link name")}</span>

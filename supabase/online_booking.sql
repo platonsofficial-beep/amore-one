@@ -13,7 +13,8 @@ create table if not exists public.workspace_online_booking (
   workspace_id uuid primary key references public.workspaces(id) on delete cascade,
   enabled boolean not null default false,
   slug text not null,
-  auto_confirm boolean not null default true,
+  confirmation_method text not null default 'instant',
+  email_confirm_hours integer not null default 12,
   max_party_size integer not null default 8,
   booking_window_days integer not null default 30,
   min_notice_minutes integer not null default 120,
@@ -21,6 +22,8 @@ create table if not exists public.workspace_online_booking (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint workspace_online_booking_slug_check check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+  constraint workspace_online_booking_method_check check (confirmation_method in ('instant', 'venue_call', 'email')),
+  constraint workspace_online_booking_email_hours_check check (email_confirm_hours >= 1 and email_confirm_hours <= 168),
   constraint workspace_online_booking_party_check check (max_party_size >= 1 and max_party_size <= 100),
   constraint workspace_online_booking_window_check check (booking_window_days >= 1 and booking_window_days <= 365),
   constraint workspace_online_booking_notice_check check (min_notice_minutes >= 0 and min_notice_minutes <= 4320)
@@ -28,13 +31,32 @@ create table if not exists public.workspace_online_booking (
 
 alter table public.workspace_online_booking add column if not exists enabled boolean not null default false;
 alter table public.workspace_online_booking add column if not exists slug text;
-alter table public.workspace_online_booking add column if not exists auto_confirm boolean not null default true;
+alter table public.workspace_online_booking add column if not exists confirmation_method text not null default 'instant';
+alter table public.workspace_online_booking add column if not exists email_confirm_hours integer not null default 12;
 alter table public.workspace_online_booking add column if not exists max_party_size integer not null default 8;
 alter table public.workspace_online_booking add column if not exists booking_window_days integer not null default 30;
 alter table public.workspace_online_booking add column if not exists min_notice_minutes integer not null default 120;
 alter table public.workspace_online_booking add column if not exists venue_phone text not null default '';
 alter table public.workspace_online_booking add column if not exists created_at timestamptz not null default now();
 alter table public.workspace_online_booking add column if not exists updated_at timestamptz not null default now();
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'workspace_online_booking_method_check'
+  ) then
+    alter table public.workspace_online_booking
+      add constraint workspace_online_booking_method_check
+      check (confirmation_method in ('instant', 'venue_call', 'email'));
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'workspace_online_booking_email_hours_check'
+  ) then
+    alter table public.workspace_online_booking
+      add constraint workspace_online_booking_email_hours_check
+      check (email_confirm_hours >= 1 and email_confirm_hours <= 168);
+  end if;
+end $$;
 
 create unique index if not exists workspace_online_booking_slug_key
   on public.workspace_online_booking (lower(slug));
@@ -116,3 +138,31 @@ end $$;
 
 create index if not exists reservations_workspace_source_date_idx
   on public.reservations (workspace_id, source, reservation_date);
+
+-- How an online booking is confirmed, plus the token the step-2 email link will use.
+alter table public.reservations add column if not exists confirmation_method text;
+alter table public.reservations add column if not exists confirm_token text;
+alter table public.reservations add column if not exists confirm_token_expires_at timestamptz;
+alter table public.reservations add column if not exists email_confirm_hours integer;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'reservations_confirmation_method_check'
+  ) then
+    alter table public.reservations
+      add constraint reservations_confirmation_method_check
+      check (confirmation_method is null or confirmation_method in ('instant', 'venue_call', 'email'));
+  end if;
+  if not exists (
+    select 1 from pg_constraint where conname = 'reservations_email_confirm_hours_check'
+  ) then
+    alter table public.reservations
+      add constraint reservations_email_confirm_hours_check
+      check (email_confirm_hours is null or (email_confirm_hours >= 1 and email_confirm_hours <= 168));
+  end if;
+end $$;
+
+create unique index if not exists reservations_confirm_token_key
+  on public.reservations (confirm_token)
+  where confirm_token is not null;

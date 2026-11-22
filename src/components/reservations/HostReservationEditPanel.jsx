@@ -35,6 +35,7 @@ import { buildSeatingsById } from '../../lib/reservationSeatings'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
 import { GuestPhoneInsight } from './GuestHistory'
+import { guestCallHref, needsVenueCallConfirm } from '../../lib/onlineBooking'
 import { t } from '../../i18n/i18n'
 
 const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
@@ -88,6 +89,7 @@ export function HostReservationEditPanel({
   onSave,
   onDelete,
   onCancel,
+  onStatusChange,
   onStartFloorPick,
   isFloorPickActive = false,
   isSaving = false,
@@ -236,6 +238,22 @@ export function HostReservationEditPanel({
           </button>
         </div>
       </div>
+
+      {needsVenueCallConfirm(reservation) ? (
+        <div className="online-confirm-actions" role="group" aria-label={t("To confirm")}>
+          <button
+            type="button"
+            className="primary-btn"
+            disabled={isSaving}
+            onClick={() => onStatusChange?.(reservation, 'Confirmed')}
+          >
+            {t("Confirm")}
+          </button>
+          {guestCallHref(reservation) ? (
+            <a className="ghost-btn" href={guestCallHref(reservation)}>{t("Call")}</a>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="host-reservation-edit-scroll">
         <form

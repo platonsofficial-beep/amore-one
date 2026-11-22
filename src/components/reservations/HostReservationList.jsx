@@ -24,6 +24,7 @@ import {
 } from './hostReservationListUtils'
 import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { OnlineReservationBadge } from './OnlineReservationBadge'
+import { needsVenueCallConfirm } from '../../lib/onlineBooking'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
 import { HostReservationMetaLine, HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
@@ -104,7 +105,7 @@ function HostReservationListRow({
   const statusPresentation = useHostQueuePresentation
     ? getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
     : { label: getHostListCompactStatusLabel(displayStatus), severity: null }
-  const compactStatusLabel = statusPresentation.label
+  const compactStatusLabel = needsVenueCallConfirm(reservation) ? t("To confirm") : statusPresentation.label
   const isLateWithDuration = /^Late \d+m$/.test(compactStatusLabel)
   const nameIndicators = useHostQueuePresentation
     ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
@@ -131,7 +132,9 @@ function HostReservationListRow({
 
   const handleQuickAction = (event, action) => {
     event.stopPropagation()
-    if (isSavingStatus || !action.status) return
+    if (isSavingStatus) return
+    if (action.href) return
+    if (!action.status) return
     onQuickStatusUpdate?.(reservation, action.status)
   }
 
@@ -240,15 +243,26 @@ function HostReservationListRow({
       {quickActions.length > 0 ? (
         <div className="host-reservation-card-quick-actions" role="group" aria-label={t("Quick actions")}>
           {quickActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              className={getQuickActionClassName(action)}
-              onClick={(event) => handleQuickAction(event, action)}
-              disabled={isSavingStatus}
-            >
-              {action.label}
-            </button>
+            action.href ? (
+              <a
+                key={action.id}
+                className={getQuickActionClassName(action)}
+                href={action.href}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {action.label}
+              </a>
+            ) : (
+              <button
+                key={action.id}
+                type="button"
+                className={getQuickActionClassName(action)}
+                onClick={(event) => handleQuickAction(event, action)}
+                disabled={isSavingStatus}
+              >
+                {action.label}
+              </button>
+            )
           ))}
         </div>
       ) : null}

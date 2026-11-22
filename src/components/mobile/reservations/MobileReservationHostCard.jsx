@@ -14,6 +14,7 @@ import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
 import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoClosedBadge'
 import { OnlineReservationBadge } from '../../reservations/OnlineReservationBadge'
+import { needsVenueCallConfirm } from '../../../lib/onlineBooking'
 import { t } from '../../../i18n/i18n'
 
 function getActionClassName(action) {
@@ -198,6 +199,7 @@ export function MobileReservationHostCard({
       return
     }
 
+    if (action.href) return
     if (action.status) {
       onQuickStatusUpdate?.(reservation, action.status)
     }
@@ -236,7 +238,7 @@ export function MobileReservationHostCard({
           <div className="mobile-host-reservation-card-top">
             <span className="mobile-host-reservation-time">{timeLabel}</span>
             <span className={`mobile-host-reservation-status tone-${statusMeta.tone}`}>
-              {statusMeta.label}
+              {needsVenueCallConfirm(reservation) ? t("To confirm") : statusMeta.label}
             </span>
           </div>
 
@@ -261,15 +263,26 @@ export function MobileReservationHostCard({
 
         <div className="mobile-host-reservation-actions" role="group" aria-label={t("Quick actions")}>
           {quickActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              className={getActionClassName(action)}
-              onClick={(event) => handleAction(event, action)}
-              disabled={isSaving}
-            >
-              {action.label}
-            </button>
+            action.href ? (
+              <a
+                key={action.id}
+                className={getActionClassName(action)}
+                href={action.href}
+                onClick={(event) => event.stopPropagation()}
+              >
+                {action.label}
+              </a>
+            ) : (
+              <button
+                key={action.id}
+                type="button"
+                className={getActionClassName(action)}
+                onClick={(event) => handleAction(event, action)}
+                disabled={isSaving}
+              >
+                {action.label}
+              </button>
+            )
           ))}
         </div>
       </article>

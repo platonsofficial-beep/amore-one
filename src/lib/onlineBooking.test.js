@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createInitialBuilderState, floorPlanBuilderReducer } from '../floor-plan-builder/context/floorPlanBuilderContextState'
 import {
   isOnlineReservation,
+  needsVenueCallConfirm,
   normalizeOnlineBookingSettings,
   normalizeOnlineCapacity,
   onlineBookingUrl,
@@ -17,16 +18,18 @@ describe('online booking settings', () => {
     expect(onlineBookingUrl('Amoré  Kitchen')).toBe('https://app.onehospitality.app/book/amore-kitchen')
   })
 
-  it('defaults to auto-confirm, 8 guests, 30 days, and 2 hours notice', () => {
+  it('defaults to instant confirmation, 8 guests, 30 days, 2 hours notice, and 12 hours before email', () => {
     expect(normalizeOnlineBookingSettings({}, { venueName: 'Amore' })).toEqual({
       enabled: false,
       slug: 'amore',
-      autoConfirm: true,
+      confirmationMethod: 'instant',
+      emailConfirmHours: 12,
       maxPartySize: 8,
       bookingWindowDays: 30,
       minNoticeMinutes: 120,
       venuePhone: '',
     })
+    expect(normalizeOnlineBookingSettings({ auto_confirm: false }).confirmationMethod).toBe('venue_call')
   })
 
   it('sums table covers and keeps seating online capacity optional', () => {
@@ -56,6 +59,16 @@ describe('online booking settings', () => {
   it('recognises an online reservation and stores area toggles on the floor', () => {
     expect(isOnlineReservation({ source: 'online' })).toBe(true)
     expect(isOnlineReservation({ source: 'staff' })).toBe(false)
+    expect(needsVenueCallConfirm({
+      source: 'online',
+      confirmationMethod: 'venue_call',
+      status: 'Pending',
+    })).toBe(true)
+    expect(needsVenueCallConfirm({
+      source: 'online',
+      confirmationMethod: 'email',
+      status: 'Pending',
+    })).toBe(false)
 
     const state = createInitialBuilderState({ initialEditing: true })
     const floorId = state.activeFloorId

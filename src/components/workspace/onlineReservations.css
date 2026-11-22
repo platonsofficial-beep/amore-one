@@ -38,6 +38,59 @@
   color: var(--one-gold-light);
 }
 
+.online-booking-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.online-booking-methods legend {
+  margin-bottom: 8px;
+  color: var(--one-gold-light);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.online-booking-method {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-04);
+  color: var(--one-text);
+  font-weight: 650;
+}
+
+.online-booking-method input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.online-booking-method.is-selected {
+  border-color: var(--one-gold-line);
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light);
+}
+
+.online-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.online-confirm-actions .primary-btn,
+.online-confirm-actions .ghost-btn {
+  min-height: 44px;
+}
+
 .online-booking-link-row {
   display: flex;
   flex-wrap: wrap;

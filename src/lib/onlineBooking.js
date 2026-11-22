@@ -2,6 +2,8 @@ export const ONLINE_BOOKING_ORIGIN = 'https://app.onehospitality.app'
 export const DEFAULT_ONLINE_MAX_PARTY = 8
 export const DEFAULT_ONLINE_WINDOW_DAYS = 30
 export const DEFAULT_ONLINE_NOTICE_MINUTES = 120
+export const DEFAULT_EMAIL_CONFIRM_HOURS = 12
+export const CONFIRMATION_METHODS = ['instant', 'venue_call', 'email']
 
 function clampInt(value, min, max, fallback) {
   const number = Math.trunc(Number(value))
@@ -25,12 +27,28 @@ export function onlineBookingUrl(slug) {
   return `${ONLINE_BOOKING_ORIGIN}/book/${slugifyVenueName(slug)}`
 }
 
+export function normalizeConfirmationMethod(value, autoConfirm) {
+  const method = `${value ?? ''}`.trim()
+  if (CONFIRMATION_METHODS.includes(method)) return method
+  if (autoConfirm === false) return 'venue_call'
+  return 'instant'
+}
+
 export function normalizeOnlineBookingSettings(record, { venueName = '' } = {}) {
   const storedSlug = `${record?.slug ?? record?.public_slug ?? ''}`.trim()
   return {
     enabled: Boolean(record?.enabled),
     slug: slugifyVenueName(storedSlug || venueName),
-    autoConfirm: record?.autoConfirm ?? record?.auto_confirm ?? true,
+    confirmationMethod: normalizeConfirmationMethod(
+      record?.confirmationMethod ?? record?.confirmation_method,
+      record?.autoConfirm ?? record?.auto_confirm,
+    ),
+    emailConfirmHours: clampInt(
+      record?.emailConfirmHours ?? record?.email_confirm_hours,
+      1,
+      168,
+      DEFAULT_EMAIL_CONFIRM_HOURS,
+    ),
     maxPartySize: clampInt(
       record?.maxPartySize ?? record?.max_party_size,
       1,
@@ -83,6 +101,22 @@ export function sumVenueCovers(objects = []) {
 
 export function isOnlineReservation(reservation) {
   return `${reservation?.source ?? ''}`.trim().toLowerCase() === 'online'
+}
+
+export function reservationConfirmationMethod(reservation) {
+  return normalizeConfirmationMethod(reservation?.confirmationMethod ?? reservation?.confirmation_method)
+}
+
+export function needsVenueCallConfirm(reservation) {
+  const status = `${reservation?.status ?? 'Pending'}`.trim()
+  return isOnlineReservation(reservation)
+    && reservationConfirmationMethod(reservation) === 'venue_call'
+    && (status === 'Pending' || status === 'Not Confirmed')
+}
+
+export function guestCallHref(reservation) {
+  const phone = `${reservation?.phone ?? ''}`.replace(/[^\d+]/g, '')
+  return phone ? `tel:${phone}` : ''
 }
 
 export function readAreaBooking(floor) {

@@ -66,6 +66,10 @@ function mapReservation(record) {
     // undefined = column not there yet (SQL not applied); null = no count.
     seatedGuests: readSeatedGuests(record),
     source: `${record.source ?? 'staff'}`.trim().toLowerCase() === 'online' ? 'online' : 'staff',
+    confirmationMethod: record.confirmation_method ?? record.confirmationMethod ?? null,
+    confirmToken: record.confirm_token ?? record.confirmToken ?? null,
+    confirmTokenExpiresAt: record.confirm_token_expires_at ?? record.confirmTokenExpiresAt ?? null,
+    emailConfirmHours: record.email_confirm_hours ?? record.emailConfirmHours ?? null,
   }
 
   return enrichReservationWithSeatingAssignment({
@@ -154,6 +158,18 @@ function serializeReservation(reservation) {
       ? { seated_guests: normalizeSeatedGuests(reservation.seatedGuests) }
       : {}),
     ...(reservation.source ? { source: reservation.source === 'online' ? 'online' : 'staff' } : {}),
+    ...(reservation.confirmationMethod || reservation.confirmation_method
+      ? { confirmation_method: reservation.confirmationMethod ?? reservation.confirmation_method }
+      : {}),
+    ...(reservation.confirmToken || reservation.confirm_token
+      ? { confirm_token: reservation.confirmToken ?? reservation.confirm_token }
+      : {}),
+    ...(reservation.confirmTokenExpiresAt || reservation.confirm_token_expires_at
+      ? { confirm_token_expires_at: reservation.confirmTokenExpiresAt ?? reservation.confirm_token_expires_at }
+      : {}),
+    ...(reservation.emailConfirmHours || reservation.email_confirm_hours
+      ? { email_confirm_hours: reservation.emailConfirmHours ?? reservation.email_confirm_hours }
+      : {}),
   }
 }
 
