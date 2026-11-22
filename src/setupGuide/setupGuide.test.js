@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
+import { getRolePreset } from '../lib/permissions'
 import {
   floorSetupDone,
   isProfileSetupDone,
   nextDateKey,
   readSetupProgress,
+  readStaffTourProgress,
   shouldShowSetupChecklist,
+  shouldShowStaffTour,
   visibleSetupSteps,
+  visibleStaffTourSteps,
   withSetupDone,
   writeSetupProgress,
+  writeStaffTourProgress,
 } from './setupGuide'
 
 function memoryStorage() {
@@ -79,6 +84,49 @@ describe('setup guide', () => {
       todayKey: '2026-11-23',
     })).toBe(true)
     expect(nextDateKey('2026-11-22')).toBe('2026-11-23')
+  })
+
+  it('shows a staff member only the screens their role can open', () => {
+    const staffIds = visibleStaffTourSteps('staff').map((step) => step.id)
+    expect(staffIds).toEqual([
+      'staff-today',
+      'staff-week',
+      'staff-clock',
+      'staff-schedule',
+      'staff-chat',
+      'staff-stock',
+      'staff-tasks',
+      'staff-profile',
+    ])
+    expect(visibleStaffTourSteps('staff', { mobile: true }).map((step) => step.id)).not.toContain('staff-schedule')
+    expect(visibleStaffTourSteps('staff', { mobile: true }).map((step) => step.id)).not.toContain('staff-reservations')
+    const withFloor = getRolePreset('staff')
+    withFloor.reservations = 'view'
+    expect(visibleStaffTourSteps({ role: 'staff', permissions: withFloor }).map((step) => step.id)).toContain('staff-reservations')
+    const withoutChat = getRolePreset('staff')
+    withoutChat.chat = 'none'
+    withoutChat.stock = 'none'
+    withoutChat.operations = 'none'
+    withoutChat.mobile_tasks = 'none'
+    withoutChat.today = 'none'
+    const limited = visibleStaffTourSteps({ role: 'staff', permissions: withoutChat }).map((step) => step.id)
+    expect(limited).toEqual(['staff-week', 'staff-clock', 'staff-schedule', 'staff-profile'])
+    expect(visibleStaffTourSteps('owner')).toEqual([])
+    expect(visibleStaffTourSteps('host')).toEqual([])
+    expect(visibleSetupSteps('staff')).toEqual([])
+  })
+
+  it('hides the staff tour after skip or finish until replay', () => {
+    const steps = visibleStaffTourSteps('staff')
+    const storage = memoryStorage()
+    expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(true)
+    writeStaffTourProgress('u', 'v', { skipped: true, replay: false, finished: false }, storage)
+    expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(false)
+    writeStaffTourProgress('u', 'v', { skipped: false, replay: false, finished: true }, storage)
+    expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(false)
+    writeStaffTourProgress('u', 'v', { skipped: true, replay: true, finished: true }, storage)
+    expect(shouldShowStaffTour({ steps, progress: readStaffTourProgress('u', 'v', storage) })).toBe(true)
+    expect(readSetupProgress('u', 'v', storage).skipped).toBe(false)
   })
 
   it('stores skip state per user and venue', () => {

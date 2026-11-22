@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import { canAccessModule } from '../lib/permissions'
+import {
+  canAccessHostMobileTasksTab,
+  canAccessMobileExpandedModule,
+  canAccessModule,
+  canAccessTeamSection,
+  canOpenMobileFullSchedule,
+  canUseChat,
+} from '../lib/permissions'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 
 export const SETUP_GUIDE_STORAGE_PREFIX = 'one.setupGuide.v1'
+export const STAFF_TOUR_STORAGE_PREFIX = 'one.staffTour.v1'
 
 export const SETUP_STEPS = [
   {
@@ -73,12 +81,118 @@ export function setupGuideAudience(role) {
   const normalized = normalizeWorkspaceRole(roleName(role), '')
   if (normalized === 'owner' || normalized === 'general_manager') return 'full'
   if (normalized === 'manager') return 'limited'
+  if (normalized === 'staff') return 'staff'
   return 'none'
+}
+
+export const STAFF_TOUR_STEPS = [
+  {
+    id: 'staff-today',
+    view: 'today',
+    mobileTab: 'home',
+    targets: ['nav.today', 'nav.home'],
+    titleKey: 'Your day',
+    bodyKey: 'See your shift and what the venue needs today.',
+  },
+  {
+    id: 'staff-week',
+    view: 'my-week',
+    personal: true,
+    mobileTab: 'schedule',
+    targets: ['nav.my-week', 'nav.schedule'],
+    titleKey: 'Your scheduled week',
+    bodyKey: 'This is the week you are scheduled to work.',
+  },
+  {
+    id: 'staff-clock',
+    view: 'clock',
+    personal: true,
+    mobileTab: 'menu',
+    targets: ['timeclock.clock-in', 'staff.clock'],
+    titleKey: 'Clock in and out',
+    bodyKey: 'Clock in when you arrive, and clock out when you leave.',
+  },
+  {
+    id: 'staff-schedule',
+    view: 'team',
+    teamSection: 'schedule',
+    mobileTab: 'menu',
+    targets: ['nav.team', 'staff.full-schedule'],
+    titleKey: 'The team schedule',
+    bodyKey: 'Open the schedule to see the shifts and who is working.',
+  },
+  {
+    id: 'staff-reservations',
+    view: 'reservations',
+    targets: ['nav.reservations'],
+    titleKey: 'Reservations',
+    bodyKey: 'See today\'s bookings and the tables on the floor.',
+  },
+  {
+    id: 'staff-chat',
+    view: 'chat',
+    mobileTab: 'chat',
+    targets: ['nav.chat'],
+    titleKey: 'Team messages',
+    bodyKey: 'Read the team chat. A badge means something is unread.',
+  },
+  {
+    id: 'staff-stock',
+    view: 'stock',
+    mobileTab: 'menu',
+    targets: ['nav.stock'],
+    titleKey: 'Stock',
+    bodyKey: 'See what is on hand. Count a shelf when you are asked.',
+  },
+  {
+    id: 'staff-tasks',
+    view: 'operations',
+    mobileTab: 'tasks',
+    targets: ['nav.operations', 'nav.tasks'],
+    titleKey: 'Tasks',
+    bodyKey: 'Open the tasks and checklists for the service.',
+  },
+  {
+    id: 'staff-profile',
+    view: 'account',
+    personal: true,
+    mobileTab: 'menu',
+    targets: ['header.profile', 'staff.profile', 'nav.menu'],
+    titleKey: 'Your profile',
+    bodyKey: 'Your name, contact details, and sign out are here.',
+  },
+]
+
+function staffTourStepAllowed(role, step, mobile) {
+  if (step.id === 'staff-today') return canAccessModule(role, 'today')
+  if (step.id === 'staff-week' || step.id === 'staff-clock' || step.id === 'staff-profile') return true
+  if (step.id === 'staff-schedule') {
+    return mobile ? canOpenMobileFullSchedule(role) : canAccessTeamSection(role, 'schedule')
+  }
+  if (step.id === 'staff-reservations') {
+    if (!canAccessModule(role, 'reservations')) return false
+    return mobile ? canAccessMobileExpandedModule(role, 'reservations') : true
+  }
+  if (step.id === 'staff-chat') return canUseChat(role)
+  if (step.id === 'staff-stock') {
+    if (!canAccessModule(role, 'stock')) return false
+    return mobile ? canAccessMobileExpandedModule(role, 'stock') : true
+  }
+  if (step.id === 'staff-tasks') {
+    return canAccessModule(role, 'operations') || canAccessHostMobileTasksTab(role)
+  }
+  return false
+}
+
+export function visibleStaffTourSteps(role, options = {}) {
+  if (setupGuideAudience(role) !== 'staff') return []
+  const mobile = Boolean(options.mobile)
+  return STAFF_TOUR_STEPS.filter((step) => staffTourStepAllowed(role, step, mobile))
 }
 
 export function visibleSetupSteps(role) {
   const audience = setupGuideAudience(role)
-  if (audience === 'none') return []
+  if (audience !== 'full' && audience !== 'limited') return []
   return SETUP_STEPS.filter((step) => {
     if (step.needsSettings && !canAccessModule(role, 'settings')) return false
     if (step.view === 'reservations' && !canAccessModule(role, 'reservations')) return false
@@ -132,8 +246,16 @@ export function emptySetupProgress() {
   return { skipped: false, remindAfter: '', replay: false }
 }
 
+export function emptyStaffTourProgress() {
+  return { skipped: false, replay: false, finished: false }
+}
+
 export function setupGuideStorageKey(userId, workspaceId) {
   return `${SETUP_GUIDE_STORAGE_PREFIX}:${userId || 'local'}:${workspaceId || 'local'}`
+}
+
+export function staffTourStorageKey(userId, workspaceId) {
+  return `${STAFF_TOUR_STORAGE_PREFIX}:${userId || 'local'}:${workspaceId || 'local'}`
 }
 
 export function readSetupProgress(userId, workspaceId, storage) {
@@ -151,6 +273,42 @@ export function readSetupProgress(userId, workspaceId, storage) {
   } catch {
     return fallback
   }
+}
+
+export function readStaffTourProgress(userId, workspaceId, storage) {
+  const fallback = emptyStaffTourProgress()
+  if (!storage) return fallback
+  try {
+    const raw = storage.getItem(staffTourStorageKey(userId, workspaceId))
+    if (!raw) return fallback
+    const parsed = JSON.parse(raw)
+    return {
+      skipped: Boolean(parsed?.skipped),
+      replay: Boolean(parsed?.replay),
+      finished: Boolean(parsed?.finished),
+    }
+  } catch {
+    return fallback
+  }
+}
+
+export function writeStaffTourProgress(userId, workspaceId, progress, storage) {
+  if (!storage) return progress
+  const next = {
+    skipped: Boolean(progress?.skipped),
+    replay: Boolean(progress?.replay),
+    finished: Boolean(progress?.finished),
+  }
+  storage.setItem(staffTourStorageKey(userId, workspaceId), JSON.stringify(next))
+  return next
+}
+
+export function shouldShowStaffTour({ steps, progress }) {
+  if (!steps?.length) return false
+  const state = progress ?? emptyStaffTourProgress()
+  if (state.skipped && !state.replay) return false
+  if (state.finished && !state.replay) return false
+  return true
 }
 
 export function writeSetupProgress(userId, workspaceId, progress, storage) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { t } from '../i18n/i18n'
 import { useHelpModeEnabled } from '../help/HelpMode'
@@ -6,11 +6,15 @@ import { usePublishedFloorPlan } from '../lib/PublishedFloorPlanContext'
 import {
   nextDateKey,
   readSetupProgress,
+  readStaffTourProgress,
   shouldShowSetupChecklist,
+  shouldShowStaffTour,
   useSetupCoachStep,
   visibleSetupSteps,
+  visibleStaffTourSteps,
   withSetupDone,
   writeSetupProgress,
+  writeStaffTourProgress,
 } from './setupGuide'
 import './SetupGuide.css'
 
@@ -148,7 +152,20 @@ export function SetupGuideCoachHost({
   )
 }
 
-function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
+function coachTargets(step) {
+  if (Array.isArray(step.targets) && step.targets.length) return step.targets
+  return [step.target, step.fallbackTarget].filter(Boolean)
+}
+
+function SetupCoachMount({
+  activeId,
+  steps,
+  onActive,
+  onOpenStep,
+  onDismiss,
+  onFinish,
+  dismissLabel = 'Skip this step',
+}) {
   const helpOn = useHelpModeEnabled()
   const [box, setBox] = useState(null)
   const step = steps.find((entry) => entry.id === activeId) ?? null
@@ -160,9 +177,17 @@ function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
     }
     let frame = 0
     let tries = 0
-    const measure = () => {
-      const target = document.querySelector(`[data-help="${step.target}"]`)
-        || document.querySelector(`[data-help="${step.fallbackTarget || ''}"]`)
+    const names = coachTargets(step)
+    function measure() {
+      let target = null
+      for (const name of names) {
+        const candidate = document.querySelector(`[data-help="${name}"]`)
+        if (!candidate) continue
+        const rect = candidate.getBoundingClientRect()
+        if (rect.width < 1 || rect.height < 1) continue
+        target = candidate
+        break
+      }
       if (!target) {
         if (tries < 20) {
           tries += 1
@@ -181,7 +206,7 @@ function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
     measure()
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
-    return () => {
+    return function cleanup() {
       window.cancelAnimationFrame(frame)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
@@ -190,7 +215,8 @@ function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
 
   if (!step || helpOn || typeof document === 'undefined') return null
 
-  const next = steps.find((entry) => entry.id !== step.id && !entry.done)
+  const index = steps.findIndex((entry) => entry.id === step.id)
+  const next = steps.slice(index + 1).find((entry) => !entry.done)
   const cardStyle = box?.card
     ? { top: box.card.top, left: box.card.left, width: box.card.width }
     : { left: 12, right: 12, bottom: 12 }
@@ -202,18 +228,28 @@ function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
         <h2>{t(step.titleKey)}</h2>
         <p>{t(step.bodyKey)}</p>
         <div className="setup-guide-coach-actions">
-          <button type="button" className="ghost-btn" onClick={() => onActive('')}>{t('Skip this step')}</button>
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={function skipStep() {
+              if (onDismiss) onDismiss()
+              else onActive('')
+            }}
+          >
+            {t(dismissLabel)}
+          </button>
           <button
             type="button"
             className="primary-btn"
-            onClick={() => {
+            onClick={function advance() {
               if (!next) {
-                onActive('')
+                if (onFinish) onFinish()
+                else onActive('')
                 return
               }
               onActive(next.id)
               window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
-              onOpenStep?.(next)
+              if (onOpenStep) onOpenStep(next)
             }}
           >
             {t('Next')}
@@ -222,6 +258,81 @@ function SetupCoachMount({ activeId, steps, onActive, onOpenStep }) {
       </section>
     </>,
     document.body,
+  )
+}
+
+export function StaffTourHost({
+  role = '',
+  userId = '',
+  workspaceId = '',
+  mobile = false,
+  onOpenStep,
+}) {
+  const steps = visibleStaffTourSteps(role, { mobile })
+  const [progress, setProgress] = useState(function initialProgress() {
+    return readStaffTourProgress(userId, workspaceId, storage())
+  })
+  const [activeId, setActiveId] = useState('')
+  const startedRef = useRef(false)
+  const openRef = useRef(onOpenStep)
+  openRef.current = onOpenStep
+
+  useEffect(function loadProgress() {
+    setProgress(readStaffTourProgress(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(function listenForReplay() {
+    function refresh() {
+      setProgress(readStaffTourProgress(userId, workspaceId, storage()))
+    }
+    window.addEventListener('one-staff-tour-progress', refresh)
+    return function cleanup() {
+      window.removeEventListener('one-staff-tour-progress', refresh)
+    }
+  }, [userId, workspaceId])
+
+  useEffect(function autostart() {
+    if (!shouldShowStaffTour({ steps, progress })) return undefined
+    if (startedRef.current && !progress.replay) return undefined
+    startedRef.current = true
+    const first = steps[0]
+    if (!first) return undefined
+    setActiveId(first.id)
+    if (openRef.current) openRef.current(first)
+    if (progress.replay) {
+      setProgress(writeStaffTourProgress(userId, workspaceId, {
+        skipped: false,
+        replay: false,
+        finished: false,
+      }, storage()))
+    }
+    return undefined
+  }, [steps, progress, userId, workspaceId])
+
+  function persist(next) {
+    const stored = writeStaffTourProgress(userId, workspaceId, next, storage())
+    setProgress(stored)
+    window.dispatchEvent(new Event('one-staff-tour-progress'))
+  }
+
+  return (
+    <SetupCoachMount
+      activeId={activeId}
+      steps={steps}
+      onActive={setActiveId}
+      onOpenStep={onOpenStep}
+      dismissLabel="Skip the tour"
+      onDismiss={function skipTour() {
+        startedRef.current = true
+        persist({ skipped: true, replay: false, finished: false })
+        setActiveId('')
+      }}
+      onFinish={function finishTour() {
+        startedRef.current = true
+        persist({ skipped: false, replay: false, finished: true })
+        setActiveId('')
+      }}
+    />
   )
 }
 

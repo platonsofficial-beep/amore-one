@@ -78,8 +78,8 @@ import { ReservationSeatingSelect } from './components/reservations/ReservationS
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
-import { SetupGuideCoachHost, SetupGuideTodaySlot } from './setupGuide/SetupGuideUI'
-import { consumeFloorEditorRequest, requestFloorEditor, writeSetupProgress } from './setupGuide/setupGuide'
+import { SetupGuideCoachHost, SetupGuideTodaySlot, StaffTourHost } from './setupGuide/SetupGuideUI'
+import { consumeFloorEditorRequest, requestFloorEditor, setupGuideAudience, writeSetupProgress, writeStaffTourProgress } from './setupGuide/setupGuide'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
@@ -25636,15 +25636,64 @@ function App() {
     }
   }, [handleActiveViewChange, handleSettingsSectionChange])
 
+  const openStaffTourStep = useCallback((step) => {
+    if (!step) return
+    if (step.personal) {
+      openStaffHostPersonalView(step.view)
+      return
+    }
+    if (useDedicatedShell && step.view === 'stock') {
+      handleMobileNavigateModule('stock')
+      return
+    }
+    if (useDedicatedShell && step.view === 'team') {
+      handleMobileOpenFullSchedule()
+      return
+    }
+    if (useDedicatedShell && step.mobileTab) {
+      handleMobileTabChange(step.mobileTab)
+      return
+    }
+    if (step.view === 'team') {
+      handleActiveViewChange('team')
+      handleTeamSectionChange('schedule')
+      return
+    }
+    if (step.view === 'operations') {
+      handleActiveViewChange('operations')
+      handleOperationsSectionChange('dashboard')
+      return
+    }
+    if (step.view === 'stock') {
+      handleActiveViewChange('stock')
+      return
+    }
+    if (step.view) handleActiveViewChange(step.view)
+  }, [
+    useDedicatedShell,
+    openStaffHostPersonalView,
+    handleMobileNavigateModule,
+    handleMobileOpenFullSchedule,
+    handleMobileTabChange,
+    handleActiveViewChange,
+    handleTeamSectionChange,
+    handleOperationsSectionChange,
+  ])
+
   useEffect(() => {
     const replay = () => {
+      if (setupGuideAudience(permissionAccess) === 'staff') {
+        writeStaffTourProgress(user?.id, activeWorkspaceId, { skipped: false, replay: true, finished: false }, localStorage)
+        window.dispatchEvent(new Event('one-staff-tour-progress'))
+        return
+      }
       writeSetupProgress(user?.id, activeWorkspaceId, { skipped: false, remindAfter: '', replay: true }, localStorage)
       window.dispatchEvent(new Event('one-setup-progress'))
       handleActiveViewChange('today')
     }
     window.addEventListener('one-setup-replay', replay)
     return () => window.removeEventListener('one-setup-replay', replay)
-  }, [user?.id, activeWorkspaceId, handleActiveViewChange])
+  }, [user?.id, activeWorkspaceId, handleActiveViewChange, permissionAccess])
 
   return (
     <PublishedFloorPlanProvider
@@ -25658,6 +25707,13 @@ function App() {
         positions={positions}
         seatings={reservationSeatings}
         onOpenStep={openSetupStep}
+      />
+      <StaffTourHost
+        role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
+        mobile={useDedicatedShell}
+        onOpenStep={openStaffTourStep}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {subscriptionUi.showBanner ? (

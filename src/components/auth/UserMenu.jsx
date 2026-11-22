@@ -239,7 +239,7 @@ export function UserMenu({
                 replaySetupGuide()
               }}
             >
-              {t("Replay setup guide")}
+              {setupGuideAudience(role || membership?.role) === 'staff' ? t("Replay the tour") : t("Replay setup guide")}
             </button>
           ) : null}
           {!isAuthDisabled ? (

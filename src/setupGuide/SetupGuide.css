@@ -128,7 +128,9 @@
 @media (max-height: 500px) {
   .setup-guide-coach {
     left: 12px !important;
-    right: 12px;
-    width: auto;
+    right: 12px !important;
+    width: auto !important;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
   }
 }

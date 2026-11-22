@@ -60,7 +60,7 @@ export function MobileProfileView({
         <button type="button" className="mobile-back-btn" onClick={onBack}>
           {t("‹ Back")}
         </button>
-        <h1>{t("Profile")}</h1>
+        <h1 data-help="staff.profile">{t("Profile")}</h1>
       </header>
 
       <ProfilePhotoBlock displayName={displayName} />
