@@ -10359,13 +10359,20 @@ body:not(:has(.inventory-count-session)) :is(
   .mobile-host-reservations.is-landscape .floor-seating-selector-scroll {
     display: flex;
     flex-flow: row wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
     width: 100%;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     min-width: 0;
     max-width: 100%;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-selector-scroll::-webkit-scrollbar {
+    display: none;
   }
 
   .mobile-host-reservations.is-landscape .host-queue-metric-label {
@@ -10379,15 +10386,20 @@ body:not(:has(.inventory-count-session)) :is(
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-legend-slot {
+    position: sticky;
+    inset-inline-end: 0;
+    z-index: 3;
     flex: 0 0 auto;
     margin-left: 0;
-    max-width: 44px;
+    max-width: none;
+    padding-inline-start: 4px;
+    background: var(--one-bg);
   }
 
   .mobile-host-reservations.is-landscape .floor-seating-selector-chip {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     width: auto;
-    max-width: 100%;
+    max-width: none;
     overflow: visible;
     flex-direction: row;
     align-items: center;
@@ -10934,6 +10946,14 @@ body:not(:has(.inventory-count-session)) :is(
     max-width: 100%;
     overflow: visible;
     padding-inline: 0;
+  }
+
+  .mobile-host-reservations .floor-seating-legend-slot {
+    flex: 0 0 auto;
+    width: auto;
+    max-width: none;
+    margin-left: 0;
+    align-self: center;
   }
 
   .mobile-host-reservations .floor-seating-selector-chip {
