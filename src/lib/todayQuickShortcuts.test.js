@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   TODAY_QUICK_ACTION_MAX,
@@ -23,6 +24,15 @@ function storage() {
 }
 
 describe('today quick shortcuts', () => {
+  it('keeps Edit compact, with a gap above the grid and a 44px hit area', () => {
+    const css = readFileSync('src/components/today/todayQuickActions.css', 'utf8')
+    expect(css).toMatch(/\.today-quick-edit \{[^}]*height:\s*30px/)
+    expect(css).toMatch(/\.today-quick-actions \{[^}]*gap:\s*10px/)
+    expect(css).toMatch(/\.today-quick-edit::before \{[^}]*height:\s*44px/)
+    expect(css).toMatch(/\.today-quick-move button \{[^}]*width:\s*28px/)
+    expect(css).toMatch(/grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/)
+  })
+
   it('gives managers and owners the role default, with Operations in place of a missing invoice shortcut', () => {
     const expected = ['reservations', 'stock', 'schedule', 'tasks', 'team-today', 'operations']
     expect(defaultTodayShortcutIds('owner')).toEqual(expected)
