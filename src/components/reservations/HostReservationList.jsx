@@ -24,6 +24,7 @@ import {
 } from './hostReservationListUtils'
 import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { OnlineReservationBadge } from './OnlineReservationBadge'
+import { ReservationCallIcon } from './ReservationCallIcon'
 import { needsVenueCallConfirm } from '../../lib/onlineBooking'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
@@ -40,9 +41,12 @@ function formatHostListScheduleLabel(reservation, todayKey) {
 }
 
 function getQuickActionClassName(action) {
-  if (action.variant === 'danger') return 'host-reservation-card-quick-action is-danger'
-  if (action.variant === 'primary') return 'host-reservation-card-quick-action is-primary'
-  return 'host-reservation-card-quick-action'
+  const classes = ['host-reservation-card-quick-action']
+  if (action.id === 'confirm-online') classes.push('is-confirm')
+  if (action.id === 'call-guest') classes.push('is-call')
+  if (action.variant === 'danger') classes.push('is-danger')
+  else if (action.variant === 'primary') classes.push('is-primary')
+  return classes.join(' ')
 }
 
 function readCollapsedSections() {
@@ -118,6 +122,8 @@ function HostReservationListRow({
   const quickActions = layout === 'default'
     ? getHostReservationQuickActions(reservation, { nowMinutes, todayKey })
     : []
+  const isVenueCallRow = quickActions.some((action) => action.id === 'confirm-online')
+    && quickActions.some((action) => action.id === 'call-guest')
   const isCompactTablet = layout === 'compactTablet'
   const metaLine = formatHostListMetaLine(guestCount, tableLabel)
 
@@ -142,6 +148,30 @@ function HostReservationListRow({
     event.stopPropagation()
     onOpenRowMenu?.(reservation, event)
   }
+
+  const renderQuickAction = (action) => (
+    action.href ? (
+      <a
+        key={action.id}
+        className={getQuickActionClassName(action)}
+        href={action.href}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ReservationCallIcon />
+        {action.label}
+      </a>
+    ) : (
+      <button
+        key={action.id}
+        type="button"
+        className={getQuickActionClassName(action)}
+        onClick={(event) => handleQuickAction(event, action)}
+        disabled={isSavingStatus}
+      >
+        {action.label}
+      </button>
+    )
+  )
 
   return (
     <article
@@ -241,29 +271,21 @@ function HostReservationListRow({
       </div>
 
       {quickActions.length > 0 ? (
-        <div className="host-reservation-card-quick-actions" role="group" aria-label={t("Quick actions")}>
-          {quickActions.map((action) => (
-            action.href ? (
-              <a
-                key={action.id}
-                className={getQuickActionClassName(action)}
-                href={action.href}
-                onClick={(event) => event.stopPropagation()}
-              >
-                {action.label}
-              </a>
-            ) : (
-              <button
-                key={action.id}
-                type="button"
-                className={getQuickActionClassName(action)}
-                onClick={(event) => handleQuickAction(event, action)}
-                disabled={isSavingStatus}
-              >
-                {action.label}
-              </button>
-            )
-          ))}
+        <div
+          className={`host-reservation-card-quick-actions${isVenueCallRow ? ' is-venue-call' : ''}`}
+          role="group"
+          aria-label={t("Quick actions")}
+        >
+          {isVenueCallRow ? (
+            [
+              quickActions.filter((action) => action.id === 'confirm-online' || action.id === 'call-guest'),
+              quickActions.filter((action) => action.id !== 'confirm-online' && action.id !== 'call-guest'),
+            ].filter((row) => row.length > 0).map((row) => (
+              <div key={row.map((action) => action.id).join('-')} className="host-reservation-quick-row">
+                {row.map(renderQuickAction)}
+              </div>
+            ))
+          ) : quickActions.map(renderQuickAction)}
         </div>
       ) : null}
     </article>

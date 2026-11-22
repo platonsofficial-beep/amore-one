@@ -6285,15 +6285,40 @@
   padding: 0 8px 8px;
 }
 
+.mobile-host-reservation-actions.is-venue-call {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-host-quick-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.mobile-host-quick-row > .mobile-host-reservation-action {
+  width: 100%;
+  min-width: 0;
+}
+
 .mobile-host-reservation-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
   min-height: 44px;
   padding: 0 8px;
   border: 0;
   border-radius: 10px;
   background: var(--one-gold-a16);
   color: #f0dca2;
+  font-family: inherit;
   font-size: 0.76rem;
   font-weight: 700;
+  line-height: 1.15;
+  text-decoration: none;
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;

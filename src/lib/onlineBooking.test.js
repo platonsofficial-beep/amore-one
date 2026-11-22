@@ -86,4 +86,22 @@ describe('online booking settings', () => {
     const el = JSON.parse(readFileSync('src/i18n/locales/el.json', 'utf8'))
     expect(el['Days guests can book ahead']).toBe('Κρατήσεις έως (ημέρες)')
   })
+
+  it('uses a gold custom radio and an even two-row call layout', () => {
+    const settings = readFileSync('src/components/workspace/onlineReservations.css', 'utf8')
+    const radio = settings.match(/\.online-booking-method input\[type="radio"\] \{[^}]*\}/)?.[0] ?? ''
+    expect(radio).toContain('appearance: none')
+    expect(radio).toContain('-webkit-appearance: none')
+    expect(settings).toContain('border-color: var(--one-gold)')
+    expect(settings).toContain('radial-gradient(circle at center, var(--one-gold)')
+
+    const app = readFileSync('src/App.css', 'utf8')
+    const actionStart = app.indexOf('.host-reservation-card-quick-action {\n  display: inline-flex;')
+    const action = app.slice(actionStart, actionStart + 600)
+    expect(action).toContain('align-items: center')
+    expect(action).toContain('text-decoration: none')
+    expect(app).toContain('.host-reservation-quick-row')
+    expect(app).toContain('grid-auto-flow: column')
+    expect(app).toContain('grid-auto-columns: minmax(0, 1fr)')
+  })
 })

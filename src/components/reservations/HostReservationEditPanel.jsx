@@ -36,6 +36,7 @@ import { buildSeatingsById } from '../../lib/reservationSeatings'
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
 import { GuestPhoneInsight } from './GuestHistory'
 import { guestCallHref, needsVenueCallConfirm } from '../../lib/onlineBooking'
+import { ReservationCallIcon } from './ReservationCallIcon'
 import { t } from '../../i18n/i18n'
 
 const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
@@ -250,7 +251,10 @@ export function HostReservationEditPanel({
             {t("Confirm")}
           </button>
           {guestCallHref(reservation) ? (
-            <a className="ghost-btn" href={guestCallHref(reservation)}>{t("Call")}</a>
+            <a className="ghost-btn reservation-call-link" href={guestCallHref(reservation)}>
+              <ReservationCallIcon />
+              {t("Call")}
+            </a>
           ) : null}
         </div>
       ) : null}

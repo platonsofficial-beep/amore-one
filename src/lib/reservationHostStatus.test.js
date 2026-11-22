@@ -44,6 +44,17 @@ describe('reservationHostStatus quick actions', () => {
     expect(canCompleteReservation(reservation())).toBe(false)
   })
 
+  it('puts confirm and call ahead of the service actions for a venue call', () => {
+    const actions = getHostReservationQuickActions(reservation({
+      source: 'online',
+      confirmationMethod: 'venue_call',
+      status: 'Pending',
+      phone: '+30 210 000 0000',
+    }), { nowMinutes: 18 * 60, todayKey: TODAY })
+    expect(actions.map((action) => action.id).slice(0, 2)).toEqual(['confirm-online', 'call-guest'])
+    expect(actions.find((action) => action.id === 'call-guest')?.href).toBe('tel:+302100000000')
+  })
+
   it('builds upcoming quick actions in host-friendly order', () => {
     const actions = getHostReservationQuickActions(reservation(), { nowMinutes: 18 * 60, todayKey: TODAY })
     expect(actions.map((action) => action.id)).toEqual(['arrived', 'seat', 'no-show'])

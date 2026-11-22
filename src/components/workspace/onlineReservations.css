@@ -67,10 +67,28 @@
   font-weight: 650;
 }
 
-.online-booking-method input {
-  width: 18px;
-  height: 18px;
+.online-booking-method input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
   flex-shrink: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--one-gold-line);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.online-booking-method input[type="radio"]:checked {
+  border-color: var(--one-gold);
+  background: radial-gradient(circle at center, var(--one-gold) 0 4px, transparent 4.5px);
+}
+
+.online-booking-method input[type="radio"]:focus-visible {
+  outline: 2px solid var(--one-gold);
+  outline-offset: 2px;
 }
 
 .online-booking-method.is-selected {
