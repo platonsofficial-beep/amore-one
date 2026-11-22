@@ -504,7 +504,7 @@ begin
 
   if (v_cap is not null and v_used + p_party > v_cap)
     or (v_area_cap is not null and v_area_used + p_party > v_area_cap) then
-    return jsonb_build_object('ok', false, 'reason', 'full');
+    return jsonb_build_object('ok', false, 'reason', 'full', 'seatingId', v_assigned.id);
   end if;
 
   v_status := case when v.confirmation_method = 'instant' then 'Confirmed' else 'Pending' end;

@@ -4565,5 +4565,6 @@
   "Or choose a time": "Or choose a time",
   "Few seats left": "Few left",
   "Seating full": "Full",
-  "Your table is until {{time}}": "Your table is until {{time}}"
+  "Your table is until {{time}}": "Your table is until {{time}}",
+  "This seating is full": "This seating is full"
 }

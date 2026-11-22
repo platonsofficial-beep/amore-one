@@ -4565,5 +4565,6 @@
   "Or choose a time": "Ή διαλέξτε ώρα",
   "Few seats left": "Λίγες θέσεις",
   "Seating full": "Πλήρες",
-  "Your table is until {{time}}": "Το τραπέζι είναι δικό σας μέχρι τις {{time}}"
+  "Your table is until {{time}}": "Το τραπέζι είναι δικό σας μέχρι τις {{time}}",
+  "This seating is full": "Αυτό το σερβίρισμα είναι πλήρες"
 }

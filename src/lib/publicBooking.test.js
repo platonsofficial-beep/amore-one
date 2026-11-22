@@ -10,6 +10,7 @@ import {
   parsePublicBookingPath,
   publicBookingStatus,
   seatingWindow,
+  suggestBookingAlternatives,
   validatePublicReservation,
 } from './publicBooking'
 
@@ -118,6 +119,31 @@ describe('public seating windows', () => {
     expect(assignSeatingForArrival([first, second], '20:40').contained).toBe(true)
     expect(assignSeatingForArrival([first, second], '18:40').seating.id).toBe('first')
     expect(assignSeatingForArrival([first, second], '18:40').contained).toBe(false)
+  })
+})
+
+describe('full seating suggestions', () => {
+  const open = { seatingId: 'second', state: 'available', slots: ['21:00'], areas: [{ id: 'terrace' }] }
+  const full = { seatingId: 'first', state: 'full', slots: [], areas: [] }
+
+  it('offers other seatings the same day, then the next days', () => {
+    expect(suggestBookingAlternatives({
+      dayCards: [full, open],
+      chosenSeatingId: 'first',
+      areaId: 'terrace',
+    }).seatings.map((card) => card.seatingId)).toEqual(['second'])
+
+    const later = suggestBookingAlternatives({
+      dayCards: [full],
+      chosenSeatingId: 'first',
+      areaId: 'terrace',
+      upcoming: [
+        { date: '2026-07-11', cards: [full] },
+        { date: '2026-07-12', cards: [open] },
+      ],
+    })
+    expect(later.seatings).toEqual([])
+    expect(later.dates.map((day) => day.date)).toEqual(['2026-07-12'])
   })
 })
 

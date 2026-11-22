@@ -77,7 +77,7 @@ function reasonText(reason, maxParty) {
   if (reason === 'name') return t('Enter the name for the reservation.')
   if (reason === 'phone') return t('Enter a phone number.')
   if (reason === 'consent') return t('Please agree so the venue can handle the reservation.')
-  if (reason === 'full') return t('That time was just taken. Choose another.')
+  if (reason === 'full') return t('This seating is full')
   if (reason === 'rate') return t('Please wait a few minutes and try again.')
   if (reason === 'call_us') return t('Parties larger than {{count}} should call the venue.', { count: maxParty })
   return t('Online reservations are not available right now.')
@@ -109,6 +109,10 @@ export function PublicBookingView({
   onBack,
   onNext,
   onTryDate,
+  showFull = false,
+  suggestions = null,
+  onPickAlternative,
+  onPickSuggestedDate,
   onSubmit,
   onConfirmChoice,
 }) {
@@ -264,7 +268,6 @@ export function PublicBookingView({
                       key={slot.seatingId}
                       type="button"
                       className={`public-booking-seating${slot.seatingId === seatingId ? ' is-selected' : ''}${slot.state === 'full' ? ' is-full' : ''}`}
-                      disabled={slot.state === 'full'}
                       onClick={function pickSeating() { onTime?.(slot) }}
                     >
                       <span>
@@ -323,7 +326,35 @@ export function PublicBookingView({
                   </select>
                 </span>
               </label>
-              {endTime ? <p data-step="until">{t('Your table is until {{time}}', { time: endTime })}</p> : null}
+              {endTime && !showFull ? <p data-step="until">{t('Your table is until {{time}}', { time: endTime })}</p> : null}
+              {showFull ? (
+                <div data-step="full" className="public-booking-full">
+                  <p>{t('This seating is full')}</p>
+                  {(suggestions?.seatings ?? []).length > 0 ? (
+                    <div className="public-booking-stack">
+                      {(suggestions.seatings ?? []).map((slot) => {
+                        return (
+                          <button key={slot.seatingId} type="button" onClick={function pickAlternative() { onPickAlternative?.(slot) }}>
+                            <strong>{slot.name}</strong>
+                            <span>{slot.startTime}–{slot.endTime}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="public-booking-stack">
+                      {(suggestions?.dates ?? []).map((day) => {
+                        return (
+                          <button key={day.date} type="button" onClick={function pickDay() { onPickSuggestedDate?.(day.date) }}>
+                            {formatPublicBookingWhen(day.date, '', getLocale(), info?.timeZone)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {info?.venuePhone ? <a className="public-booking-primary" href={`tel:${info.venuePhone}`}>{t('Call us')}</a> : null}
+                </div>
+              ) : null}
             </>
           ) : null}
           {step === 'area' ? (

@@ -284,6 +284,31 @@ export function availablePublicSlots({
   })
 }
 
+export function suggestBookingAlternatives({
+  dayCards = [],
+  chosenSeatingId = '',
+  areaId = '',
+  upcoming = [],
+  limitDates = 3,
+} = {}) {
+  const keepsArea = (card) => !areaId || (card.areas ?? []).some((area) => area.id === areaId)
+  const open = (card) => card && card.state !== 'full' && (card.slots ?? []).length > 0
+  const sameDay = (dayCards ?? []).filter((card) => (
+    card.seatingId !== chosenSeatingId && open(card) && keepsArea(card)
+  ))
+  if (sameDay.length > 0) return { seatings: sameDay, dates: [] }
+  const anyArea = (dayCards ?? []).filter((card) => card.seatingId !== chosenSeatingId && open(card))
+  if (anyArea.length > 0) return { seatings: anyArea, dates: [], areaCleared: true }
+  const dates = []
+  ;(upcoming ?? []).forEach((day) => {
+    if (dates.length >= limitDates) return
+    const seatings = (day.cards ?? []).filter((card) => open(card) && keepsArea(card))
+    const fallback = seatings.length ? seatings : (day.cards ?? []).filter(open)
+    if (fallback.length) dates.push({ date: day.date, seatings: fallback })
+  })
+  return { seatings: [], dates }
+}
+
 export function publicBookingStatus(confirmationMethod) {
   return confirmationMethod === 'instant' ? 'Confirmed' : 'Pending'
 }

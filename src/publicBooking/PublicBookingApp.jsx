@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from '../i18n/i18n'
-import { listBookableDateKeys } from '../lib/publicBooking'
+import { listBookableDateKeys, suggestBookingAlternatives } from '../lib/publicBooking'
 import {
   confirmPublicReservation,
   createPublicReservation,
@@ -33,6 +33,8 @@ export function PublicBookingApp({
   const [areaId, setAreaId] = useState(preview?.areaId ?? '')
   const [form, setForm] = useState(preview?.form ?? { dial: '' })
   const [error, setError] = useState(preview?.error ?? '')
+  const [fullNotice, setFullNotice] = useState(Boolean(preview?.showFull))
+  const [upcomingCards, setUpcomingCards] = useState(preview?.upcoming ?? [])
   const [result, setResult] = useState(preview?.result ?? null)
   const [confirmState, setConfirmState] = useState(preview?.confirm ?? null)
 
@@ -85,6 +87,29 @@ export function PublicBookingApp({
     })
   ), [preview, info])
 
+  const selectedCard = times.find((slot) => slot.seatingId === seatingId)
+  const showFull = fullNotice || error === 'full' || selectedCard?.state === 'full'
+  const suggestions = useMemo(() => suggestBookingAlternatives({
+    dayCards: times,
+    chosenSeatingId: seatingId,
+    areaId,
+    upcoming: upcomingCards,
+  }), [times, seatingId, areaId, upcomingCards])
+
+  useEffect(() => {
+    if (preview || !showFull || suggestions.seatings.length > 0) return undefined
+    const future = dates.filter((day) => day > date).slice(0, 6)
+    if (!future.length) return undefined
+    let cancelled = false
+    Promise.all(future.map(async (day) => {
+      const next = await fetchPublicAvailability(slug, day, party)
+      return { date: day, cards: next?.seatings || next?.times || [] }
+    })).then((rows) => {
+      if (!cancelled) setUpcomingCards(rows)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [preview, showFull, suggestions.seatings.length, dates, date, party, slug])
+
   const goNext = () => {
     if (step === 'party' && party > (info?.maxPartySize || 8)) {
       setStep('call')
@@ -121,6 +146,12 @@ export function PublicBookingApp({
     })
     if (!response?.ok) {
       setError(response?.reason || 'unavailable')
+      if (response?.reason === 'full') {
+        setFullNotice(true)
+        setStep('time')
+        const fresh = await fetchPublicAvailability(slug, date, party).catch(() => null)
+        if (fresh?.ok) setTimes(fresh.seatings || fresh.times || [])
+      }
       return
     }
     const card = times.find((slot) => slot.seatingId === seatingId)
@@ -172,7 +203,15 @@ export function PublicBookingApp({
       confirm={confirmState}
       onDate={(next) => { setDate(next); setSeatingId(''); setAreaId('') }}
       onParty={(next) => { setParty(next); setSeatingId(''); setAreaId(''); setStep(next > (info?.maxPartySize || 8) ? 'call' : 'party') }}
-      onTime={(slot) => { setSeatingId(slot.seatingId); setArrival(''); setEndTime(slot.endTime || ''); setSeatingName(slot.name || ''); setAreaId('') }}
+      onTime={(slot) => {
+        setSeatingId(slot.seatingId)
+        setArrival('')
+        setEndTime(slot.endTime || '')
+        setSeatingName(slot.name || '')
+        setFullNotice(slot.state === 'full')
+        if (slot.state === 'full') setError('full')
+        else setError('')
+      }}
       onArrival={(choice) => {
         const card = times.find((slot) => slot.seatingId === choice.seatingId)
         setSeatingId(choice.seatingId || '')
@@ -186,6 +225,28 @@ export function PublicBookingApp({
       onBack={goBack}
       onNext={goNext}
       onTryDate={() => setStep('date')}
+      showFull={showFull}
+      suggestions={suggestions}
+      onPickAlternative={(slot) => {
+        const keepsArea = (slot.areas ?? []).some((area) => area.id === areaId)
+        setSeatingId(slot.seatingId)
+        setSeatingName(slot.name || '')
+        setEndTime(slot.endTime || '')
+        setArrival(slot.slots?.[0] || '')
+        setFullNotice(false)
+        setError('')
+        if (!keepsArea) setAreaId('')
+        setStep(keepsArea && areaId ? 'details' : 'area')
+      }}
+      onPickSuggestedDate={(next) => {
+        setDate(next)
+        setSeatingId('')
+        setArrival('')
+        setFullNotice(false)
+        setError('')
+        setUpcomingCards([])
+        setStep('time')
+      }}
       onSubmit={submit}
       onConfirmChoice={chooseConfirm}
     />
