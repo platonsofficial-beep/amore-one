@@ -1947,11 +1947,16 @@
 
 .unified-floor-editor-toolbar-main {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  min-width: 0;
+  flex: 1 1 16rem;
+  max-width: 100%;
 }
 
 .unified-floor-editor-mode {
+  flex: 0 0 auto;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1959,9 +1964,19 @@
   color: #e8d7a8;
 }
 
+.unified-floor-editor-draft-break {
+  flex-basis: 100%;
+  width: 0;
+  height: 0;
+}
+
 .unified-floor-editor-draft-badge {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 100%;
+  margin: 0;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   font-size: 0.68rem;
@@ -1971,6 +1986,7 @@
   color: #f5d98b;
   background: rgba(212, 184, 122, 0.14);
   border: 1px solid rgba(212, 184, 122, 0.35);
+  white-space: normal;
 }
 
 .unified-floor-editor-area {
@@ -2137,14 +2153,27 @@
 
 .unified-floor-editor-area-switcher {
   margin-left: 4px;
+  flex: 0 1 auto;
+  width: auto;
+  min-width: min(100%, max-content);
+  max-width: 100%;
+}
+
+.unified-floor-editor-area-switcher .floor-plan-area-nav-btn {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+}
+
+.mobile-host-reservations.is-landscape .unified-floor-editor .floor-plan-area-switcher.unified-floor-editor-area-switcher {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: min(100%, max-content);
+  max-width: 100%;
 }
 
 .unified-floor-editor-area-switcher .floor-plan-area-current {
   display: none;
-}
-
-.unified-floor-editor-toolbar-main {
-  flex-wrap: wrap;
 }
 
 .unified-floor-editor-panel-toggle.is-active {
