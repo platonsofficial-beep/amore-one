@@ -43,6 +43,12 @@ describe('tutorial choice', () => {
     expect(screenGuide('staff', 'settings:profile')).toBeNull()
     expect(screenGuide('staff', 'my-week')?.steps[0].id).toBe('my-week')
     expect(screenGuide('owner', 'reservations')?.steps.map((step) => step.id)).toEqual(['res-list', 'res-floor', 'res-add'])
+    expect(screenGuide('owner', 'reservations:hours')?.steps.map((step) => step.id)).toEqual([
+      'hours-day', 'hours-open', 'hours-times', 'hours-last', 'hours-copy', 'hours-save',
+    ])
+    expect(screenGuide('host', 'reservations:hours')?.steps[0].id).toBe('hours-day')
+    expect(screenGuide('staff', 'reservations:hours')).toBeNull()
+    expect(tutorialScreenId({ view: 'reservations', seatingHours: true })).toBe('reservations:hours')
     expect(screenGuide('owner', 'settings:reservations')?.steps[0].id).toBe('set-seatings')
     expect(screenGuide('owner', 'team:schedule')).not.toBeNull()
     expect(screenGuide('owner', 'operations:tasks')).not.toBeNull()

@@ -1,6 +1,7 @@
 import {
   canAccessModule,
   canAccessTeamSection,
+  canConfigureReservationSeatings,
   canManageAttendance,
   canManageStock,
   canUseChat,
@@ -67,6 +68,7 @@ export function replayTutorial(userId, workspaceId, storage) {
 function allowScreen(role, screenId) {
   if (screenId === 'today') return canAccessModule(role, 'today')
   if (screenId === 'reservations') return canAccessModule(role, 'reservations')
+  if (screenId === 'reservations:hours') return canConfigureReservationSeatings(role)
   if (screenId === 'team:schedule') return canAccessTeamSection(role, 'schedule')
   if (screenId === 'team:members') return canAccessTeamSection(role, 'members')
   if (screenId === 'team:today') return canAccessTeamSection(role, 'today')
@@ -145,6 +147,16 @@ function screenSteps(role, screenId) {
       step('res-list', ['reservations.list', 'nav.reservations'], 'The booking list', 'The list shows every booking for the day. The seating and the filters narrow it.'),
       step('res-floor', ['reservations.floor', 'reservations.zoom-in', 'reservations.fit', 'reservations.edit-layout'], 'The floor plan', 'The floor shows the tables. Zoom and fit change the map. Lock keeps it still. Edit layout moves tables, and Publish makes the floor live.'),
       step('res-add', ['reservations.add', 'reservations.walk-in'], 'Add a booking', 'Add starts a reservation. Walk-in is for a guest who is already here.'),
+    ]
+  }
+  if (screenId === 'reservations:hours') {
+    return [
+      step('hours-day', ['hours.day'], 'Pick a day', 'Each day can have its own hours. Tap Monday through Sunday to edit that day.'),
+      step('hours-open', ['hours.open'], 'Open or closed', 'Turn Open on for the days you serve. Turn it off and that seating is closed that day.'),
+      step('hours-times', ['hours.times'], 'Start and end', 'Set when this seating starts and when it ends on the selected day.'),
+      step('hours-last', ['hours.last'], 'Last arrival', 'Leave Last arrival blank and it is 30 minutes before the end. Guests booking online can only choose an arrival from the start through this time.'),
+      step('hours-copy', ['hours.copy'], 'Copy to other days', 'Select the other days, then Copy hours. Those days get the same open, start, end, and last arrival.'),
+      step('hours-save', ['hours.save'], 'Save the hours', 'Update seating saves this seating. The public booking page uses the saved hours for the chosen date.'),
     ]
   }
   if (screenId === 'team:schedule') {
@@ -239,7 +251,9 @@ export function tutorialScreenId({
   settingsSection = '',
   mobile = false,
   mobileTab = '',
+  seatingHours = false,
 } = {}) {
+  if (seatingHours) return 'reservations:hours'
   if (view === 'my-week' || view === 'clock' || view === 'account' || view === 'notifications') return view
   if (mobile && mobileTab) {
     if (mobileTab === 'home' || mobileTab === 'today') return 'today'
