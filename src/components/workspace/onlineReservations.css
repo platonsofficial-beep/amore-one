@@ -161,36 +161,91 @@
   min-width: 0;
 }
 
-.online-booking-social-formats {
-  display: flex;
-  gap: 8px;
-}
-
-.online-booking-social-formats button {
-  appearance: none;
-  flex: 1 1 0;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  border: 1px solid var(--one-overlay-12);
-  background: var(--one-overlay-04);
-  color: var(--one-text);
-  font: inherit;
-  font-weight: 700;
-}
-
-.online-booking-social-formats button.is-selected {
-  border-color: var(--one-gold-line);
-  background: var(--one-gold-a12);
-  color: var(--one-gold-light);
-}
-
 .online-booking-social .primary-btn {
   width: 100%;
   min-height: 44px;
   border: 0;
   color: var(--one-on-gold);
   background: var(--one-primary-bg);
+}
+
+.online-booking-share-wait {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.online-booking-share-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--one-gold-ink);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: online-booking-share-spin 0.8s linear infinite;
+}
+
+@keyframes online-booking-share-spin {
+  to { transform: rotate(360deg); }
+}
+
+.online-booking-share-toast {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 80;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+  color: var(--one-danger);
+  font-weight: 700;
+}
+
+.online-booking-save-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: var(--one-navy-900);
+  color: var(--one-gold-light);
+}
+
+.online-booking-save-overlay img {
+  width: min(100%, 360px);
+  height: auto;
+  max-height: 70dvh;
+  object-fit: contain;
+  border-radius: 16px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+}
+
+.online-booking-save-overlay p {
+  margin: 0;
+  max-width: 28rem;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.online-booking-save-close {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+  font: inherit;
+  font-weight: 700;
 }
 
 .online-booking-social .primary-btn:disabled {

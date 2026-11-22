@@ -8,6 +8,7 @@ import {
   publicBookingLink,
   splitExceedsDailyTotal,
 } from '../../lib/onlineBooking'
+import { deliverImageFile, fileFromDataUrl, isStandaloneApp } from '../../lib/bookingImageDelivery'
 import { renderBookingSocialImage } from '../../lib/bookingSocialImage'
 import { seatingWindow } from '../../lib/publicBooking'
 import {
@@ -52,8 +53,11 @@ export function OnlineReservationsSection({
   const [slugHint, setSlugHint] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [qr, setQr] = useState('')
-  const [socialFormat, setSocialFormat] = useState('square')
+  const [imageFiles, setImageFiles] = useState({ square: null, story: null, qr: null })
+  const [imagesReady, setImagesReady] = useState(false)
   const [socialPreview, setSocialPreview] = useState('')
+  const [saveOverlay, setSaveOverlay] = useState(null)
+  const [shareError, setShareError] = useState('')
   const [caps, setCaps] = useState({})
   const activeSeatings = useMemo(() => (
     (seatings ?? [])
@@ -92,24 +96,39 @@ export function OnlineReservationsSection({
 
   useEffect(() => {
     let cancelled = false
-    if (!link) return undefined
-    QRCode.toDataURL(link, { margin: 1, width: 320 })
-      .then((dataUrl) => { if (!cancelled) setQr(dataUrl) })
-      .catch(() => { if (!cancelled) setQr('') })
-    return () => { cancelled = true }
-  }, [link])
-
-  useEffect(() => {
-    let cancelled = false
-    renderBookingSocialImage({
-      venueName: venueName || linkSlug,
-      url: link,
-      format: socialFormat,
+    if (!link) {
+      setQr('')
+      setSocialPreview('')
+      setImageFiles({ square: null, story: null, qr: null })
+      setImagesReady(false)
+      return undefined
+    }
+    setImagesReady(false)
+    const slug = linkSlug || 'booking'
+    Promise.all([
+      renderBookingSocialImage({ venueName: venueName || slug, url: link, format: 'square' }),
+      renderBookingSocialImage({ venueName: venueName || slug, url: link, format: 'story' }),
+      QRCode.toDataURL(link, { margin: 1, width: 1080 }),
+    ]).then(async ([squareUrl, storyUrl, qrUrl]) => {
+      if (cancelled) return
+      const [square, story, qrFile] = await Promise.all([
+        fileFromDataUrl(squareUrl, `${slug}-social-post.png`),
+        fileFromDataUrl(storyUrl, `${slug}-social-story.png`),
+        fileFromDataUrl(qrUrl, `${slug}-booking-qr.png`),
+      ])
+      if (cancelled) return
+      setQr(qrUrl)
+      setSocialPreview(squareUrl)
+      setImageFiles({ square, story, qr: qrFile })
+      setImagesReady(true)
+    }).catch(() => {
+      if (!cancelled) {
+        setImagesReady(false)
+        setShareError(t("The image could not be shared."))
+      }
     })
-      .then((dataUrl) => { if (!cancelled) setSocialPreview(dataUrl) })
-      .catch(() => { if (!cancelled) setSocialPreview('') })
     return () => { cancelled = true }
-  }, [venueName, linkSlug, link, socialFormat])
+  }, [venueName, linkSlug, link])
 
   const update = (patch) => setSettings((current) => ({ ...current, ...patch }))
 
@@ -122,16 +141,44 @@ export function OnlineReservationsSection({
     }
   }
 
-  const downloadFile = (href, filename) => {
-    if (!href) return
+  const downloadFile = (file, filename) => {
+    const url = URL.createObjectURL(file)
     const anchor = document.createElement('a')
-    anchor.href = href
+    anchor.href = url
     anchor.download = filename
+    document.body.appendChild(anchor)
     anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500)
   }
 
-  const downloadQr = () => downloadFile(qr, `${linkSlug || 'booking'}-qr.png`)
-  const downloadSocial = () => downloadFile(socialPreview, `${linkSlug || 'booking'}-${socialFormat}.png`)
+  const savePreparedImage = (file) => {
+    if (!file) return
+    setShareError('')
+    deliverImageFile({
+      file,
+      title: venueName || linkSlug || file.name,
+      standalone: isStandaloneApp(),
+      canShare: (payload) => navigator.canShare?.(payload),
+      share: (payload) => navigator.share(payload),
+      download: downloadFile,
+      onOverlay: (imageFile) => {
+        const src = URL.createObjectURL(imageFile)
+        setSaveOverlay((current) => {
+          if (current?.src) URL.revokeObjectURL(current.src)
+          return { src }
+        })
+      },
+      onShareError: () => setShareError(t("The image could not be shared.")),
+    })
+  }
+
+  const closeSaveOverlay = () => {
+    setSaveOverlay((current) => {
+      if (current?.src) URL.revokeObjectURL(current.src)
+      return null
+    })
+  }
 
   const capValues = activeSeatings.map((seating) => caps[seating.id])
   const dailyTotal = normalizeDailyOnlineCovers(settings?.dailyOnlineCovers)
@@ -282,38 +329,53 @@ export function OnlineReservationsSection({
 
         <div className="online-booking-qr">
           {qr ? <img src={qr} alt={t("Booking QR code")} /> : null}
-          <button type="button" className="ghost-btn" onClick={downloadQr} disabled={!qr}>
-            {t("Download QR code")}
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={() => savePreparedImage(imageFiles.qr)}
+            disabled={!imagesReady || !imageFiles.qr}
+          >
+            {imagesReady ? t("Download QR code") : t("Preparing…")}
           </button>
           <div className="online-booking-social">
-            <div className="online-booking-social-formats" role="group" aria-label={t("Social media image")}>
-              {[
-                ['square', t("Square post")],
-                ['story', t("Story")],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  className={socialFormat === id ? 'is-selected' : ''}
-                  aria-pressed={socialFormat === id}
-                  onClick={() => setSocialFormat(id)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="primary-btn" onClick={downloadSocial} disabled={!socialPreview}>
-              {t("Social media image")}
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => savePreparedImage(imageFiles.square)}
+              disabled={!imagesReady || !imageFiles.square}
+            >
+              {imagesReady ? t("Download social media post") : (
+                <span className="online-booking-share-wait">
+                  <span className="online-booking-share-spinner" aria-hidden="true" />
+                  {t("Preparing…")}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => savePreparedImage(imageFiles.story)}
+              disabled={!imagesReady || !imageFiles.story}
+            >
+              {imagesReady ? t("Download story") : t("Preparing…")}
             </button>
             {socialPreview ? (
               <img
-                className={`online-booking-social-preview${socialFormat === 'story' ? ' is-story' : ''}`}
+                className="online-booking-social-preview"
                 src={socialPreview}
                 alt={t("Social image preview")}
               />
             ) : null}
           </div>
         </div>
+        {shareError ? <p className="online-booking-share-toast" role="alert">{shareError}</p> : null}
+        {saveOverlay ? (
+          <div className="online-booking-save-overlay" role="dialog" aria-modal="true" aria-label={t("Long-press the image to save")}>
+            <button type="button" className="online-booking-save-close" onClick={closeSaveOverlay}>{t("Close")}</button>
+            <img src={saveOverlay.src} alt={t("Social image preview")} />
+            <p>{t("Long-press the image to save")}</p>
+          </div>
+        ) : null}
 
         <div className="online-booking-grid">
           <label className="form-field">
