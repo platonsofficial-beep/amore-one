@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildPublicBookingEmail, publicConfirmUrl } from './publicBookingEmail'
 import {
   availablePublicSlots,
+  formatPublicBookingWhen,
   listBookableDateKeys,
   parsePublicBookingPath,
   publicBookingStatus,
@@ -101,6 +102,13 @@ describe('public booking availability', () => {
   })
 })
 
+describe('public booking dates', () => {
+  it('formats the day in Greek and English', () => {
+    expect(formatPublicBookingWhen('2026-07-10', '20:00', 'el', 'Europe/Athens')).toBe('Παρασκευή 10 Ιουλίου · 20:00')
+    expect(formatPublicBookingWhen('2026-07-10', '20:00', 'en', 'Europe/Athens')).toBe('Friday 10 July · 20:00')
+  })
+})
+
 describe('public booking email', () => {
   it('renders confirm and cancel links for the reminder', () => {
     const token = 'abc123'
@@ -122,7 +130,9 @@ describe('public booking email', () => {
     expect(mail.html).toContain(publicConfirmUrl('amore', token))
     expect(mail.html).toContain('action=confirm')
     expect(mail.html).toContain('action=cancel')
-    expect(mail.html).toContain('Κάπνισμα')
+    expect(mail.html).toContain('Παρασκευή 10 Ιουλίου · 20:00')
+    expect(mail.html).toContain('Καπνιστές')
+    expect(mail.html).not.toContain('2026-07-10')
     expect(mail.html).not.toContain('<script')
   })
 })

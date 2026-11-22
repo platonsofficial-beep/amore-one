@@ -162,6 +162,7 @@ export function PublicBookingApp({
       onForm={(patch) => setForm((current) => ({ ...current, ...patch }))}
       onBack={goBack}
       onNext={goNext}
+      onTryDate={() => setStep('date')}
       onSubmit={submit}
       onConfirmChoice={chooseConfirm}
     />

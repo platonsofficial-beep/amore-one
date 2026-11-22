@@ -20,8 +20,21 @@
 .host-reservation-card-subline > .host-queue-row-details,
 .mobile-host-reservation-row-meta > span,
 .mobile-host-reservation-row-meta > .host-queue-row-details {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
   min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.host-reservation-card-subline .host-queue-row-meta-line,
+.host-reservation-card-subline .host-queue-row-meta-group,
+.host-reservation-card-subline .host-queue-row-meta-text,
+.mobile-host-reservation-row-meta .host-queue-row-meta-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 

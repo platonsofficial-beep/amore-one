@@ -1,3 +1,5 @@
+import { formatPublicBookingWhen } from './publicBooking.js'
+
 function escapeHtml(value) {
   return `${value ?? ''}`
     .replace(/&/g, '&amp;')
@@ -27,11 +29,11 @@ export function buildPublicBookingEmail({
   const el = locale === 'el'
   const venue = escapeHtml(venueName || 'ONE')
   const guest = escapeHtml(guestName)
-  const when = escapeHtml(`${date} · ${time}`)
+  const when = escapeHtml(formatPublicBookingWhen(date, time, el ? 'el' : 'en'))
   const area = escapeHtml(areaLabel)
   const smokingLabel = smoking
-    ? (el ? 'Κάπνισμα' : 'Smoking')
-    : (el ? 'Μη κάπνισμα' : 'Non-smoking')
+    ? (el ? 'Καπνιστές' : 'Smoking')
+    : (el ? 'Μη καπνιστές' : 'Non-smoking')
   const confirmUrl = token ? publicConfirmUrl(slug, token) : ''
   const title = kind === 'reminder'
     ? (el ? 'Επιβεβαιώστε την κράτηση' : 'Confirm your reservation')
@@ -56,13 +58,13 @@ export function buildPublicBookingEmail({
 
   const html = `<!doctype html>
 <html lang="${el ? 'el' : 'en'}">
-  <body style="margin:0;background:#0a1628;color:#f7f4ee;font-family:Georgia, 'Times New Roman', serif;">
+  <body style="margin:0;background:#0a1628;color:#f7f4ee;font-family:Inter, Arial, Helvetica, sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a1628;padding:24px 12px;">
       <tr><td align="center">
         <table role="presentation" width="100%" style="max-width:480px;background:#122033;border-radius:16px;padding:28px 24px;">
           <tr><td>
             <p style="margin:0 0 8px;color:#f3d27a;letter-spacing:0.14em;font-size:12px;">${venue}</p>
-            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;">${title}</h1>
+            <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-family:Inter, Arial, Helvetica, sans-serif;">${title}</h1>
             <p style="margin:0 0 18px;color:#a9c0d6;font-family:Arial, sans-serif;font-size:15px;line-height:1.5;">${guest ? `${guest}, ` : ''}${intro}</p>
             <p style="margin:0;font-family:Arial, sans-serif;font-size:16px;"><strong>${when}</strong><br>${escapeHtml(String(party))} · ${area}${area ? ` · ${smokingLabel}` : ''}</p>
             ${actions}

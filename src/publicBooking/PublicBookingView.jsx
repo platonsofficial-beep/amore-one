@@ -1,19 +1,71 @@
 import { PHONE_COUNTRIES, findPhoneCountryByIso2 } from '../lib/phoneCountries'
-import { confirmationCopyKey } from '../lib/publicBooking'
-import { getLocale, setLocale, t, uiLocale } from '../i18n/i18n'
+import { confirmationCopyKey, formatPublicBookingWhen } from '../lib/publicBooking'
+import { getLocale, setLocale, t } from '../i18n/i18n'
 
-function formatDateLabel(dateKey, timeZone) {
+function formatDateChip(dateKey, timeZone) {
   const at = new Date(`${dateKey}T12:00:00Z`)
   try {
-    return new Intl.DateTimeFormat(uiLocale(), {
+    const parts = new Intl.DateTimeFormat(getLocale() === 'el' ? 'el-GR' : 'en-GB', {
       timeZone: timeZone || 'UTC',
       weekday: 'short',
       day: 'numeric',
       month: 'short',
-    }).format(at)
+    }).formatToParts(at)
+    const value = (type) => parts.find((part) => part.type === type)?.value || ''
+    return { weekday: value('weekday'), day: value('day'), month: value('month') }
   } catch {
-    return dateKey
+    return { weekday: '', day: dateKey, month: '' }
   }
+}
+
+function AreaIcon({ smoking }) {
+  if (smoking) {
+    return (
+      <svg className="public-booking-chip-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M3 15h11v3H3zm12 0h2.2c.5 0 .8.4.8 1s-.3 1-.8 1H15zm3.2-5.2c1.4 0 2.6 1.2 2.6 2.7V15h-2v-2.2c0-.5-.4-.8-.8-.8-.5 0-.8.4-.8.9V15h-2v-2.6c0-1.4 1.2-2.6 2.6-2.6z" />
+      </svg>
+    )
+  }
+  return (
+    <svg className="public-booking-chip-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path d="M7.5 16.5 L16.5 7.5" fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  )
+}
+
+function AreaChip({ smoking }) {
+  return (
+    <span className={`public-booking-chip${smoking ? ' is-smoking' : ''}`}>
+      <AreaIcon smoking={smoking} />
+      {smoking ? t('Smoking section') : t('Non-smoking section')}
+    </span>
+  )
+}
+
+function BookingSummary({
+  venue,
+  date,
+  time,
+  party,
+  areaLabel,
+  smoking,
+  status,
+  timeZone,
+}) {
+  const confirmed = status === 'Confirmed'
+  return (
+    <div className="public-booking-summary-card">
+      <p className="public-booking-summary-venue">{venue}</p>
+      <p className="public-booking-summary-when">{formatPublicBookingWhen(date, time, getLocale(), timeZone)}</p>
+      <p>{t('{{count}} guest', { count: party || 0 })}</p>
+      {areaLabel ? <p>{areaLabel}</p> : null}
+      <AreaChip smoking={smoking} />
+      <span className={`public-booking-status-pill${confirmed ? ' is-confirmed' : ''}`}>
+        {confirmed ? t('Confirmed') : t('To confirm')}
+      </span>
+    </div>
+  )
 }
 
 function reasonText(reason, maxParty) {
@@ -49,6 +101,7 @@ export function PublicBookingView({
   onForm,
   onBack,
   onNext,
+  onTryDate,
   onSubmit,
   onConfirmChoice,
 }) {
@@ -92,9 +145,16 @@ export function PublicBookingView({
             <p>{t('This link is no longer valid.')}</p>
           ) : (
             <>
-              <p className="public-booking-summary">{confirm?.guestName}</p>
-              <p>{confirm?.date} · {confirm?.time}</p>
-              <p>{t('{{count}} guest', { count: confirm?.party || 0 })} · {confirm?.areaLabel}</p>
+              <BookingSummary
+                venue={info?.venueName}
+                date={confirm?.date}
+                time={confirm?.time}
+                party={confirm?.party}
+                areaLabel={confirm?.areaLabel}
+                smoking={confirm?.smoking}
+                status={confirm?.status === 'Confirmed' ? 'Confirmed' : 'Pending'}
+                timeZone={info?.timeZone}
+              />
               {confirm?.status !== 'Confirmed' && confirm?.status !== 'Cancelled' ? (
                 <div className="public-booking-actions">
                   <button type="button" className="public-booking-primary" onClick={() => onConfirmChoice?.('confirm')}>{t('Confirm')}</button>
@@ -109,9 +169,16 @@ export function PublicBookingView({
       {phase === 'done' && result ? (
         <section className="public-booking-card" data-step="done">
           <h2>{t(confirmationCopyKey(result.confirmationMethod || info?.confirmationMethod))}</h2>
-          <p className="public-booking-summary">{result.date} · {result.time}</p>
-          <p>{t('{{count}} guest', { count: result.party })} · {result.areaLabel}</p>
-          {result.smoking ? <p>{t('Smoking')}</p> : <p>{t('Non-smoking')}</p>}
+          <BookingSummary
+            venue={info?.venueName}
+            date={result.date}
+            time={result.time}
+            party={result.party}
+            areaLabel={result.areaLabel}
+            smoking={result.smoking}
+            status={result.status || (result.confirmationMethod === 'instant' ? 'Confirmed' : 'Pending')}
+            timeZone={info?.timeZone}
+          />
         </section>
       ) : null}
 
@@ -121,12 +188,19 @@ export function PublicBookingView({
           {step === 'date' ? (
             <>
               <h2>{t('Choose a date')}</h2>
-              <div className="public-booking-choice-row">
-                {dates.map((key) => (
-                  <button key={key} type="button" className={key === date ? 'is-selected' : ''} onClick={() => onDate?.(key)}>
-                    {formatDateLabel(key, info?.timeZone)}
-                  </button>
-                ))}
+              <div className="public-booking-dates">
+                <div className="public-booking-dates-scroll">
+                  {dates.map((key) => {
+                    const chip = formatDateChip(key, info?.timeZone)
+                    return (
+                      <button key={key} type="button" className={key === date ? 'is-selected' : ''} onClick={() => onDate?.(key)}>
+                        <span>{chip.weekday}</span>
+                        <strong>{chip.day}</strong>
+                        <span>{chip.month}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </>
           ) : null}
@@ -175,8 +249,8 @@ export function PublicBookingView({
                 {(times.find((slot) => slot.seatingId === seatingId)?.areas ?? []).map((area) => {
                   return (
                     <button key={area.id} type="button" className={area.id === areaId ? 'is-selected' : ''} onClick={function pickArea() { onArea?.(area) }}>
-                      <strong>{area.label}</strong>
-                      <span>{area.smoking ? t('Smoking') : t('Non-smoking')}</span>
+                    <strong>{area.label}</strong>
+                    <AreaChip smoking={area.smoking} />
                     </button>
                   )
                 })}
@@ -220,11 +294,17 @@ export function PublicBookingView({
             </>
           ) : null}
           {error ? <p className="public-booking-error" role="alert">{reasonText(error, info?.maxPartySize)}</p> : null}
-          <div className="public-booking-actions">
+          <div className={`public-booking-actions${step === 'time' && timesReady && times.length === 0 ? ' is-empty' : ''}`}>
             {step !== 'date' ? <button type="button" className="public-booking-secondary" onClick={onBack}>{t('Back')}</button> : null}
+            {step === 'time' && timesReady && times.length === 0 ? (
+              <>
+                <button type="button" className="public-booking-secondary" onClick={onTryDate}>{t('Try another date')}</button>
+                {info?.venuePhone ? <a className="public-booking-primary" href={`tel:${info.venuePhone}`}>{t('Call us')}</a> : null}
+              </>
+            ) : null}
             {step === 'details' ? (
               <button type="submit" className="public-booking-primary">{t('Request booking')}</button>
-            ) : step !== 'call' ? (
+            ) : step !== 'call' && !(step === 'time' && timesReady && times.length === 0) ? (
               <button type="button" className="public-booking-primary" onClick={onNext}>{t('Continue')}</button>
             ) : null}
           </div>

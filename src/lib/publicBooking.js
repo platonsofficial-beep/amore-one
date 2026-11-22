@@ -262,6 +262,32 @@ export function validatePublicReservation(input, info) {
   }
 }
 
+export function formatPublicBookingWhen(dateKey, time, locale = 'en', timeZone = 'UTC') {
+  const key = `${dateKey ?? ''}`.slice(0, 10)
+  const clock = `${time ?? ''}`.trim()
+  const at = new Date(`${key}T12:00:00Z`)
+  if (!key || Number.isNaN(at.getTime())) return clock || key
+  const tag = locale === 'el' ? 'el-GR' : 'en-GB'
+  let parts = []
+  try {
+    parts = new Intl.DateTimeFormat(tag, {
+      timeZone: timeZone || 'UTC',
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).formatToParts(at)
+  } catch {
+    parts = new Intl.DateTimeFormat(tag, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+    }).formatToParts(at)
+  }
+  const value = (type) => parts.find((part) => part.type === type)?.value || ''
+  const day = `${value('weekday')} ${value('day')} ${value('month')}`.trim()
+  return clock ? `${day} · ${clock}` : day
+}
+
 export function confirmationCopyKey(method) {
   if (method === 'instant') return 'Your reservation is confirmed.'
   if (method === 'email') return 'Check your email to confirm this reservation.'
