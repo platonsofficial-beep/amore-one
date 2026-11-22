@@ -566,6 +566,7 @@ import { OperationsDashboardView } from './components/operations/OperationsDashb
 import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
 import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
+import { TodayQuickActions } from './components/today/TodayQuickActions'
 import { TodayTimeline } from './components/today/TodayServiceTimeline'
 import { TodayCommandHeader } from './components/today/TodayCommandHeader'
 import { OnShiftSheet } from './components/today/OnShiftSheet'
@@ -1259,6 +1260,10 @@ function CommandCenterView({
   stockLive = null,
   dataStatus = null,
   onRetryData,
+  quickActionAccess = '',
+  quickActionUserId = '',
+  quickActionWorkspaceId = '',
+  onRunTodayShortcut,
 }) {
   const attentionStatus = dataStatus?.attention ?? 'ready'
   const scheduleStatus = dataStatus?.schedule ?? 'ready'
@@ -1280,6 +1285,12 @@ function CommandCenterView({
     <div className="today-page" aria-label={t("Today")}>
       {reminderCard}
       {clockCard ? <div className="today-attendance-clock">{clockCard}</div> : null}
+      <TodayQuickActions
+        access={quickActionAccess}
+        userId={quickActionUserId}
+        workspaceId={quickActionWorkspaceId}
+        onRun={onRunTodayShortcut}
+      />
       <TodayAnnouncementsPanel
         announcements={announcements}
         role={announcementRole}
@@ -25867,6 +25878,10 @@ function App() {
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
             canSelectCard={canOpenTodayDestination}
+            quickActionAccess={permissionAccess}
+            quickActionUserId={user?.id || ''}
+            quickActionWorkspaceId={activeWorkspaceId || ''}
+            onRunTodayShortcut={runTodayShortcut}
             stockLive={canAccessModule(permissionAccess, 'stock') ? {
               loadStatus: todayDataStatus.stock,
               onRetry: () => retryTodayData('stock'),
