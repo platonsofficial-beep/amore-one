@@ -47,8 +47,13 @@ export function FloorSeatingSelector({
       setLegendBox({ left, top, width })
     }
     place()
+    const scroller = scrollRef.current
     window.addEventListener('resize', place)
-    return () => window.removeEventListener('resize', place)
+    scroller?.addEventListener('scroll', place, { passive: true })
+    return () => {
+      window.removeEventListener('resize', place)
+      scroller?.removeEventListener('scroll', place)
+    }
   }, [legendOpen])
 
   if (!seatings.length) return null
@@ -114,8 +119,7 @@ export function FloorSeatingSelector({
               </button>
             )
           })}
-        </div>
-        {legendItems?.length ? (
+          {legendItems?.length ? (
           <div className="floor-seating-legend-slot">
             {compactLegend ? (
               <>
@@ -152,7 +156,8 @@ export function FloorSeatingSelector({
               />
             )}
           </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </section>
   )

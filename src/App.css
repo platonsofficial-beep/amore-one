@@ -14267,6 +14267,10 @@ a.ghost-btn.reservation-call-link {
     width: 100%;
   }
 
+  .floor-seating-selector-scroll .floor-seating-selector-legend {
+    width: auto;
+  }
+
   .floor-plan-legend.is-compact {
     flex-wrap: wrap;
   }
