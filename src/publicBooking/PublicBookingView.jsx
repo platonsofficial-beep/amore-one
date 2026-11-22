@@ -1,5 +1,15 @@
-import { PHONE_COUNTRIES, findPhoneCountryByIso2 } from '../lib/phoneCountries'
-import { assignSeatingForArrival, confirmationCopyKey, formatPublicBookingWhen, seatingWindow } from '../lib/publicBooking'
+import { PhoneCountryPicker } from '../components/reservations/PhoneCountryPicker'
+import { findPhoneCountryByIso2 } from '../lib/phoneCountries'
+import {
+  arrivalHourOptions,
+  arrivalMinuteOptions,
+  assignSeatingForArrival,
+  confirmationCopyKey,
+  formatPublicBookingWhen,
+  isLastSeatingOfDay,
+  seatingContainsTime,
+  seatingWindow,
+} from '../lib/publicBooking'
 import { getLocale, setLocale, t } from '../i18n/i18n'
 
 function formatDateChip(dateKey, timeZone) {
@@ -43,8 +53,8 @@ function AreaChip({ smoking }) {
   )
 }
 
-function SeatingEndNotice({ start, end }) {
-  if (!start || !end) return null
+function SeatingEndNotice({ start, end, last = false }) {
+  if (last || !start || !end) return null
   return (
     <p className="public-booking-end-notice" data-step="end-notice">
       {t('Your booking is for the {{window}} seating. Please have the table free by {{end}} for the next guests.', {
@@ -67,6 +77,7 @@ function BookingSummary({
   seatingName = '',
   startTime = '',
   endTime = '',
+  lastSeating = false,
 }) {
   const confirmed = status === 'Confirmed'
   return (
@@ -74,7 +85,7 @@ function BookingSummary({
       <p className="public-booking-summary-venue">{venue}</p>
       <p className="public-booking-summary-when">{formatPublicBookingWhen(date, time, getLocale(), timeZone)}</p>
       {seatingName ? <p>{seatingName}</p> : null}
-      <SeatingEndNotice start={startTime} end={endTime} />
+      <SeatingEndNotice start={startTime} end={endTime} last={lastSeating} />
       <p>{t('{{count}} guest', { count: party || 0 })}</p>
       {areaLabel ? <p>{areaLabel}</p> : null}
       <AreaChip smoking={smoking} />
@@ -87,10 +98,12 @@ function BookingSummary({
 
 function reasonText(reason, maxParty) {
   if (reason === 'email') return t('Enter an email address so we can confirm the reservation.')
-  if (reason === 'name') return t('Enter the name for the reservation.')
   if (reason === 'phone') return t('Enter a phone number.')
   if (reason === 'consent') return t('Please agree so the venue can handle the reservation.')
   if (reason === 'understand') return t('Please confirm that you understand when the table must be free.')
+  if (reason === 'name') return t('Enter a first name and a last name.')
+  if (reason === 'time') return t('Choose an arrival time during this seating.')
+  if (reason === 'area') return t('Choose an area that is open for online booking.')
   if (reason === 'full') return t('This seating is full')
   if (reason === 'rate') return t('Please wait a few minutes and try again.')
   if (reason === 'call_us') return t('Parties larger than {{count}} should call the venue.', { count: maxParty })
@@ -133,17 +146,22 @@ export function PublicBookingView({
   const locale = getLocale()
   function chooseDirectTime(value) {
     const assigned = assignSeatingForArrival(times, value)
-    const window = assigned.seating ? seatingWindow(assigned.seating) : null
+    if (!assigned.contained || !seatingContainsTime(assigned.seating, value)) return
+    const window = seatingWindow(assigned.seating)
     onArrival?.({
       time: value,
       seatingId: assigned.seating?.seatingId || assigned.seating?.id || '',
       startTime: window?.startTime || '',
       endTime: window?.endTime || '',
       seatingName: assigned.seating?.name || '',
-      contained: assigned.contained,
+      contained: true,
     })
   }
   const selectedCard = (times ?? []).find((slot) => slot.seatingId === seatingId)
+  const areaChoices = selectedCard?.areas ?? []
+  const lastSeating = isLastSeatingOfDay(times, selectedCard)
+  const hourOptions = arrivalHourOptions(selectedCard)
+  const minuteOptions = arrivalMinuteOptions(selectedCard, arrival.slice(0, 2) || hourOptions[0])
   const noticeStart = selectedCard?.startTime || ''
   const noticeEnd = selectedCard?.endTime || endTime || ''
   const venue = info?.venueName || t('Reservations')
@@ -197,6 +215,7 @@ export function PublicBookingView({
                 seatingName={confirm?.seatingName}
                 startTime={confirm?.startTime}
                 endTime={confirm?.endTime}
+                lastSeating={Boolean(confirm?.lastSeating)}
               />
               {confirm?.status !== 'Confirmed' && confirm?.status !== 'Cancelled' ? (
                 <div className="public-booking-actions">
@@ -224,6 +243,7 @@ export function PublicBookingView({
             seatingName={result.seatingName}
             startTime={result.startTime}
             endTime={result.endTime}
+            lastSeating={Boolean(result.lastSeating)}
           />
         </section>
       ) : null}
@@ -311,42 +331,35 @@ export function PublicBookingView({
                       )
                     })}
                   </div>
-                </>
-              ) : null}
-              <label>
-                <span>{t('Or choose a time')}</span>
+                  <label>
+                    <span>{t('Or choose a time')}</span>
                 <span className="public-booking-phone" data-step="direct-time">
                   <select
                     aria-label={t('Arrival time')}
-                    value={arrival.slice(0, 2)}
+                    value={hourOptions.includes(arrival.slice(0, 2)) ? arrival.slice(0, 2) : (hourOptions[0] || '')}
                     onChange={function chooseHour(event) {
-                      const minute = arrival.slice(3, 5) || '00'
+                      const minutes = arrivalMinuteOptions(selectedCard, event.target.value)
+                      const minute = minutes.includes(arrival.slice(3, 5)) ? arrival.slice(3, 5) : (minutes[0] || '00')
                       chooseDirectTime(`${event.target.value}:${minute}`)
                     }}
                   >
-                    <option value="">{'--'}</option>
-                    {Array.from({ length: 24 }, function (_, hour) {
-                      const label = String(hour).padStart(2, '0')
-                      return <option key={label} value={label}>{label}</option>
-                    })}
+                    {hourOptions.map((label) => <option key={label} value={label}>{label}</option>)}
                   </select>
                   <select
                     aria-label={t('Arrival time')}
-                    value={arrival.slice(3, 5)}
+                    value={minuteOptions.includes(arrival.slice(3, 5)) ? arrival.slice(3, 5) : (minuteOptions[0] || '')}
                     onChange={function chooseMinute(event) {
-                      const hour = arrival.slice(0, 2) || '00'
+                      const hour = hourOptions.includes(arrival.slice(0, 2)) ? arrival.slice(0, 2) : (hourOptions[0] || '00')
                       chooseDirectTime(`${hour}:${event.target.value}`)
                     }}
                   >
-                    <option value="">{'--'}</option>
-                    {Array.from({ length: 60 }, function (_, minute) {
-                      const label = String(minute).padStart(2, '0')
-                      return <option key={label} value={label}>{label}</option>
-                    })}
+                    {minuteOptions.map((label) => <option key={label} value={label}>{label}</option>)}
                   </select>
                 </span>
               </label>
-              {noticeStart && noticeEnd && !showFull ? <SeatingEndNotice start={noticeStart} end={noticeEnd} /> : null}
+                </>
+              ) : null}
+              {noticeStart && noticeEnd && !showFull ? <SeatingEndNotice start={noticeStart} end={noticeEnd} last={lastSeating} /> : null}
               {showFull ? (
                 <div data-step="full" className="public-booking-full">
                   <p>{t('This seating is full')}</p>
@@ -380,8 +393,11 @@ export function PublicBookingView({
           {step === 'area' ? (
             <>
               <h2>{t('Choose an area')}</h2>
+              {areaChoices.length === 0 ? (
+                <p data-step="no-areas">{t('No areas are open for online booking.')}</p>
+              ) : null}
               <div className="public-booking-stack" data-step="areas">
-                {(times.find((slot) => slot.seatingId === seatingId)?.areas ?? []).map((area) => {
+                {areaChoices.map((area) => {
                   return (
                     <button key={area.id} type="button" className={area.id === areaId ? 'is-selected' : ''} onClick={function pickArea() { onArea?.(area) }}>
                     <strong>{area.label}</strong>
@@ -396,17 +412,22 @@ export function PublicBookingView({
             <>
               <h2>{t('Your details')}</h2>
               <label>
-                <span>{t('Guest name')}</span>
-                <input value={form.name || ''} autoComplete="name" onChange={(event) => onForm?.({ name: event.target.value })} required />
+                <span>{t('First name')}</span>
+                <input value={form.firstName || ''} autoComplete="given-name" onChange={(event) => onForm?.({ firstName: event.target.value })} required />
+              </label>
+              <label>
+                <span>{t('Last name')}</span>
+                <input value={form.lastName || ''} autoComplete="family-name" onChange={(event) => onForm?.({ lastName: event.target.value })} required />
               </label>
               <label>
                 <span>{t('Phone')}</span>
                 <span className="public-booking-phone">
-                  <select aria-label={t('Phone')} value={form.dial || dialDefault} onChange={(event) => onForm?.({ dial: event.target.value })}>
-                    {PHONE_COUNTRIES.map((country) => (
-                      <option key={country.iso2} value={country.code}>{country.iso2} {country.code}</option>
-                    ))}
-                  </select>
+                  <PhoneCountryPicker
+                    value={form.dial || dialDefault}
+                    onChange={(code) => onForm?.({ dial: code })}
+                    ariaLabel={t('Phone')}
+                    className="phone-country-picker public-booking-country"
+                  />
                   <input value={form.localPhone || ''} inputMode="tel" autoComplete="tel-national" onChange={(event) => onForm?.({ localPhone: event.target.value })} />
                 </span>
               </label>
@@ -418,9 +439,10 @@ export function PublicBookingView({
                 <span>{t('Note')}</span>
                 <textarea value={form.note || ''} maxLength={500} onChange={(event) => onForm?.({ note: event.target.value })} />
               </label>
-              <SeatingEndNotice start={noticeStart} end={noticeEnd} />
+              <SeatingEndNotice start={noticeStart} end={noticeEnd} last={lastSeating} />
               <label className="public-booking-consent">
                 <input type="checkbox" checked={Boolean(form.consent)} onChange={(event) => onForm?.({ consent: event.target.checked })} />
+                <span className="public-booking-check" aria-hidden="true" />
                 <span>{t('I agree that the venue may use my name, phone, and email to handle this reservation.')}</span>
               </label>
               <label className="public-booking-consent">
@@ -429,6 +451,7 @@ export function PublicBookingView({
                   checked={Boolean(form.understand)}
                   onChange={(event) => onForm?.({ understand: event.target.checked })}
                 />
+                <span className="public-booking-check" aria-hidden="true" />
                 <span>{t('I understand')}</span>
               </label>
               <label className="public-booking-honeypot" aria-hidden="true">
@@ -448,6 +471,8 @@ export function PublicBookingView({
             ) : null}
             {step === 'details' ? (
               <button type="submit" className="public-booking-primary" disabled={!form.understand}>{t('Request booking')}</button>
+            ) : step === 'area' && (areaChoices.length === 0 || !areaId) ? (
+              info?.venuePhone ? <a className="public-booking-primary" href={`tel:${info.venuePhone}`}>{t('Call us')}</a> : null
             ) : step !== 'call' && !(step === 'time' && (timesReady && times.length === 0 || !arrival)) ? (
               <button type="button" className="public-booking-primary" onClick={onNext}>{t('Continue')}</button>
             ) : null}

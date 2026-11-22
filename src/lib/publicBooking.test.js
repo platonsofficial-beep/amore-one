@@ -2,13 +2,17 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildPublicBookingEmail, publicConfirmUrl } from './publicBookingEmail'
 import {
+  arrivalHourOptions,
+  arrivalMinuteOptions,
   arrivalSlotsForSeating,
   assignSeatingForArrival,
   availablePublicSlots,
   formatPublicBookingWhen,
+  isLastSeatingOfDay,
   listBookableDateKeys,
   parsePublicBookingPath,
   publicBookingStatus,
+  seatingContainsTime,
   seatingWindow,
   suggestBookingAlternatives,
   validatePublicReservation,
@@ -131,6 +135,18 @@ describe('public seating windows', () => {
     expect(assignSeatingForArrival([first, second], '20:40').contained).toBe(true)
     expect(assignSeatingForArrival([first, second], '18:40').seating.id).toBe('first')
     expect(assignSeatingForArrival([first, second], '18:40').contained).toBe(false)
+    expect(seatingContainsTime(second, '21:00')).toBe(true)
+    expect(seatingContainsTime(second, '23:00')).toBe(false)
+    expect(arrivalHourOptions(second)).toEqual(['21', '22'])
+    expect(arrivalMinuteOptions(second, '22')).toContain('59')
+    expect(arrivalMinuteOptions(second, '22')).not.toContain('60')
+    expect(arrivalSlotsForSeating(second)[0]).toBe('21:00')
+    expect(isLastSeatingOfDay([first, second], second)).toBe(true)
+    expect(isLastSeatingOfDay([first, second], first)).toBe(false)
+    expect(validatePublicReservation({ ...draft(), time: '23:00', seatingId: 'second' }, {
+      ...INFO,
+      seatings: [first, second],
+    }).reason).toBe('time')
   })
 })
 
@@ -191,7 +207,7 @@ describe('public booking email', () => {
     expect(mail.html).toContain('action=cancel')
     expect(mail.html).toContain('Παρασκευή 10 Ιουλίου · 20:00')
     expect(mail.html).toContain('Καπνιστές')
-    expect(mail.html).toContain('Η κράτησή σας είναι για το seating 19:00–21:00. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις 21:00 για τους επόμενους επισκέπτες.')
+    expect(mail.html).toContain('Η κράτησή σας είναι για το σερβίρισμα 19:00–21:00. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις 21:00 για τους επόμενους επισκέπτες.')
     expect(mail.html).not.toContain('2026-07-10')
     expect(mail.html).not.toContain('<script')
   })
@@ -216,6 +232,10 @@ describe('public booking wiring', () => {
     expect(sql).toContain("source = 'online'")
     expect(sql).toContain('daily_online_covers')
     expect(sql).toContain('p_understand')
+    expect(sql).toContain('p_date, v_arrival,')
+    const patch = readFileSync('supabase/online_booking_reservation_time.sql', 'utf8')
+    expect(patch).toContain('p_date, v_arrival,')
+    expect(patch).toContain('Not applied')
     expect(sql).not.toMatch(/apply this file/i)
   })
 })

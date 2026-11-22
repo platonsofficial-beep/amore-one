@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from '../i18n/i18n'
-import { listBookableDateKeys, suggestBookingAlternatives } from '../lib/publicBooking'
+import { isLastSeatingOfDay, listBookableDateKeys, suggestBookingAlternatives } from '../lib/publicBooking'
 import {
   confirmPublicReservation,
   createPublicReservation,
@@ -135,6 +135,12 @@ export function PublicBookingApp({
       setError('understand')
       return
     }
+    const firstName = `${form.firstName || ''}`.trim()
+    const lastName = `${form.lastName || ''}`.trim()
+    if (!firstName || !lastName) {
+      setError('name')
+      return
+    }
     const phone = `${form.dial || ''}${form.localPhone || ''}`.replace(/[^\d+]/g, '')
     const response = await createPublicReservation(slug, {
       date,
@@ -142,7 +148,7 @@ export function PublicBookingApp({
       time: arrival,
       seatingId,
       areaId,
-      name: form.name,
+      name: `${firstName} ${lastName}`,
       phone,
       email: form.email,
       note: form.note,
@@ -170,6 +176,7 @@ export function PublicBookingApp({
         seatingName,
         startTime: card?.startTime || startTime,
         endTime,
+        lastSeating: isLastSeatingOfDay(times, times.find((slot) => slot.seatingId === seatingId)),
         party,
         areaLabel: area?.label,
         smoking: area?.smoking,
@@ -180,6 +187,7 @@ export function PublicBookingApp({
         seatingName: response.seatingName || seatingName,
         startTime: response.startTime || card?.startTime || startTime,
         endTime: response.endTime || endTime,
+        lastSeating: isLastSeatingOfDay(times, times.find((slot) => slot.seatingId === (response.seatingId || seatingId))),
         time: response.time || arrival,
       })
     }
@@ -213,7 +221,7 @@ export function PublicBookingApp({
       onParty={(next) => { setParty(next); setSeatingId(''); setAreaId(''); setStep(next > (info?.maxPartySize || 8) ? 'call' : 'party') }}
       onTime={(slot) => {
         setSeatingId(slot.seatingId)
-        setArrival('')
+        setArrival(slot.startTime || slot.slots?.[0] || '')
         setStartTime(slot.startTime || '')
         setEndTime(slot.endTime || '')
         setSeatingName(slot.name || '')

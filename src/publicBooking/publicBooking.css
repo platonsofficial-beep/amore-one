@@ -277,6 +277,7 @@
 }
 
 .public-booking label.public-booking-consent {
+  position: relative;
   flex-direction: row;
   align-items: flex-start;
   gap: 10px;
@@ -285,12 +286,56 @@
   font-weight: 500;
 }
 
+.public-booking-phone .public-booking-country {
+  flex: 0 0 auto;
+}
+
+.public-booking-phone .public-booking-country .phone-country-picker-trigger {
+  min-width: 108px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--one-border);
+  background: var(--one-navy-800);
+  color: var(--one-text);
+}
+
 .public-booking-consent input {
+  position: absolute;
+  opacity: 0;
   width: 22px;
   height: 22px;
-  min-height: 22px;
+  margin: 0;
+}
+
+.public-booking-check {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
   margin-top: 2px;
-  accent-color: var(--one-gold);
+  border: 2px solid var(--one-gold);
+  border-radius: 6px;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.public-booking-consent input:checked + .public-booking-check {
+  background: var(--one-gold);
+}
+
+.public-booking-consent input:checked + .public-booking-check::after {
+  content: '';
+  display: block;
+  width: 5px;
+  height: 9px;
+  margin: 2px 0 0 6px;
+  border: solid var(--one-gold-ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.public-booking-consent input:focus-visible + .public-booking-check {
+  outline: 2px solid var(--one-gold-light);
+  outline-offset: 2px;
 }
 
 .public-booking-honeypot {
