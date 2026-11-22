@@ -422,12 +422,13 @@ export function PublicBookingView({
               <label>
                 <span>{t('Phone')}</span>
                 <span className="public-booking-phone">
-                  <PhoneCountryPicker
-                    value={form.dial || dialDefault}
-                    onChange={(code) => onForm?.({ dial: code })}
-                    ariaLabel={t('Phone')}
-                    className="phone-country-picker public-booking-country"
-                  />
+                  <span className="public-booking-country">
+                    <PhoneCountryPicker
+                      value={form.dial || dialDefault}
+                      onChange={(code) => onForm?.({ dial: code })}
+                      ariaLabel={t('Phone')}
+                    />
+                  </span>
                   <input value={form.localPhone || ''} inputMode="tel" autoComplete="tel-national" onChange={(event) => onForm?.({ localPhone: event.target.value })} />
                 </span>
               </label>
