@@ -14664,7 +14664,7 @@ function ReservationsUnifiedCanvas({
             todayKey={floorPlanProps.todayKey}
             seatings={floorPlanProps.seatings ?? []}
             onChange={setHostEditForm}
-            onStatusChange={handleQuickReservationStatus}
+            onStatusChange={handleStatusChange}
             onSave={async () => {
               if (!onHostEditSave) return
               if (!hostEditForm) {
