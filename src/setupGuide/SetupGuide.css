@@ -214,7 +214,7 @@
 
 @media (max-height: 500px) {
   .tutorial-optin-scrim {
-    align-items: center;
+    align-items: flex-end;
     overflow: auto;
   }
 
