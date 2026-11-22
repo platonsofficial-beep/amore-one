@@ -50,6 +50,7 @@ export async function createPublicReservation(slug, input) {
     p_party: input.party,
     p_seating_id: input.seatingId,
     p_area_id: input.areaId,
+    p_arrival: input.time,
     p_name: input.name,
     p_phone: input.phone,
     p_email: input.email || '',

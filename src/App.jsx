@@ -14607,6 +14607,7 @@ function ReservationsUnifiedCanvas({
             focusReservationId={focusReservationId}
             serviceTodayKey={serviceTodayKey}
             timeZone={timeZone}
+            seatings={floorPlanProps.reservationSeatings}
             canUndoAutoClose={canUndoAutoClose}
             onUndoAutoClose={onUndoAutoClose}
           />

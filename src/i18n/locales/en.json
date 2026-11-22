@@ -4560,5 +4560,10 @@
   "Please wait a few minutes and try again.": "Please wait a few minutes and try again.",
   "Smoking section": "Smoking",
   "Non-smoking section": "Non-smoking",
-  "Try another date": "Try another date"
+  "Try another date": "Try another date",
+  "Arrival time": "Arrival time",
+  "Or choose a time": "Or choose a time",
+  "Few seats left": "Few left",
+  "Seating full": "Full",
+  "Your table is until {{time}}": "Your table is until {{time}}"
 }

@@ -2,11 +2,14 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { buildPublicBookingEmail, publicConfirmUrl } from './publicBookingEmail'
 import {
+  arrivalSlotsForSeating,
+  assignSeatingForArrival,
   availablePublicSlots,
   formatPublicBookingWhen,
   listBookableDateKeys,
   parsePublicBookingPath,
   publicBookingStatus,
+  seatingWindow,
   validatePublicReservation,
 } from './publicBooking'
 
@@ -70,7 +73,8 @@ describe('public booking availability', () => {
       party: 2,
       now: NOW,
     })
-    expect(full).toHaveLength(0)
+    expect(full[0].state).toBe('full')
+    expect(full[0].slots).toEqual([])
 
     const areaFull = availablePublicSlots({
       ...INFO,
@@ -99,6 +103,21 @@ describe('public booking availability', () => {
     expect(accepted.reservation.status).toBe('Pending')
     expect(accepted.reservation.areaLabel).toBe('Βεράντα')
     expect(validatePublicReservation({ ...draft(), honeypot: 'spam' }, INFO)).toEqual({ ok: true, ignored: true })
+  })
+})
+
+describe('public seating windows', () => {
+  const first = { id: 'first', name: '1st seating', startTime: '19:00', durationMinutes: 120, isActive: true }
+  const second = { id: 'second', name: '2nd seating', startTime: '21:00', durationMinutes: 120, isActive: true }
+
+  it('lists 15-minute arrivals up to the end buffer and assigns the window that contains the time', () => {
+    expect(seatingWindow(first)).toMatchObject({ startTime: '19:00', endTime: '21:00' })
+    expect(arrivalSlotsForSeating(first)[0]).toBe('19:00')
+    expect(arrivalSlotsForSeating(first).at(-1)).toBe('20:30')
+    expect(assignSeatingForArrival([first, second], '20:40').seating.id).toBe('first')
+    expect(assignSeatingForArrival([first, second], '20:40').contained).toBe(true)
+    expect(assignSeatingForArrival([first, second], '18:40').seating.id).toBe('first')
+    expect(assignSeatingForArrival([first, second], '18:40').contained).toBe(false)
   })
 })
 
@@ -162,6 +181,7 @@ function draft() {
   return {
     now: NOW,
     date: '2026-07-10',
+    time: '20:00',
     party: 2,
     seatingId: 'dinner',
     areaId: 'terrace',

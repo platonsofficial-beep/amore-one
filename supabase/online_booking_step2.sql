@@ -144,6 +144,53 @@ begin
 end;
 $$;
 
+-- 15-minute arrivals stop 30 minutes before the seating ends.
+-- A time inside a window uses that seating; otherwise the nearest window.
+create or replace function public.assign_public_seating(
+  p_workspace uuid,
+  p_date date,
+  p_arrival time
+)
+returns public.reservation_seatings
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  chosen public.reservation_seatings;
+begin
+  select s.* into chosen
+  from public.reservation_seatings s
+  where s.workspace_id = p_workspace
+    and s.is_active
+    and extract(dow from p_date)::int = any (s.days_of_week)
+    and p_arrival >= s.start_time::time
+    and p_arrival < s.start_time::time + make_interval(mins => s.duration_minutes)
+  order by s.start_time::time, s.sort_order
+  limit 1;
+  if chosen.id is not null then
+    return chosen;
+  end if;
+
+  select s.* into chosen
+  from public.reservation_seatings s
+  where s.workspace_id = p_workspace
+    and s.is_active
+    and extract(dow from p_date)::int = any (s.days_of_week)
+  order by least(
+      abs(p_arrival - s.start_time::time),
+      abs(p_arrival - (s.start_time::time + make_interval(mins => s.duration_minutes)))
+    ),
+    s.start_time::time,
+    s.sort_order
+  limit 1;
+  return chosen;
+end;
+$$;
+
+revoke all on function public.assign_public_seating(uuid, date, time) from public, anon, authenticated;
+
 create or replace function public.get_public_availability(
   p_slug text,
   p_date date,
@@ -161,7 +208,7 @@ declare
   v_today date;
   v_dow int;
   v_layout jsonb := '{}'::jsonb;
-  v_times jsonb := '[]'::jsonb;
+  v_seatings jsonb := '[]'::jsonb;
 begin
   v := public.public_booking_settings(p_slug);
   if v is null or v.workspace_id is null then
@@ -196,13 +243,48 @@ begin
   order by updated_at desc
   limit 1;
 
-  select coalesce(jsonb_agg(slot order by slot->>'time'), '[]'::jsonb)
-  into v_times
+  select coalesce(jsonb_agg(card order by card->>'startTime'), '[]'::jsonb)
+  into v_seatings
   from (
     select jsonb_build_object(
       'seatingId', s.id,
+      'id', s.id,
       'name', s.name,
-      'time', s.start_time,
+      'startTime', to_char(s.start_time::time, 'HH24:MI'),
+      'endTime', to_char(s.start_time::time + make_interval(mins => s.duration_minutes), 'HH24:MI'),
+      'durationMinutes', s.duration_minutes,
+      'isActive', true,
+      'state', case
+        when s.online_capacity is null then 'available'
+        when s.online_capacity - (
+          select coalesce(sum(r.party_size), 0)
+          from public.reservations r
+          where r.workspace_id = v.workspace_id
+            and r.source = 'online'
+            and r.seating_id = s.id
+            and r.reservation_date = p_date
+            and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
+        ) < p_party then 'full'
+        when s.online_capacity - (
+          select coalesce(sum(r.party_size), 0)
+          from public.reservations r
+          where r.workspace_id = v.workspace_id
+            and r.source = 'online'
+            and r.seating_id = s.id
+            and r.reservation_date = p_date
+            and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
+        ) <= greatest(p_party, ceil(s.online_capacity * 0.25)) then 'few'
+        else 'available'
+      end,
+      'slots', (
+        select coalesce(jsonb_agg(to_char(timed.slot, 'HH24:MI') order by timed.slot), '[]'::jsonb)
+        from generate_series(0, greatest(s.duration_minutes - 30, 0) / 15) as step
+        cross join lateral (
+          select s.start_time::time + make_interval(mins => step * 15) as slot
+        ) timed
+        where (p_date::timestamp + timed.slot) at time zone v_tz
+          >= now() + make_interval(mins => v.min_notice_minutes)
+      ),
       'areas', (
         select coalesce(jsonb_agg(jsonb_build_object(
           'id', floor->>'id',
@@ -226,31 +308,18 @@ begin
             ) + p_party <= (s.online_area_caps->> (floor->>'id'))::int
           )
       )
-    ) as slot
+    ) as card
     from public.reservation_seatings s
     where s.workspace_id = v.workspace_id
       and s.is_active
       and v_dow = any (s.days_of_week)
-      and (p_date::timestamp + s.start_time::time) at time zone v_tz
-          >= now() + make_interval(mins => v.min_notice_minutes)
-      and (
-        s.online_capacity is null
-        or (
-          select coalesce(sum(r.party_size), 0)
-          from public.reservations r
-          where r.workspace_id = v.workspace_id
-            and r.source = 'online'
-            and r.seating_id = s.id
-            and r.reservation_date = p_date
-            and r.status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show')
-        ) + p_party <= s.online_capacity
-      )
-  ) open_slots
-  where jsonb_array_length(slot->'areas') > 0;
+  ) day_seatings;
 
-  return jsonb_build_object('ok', true, 'times', v_times);
+  return jsonb_build_object('ok', true, 'seatings', v_seatings);
 end;
 $$;
+
+drop function if exists public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text);
 
 create or replace function public.create_public_reservation(
   p_slug text,
@@ -264,7 +333,8 @@ create or replace function public.create_public_reservation(
   p_note text,
   p_consent boolean,
   p_honeypot text,
-  p_client_key text
+  p_client_key text,
+  p_arrival text
 )
 returns jsonb
 language plpgsql
@@ -281,6 +351,9 @@ declare
   v_area_label text := '';
   v_smoking boolean := false;
   v_time text;
+  v_arrival time;
+  v_assigned public.reservation_seatings;
+  v_end text;
   v_cap integer;
   v_area_cap integer;
   v_used integer;
@@ -377,20 +450,24 @@ begin
 
   perform pg_advisory_xact_lock(hashtext('online-booking:' || v.workspace_id::text));
 
-  select s.start_time, s.online_capacity,
-    nullif(s.online_area_caps->>v_area, '')::int
-  into v_time, v_cap, v_area_cap
-  from public.reservation_seatings s
-  where s.id = p_seating_id
-    and s.workspace_id = v.workspace_id
-    and s.is_active
-    and extract(dow from p_date)::int = any (s.days_of_week)
-    and (p_date::timestamp + s.start_time::time) at time zone v_tz
-        >= now() + make_interval(mins => v.min_notice_minutes);
+  begin
+    v_arrival := btrim(coalesce(p_arrival, ''))::time;
+  exception when others then
+    return jsonb_build_object('ok', false, 'reason', 'time');
+  end;
+  v_time := to_char(v_arrival, 'HH24:MI');
+  if (p_date::timestamp + v_arrival) at time zone v_tz
+      < now() + make_interval(mins => v.min_notice_minutes) then
+    return jsonb_build_object('ok', false, 'reason', 'time');
+  end if;
 
-  if v_time is null then
+  v_assigned := public.assign_public_seating(v.workspace_id, p_date, v_arrival);
+  if v_assigned.id is null then
     return jsonb_build_object('ok', false, 'reason', 'full');
   end if;
+  v_cap := v_assigned.online_capacity;
+  v_area_cap := nullif(v_assigned.online_area_caps->>v_area, '')::int;
+  v_end := to_char(v_assigned.start_time::time + make_interval(mins => v_assigned.duration_minutes), 'HH24:MI');
 
   select layout_json into v_layout
   from public.floor_plans
@@ -412,7 +489,7 @@ begin
   from public.reservations
   where workspace_id = v.workspace_id
     and source = 'online'
-    and seating_id = p_seating_id
+    and seating_id = v_assigned.id
     and reservation_date = p_date
     and status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show');
 
@@ -420,7 +497,7 @@ begin
   from public.reservations
   where workspace_id = v.workspace_id
     and source = 'online'
-    and seating_id = p_seating_id
+    and seating_id = v_assigned.id
     and reservation_date = p_date
     and online_area_id = v_area
     and status not in ('Cancelled', 'Not Shown', 'Rejected', 'No Show');
@@ -442,7 +519,7 @@ begin
     guest_consent_at
   ) values (
     v.workspace_id, v_name, v_phone, v_email, p_date, v_time,
-    p_party, p_party, v_area_label, v_area, v_status, v_note, p_seating_id,
+    p_party, p_party, v_area_label, v_area, v_status, v_note, v_assigned.id,
     'online', v.confirmation_method, v_token,
     case when v_token is null then null else (p_date::timestamp + v_time::time) at time zone v_tz end,
     case when v.confirmation_method = 'email' then v.email_confirm_hours else null end,
@@ -489,6 +566,9 @@ begin
     'confirmToken', v_token,
     'date', p_date,
     'time', v_time,
+    'seatingId', v_assigned.id,
+    'seatingName', v_assigned.name,
+    'endTime', v_end,
     'party', p_party,
     'areaLabel', v_area_label,
     'smoking', v_smoking,
@@ -705,7 +785,7 @@ $$;
 
 revoke all on function public.get_public_booking_info(text) from public;
 revoke all on function public.get_public_availability(text, date, integer) from public;
-revoke all on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text) from public;
+revoke all on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text) from public;
 revoke all on function public.confirm_public_reservation(text, text, text) from public;
 revoke all on function public.claim_public_booking_reminders() from public;
 revoke all on function public.release_public_booking_reminder(uuid) from public;
@@ -714,7 +794,7 @@ revoke all on function public.mark_public_booking_email_sent(uuid, text) from pu
 
 grant execute on function public.get_public_booking_info(text) to anon, authenticated;
 grant execute on function public.get_public_availability(text, date, integer) to anon, authenticated;
-grant execute on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text) to anon, authenticated;
+grant execute on function public.create_public_reservation(text, date, integer, uuid, text, text, text, text, text, boolean, text, text, text) to anon, authenticated;
 grant execute on function public.confirm_public_reservation(text, text, text) to anon, authenticated;
 grant execute on function public.claim_public_booking_reminders() to service_role;
 grant execute on function public.release_public_booking_reminder(uuid) to service_role;

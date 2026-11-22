@@ -4560,5 +4560,10 @@
   "Please wait a few minutes and try again.": "Περιμένετε λίγα λεπτά και δοκιμάστε ξανά.",
   "Smoking section": "Καπνιστές",
   "Non-smoking section": "Μη καπνιστές",
-  "Try another date": "Δοκιμάστε άλλη ημερομηνία"
+  "Try another date": "Δοκιμάστε άλλη ημερομηνία",
+  "Arrival time": "Ώρα άφιξης",
+  "Or choose a time": "Ή διαλέξτε ώρα",
+  "Few seats left": "Λίγες θέσεις",
+  "Seating full": "Πλήρες",
+  "Your table is until {{time}}": "Το τραπέζι είναι δικό σας μέχρι τις {{time}}"
 }

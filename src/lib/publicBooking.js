@@ -152,6 +152,89 @@ export function hasCoverRoom(capacity, used, party) {
   return used + party <= capacity
 }
 
+export const ARRIVAL_SLOT_MINUTES = 15
+export const ARRIVAL_END_BUFFER_MINUTES = 30
+
+export function timeToMinutes(time) {
+  const match = `${time ?? ''}`.trim().match(/^(\d{1,2}):(\d{2})$/)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59) return null
+  return hours * 60 + minutes
+}
+
+export function minutesToTime(total) {
+  const minutes = ((Math.trunc(total) % (24 * 60)) + (24 * 60)) % (24 * 60)
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+export function seatingWindow(seating) {
+  const start = timeToMinutes(seating?.startTime ?? seating?.start_time)
+  const rawDuration = Number(seating?.durationMinutes ?? seating?.duration_minutes)
+  const duration = Number.isFinite(rawDuration) && rawDuration >= 15 ? rawDuration : 120
+  if (start == null) return null
+  return {
+    start,
+    end: start + duration,
+    startTime: minutesToTime(start),
+    endTime: minutesToTime(start + duration),
+  }
+}
+
+export function arrivalSlotsForSeating(seating) {
+  const window = seatingWindow(seating)
+  if (!window) return []
+  const last = window.end - ARRIVAL_END_BUFFER_MINUTES
+  const endSlot = last >= window.start ? last : window.start
+  const slots = []
+  for (let minute = window.start; minute <= endSlot; minute += ARRIVAL_SLOT_MINUTES) {
+    slots.push(minutesToTime(minute))
+  }
+  return slots
+}
+
+export function seatingContainsTime(seating, time) {
+  const window = seatingWindow(seating)
+  const minutes = timeToMinutes(time)
+  if (!window || minutes == null) return false
+  return minutes >= window.start && minutes < window.end
+}
+
+export function assignSeatingForArrival(seatings = [], time) {
+  const minutes = timeToMinutes(time)
+  const list = (seatings ?? []).filter((seating) => seating && seating.isActive !== false && seatingWindow(seating))
+  if (minutes == null || list.length === 0) return { seating: null, contained: false }
+  const containing = list
+    .filter((seating) => seatingContainsTime(seating, time))
+    .sort((left, right) => seatingWindow(left).start - seatingWindow(right).start)
+  if (containing[0]) return { seating: containing[0], contained: true }
+  let best = null
+  let bestDistance = Infinity
+  list.forEach((seating) => {
+    const window = seatingWindow(seating)
+    const distance = Math.min(Math.abs(minutes - window.start), Math.abs(minutes - window.end))
+    const better = distance < bestDistance
+      || (distance === bestDistance && best && window.start < seatingWindow(best).start)
+    if (better || !best) {
+      best = seating
+      bestDistance = distance
+    }
+  })
+  return { seating: best, contained: false }
+}
+
+export function seatingAvailabilityState(seating, used, party) {
+  const capacity = normalizeOnlineCapacity(seating?.onlineCapacity ?? seating?.online_capacity)
+  if (capacity == null) return 'available'
+  const remaining = capacity - Math.max(0, used)
+  if (remaining < party) return 'full'
+  if (remaining <= Math.max(party, Math.ceil(capacity * 0.25))) return 'few'
+  return 'available'
+}
+
 export function availablePublicSlots({
   seatings = [],
   areas = [],
@@ -174,21 +257,28 @@ export function availablePublicSlots({
       ? (seating.daysOfWeek ?? seating.days_of_week).map(Number)
       : [0, 1, 2, 3, 4, 5, 6]
     if (!days.includes(weekday)) return []
-    const time = `${seating.startTime ?? seating.start_time ?? ''}`.trim()
-    if (!isSlotAfterNotice({ dateKey, time, now, minNoticeMinutes, timeZone })) return []
-    const seatingCapacity = normalizeOnlineCapacity(seating.onlineCapacity ?? seating.online_capacity)
+    const window = seatingWindow(seating)
+    if (!window) return []
     const seatingUsed = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey })
-    if (!hasCoverRoom(seatingCapacity, seatingUsed, covers)) return []
+    const state = seatingAvailabilityState(seating, seatingUsed, covers)
     const areasOpen = openAreas.filter((area) => {
       const cap = areaCapFor(seating, area.id)
       const used = usedOnlineCovers(reservations, { seatingId: seating.id, dateKey, areaId: area.id })
       return hasCoverRoom(cap, used, covers)
     })
-    if (areasOpen.length === 0) return []
+    const slots = arrivalSlotsForSeating(seating).filter((time) => (
+      isSlotAfterNotice({ dateKey, time, now, minNoticeMinutes, timeZone })
+    ))
+    const bookable = state !== 'full' && areasOpen.length > 0 && slots.length > 0
     return [{
+      ...seating,
       seatingId: seating.id,
       name: seating.name,
-      time,
+      startTime: window.startTime,
+      endTime: window.endTime,
+      time: window.startTime,
+      state: bookable ? state : 'full',
+      slots: bookable ? slots : [],
       areas: areasOpen,
     }]
   })
@@ -226,8 +316,27 @@ export function validatePublicReservation(input, info) {
   })
   if (!dates.includes(`${input.date ?? ''}`.slice(0, 10))) return { ok: false, reason: 'date' }
 
-  const slots = availablePublicSlots({
-    seatings: info.seatings,
+  const arrival = minutesToTime(timeToMinutes(input.time) ?? -1)
+  if (!arrival || timeToMinutes(input.time) == null) return { ok: false, reason: 'time' }
+  if (!isSlotAfterNotice({
+    dateKey: input.date,
+    time: arrival,
+    now: input.now,
+    minNoticeMinutes: info.minNoticeMinutes,
+    timeZone: info.timeZone,
+  })) return { ok: false, reason: 'time' }
+
+  const daySeatings = (info.seatings ?? []).filter((seating) => {
+    const days = Array.isArray(seating.daysOfWeek ?? seating.days_of_week)
+      ? (seating.daysOfWeek ?? seating.days_of_week).map(Number)
+      : [0, 1, 2, 3, 4, 5, 6]
+    const weekday = weekdayIndexInTimeZone(input.date, info.timeZone)
+    return seating?.isActive !== false && days.includes(weekday)
+  })
+  const assigned = assignSeatingForArrival(daySeatings, arrival)
+  if (!assigned.seating) return { ok: false, reason: 'full' }
+  const cards = availablePublicSlots({
+    seatings: [assigned.seating],
     areas: info.areas,
     reservations: info.reservations,
     dateKey: input.date,
@@ -236,9 +345,9 @@ export function validatePublicReservation(input, info) {
     timeZone: info.timeZone,
     minNoticeMinutes: info.minNoticeMinutes,
   })
-  const slot = slots.find((entry) => entry.seatingId === input.seatingId)
-  if (!slot) return { ok: false, reason: 'full' }
-  const area = slot.areas.find((entry) => entry.id === input.areaId)
+  const card = cards[0]
+  if (!card || card.state === 'full') return { ok: false, reason: 'full' }
+  const area = card.areas.find((entry) => entry.id === input.areaId)
   if (!area) return { ok: false, reason: 'area' }
 
   return {
@@ -250,9 +359,11 @@ export function validatePublicReservation(input, info) {
       note,
       party,
       date: `${input.date}`.slice(0, 10),
-      time: slot.time,
-      seatingId: slot.seatingId,
-      seatingName: slot.name,
+      time: arrival,
+      seatingId: assigned.seating.id,
+      seatingName: assigned.seating.name,
+      endTime: card.endTime,
+      contained: assigned.contained,
       areaId: area.id,
       areaLabel: area.label,
       smoking: Boolean(area.smoking),

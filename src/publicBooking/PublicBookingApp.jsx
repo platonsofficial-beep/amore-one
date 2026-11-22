@@ -27,6 +27,9 @@ export function PublicBookingApp({
   const [times, setTimes] = useState(preview?.times ?? [])
   const [timesReady, setTimesReady] = useState(preview ? true : false)
   const [seatingId, setSeatingId] = useState(preview?.seatingId ?? '')
+  const [arrival, setArrival] = useState(preview?.arrival ?? '')
+  const [endTime, setEndTime] = useState(preview?.endTime ?? '')
+  const [seatingName, setSeatingName] = useState(preview?.seatingName ?? '')
   const [areaId, setAreaId] = useState(preview?.areaId ?? '')
   const [form, setForm] = useState(preview?.form ?? { dial: '' })
   const [error, setError] = useState(preview?.error ?? '')
@@ -63,7 +66,7 @@ export function PublicBookingApp({
     fetchPublicAvailability(slug, date, party)
       .then((next) => {
         if (cancelled) return
-        setTimes(next?.ok ? next.times || [] : [])
+        setTimes(next?.ok ? (next.seatings || next.times || []) : [])
         setTimesReady(true)
       })
       .catch(() => {
@@ -106,6 +109,7 @@ export function PublicBookingApp({
     const response = await createPublicReservation(slug, {
       date,
       party,
+      time: arrival,
       seatingId,
       areaId,
       name: form.name,
@@ -119,17 +123,26 @@ export function PublicBookingApp({
       setError(response?.reason || 'unavailable')
       return
     }
+    const card = times.find((slot) => slot.seatingId === seatingId)
+    const area = card?.areas?.find((entry) => entry.id === areaId)
     if (response.ignored) {
       setResult({
         confirmationMethod: info?.confirmationMethod,
         date,
-        time: times.find((slot) => slot.seatingId === seatingId)?.time,
+        time: arrival,
+        seatingName,
+        endTime,
         party,
-        areaLabel: times.find((slot) => slot.seatingId === seatingId)?.areas?.find((area) => area.id === areaId)?.label,
-        smoking: false,
+        areaLabel: area?.label,
+        smoking: area?.smoking,
       })
     } else {
-      setResult(response)
+      setResult({
+        ...response,
+        seatingName: response.seatingName || seatingName,
+        endTime: response.endTime || endTime,
+        time: response.time || arrival,
+      })
     }
     setPhase('done')
   }
@@ -150,6 +163,8 @@ export function PublicBookingApp({
       times={times}
       timesReady={timesReady}
       seatingId={seatingId}
+      arrival={arrival}
+      endTime={endTime}
       areaId={areaId}
       form={form}
       error={error}
@@ -157,7 +172,15 @@ export function PublicBookingApp({
       confirm={confirmState}
       onDate={(next) => { setDate(next); setSeatingId(''); setAreaId('') }}
       onParty={(next) => { setParty(next); setSeatingId(''); setAreaId(''); setStep(next > (info?.maxPartySize || 8) ? 'call' : 'party') }}
-      onTime={(slot) => { setSeatingId(slot.seatingId); setAreaId(''); setStep('area') }}
+      onTime={(slot) => { setSeatingId(slot.seatingId); setArrival(''); setEndTime(slot.endTime || ''); setSeatingName(slot.name || ''); setAreaId('') }}
+      onArrival={(choice) => {
+        const card = times.find((slot) => slot.seatingId === choice.seatingId)
+        setSeatingId(choice.seatingId || '')
+        setArrival(choice.time || '')
+        setEndTime(choice.endTime || card?.endTime || '')
+        setSeatingName(choice.seatingName || card?.name || '')
+        setAreaId('')
+      }}
       onArea={(area) => { setAreaId(area.id); setStep('details') }}
       onForm={(patch) => setForm((current) => ({ ...current, ...patch }))}
       onBack={goBack}

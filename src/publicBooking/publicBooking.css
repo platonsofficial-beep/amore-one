@@ -186,10 +186,52 @@
 }
 
 .public-booking-choice-row button.is-selected,
-.public-booking-stack button.is-selected {
+.public-booking-stack button.is-selected,
+.public-booking-seating.is-selected {
   border-color: var(--one-gold);
   background: var(--one-gold-a12);
   color: var(--one-gold-light);
+}
+
+.public-booking-seating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 64px;
+  text-align: left;
+}
+
+.public-booking-seating small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.public-booking-seating.is-full {
+  opacity: 0.55;
+}
+
+.public-booking-state {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--one-overlay-12);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.public-booking-state.is-few,
+.public-booking-state.is-available {
+  border-color: var(--one-gold-line);
+  color: var(--one-gold-light);
+}
+
+.public-booking-state.is-full {
+  color: var(--one-text-muted);
 }
 
 .public-booking label {
