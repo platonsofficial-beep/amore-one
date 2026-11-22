@@ -1414,6 +1414,8 @@
   "Search shortcuts": "Αναζήτηση ενεργειών",
   "No shortcuts match.": "Καμία ενέργεια δεν ταιριάζει.",
   "{{count}} of {{max}} selected": "{{count}} από {{max}} επιλεγμένες",
+  "Your shortcuts ({{count}}/{{max}})": "Οι ενέργειές σας ({{count}}/{{max}})",
+  "Add shortcuts": "Προσθήκη ενεργειών",
   "Reset": "Επαναφορά",
   "Quick Actions": "Γρήγορες ενέργειες",
   "Quick Actions results": "Αποτελέσματα γρήγορων ενεργειών",

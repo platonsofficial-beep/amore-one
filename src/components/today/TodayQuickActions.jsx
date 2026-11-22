@@ -140,11 +140,11 @@ export function TodayQuickActions({
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
-            <p className="today-quick-count">
-              {t("{{count}} of {{max}} selected", { count: draftIds.length, max: TODAY_QUICK_ACTION_MAX })}
-            </p>
-            <div className="today-quick-sheet-body">
-              <ul className="today-quick-selected" aria-label={t("Quick actions")}>
+            <section className="today-quick-yours" aria-label={t("Your shortcuts ({{count}}/{{max}})", { count: draftIds.length, max: TODAY_QUICK_ACTION_MAX })}>
+              <h3 className="today-quick-section-label">
+                {t("Your shortcuts ({{count}}/{{max}})", { count: draftIds.length, max: TODAY_QUICK_ACTION_MAX })}
+              </h3>
+              <ul className="today-quick-selected">
                 {draftIds.map((id) => {
                   const shortcut = byId.get(id)
                   if (!shortcut) return null
@@ -159,6 +159,11 @@ export function TodayQuickActions({
                   )
                 })}
               </ul>
+            </section>
+            <div className="today-quick-add">
+              <h3 className="today-quick-section-label">{t("Add shortcuts")}</h3>
+              <div className="today-quick-sheet-scroll">
+                <div className="today-quick-sheet-body">
               {groups.length === 0 ? <p className="today-quick-empty">{t("No shortcuts match.")}</p> : null}
               {groups.map((group) => {
                 const isCollapsed = !needle && collapsed[group.id]
@@ -198,6 +203,10 @@ export function TodayQuickActions({
                   </section>
                 )
               })}
+                </div>
+                <span className="today-quick-sheet-fade is-top" aria-hidden="true" />
+                <span className="today-quick-sheet-fade is-bottom" aria-hidden="true" />
+              </div>
             </div>
             <footer className="today-quick-sheet-foot">
               <button

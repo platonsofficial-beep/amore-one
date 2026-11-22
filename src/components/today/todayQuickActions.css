@@ -71,10 +71,10 @@
   flex-direction: column;
   width: min(100%, 640px);
   /* A definite height. max-height alone leaves the flex child at 0 in iOS standalone. */
-  height: calc(85vh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)));
-  height: min(85dvh, calc(100dvh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - 24px));
+  height: calc(88vh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)));
+  height: min(88dvh, calc(100dvh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - 24px));
   max-height: calc(100vh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - 24px);
-  max-height: min(85dvh, calc(100dvh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - 24px));
+  max-height: min(88dvh, calc(100dvh - var(--one-safe-top-chrome, env(safe-area-inset-top, 0px)) - 24px));
   padding: 8px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   border: 1px solid var(--one-gold-line);
   border-bottom: 0;
@@ -156,13 +156,71 @@
   font-size: 0.82rem;
 }
 
+.today-quick-yours,
+.today-quick-add {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.today-quick-yours {
+  flex: 0 0 auto;
+  margin-top: 10px;
+}
+
+.today-quick-add {
+  flex: 1 1 120px;
+  min-height: 112px;
+  margin-top: 4px;
+}
+
+.today-quick-section-label {
+  flex-shrink: 0;
+  margin: 0 0 8px;
+  color: var(--one-gold-light);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.today-quick-sheet-scroll {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .today-quick-sheet-body {
   flex: 1 1 auto;
   min-height: 0;
+  padding: 12px 2px 28px;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+}
+
+.today-quick-sheet-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.today-quick-sheet-fade.is-top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--one-form-surface), transparent);
+}
+
+.today-quick-sheet-fade.is-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--one-form-surface), transparent);
 }
 
 .today-quick-sheet-body::-webkit-scrollbar {
@@ -171,6 +229,9 @@
 
 .today-quick-selected,
 .today-quick-group ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -185,9 +246,19 @@
   text-align: left;
 }
 
+.today-quick-selected {
+  gap: 6px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 0 8px;
+}
+
 .today-quick-selected li {
-  min-height: 36px;
-  margin-bottom: 8px;
+  flex: 0 0 auto;
+  min-height: 32px;
+  border: 1px solid var(--one-gold-line);
   background: var(--one-gold-a08);
 }
 
@@ -196,6 +267,12 @@
   min-width: 0;
   overflow-wrap: anywhere;
   line-height: 1.2;
+}
+
+.today-quick-selected li > span:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .today-quick-move {
@@ -234,11 +311,15 @@
   margin-top: 8px;
 }
 
+.today-quick-sheet-body > .today-quick-group:first-child {
+  margin-top: 0;
+}
+
 .today-quick-group-toggle,
 .today-quick-choice {
-  min-height: 36px;
-  border: 0;
-  background: transparent;
+  min-height: 44px;
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-06);
   color: var(--one-text);
   font: inherit;
   font-size: 0.92rem;
@@ -247,10 +328,15 @@
 }
 
 .today-quick-group-toggle {
+  min-height: 36px;
+  padding-inline: 2px;
+  border: 0;
+  background: transparent;
   color: var(--one-gold-light);
 }
 
 .today-quick-choice.is-selected {
+  border-color: var(--one-gold);
   background: var(--one-gold);
   color: var(--one-on-gold);
 }
@@ -332,12 +418,26 @@
     margin-top: 6px;
   }
 
-  .today-quick-count {
-    margin: 4px 0;
+  .today-quick-selected {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 2px;
   }
 
   .today-quick-selected li {
-    margin-bottom: 6px;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 132px;
+  }
+
+  .today-quick-sheet-body {
+    padding: 10px 2px 22px;
+  }
+
+  .today-quick-sheet-fade {
+    height: 10px;
   }
 
   .today-quick-sheet-foot {

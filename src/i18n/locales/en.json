@@ -1414,6 +1414,8 @@
   "Search shortcuts": "Search shortcuts",
   "No shortcuts match.": "No shortcuts match.",
   "{{count}} of {{max}} selected": "{{count}} of {{max}} selected",
+  "Your shortcuts ({{count}}/{{max}})": "Your shortcuts ({{count}}/{{max}})",
+  "Add shortcuts": "Add shortcuts",
   "Reset": "Reset",
   "Quick Actions": "Quick Actions",
   "Quick Actions results": "Quick Actions results",
