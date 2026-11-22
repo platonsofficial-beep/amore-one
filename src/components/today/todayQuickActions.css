@@ -276,6 +276,33 @@
   color: var(--one-on-gold);
 }
 
+/* Phone landscape and tablet: the workspace Today page (and the staff
+   phone-landscape home) keeps the same shortcuts, in a grid that fits. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .today-page .today-quick-actions,
+  .mobile-home .today-quick-actions,
+  .mobile-manager-command-center .today-quick-actions {
+    gap: 6px;
+  }
+
+  .today-page .today-quick-actions .mobile-manager-actions-grid,
+  .mobile-home .today-quick-actions .mobile-manager-actions-grid,
+  .mobile-manager-command-center .today-quick-actions .mobile-manager-actions-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-actions-block {
+    order: -1;
+  }
+}
+
+@media (min-width: 700px) and (min-height: 500px) {
+  .today-page .today-quick-actions .mobile-manager-actions-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (orientation: landscape) and (max-height: 500px) {
   .today-quick-sheet-backdrop {
     align-items: center;

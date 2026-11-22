@@ -31,6 +31,17 @@ describe('today quick shortcuts', () => {
     expect(css).toMatch(/\.today-quick-edit::before \{[^}]*height:\s*44px/)
     expect(css).toMatch(/\.today-quick-move button \{[^}]*width:\s*28px/)
     expect(css).toMatch(/grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/)
+    expect(css).toMatch(/@media \(orientation: landscape\) and \(max-height: 520px\) \{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/)
+    expect(css).toMatch(/@media \(min-width: 700px\) and \(min-height: 500px\) \{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/)
+  })
+
+  it('renders the same quick actions on the workspace Today page used by phone landscape and tablets', () => {
+    const app = readFileSync('src/App.jsx', 'utf8')
+    const view = app.slice(app.indexOf('function CommandCenterView'), app.indexOf('function toDateInputValue'))
+    expect(view).toContain('<TodayQuickActions')
+    expect(view).toContain('onRun={onRunTodayShortcut}')
+    expect(app).toContain('quickActionAccess={permissionAccess}')
+    expect(app).toContain('quickActionWorkspaceId={activeWorkspaceId || \'\'}')
   })
 
   it('gives managers and owners the role default, with Operations in place of a missing invoice shortcut', () => {
