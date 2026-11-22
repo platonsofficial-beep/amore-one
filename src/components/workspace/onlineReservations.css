@@ -127,15 +127,76 @@
 .online-booking-qr {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
 }
 
-.online-booking-qr img {
+.online-booking-qr > img {
   width: 160px;
   height: 160px;
   border-radius: 12px;
   background: var(--one-form-surface);
+}
+
+.online-booking-qr > .ghost-btn {
+  min-height: 44px;
+}
+
+.online-booking-social {
+  display: flex;
+  flex: 1 1 240px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.online-booking-social-formats {
+  display: flex;
+  gap: 8px;
+}
+
+.online-booking-social-formats button {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-04);
+  color: var(--one-text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.online-booking-social-formats button.is-selected {
+  border-color: var(--one-gold-line);
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light);
+}
+
+.online-booking-social .primary-btn {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  color: var(--one-on-gold);
+  background: var(--one-primary-bg);
+}
+
+.online-booking-social .primary-btn:disabled {
+  opacity: 0.45;
+}
+
+.online-booking-qr .online-booking-social-preview {
+  width: 132px;
+  height: auto;
+  max-height: 180px;
+  align-self: flex-start;
+  object-fit: contain;
+  object-position: top center;
+  border-radius: 12px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-900);
 }
 
 .online-booking-actions {
