@@ -54,7 +54,7 @@ export function isAvailabilityWeekDirty(savedWeek, draftWeek) {
   return !areAvailabilityWeeksEqual(savedWeek, draftWeek)
 }
 
-export function getFriendlyAvailabilityError(error, fallback = 'Unable to update availability right now.') {
+export function getFriendlyAvailabilityError(error, fallback = t("Unable to update availability right now.")) {
   const message = `${error?.message ?? ''}`.trim()
   if (!message) return fallback
 

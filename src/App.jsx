@@ -1372,7 +1372,7 @@ function CommandCenterView({
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.ATTENTION, { hasUrgentAttention: attentionHasUrgent })}
             title={t("Attention")}
             ariaLabel="Attention"
-            summary={attentionPending ? (attentionStatus === 'error' ? "Couldn't load" : 'Loading…') : formatAttentionCollapsedSummary(attentionItems)}
+            summary={attentionPending ? (attentionStatus === 'error' ? t("Couldn't load") : t("Loading…")) : formatAttentionCollapsedSummary(attentionItems)}
           >
             {attentionPending ? (
               <div className="today-empty-note">
@@ -14562,11 +14562,12 @@ function ReservationsUnifiedCanvas({
     <div
       ref={canvasRef}
       className="host-operations-canvas"
+      data-help="reservations.floor"
       data-timeline-collapsed={isTimelineCollapsed ? 'true' : 'false'}
       data-floor-plan-mode={floorPlanMode}
     >
       {floorPlanMode !== 'edit' ? (
-      <section className="host-operations-list" aria-label={t("Reservation list")}>
+      <section className="host-operations-list" aria-label={t("Reservation list")} data-help="reservations.list">
         <div className="host-operations-list-sticky">
           <HostManagerSummaryBar
             dashboard={hostServiceDashboard}
@@ -25766,6 +25767,8 @@ function App() {
           stockSection,
           operationsSection,
           settingsSection,
+          mobile: useDedicatedShell,
+          mobileTab: activeMobileTab,
         })}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
@@ -26752,6 +26755,17 @@ function App() {
                       onShiftEmployees: employees,
                       onShiftTodayShifts,
                       timeZone: workspaceTimeZone,
+                      setupGuide: {
+                        role: permissionAccess,
+                        userId: user?.id || '',
+                        workspaceId: activeWorkspaceId || '',
+                        todayKey: currentDateKey,
+                        profile: workspaceProfile,
+                        positions,
+                        seatings: reservationSeatings,
+                        onOpenStep: openSetupStep,
+                        tutorialOn: tutorialChoice === 'yes',
+                      },
                       stockItems,
                       stockOrders,
                       onReceiveDeliveries: handleMobileManagerReceiveDeliveries,

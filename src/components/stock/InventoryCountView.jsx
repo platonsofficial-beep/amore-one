@@ -448,7 +448,7 @@ export function InventoryCountView({
       setActiveSessions([])
       setPausedSessions([])
       setRecentSessions([])
-      setLoadError(error?.message || t("Unable to load inventory count sessions right now."))
+      setLoadError(t("Unable to load inventory count sessions right now."))
     } finally {
       setIsLoadingSessions(false)
     }

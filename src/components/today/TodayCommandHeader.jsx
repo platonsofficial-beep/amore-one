@@ -26,7 +26,7 @@ export function TodayCommandHeader({
         <div className="today-command-header-body">
           <div className="today-command-row today-command-row-identity">
             <div className="today-command-identity">
-              <h2 className="today-command-greeting">{greeting}</h2>
+              <h2 className="today-command-greeting" data-help="today.home">{greeting}</h2>
               {executiveMessage?.message ? (
                 <p
                   className={`today-executive-message tone-${executiveMessage.tone ?? 'neutral'}`}

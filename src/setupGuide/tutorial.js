@@ -135,16 +135,16 @@ function stockSteps(role, section) {
 function screenSteps(role, screenId) {
   if (screenId === 'today') {
     return [
-      step('today-home', ['nav.today', 'nav.home'], 'Today', 'Today is the home screen. It shows who is working, what is booked, and what needs attention.'),
+      step('today-home', ['today.home', 'nav.today', 'nav.home'], 'Today', 'Today is the home screen. It shows who is working, what is booked, and what needs attention.'),
       step('today-search', ['header.search'], 'Search this page', 'Search filters the lists and cards on this screen.'),
       step('today-menu', ['header.profile', 'nav.menu'], 'Your menu', 'Open your name for your profile, the tutorial, and sign out.'),
     ]
   }
   if (screenId === 'reservations') {
     return [
-      step('res-home', ['nav.reservations'], 'Reservations', 'Reservations shows the bookings and the floor for the day. Seatings switch the service. Tap a table for its bookings.'),
+      step('res-list', ['reservations.list', 'nav.reservations'], 'The booking list', 'The list shows every booking for the day. The seating and the filters narrow it.'),
+      step('res-floor', ['reservations.floor', 'reservations.zoom-in', 'reservations.fit', 'reservations.edit-layout'], 'The floor plan', 'The floor shows the tables. Zoom and fit change the map. Lock keeps it still. Edit layout moves tables, and Publish makes the floor live.'),
       step('res-add', ['reservations.add', 'reservations.walk-in'], 'Add a booking', 'Add starts a reservation. Walk-in is for a guest who is already here.'),
-      step('res-floor', ['reservations.zoom-in', 'reservations.fit', 'reservations.lock', 'reservations.edit-layout', 'reservations.timers', 'reservations.more'], 'The floor tools', 'Zoom and fit change the map. Lock keeps it still. Edit layout moves tables, and Publish makes the floor live. Timers show how long a party has been seated.'),
     ]
   }
   if (screenId === 'team:schedule') {
@@ -237,7 +237,21 @@ export function tutorialScreenId({
   stockSection = '',
   operationsSection = '',
   settingsSection = '',
+  mobile = false,
+  mobileTab = '',
 } = {}) {
+  if (view === 'my-week' || view === 'clock' || view === 'account' || view === 'notifications') return view
+  if (mobile && mobileTab) {
+    if (mobileTab === 'home' || mobileTab === 'today') return 'today'
+    if (mobileTab === 'schedule' || mobileTab === 'availability') {
+      return view === 'team' ? `team:${teamSection || 'schedule'}` : 'my-week'
+    }
+    if (mobileTab === 'chat') return 'chat'
+    if (mobileTab === 'tasks') return `operations:${operationsSection || 'dashboard'}`
+    if (mobileTab === 'stock') return `stock:${stockSection || 'take'}`
+    if (mobileTab === 'reservations') return 'reservations'
+    if (mobileTab === 'menu') return 'account'
+  }
   if (view === 'team') return `team:${teamSection || 'schedule'}`
   if (view === 'stock') return `stock:${stockSection || 'dashboard'}`
   if (view === 'operations') return `operations:${operationsSection || 'dashboard'}`

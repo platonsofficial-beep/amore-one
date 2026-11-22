@@ -415,7 +415,7 @@ export function AttendanceClockScreen({
           <LoadFailed message={loadError} onRetry={() => { setLoadError(''); reload().catch((error) => setLoadError(attendanceErrorMessage(error))) }} />
         </div>
       ) : null}
-      {message ? <p className="attendance-clock-message" role="status">{message}</p> : null}
+      {message ? <p className="attendance-clock-message" role="status">{message === OFFLINE_MESSAGE ? t(OFFLINE_MESSAGE) : message}</p> : null}
 
       <div className="attendance-clock-actions">
         {!openEntry ? (

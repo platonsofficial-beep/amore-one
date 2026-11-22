@@ -92,7 +92,7 @@ export const STAFF_TOUR_STEPS = [
     id: 'staff-today',
     view: 'today',
     mobileTab: 'home',
-    targets: ['nav.today', 'nav.home'],
+    targets: ['today.home', 'nav.today', 'nav.home'],
     titleKey: 'Your day',
     bodyKey: 'See your shift and what the venue needs today.',
   },

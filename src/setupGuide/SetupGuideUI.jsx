@@ -301,6 +301,9 @@ export function StaffTourHost({
   const [progress, setProgress] = useState(function initialProgress() {
     return readStaffTourProgress(userId, workspaceId, storage())
   })
+  if (progress.replay && typeof document !== 'undefined') {
+    document.body.dataset.oneActiveTour = 'staff'
+  }
   const [activeId, setActiveId] = useState('')
   const startedRef = useRef(false)
   const openRef = useRef(onOpenStep)
@@ -382,6 +385,9 @@ export function StockTourHost({
   const startedRef = useRef(false)
   const openRef = useRef(onOpenStep)
   openRef.current = onOpenStep
+  if (progress.replay && typeof document !== 'undefined') {
+    document.body.dataset.oneActiveTour = 'stock'
+  }
 
   useEffect(function loadProgress() {
     setProgress(readStockTourProgress(userId, workspaceId, storage()))
