@@ -211,6 +211,41 @@ export function arrivalSlotsForSeating(seating) {
   return slots
 }
 
+export function isLastSeatingOfDay(seatings = [], seating) {
+  const window = seatingWindow(seating)
+  if (!window) return false
+  const mine = `${seating?.seatingId || seating?.id || ''}`
+  return !(seatings ?? []).some((other) => {
+    const id = `${other?.seatingId || other?.id || ''}`
+    if (mine && id === mine) return false
+    const next = seatingWindow(other)
+    return Boolean(next && next.end > window.end)
+  })
+}
+
+export function arrivalHourOptions(seating) {
+  const window = seatingWindow(seating)
+  if (!window) return []
+  const hours = []
+  const last = window.end - 1
+  for (let hour = Math.floor(window.start / 60); hour <= Math.floor(last / 60); hour += 1) {
+    hours.push(String(hour).padStart(2, '0'))
+  }
+  return hours
+}
+
+export function arrivalMinuteOptions(seating, hour) {
+  const window = seatingWindow(seating)
+  const hourNumber = Number(hour)
+  if (!window || !Number.isInteger(hourNumber)) return []
+  const minutes = []
+  for (let minute = 0; minute < 60; minute += 1) {
+    const total = hourNumber * 60 + minute
+    if (total >= window.start && total < window.end) minutes.push(String(minute).padStart(2, '0'))
+  }
+  return minutes
+}
+
 export function seatingContainsTime(seating, time) {
   const window = seatingWindow(seating)
   const minutes = timeToMinutes(time)
@@ -384,7 +419,7 @@ export function validatePublicReservation(input, info) {
     return seating?.isActive !== false && days.includes(weekday)
   })
   const assigned = assignSeatingForArrival(daySeatings, arrival)
-  if (!assigned.seating) return { ok: false, reason: 'full' }
+  if (!assigned.seating || !assigned.contained) return { ok: false, reason: 'time' }
   const cards = availablePublicSlots({
     seatings: [assigned.seating],
     areas: info.areas,
@@ -456,11 +491,11 @@ export function confirmationCopyKey(method) {
   return 'The venue will call you to confirm.'
 }
 
-export function seatingEndNotice(start, end, locale = 'en') {
-  if (!start || !end) return ''
+export function seatingEndNotice(start, end, locale = 'en', options = {}) {
+  if (options.last || !start || !end) return ''
   const window = `${start}–${end}`
   if (locale === 'el') {
-    return `Η κράτησή σας είναι για το seating ${window}. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις ${end} για τους επόμενους επισκέπτες.`
+    return `Η κράτησή σας είναι για το σερβίρισμα ${window}. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις ${end} για τους επόμενους επισκέπτες.`
   }
   return `Your booking is for the ${window} seating. Please have the table free by ${end} for the next guests.`
 }

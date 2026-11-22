@@ -508,8 +508,10 @@ begin
   end if;
 
   v_assigned := public.assign_public_seating(v.workspace_id, p_date, v_arrival);
-  if v_assigned.id is null then
-    return jsonb_build_object('ok', false, 'reason', 'full');
+  if v_assigned.id is null
+     or v_arrival < v_assigned.start_time::time
+     or v_arrival >= v_assigned.start_time::time + make_interval(mins => v_assigned.duration_minutes) then
+    return jsonb_build_object('ok', false, 'reason', 'time');
   end if;
   v_cap := v_assigned.online_capacity;
   v_area_cap := nullif(v_assigned.online_area_caps->>v_area, '')::int;
@@ -573,7 +575,7 @@ begin
     source, confirmation_method, confirm_token, confirm_token_expires_at, email_confirm_hours,
     guest_consent_at, guest_locale
   ) values (
-    v.workspace_id, v_name, v_phone, v_email, p_date, v_time,
+    v.workspace_id, v_name, v_phone, v_email, p_date, v_arrival,
     p_party, p_party, v_area_label, v_area, v_status, v_note, v_assigned.id,
     'online', v.confirmation_method, v_token,
     case when v_token is null then null else (p_date::timestamp + v_time::time) at time zone v_tz end,
