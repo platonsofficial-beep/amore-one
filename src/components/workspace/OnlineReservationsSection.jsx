@@ -8,6 +8,7 @@ import {
   slugifyVenueName,
   splitExceedsDailyTotal,
 } from '../../lib/onlineBooking'
+import { renderBookingSocialImage } from '../../lib/bookingSocialImage'
 import { seatingWindow } from '../../lib/publicBooking'
 import {
   isOnlineBookingSlugTaken,
@@ -49,6 +50,8 @@ export function OnlineReservationsSection({
   const [notice, setNotice] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [qr, setQr] = useState('')
+  const [socialFormat, setSocialFormat] = useState('square')
+  const [socialPreview, setSocialPreview] = useState('')
   const [caps, setCaps] = useState({})
   const activeSeatings = useMemo(() => (
     (seatings ?? [])
@@ -91,6 +94,18 @@ export function OnlineReservationsSection({
     return () => { cancelled = true }
   }, [link, slug])
 
+  useEffect(() => {
+    let cancelled = false
+    renderBookingSocialImage({
+      venueName: venueName || slug,
+      url: link,
+      format: socialFormat,
+    })
+      .then((dataUrl) => { if (!cancelled) setSocialPreview(dataUrl) })
+      .catch(() => { if (!cancelled) setSocialPreview('') })
+    return () => { cancelled = true }
+  }, [venueName, slug, link, socialFormat])
+
   const update = (patch) => setSettings((current) => ({ ...current, ...patch }))
 
   const copyLink = async () => {
@@ -102,13 +117,16 @@ export function OnlineReservationsSection({
     }
   }
 
-  const downloadQr = () => {
-    if (!qr) return
+  const downloadFile = (href, filename) => {
+    if (!href) return
     const anchor = document.createElement('a')
-    anchor.href = qr
-    anchor.download = `${slug}-booking-qr.png`
+    anchor.href = href
+    anchor.download = filename
     anchor.click()
   }
+
+  const downloadQr = () => downloadFile(qr, `${slug}-booking-qr.png`)
+  const downloadSocial = () => downloadFile(socialPreview, `${slug}-booking-${socialFormat}.png`)
 
   const capValues = activeSeatings.map((seating) => caps[seating.id])
   const dailyTotal = normalizeDailyOnlineCovers(settings?.dailyOnlineCovers)
@@ -225,6 +243,34 @@ export function OnlineReservationsSection({
           <button type="button" className="ghost-btn" onClick={downloadQr} disabled={!qr}>
             {t("Download QR code")}
           </button>
+          <div className="online-booking-social">
+            <div className="online-booking-social-formats" role="group" aria-label={t("Social media image")}>
+              {[
+                ['square', t("Square post")],
+                ['story', t("Story")],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={socialFormat === id ? 'is-selected' : ''}
+                  aria-pressed={socialFormat === id}
+                  onClick={() => setSocialFormat(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button type="button" className="primary-btn" onClick={downloadSocial} disabled={!socialPreview}>
+              {t("Social media image")}
+            </button>
+            {socialPreview ? (
+              <img
+                className={`online-booking-social-preview${socialFormat === 'story' ? ' is-story' : ''}`}
+                src={socialPreview}
+                alt={t("Social image preview")}
+              />
+            ) : null}
+          </div>
         </div>
 
         <div className="online-booking-grid">
