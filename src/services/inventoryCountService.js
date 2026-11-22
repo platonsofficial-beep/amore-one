@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import { isDemoMode } from '../lib/demoMediaDataset'
-import { t } from '../i18n/i18n'
+import { getLocale, t } from '../i18n/i18n'
+import { demoPersonName } from '../lib/demoAttendance'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 
 const CREATE_SESSION_RPC = 'create_inventory_count_session'
@@ -990,7 +991,7 @@ export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
       statusLabel: 'In progress',
       countTypeLabel: 'Fast Count',
       startedAt: new Date().toISOString(),
-      operatorName: t("Elena Christodoulou"),
+      operatorName: demoPersonName(getLocale()),
       locations: ['Bar'],
       totalLocations: 2,
       completedLocations: 1,
