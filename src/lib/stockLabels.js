@@ -17,6 +17,8 @@ const STOCK_DEFAULT_PLACES = new Set([
 ])
 
 const STOCK_CATALOG_TERMS = new Set([
+  'Bar',
+  'Kitchen',
   'Spirits',
   'Syrups & Purées',
   'Beverages',

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import el from '../i18n/locales/el.json'
+import { setLocale } from '../i18n/i18n'
 import {
   translateStockCatalogLine,
   translateStockCatalogTerm,
@@ -18,11 +19,20 @@ describe('stock display labels', () => {
   })
 
   it('translates default catalog terms and leaves custom ones', () => {
+    expect(translateStockCatalogTerm('Bar')).toBe('Bar')
+    expect(translateStockCatalogTerm('Kitchen')).toBe('Kitchen')
     expect(translateStockCatalogTerm('Spirits')).toBe('Spirits')
     expect(translateStockCatalogTerm('Bottle')).toBe('Bottle')
     expect(translateStockCatalogTerm('House blend')).toBe('House blend')
     expect(translateStockCatalogLine('Spirits · Vodka')).toBe('Spirits · Vodka')
     expect(translateStockCatalogLine('House · Special')).toBe('House · Special')
+  })
+
+  it('translates place-named categories when the app is in Greek', () => {
+    setLocale('el')
+    expect(translateStockCatalogTerm('Bar')).toBe('Μπαρ')
+    expect(translateStockCatalogTerm('Kitchen')).toBe('Κουζίνα')
+    setLocale('en')
   })
 
   it('has Greek copy for seeded places, catalog terms, par, and relative time', () => {
