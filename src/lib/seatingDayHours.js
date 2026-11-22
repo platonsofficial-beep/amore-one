@@ -23,12 +23,14 @@ function clockMinutes(value) {
   return hours * 60 + minutes
 }
 
+function isWeekdayIndex(day) {
+  return Number.isInteger(day) && day >= 0 && day <= 6
+}
+
 function readDays(seating) {
   const raw = seating?.daysOfWeek ?? seating?.days_of_week
   if (!Array.isArray(raw)) return [...ALL_DAYS]
-  const days = [...new Set(
-    raw.map(Number).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6),
-  )].sort((left, right) => left - right)
+  const days = [...new Set(raw.map(Number).filter(isWeekdayIndex))].sort((left, right) => left - right)
   return days.length ? days : [...ALL_DAYS]
 }
 
