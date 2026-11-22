@@ -23,6 +23,7 @@ import {
   HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY,
 } from './hostReservationListUtils'
 import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
+import { OnlineReservationBadge } from './OnlineReservationBadge'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
 import { HostReservationMetaLine, HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
@@ -170,7 +171,10 @@ function HostReservationListRow({
             />
           ) : null}
           <div className="host-reservation-card-name-purpose">
-          <strong className="host-reservation-card-guest">{guestName}</strong>
+          <strong className="host-reservation-card-guest">
+            {guestName}
+            <OnlineReservationBadge reservation={reservation} />
+          </strong>
           <HostReservationPurposeLabel reservation={reservation} />
           {stillSeatedLabel ? (
             <span className="host-reservation-still-seated">{stillSeatedLabel}</span>

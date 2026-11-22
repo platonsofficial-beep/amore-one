@@ -13,6 +13,7 @@ import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
 import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoClosedBadge'
+import { OnlineReservationBadge } from '../../reservations/OnlineReservationBadge'
 import { t } from '../../../i18n/i18n'
 
 function getActionClassName(action) {
@@ -83,6 +84,7 @@ function MobileHostReservationCompactRow({
               <div className="host-reservation-card-name-purpose mobile-host-reservation-row-name-line">
                 <span className="mobile-host-reservation-row-name">
                   {guestName}
+                  <OnlineReservationBadge reservation={reservation} />
                   <HostQueueNameIndicators indicators={nameIndicators} />
                 </span>
                 <HostReservationPurposeLabel reservation={reservation} />

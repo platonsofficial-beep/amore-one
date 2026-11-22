@@ -1,3 +1,4 @@
+import { normalizeAreaCaps, normalizeOnlineCapacity } from './onlineBooking'
 import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationConstants'
 import { isReservationInHouseStatus } from './reservationHostStatus'
 import {
@@ -49,6 +50,8 @@ export function normalizeReservationSeatingInput(record) {
     daysOfWeek: normalizeDaysOfWeek(record.daysOfWeek ?? record.days_of_week),
     sortOrder: Math.max(0, Number(record.sortOrder ?? record.sort_order) || 0),
     isActive: record.isActive ?? record.is_active ?? true,
+    onlineCapacity: normalizeOnlineCapacity(record.onlineCapacity ?? record.online_capacity),
+    onlineAreaCaps: normalizeAreaCaps(record.onlineAreaCaps ?? record.online_area_caps),
     workspaceId: record.workspaceId ?? record.workspace_id ?? '',
   }
 }
@@ -88,6 +91,8 @@ export function validateReservationSeatingForm(form) {
       daysOfWeek,
       sortOrder: Math.max(0, Number(form?.sortOrder ?? form?.sort_order) || 0),
       isActive: form?.isActive ?? form?.is_active ?? true,
+      onlineCapacity: normalizeOnlineCapacity(form?.onlineCapacity ?? form?.online_capacity),
+      onlineAreaCaps: normalizeAreaCaps(form?.onlineAreaCaps ?? form?.online_area_caps),
     },
   }
 }
@@ -106,6 +111,8 @@ export function serializeReservationSeatingRow(seating, workspaceId) {
     days_of_week: normalized.daysOfWeek,
     sort_order: normalized.sortOrder,
     is_active: normalized.isActive,
+    online_capacity: normalized.onlineCapacity,
+    online_area_caps: normalized.onlineAreaCaps,
   }
 }
 
@@ -436,6 +443,8 @@ export function buildSeatingFormDefaults(seating = null) {
       daysOfWeek: [...ALL_DAYS_OF_WEEK],
       sortOrder: 0,
       isActive: true,
+      onlineCapacity: null,
+      onlineAreaCaps: {},
     }
   }
 

@@ -15,6 +15,8 @@ import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatUserFacingLoadError, isLoadFailureMessage, isTechnicalErrorText } from '../../lib/userFacingLoadError'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { sumVenueCovers } from '../../lib/onlineBooking'
+import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { t } from '../../i18n/i18n'
 
 function HostDiningTimerSettings() {
@@ -85,6 +87,61 @@ function SeatingDaysToggle({ daysOfWeek, onChange }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+function OnlineCapacityFields({ form, onFormChange }) {
+  const { publishedBuilderLayout, builderLayout } = usePublishedFloorPlan()
+  const layout = publishedBuilderLayout || builderLayout
+  const covers = sumVenueCovers(layout?.objects)
+  const areas = Array.isArray(layout?.floors) ? layout.floors : []
+  const caps = form.onlineAreaCaps || {}
+
+  return (
+    <div className="form-field full-width">
+      <span>{t("Online capacity (max covers)")}</span>
+      <input
+        type="number"
+        min="1"
+        inputMode="numeric"
+        value={form.onlineCapacity ?? ''}
+        placeholder={covers > 0 ? String(covers) : ''}
+        aria-label={t("Online capacity (max covers)")}
+        onChange={(event) => onFormChange({
+          ...form,
+          onlineCapacity: event.target.value,
+        })}
+      />
+      <small>
+        {covers > 0
+          ? t("Venue covers: {{count}}", { count: covers })
+          : t("Venue covers appear here once the floor plan has tables.")}
+      </small>
+      {areas.length > 0 ? (
+        <div className="online-booking-grid">
+          {areas.map((area) => (
+            <label key={area.id} className="form-field">
+              <span>{t("Area cap")}: {area.label}</span>
+              <input
+                type="number"
+                min="1"
+                inputMode="numeric"
+                value={caps[area.id] ?? ''}
+                placeholder={t("No cap")}
+                aria-label={t("Area cap for {{name}}", { name: area.label })}
+                onChange={(event) => onFormChange({
+                  ...form,
+                  onlineAreaCaps: {
+                    ...caps,
+                    [area.id]: event.target.value,
+                  },
+                })}
+              />
+            </label>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -199,6 +256,8 @@ export function WorkspaceReservationSeatingsSection({
           />
         </div>
 
+        <OnlineCapacityFields form={form} onFormChange={onFormChange} />
+
         <div className="modal-actions">
           {editingSeatingId ? (
             <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>
@@ -246,6 +305,9 @@ export function WorkspaceReservationSeatingsSection({
                     {t("{{minutes}} min", { minutes: normalized.durationMinutes })}
                     {' · '}
                     {formatSeatingDaysLabel(normalized.daysOfWeek)}
+                    {normalized.onlineCapacity
+                      ? ` · ${t("{{count}} online covers", { count: normalized.onlineCapacity })}`
+                      : ''}
                   </p>
                   {!normalized.isActive ? <small>{t("Inactive")}</small> : null}
                 </div>
@@ -461,6 +523,8 @@ export function WorkspaceReservationSeatingsSection({
               onChange={(daysOfWeek) => onFormChange({ ...form, daysOfWeek })}
             />
           </div>
+
+          <OnlineCapacityFields form={form} onFormChange={onFormChange} />
 
           <div className="modal-actions">
             {editingSeatingId ? (

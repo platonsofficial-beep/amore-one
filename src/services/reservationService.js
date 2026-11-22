@@ -65,6 +65,7 @@ function mapReservation(record) {
     seatedAt: record.seated_at ?? record.seatedAt ?? null,
     // undefined = column not there yet (SQL not applied); null = no count.
     seatedGuests: readSeatedGuests(record),
+    source: `${record.source ?? 'staff'}`.trim().toLowerCase() === 'online' ? 'online' : 'staff',
   }
 
   return enrichReservationWithSeatingAssignment({
@@ -152,6 +153,7 @@ function serializeReservation(reservation) {
     ...(reservation.seatedGuests !== undefined
       ? { seated_guests: normalizeSeatedGuests(reservation.seatedGuests) }
       : {}),
+    ...(reservation.source ? { source: reservation.source === 'online' ? 'online' : 'staff' } : {}),
   }
 }
 

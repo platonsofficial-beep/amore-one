@@ -126,6 +126,7 @@ const LAYOUT_HISTORY_ACTIONS = new Set([
   'ADD_FLOOR',
   'RENAME_FLOOR',
   'UPDATE_FLOOR_WORKSPACE',
+  'UPDATE_FLOOR_ONLINE',
   'MATCH_SELECTED_TABLE_SIZE',
   'ALIGN_SELECTED_HORIZONTAL',
   'ALIGN_SELECTED_VERTICAL',
@@ -635,6 +636,8 @@ function applyFloorPlanBuilderAction(state, action) {
       const nextFloor = {
         id,
         label,
+        smoking: false,
+        onlineBookingVisible: false,
         workspace: { ...createDefaultWorkspace() },
       }
 
@@ -795,6 +798,27 @@ function applyFloorPlanBuilderAction(state, action) {
         mode: 'viewing',
         savedSnapshot: snapshot,
         ...emptyLayoutHistory(),
+      }
+    }
+    case 'UPDATE_FLOOR_ONLINE': {
+      if (!isBuilderEditing(state)) return state
+      const floorId = action.payload?.floorId ?? state.activeFloorId
+      if (!floorId) return state
+      const smoking = action.payload?.smoking
+      const onlineBookingVisible = action.payload?.onlineBookingVisible
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        floors: state.floors.map((floor) => (
+          floor.id === floorId
+            ? {
+              ...floor,
+              ...(smoking === undefined ? {} : { smoking: Boolean(smoking) }),
+              ...(onlineBookingVisible === undefined ? {} : { onlineBookingVisible: Boolean(onlineBookingVisible) }),
+            }
+            : floor
+        )),
       }
     }
     case 'DELETE_FLOOR': {

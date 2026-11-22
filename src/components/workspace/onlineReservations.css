@@ -1,0 +1,74 @@
+.online-booking-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.online-booking-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.online-booking-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--one-overlay-12);
+  background: var(--one-overlay-04);
+  color: var(--one-text);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+}
+
+.online-booking-toggle.is-on {
+  border-color: var(--one-gold-line);
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light);
+}
+
+.online-booking-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.online-booking-link {
+  flex: 1 1 220px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--one-text);
+  font-size: 0.92rem;
+}
+
+.online-booking-qr {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.online-booking-qr img {
+  width: 160px;
+  height: 160px;
+  border-radius: 12px;
+  background: var(--one-form-surface);
+}
+
+.online-booking-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.online-booking-actions .primary-btn,
+.online-booking-actions .ghost-btn,
+.online-booking-toggle {
+  min-height: 44px;
+}

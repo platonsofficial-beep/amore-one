@@ -168,6 +168,38 @@ export function BuilderToolbox({ onClose, showCloseButton = false, closeLabel = 
           >
             {t("Delete area")}
           </button>
+
+          <div className="fpb-area-toggles" role="group" aria-label={t("Online booking for this area")}>
+            <button
+              type="button"
+              className={`fpb-area-toggle${activeFloor?.smoking ? ' is-on' : ''}`}
+              aria-pressed={Boolean(activeFloor?.smoking)}
+              disabled={!isEditing}
+              onClick={() => dispatch({
+                type: 'UPDATE_FLOOR_ONLINE',
+                payload: { floorId: state.activeFloorId, smoking: !activeFloor?.smoking },
+              })}
+            >
+              <span>{t("Smoking")}</span>
+              <strong>{activeFloor?.smoking ? t("Yes") : t("No")}</strong>
+            </button>
+            <button
+              type="button"
+              className={`fpb-area-toggle${activeFloor?.onlineBookingVisible ? ' is-on' : ''}`}
+              aria-pressed={Boolean(activeFloor?.onlineBookingVisible)}
+              disabled={!isEditing}
+              onClick={() => dispatch({
+                type: 'UPDATE_FLOOR_ONLINE',
+                payload: {
+                  floorId: state.activeFloorId,
+                  onlineBookingVisible: !activeFloor?.onlineBookingVisible,
+                },
+              })}
+            >
+              <span>{t("Visible for online booking")}</span>
+              <strong>{activeFloor?.onlineBookingVisible ? t("Yes") : t("No")}</strong>
+            </button>
+          </div>
         </div>
 
         <div className="fpb-panel-header fpb-panel-header-spaced">

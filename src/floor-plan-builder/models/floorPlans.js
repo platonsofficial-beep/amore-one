@@ -36,6 +36,8 @@ export function createFloorFromLabel(label) {
   return {
     id: slugifyAreaLabel(trimmed),
     label: trimmed,
+    smoking: false,
+    onlineBookingVisible: false,
     workspace: { ...createDefaultWorkspace() },
   }
 }
@@ -44,6 +46,8 @@ export function createInitialFloors() {
   return DEFAULT_RESTAURANT_AREAS.map((area) => ({
     id: area.id,
     label: area.label,
+    smoking: false,
+    onlineBookingVisible: false,
     workspace: { ...createDefaultWorkspace() },
   }))
 }

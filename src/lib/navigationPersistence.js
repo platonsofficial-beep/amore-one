@@ -34,6 +34,7 @@ const VALID_SETTINGS_SECTIONS = new Set([
   'positions',
   'venue',
   'reservations',
+  'online',
   'team',
   'notifications',
   'system',
