@@ -148,6 +148,57 @@ describe('public seating windows', () => {
       seatings: [first, second],
     }).reason).toBe('time')
   })
+
+  it('stops arrivals at the weekday last time and rejects a later weekend time on a weekday', () => {
+    const dinner = {
+      id: 'dinner',
+      name: 'Dinner',
+      startTime: '18:00',
+      durationMinutes: 330,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      isActive: true,
+      dayHours: {
+        4: { open: true, start: '18:00', end: '23:00', lastArrival: '' },
+        0: { open: true, start: '18:00', end: '23:30', lastArrival: '' },
+      },
+    }
+    const weekday = availablePublicSlots({
+      seatings: [dinner],
+      areas: [{ id: 'main', label: 'Main' }],
+      dateKey: '2026-11-19',
+      party: 2,
+      now: new Date('2026-11-01T08:00:00Z'),
+      timeZone: 'Europe/Nicosia',
+      minNoticeMinutes: 0,
+    })
+    const weekend = availablePublicSlots({
+      seatings: [dinner],
+      areas: [{ id: 'main', label: 'Main' }],
+      dateKey: '2026-11-22',
+      party: 2,
+      now: new Date('2026-11-01T08:00:00Z'),
+      timeZone: 'Europe/Nicosia',
+      minNoticeMinutes: 0,
+    })
+    expect(weekday[0].slots.at(-1)).toBe('22:30')
+    expect(weekend[0].slots.at(-1)).toBe('23:00')
+    expect(weekend[0].slots).not.toContain('23:15')
+    expect(assignSeatingForArrival([dinner], '23:00', '2026-11-19')).toEqual({ seating: null, contained: false })
+    expect(assignSeatingForArrival([dinner], '23:00', '2026-11-22').contained).toBe(true)
+    expect(arrivalHourOptions({ ...weekend[0], durationMinutes: 330 })).toContain('23')
+    expect(arrivalMinuteOptions({ ...weekend[0], durationMinutes: 330 }, '23')).toContain('00')
+    expect(arrivalMinuteOptions({ ...weekend[0], durationMinutes: 330 }, '23')).not.toContain('15')
+    expect(validatePublicReservation({
+      ...draft(),
+      date: '2026-11-19',
+      time: '23:00',
+      now: new Date('2026-11-01T08:00:00Z'),
+    }, {
+      ...INFO,
+      timeZone: 'Europe/Nicosia',
+      seatings: [dinner],
+    }).reason).toBe('time')
+  })
 })
 
 describe('full seating suggestions', () => {

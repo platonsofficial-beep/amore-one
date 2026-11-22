@@ -18,13 +18,20 @@ export function ReservationTimeSelect({
   id,
   placeholder = t("Select time"),
   seating = null,
+  seatings = null,
+  dateKey = '',
 }) {
   const normalizedValue = normalizeReservationTimeValue(value)
-  const normalizedSeating = normalizeReservationSeating(seating) ?? seating
 
   const options = useMemo(() => {
-    if (normalizedSeating) {
-      const windowOptions = getSeatingWindowTimeOptions(normalizedSeating)
+    const normalizedSeating = normalizeReservationSeating(seating) ?? seating
+    const windowSeatings = Array.isArray(seatings) && seatings.length
+      ? seatings
+      : (normalizedSeating ? [normalizedSeating] : [])
+    if (windowSeatings.length) {
+      const windowOptions = [...new Set(windowSeatings.flatMap((item) => (
+        getSeatingWindowTimeOptions(item, { dateKey })
+      )))].sort((left, right) => left.localeCompare(right))
       if (normalizedValue && !windowOptions.includes(normalizedValue)) {
         return [...windowOptions, normalizedValue].sort(
           (left, right) => left.localeCompare(right),
@@ -34,7 +41,7 @@ export function ReservationTimeSelect({
     }
 
     return getReservationTimeSelectOptions(normalizedValue)
-  }, [normalizedSeating, normalizedValue])
+  }, [dateKey, normalizedValue, seating, seatings])
 
   return (
     <TimeSelect

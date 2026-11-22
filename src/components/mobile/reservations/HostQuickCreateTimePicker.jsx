@@ -84,6 +84,7 @@ export function HostQuickCreateTimePicker({
   onChange,
   placeholder = t("Select time"),
   disabled = false,
+  allowedSlots = null,
 }) {
   const fieldId = useId()
   const panelRef = useRef(null)
@@ -106,10 +107,12 @@ export function HostQuickCreateTimePicker({
     }
   }, [isOpen])
 
-  const activeSlots = useMemo(
-    () => TAB_SLOTS[activeTabId] ?? TAB_SLOTS['all-day'],
-    [activeTabId],
-  )
+  const activeSlots = useMemo(() => {
+    const tabSlots = TAB_SLOTS[activeTabId] ?? TAB_SLOTS['all-day']
+    if (!Array.isArray(allowedSlots)) return tabSlots
+    const allowed = new Set(allowedSlots)
+    return tabSlots.filter((slot) => allowed.has(slot))
+  }, [activeTabId, allowedSlots])
 
   const openPicker = () => {
     if (disabled) return

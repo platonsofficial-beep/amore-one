@@ -27937,7 +27937,9 @@ function App() {
                     <span>{t("Time")}</span>
                     <ReservationTimeSelect
                       value={reservationForm.time}
-                      onChange={(time) => setReservationForm((current) => ({ ...current, time, seatingId: null }))}
+                      onChange={(time) => setReservationForm((current) => ({ ...current, time }))}
+                      seating={reservationSeatings.find((entry) => entry.id === reservationForm.seatingId) ?? null}
+                      dateKey={reservationForm.date || currentDateKey}
                       required
                     />
                   </label>
@@ -28084,6 +28086,8 @@ function App() {
                     <ReservationTimeSelect
                       value={quickReservationForm.time}
                       onChange={(time) => setQuickReservationForm((current) => ({ ...current, time }))}
+                      seatings={getActiveSeatingsForDate(reservationSeatings, quickReservationForm.date || currentDateKey)}
+                      dateKey={quickReservationForm.date || currentDateKey}
                       required
                     />
                   </label>

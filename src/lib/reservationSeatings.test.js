@@ -16,6 +16,8 @@ import {
   sortReservationSeatings,
   validateReservationSeatingForm,
   getSeatingWindowTimeOptions,
+  seatingScheduleForDate,
+  copyDayHours,
 } from './reservationSeatings'
 
 const SAMPLE_SEATINGS = [
@@ -403,6 +405,33 @@ describe('reservationSeatings', () => {
     expect(getSeatingWindowTimeOptions(seating)).toEqual([
       '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45',
     ])
+  })
+
+  it('uses each weekday start, end, and last arrival', () => {
+    const seating = normalizeReservationSeatingInput({
+      name: 'Dinner',
+      startTime: '18:00',
+      durationMinutes: 300,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      dayHours: {
+        4: { open: true, start: '18:00', end: '23:00', lastArrival: '' },
+        0: { open: true, start: '18:00', end: '23:30', lastArrival: '23:00' },
+        1: { open: false, start: '18:00', end: '23:00', lastArrival: '' },
+      },
+    })
+    expect(seatingScheduleForDate({ ...seating, id: 'dinner' }, '2026-11-19')).toMatchObject({
+      open: true,
+      startTime: '18:00',
+      endTime: '23:00',
+      lastArrivalTime: '22:30',
+    })
+    expect(getSeatingWindowTimeOptions({ ...seating, id: 'dinner' }, { dateKey: '2026-11-22' }).at(-1)).toBe('23:00')
+    expect(getSeatingWindowTimeOptions({ ...seating, id: 'dinner' }, { dateKey: '2026-11-16' })).toEqual([])
+    const copied = copyDayHours(seating.dayHours, 0, [6])
+    expect(copied[6]).toMatchObject({ end: '23:30', lastArrival: '23:00' })
+    const row = serializeReservationSeatingRow(seating, 'ws-1')
+    expect(row.day_hours[4].lastArrival).toBe('')
+    expect(row.days_of_week).toEqual([0, 1, 2, 3, 4, 5, 6])
   })
 
   it('floor plan and list agree for a 15:15 booking stored on Dinner 1 (Nov 2026 scenario)', () => {

@@ -175,7 +175,8 @@
 }
 
 .public-booking-choice-row button {
-  flex: 1 1 52px;
+  flex: 1 1 calc(25% - 8px);
+  max-width: calc(25% - 6px);
 }
 
 .public-booking-stack button {

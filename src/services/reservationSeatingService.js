@@ -44,13 +44,14 @@ function mergeOnlineCaps(workspaceId, seatings) {
 
 function isMissingOnlineColumnError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
-  return message.includes('online_capacity') || message.includes('online_area_caps')
+  return message.includes('online_capacity') || message.includes('online_area_caps') || message.includes('day_hours')
 }
 
 function rowWithoutOnline(row) {
   const next = { ...row }
   delete next.online_capacity
   delete next.online_area_caps
+  delete next.day_hours
   return next
 }
 

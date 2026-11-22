@@ -6,6 +6,13 @@ import {
   parseReservationTimeToMinutes,
 } from './timeFormatUtils'
 import { t } from '../i18n/i18n'
+import {
+  datedArrivalSlots,
+  normalizeDayHours,
+  seatingScheduleForDate,
+} from './seatingDayHours.js'
+
+export { copyDayHours, normalizeDayHours, seatingScheduleForDate } from './seatingDayHours.js'
 
 function formatMinutesAsTime(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60) % 24
@@ -48,6 +55,7 @@ export function normalizeReservationSeatingInput(record) {
     startTime,
     durationMinutes,
     daysOfWeek: normalizeDaysOfWeek(record.daysOfWeek ?? record.days_of_week),
+    dayHours: record.dayHours ?? record.day_hours ?? null,
     sortOrder: Math.max(0, Number(record.sortOrder ?? record.sort_order) || 0),
     isActive: record.isActive ?? record.is_active ?? true,
     onlineCapacity: normalizeOnlineCapacity(record.onlineCapacity ?? record.online_capacity),
@@ -89,6 +97,7 @@ export function validateReservationSeatingForm(form) {
       startTime,
       durationMinutes: Math.max(15, Math.min(480, durationMinutes)),
       daysOfWeek,
+      dayHours: form?.dayHours ?? form?.day_hours ?? null,
       sortOrder: Math.max(0, Number(form?.sortOrder ?? form?.sort_order) || 0),
       isActive: form?.isActive ?? form?.is_active ?? true,
       onlineCapacity: normalizeOnlineCapacity(form?.onlineCapacity ?? form?.online_capacity),
@@ -109,6 +118,7 @@ export function serializeReservationSeatingRow(seating, workspaceId) {
     start_time: normalized.startTime,
     duration_minutes: normalized.durationMinutes,
     days_of_week: normalized.daysOfWeek,
+    ...(normalized.dayHours ? { day_hours: normalizeDayHours(normalized.dayHours, normalized) } : {}),
     sort_order: normalized.sortOrder,
     is_active: normalized.isActive,
     online_capacity: normalized.onlineCapacity,
@@ -168,6 +178,7 @@ export function isSeatingActiveOnDate(seating, dateKey) {
 
   const dayOfWeek = getDayOfWeekFromDateKey(dateKey)
   if (dayOfWeek === null) return false
+  if (normalized.dayHours) return Boolean(seatingScheduleForDate(normalized, dateKey)?.open)
   return normalized.daysOfWeek.includes(dayOfWeek)
 }
 
@@ -441,6 +452,7 @@ export function buildSeatingFormDefaults(seating = null) {
       startTime: '19:00',
       durationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
       daysOfWeek: [...ALL_DAYS_OF_WEEK],
+      dayHours: null,
       sortOrder: 0,
       isActive: true,
       onlineCapacity: null,
@@ -453,6 +465,7 @@ export function buildSeatingFormDefaults(seating = null) {
     startTime: normalized.startTime,
     durationMinutes: normalized.durationMinutes,
     daysOfWeek: [...normalized.daysOfWeek],
+    dayHours: normalizeDayHours(normalized.dayHours, normalized),
     sortOrder: normalized.sortOrder,
     isActive: normalized.isActive,
   }
@@ -470,9 +483,11 @@ export const DAY_OF_WEEK_OPTIONS = [
 
 export const SEATING_TIME_INTERVAL_MINUTES = 15
 
-export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING_TIME_INTERVAL_MINUTES } = {}) {
+export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING_TIME_INTERVAL_MINUTES, dateKey = '' } = {}) {
   const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
   if (!normalized) return []
+
+  if (dateKey) return datedArrivalSlots(normalized, dateKey)
 
   const startMinutes = parseReservationTimeToMinutes(normalized.startTime)
   if (startMinutes === null) return []
