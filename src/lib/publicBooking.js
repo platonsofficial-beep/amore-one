@@ -1,5 +1,5 @@
 import { normalizeOnlineCapacity } from './onlineBooking.js'
-import { getSeatingWindowTimeOptions, seatingScheduleForDate } from './reservationSeatings.js'
+import { datedArrivalSlots, seatingScheduleForDate } from './seatingDayHours.js'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const CLOSED_STATUSES = new Set(['Cancelled', 'Not Shown', 'Rejected', 'No Show'])
@@ -213,7 +213,7 @@ export function seatingWindow(seating, dateKey = '') {
 }
 
 export function arrivalSlotsForSeating(seating, dateKey = '') {
-  if (dateKey) return getSeatingWindowTimeOptions(seating, { dateKey })
+  if (dateKey) return datedArrivalSlots(seating, dateKey)
   const window = seatingWindow(seating)
   if (!window) return []
   const last = window.end - ARRIVAL_END_BUFFER_MINUTES

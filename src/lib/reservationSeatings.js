@@ -6,6 +6,13 @@ import {
   parseReservationTimeToMinutes,
 } from './timeFormatUtils'
 import { t } from '../i18n/i18n'
+import {
+  datedArrivalSlots,
+  normalizeDayHours,
+  seatingScheduleForDate,
+} from './seatingDayHours.js'
+
+export { copyDayHours, normalizeDayHours, seatingScheduleForDate } from './seatingDayHours.js'
 
 function formatMinutesAsTime(totalMinutes) {
   const hours = Math.floor(totalMinutes / 60) % 24
@@ -163,90 +170,6 @@ export function getDayOfWeekFromDateKey(dateKey) {
   const parsed = new Date(`${normalized}T12:00:00`)
   if (Number.isNaN(parsed.getTime())) return null
   return parsed.getDay()
-}
-
-function clockMinutes(value) {
-  const match = `${value ?? ''}`.trim().match(/^(\d{1,2}):(\d{2})$/)
-  if (!match) return null
-  const hours = Number(match[1])
-  const minutes = Number(match[2])
-  if (hours > 23 || minutes > 59) return null
-  return hours * 60 + minutes
-}
-
-function legacyDayRow(seating, day) {
-  const start = seating.startTime
-  const startMinutes = clockMinutes(start) ?? 19 * 60
-  const endMinutes = startMinutes + (Number(seating.durationMinutes) || DEFAULT_RESERVATION_DURATION_MINUTES)
-  return {
-    open: seating.daysOfWeek.includes(day),
-    start,
-    end: formatMinutesAsTime(endMinutes),
-    lastArrival: '',
-  }
-}
-
-export function normalizeDayHours(raw, seating) {
-  const source = raw && typeof raw === 'object' ? raw : {}
-  const hours = {}
-  ALL_DAYS_OF_WEEK.forEach((day) => {
-    const legacy = legacyDayRow(seating, day)
-    const spec = source[day] ?? source[String(day)]
-    if (!spec || typeof spec !== 'object') {
-      hours[day] = legacy
-      return
-    }
-    const start = normalizeReservationTimeValue(spec.start ?? spec.startTime) || legacy.start
-    let end = normalizeReservationTimeValue(spec.end ?? spec.endTime) || legacy.end
-    const startMinutes = clockMinutes(start)
-    let endMinutes = clockMinutes(end)
-    if (startMinutes != null && (endMinutes == null || endMinutes <= startMinutes)) {
-      endMinutes = Math.min(startMinutes + 15, (24 * 60) - 1)
-      end = formatMinutesAsTime(endMinutes)
-    }
-    hours[day] = {
-      open: spec.open === undefined ? legacy.open : Boolean(spec.open),
-      start,
-      end,
-      lastArrival: normalizeReservationTimeValue(spec.lastArrival ?? spec.last_arrival) || '',
-    }
-  })
-  return hours
-}
-
-export function seatingScheduleForDate(seating, dateKey) {
-  const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
-  const day = getDayOfWeekFromDateKey(dateKey)
-  if (!normalized || day == null) return null
-  const row = normalizeDayHours(normalized.dayHours, normalized)[day]
-  const start = clockMinutes(row.start)
-  let end = clockMinutes(row.end)
-  if (start == null || end == null) return null
-  if (end <= start) end = Math.min(start + 15, (24 * 60) - 1)
-  let last = row.lastArrival ? clockMinutes(row.lastArrival) : end - 30
-  if (last == null || last < start) last = start
-  if (last > end) last = end
-  return {
-    open: row.open,
-    start,
-    end,
-    last,
-    startTime: row.start,
-    endTime: formatMinutesAsTime(end),
-    lastArrivalTime: formatMinutesAsTime(last),
-  }
-}
-
-export function copyDayHours(hours, fromDay, toDays = []) {
-  const source = hours?.[fromDay] ?? hours?.[String(fromDay)]
-  if (!source) return hours
-  const next = { ...hours }
-  toDays.forEach((day) => {
-    const key = Number(day)
-    if (!Number.isInteger(key) || key === Number(fromDay)) return
-    next[key] = { ...source }
-  })
-  return next
 }
 
 export function isSeatingActiveOnDate(seating, dateKey) {
@@ -564,15 +487,7 @@ export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING
   const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
   if (!normalized) return []
 
-  if (dateKey) {
-    const schedule = seatingScheduleForDate(normalized, dateKey)
-    if (!schedule?.open) return []
-    const options = []
-    for (let minute = schedule.start; minute <= schedule.last; minute += SEATING_TIME_INTERVAL_MINUTES) {
-      options.push(formatMinutesAsTime(minute))
-    }
-    return options
-  }
+  if (dateKey) return datedArrivalSlots(normalized, dateKey)
 
   const startMinutes = parseReservationTimeToMinutes(normalized.startTime)
   if (startMinutes === null) return []
