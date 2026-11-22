@@ -1,3 +1,4 @@
+import { needsVenueCallConfirm, guestCallHref } from './onlineBooking'
 import { t } from '../i18n/i18n'
 export const HOST_RESERVATION_STATUSES = [
   {
@@ -582,6 +583,12 @@ export function canCompleteReservation(reservation) {
 export function getHostReservationQuickActions(reservation, { nowMinutes = 0, todayKey = '' } = {}) {
   const groupId = getHostListGroupId(reservation)
   const actions = []
+
+  if (needsVenueCallConfirm(reservation)) {
+    actions.push({ id: 'confirm-online', label: t("Confirm"), status: 'Confirmed', variant: 'primary' })
+    const href = guestCallHref(reservation)
+    if (href) actions.push({ id: 'call-guest', label: t("Call"), href, variant: 'secondary' })
+  }
 
   if (groupId === 'upcoming') {
     if (canMarkReservationArrived(reservation, nowMinutes, todayKey)) {

@@ -13,15 +13,21 @@ import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
 import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoClosedBadge'
+import { OnlineReservationBadge } from '../../reservations/OnlineReservationBadge'
+import { ReservationCallIcon } from '../../reservations/ReservationCallIcon'
+import { needsVenueCallConfirm } from '../../../lib/onlineBooking'
 import { t } from '../../../i18n/i18n'
 
 function getActionClassName(action) {
-  if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
-  if (action.variant === 'danger') return 'mobile-host-reservation-action is-danger'
-  if (action.variant === 'primary' || action.id === 'arrived' || action.id === 'seat' || action.id === 'complete') {
-    return 'mobile-host-reservation-action is-service-primary'
+  const classes = ['mobile-host-reservation-action']
+  if (action.id === 'confirm-online') classes.push('is-confirm')
+  if (action.id === 'call-guest') classes.push('is-call')
+  if (action.id === 'edit') classes.push('is-ghost')
+  else if (action.variant === 'danger') classes.push('is-danger')
+  else if (action.variant === 'primary' || action.id === 'arrived' || action.id === 'seat' || action.id === 'complete') {
+    classes.push('is-service-primary')
   }
-  return 'mobile-host-reservation-action'
+  return classes.join(' ')
 }
 
 function MobileHostReservationCompactRow({
@@ -104,14 +110,18 @@ function MobileHostReservationCompactRow({
             </div>
           </div>
           {useHostQueuePresentation ? (
-            <HostQueueReservationDetails
-              reservation={reservation}
-              layout={floorLayout}
-              className="host-queue-row-details mobile-host-reservation-row-meta"
-            />
+            <div className="mobile-host-reservation-row-meta">
+              <OnlineReservationBadge reservation={reservation} />
+              <HostQueueReservationDetails
+                reservation={reservation}
+                layout={floorLayout}
+                className="host-queue-row-details"
+              />
+            </div>
           ) : (
             <p className="mobile-host-reservation-row-meta">
-              {t('{{count}} guest', { count: partySize })} · {tableSection}
+              <OnlineReservationBadge reservation={reservation} />
+              <span>{t('{{count}} guest', { count: partySize })} · {tableSection}</span>
             </p>
           )}
         </button>
@@ -183,6 +193,8 @@ export function MobileReservationHostCard({
     ...getHostReservationQuickActions(reservation, { nowMinutes, todayKey }),
     { id: 'edit', label: t("Edit") },
   ]
+  const isVenueCallRow = quickActions.some((action) => action.id === 'confirm-online')
+    && quickActions.some((action) => action.id === 'call-guest')
 
   const handleAction = (event, action) => {
     event.stopPropagation()
@@ -193,10 +205,35 @@ export function MobileReservationHostCard({
       return
     }
 
+    if (action.href) return
     if (action.status) {
       onQuickStatusUpdate?.(reservation, action.status)
     }
   }
+
+  const renderAction = (action) => (
+    action.href ? (
+      <a
+        key={action.id}
+        className={getActionClassName(action)}
+        href={action.href}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <ReservationCallIcon />
+        {action.label}
+      </a>
+    ) : (
+      <button
+        key={action.id}
+        type="button"
+        className={getActionClassName(action)}
+        onClick={(event) => handleAction(event, action)}
+        disabled={isSaving}
+      >
+        {action.label}
+      </button>
+    )
+  )
 
   if (isLandscapeLayout) {
     return (
@@ -231,7 +268,7 @@ export function MobileReservationHostCard({
           <div className="mobile-host-reservation-card-top">
             <span className="mobile-host-reservation-time">{timeLabel}</span>
             <span className={`mobile-host-reservation-status tone-${statusMeta.tone}`}>
-              {statusMeta.label}
+              {needsVenueCallConfirm(reservation) ? t("To confirm") : statusMeta.label}
             </span>
           </div>
 
@@ -254,18 +291,22 @@ export function MobileReservationHostCard({
           </div>
         </button>
 
-        <div className="mobile-host-reservation-actions" role="group" aria-label={t("Quick actions")}>
-          {quickActions.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              className={getActionClassName(action)}
-              onClick={(event) => handleAction(event, action)}
-              disabled={isSaving}
-            >
-              {action.label}
-            </button>
-          ))}
+        <div
+          className={`mobile-host-reservation-actions${isVenueCallRow ? ' is-venue-call' : ''}`}
+          role="group"
+          aria-label={t("Quick actions")}
+        >
+          {isVenueCallRow ? (
+            [
+              quickActions.filter((action) => action.id === 'confirm-online' || action.id === 'call-guest'),
+              quickActions.filter((action) => action.id !== 'confirm-online' && action.id !== 'call-guest' && action.id !== 'edit'),
+              quickActions.filter((action) => action.id === 'edit'),
+            ].filter((row) => row.length > 0).map((row) => (
+              <div key={row.map((action) => action.id).join('-')} className="mobile-host-quick-row">
+                {row.map(renderAction)}
+              </div>
+            ))
+          ) : quickActions.map(renderAction)}
         </div>
       </article>
     </li>

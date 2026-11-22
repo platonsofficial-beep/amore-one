@@ -387,6 +387,8 @@ describe('reservationSeatings', () => {
       days_of_week: [0, 6],
       sort_order: 3,
       is_active: true,
+      online_capacity: null,
+      online_area_caps: {},
     })
   })
 

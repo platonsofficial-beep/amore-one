@@ -9,6 +9,7 @@ import { WorkspaceReservationSeatingsSection } from './WorkspaceReservationSeati
 import { WorkspaceTeamSection } from './WorkspaceTeamSection'
 import { WorkspaceSystemSection } from './WorkspaceSystemSection'
 import { PrivacySettingsSection } from '../privacy/PrivacySections'
+import { OnlineReservationsSection } from './OnlineReservationsSection'
 
 const WORKSPACE_SECTIONS = [
   { id: 'profile', label: t("Business Profile"), shortLabel: 'Profile', icon: '🏢' },
@@ -36,6 +37,8 @@ export function WorkspaceView({
   positionsProps,
   venueSetupProps,
   reservationSeatingsProps,
+  showOnlineReservations = false,
+  onlineBookingProps = null,
   teamProps,
   systemProps,
   notificationSettings = null,
@@ -43,10 +46,17 @@ export function WorkspaceView({
   visibleSectionIds = null,
   limitedAccess = false,
 }) {
-  const sections = (Array.isArray(visibleSectionIds)
+  const baseSections = Array.isArray(visibleSectionIds)
     ? WORKSPACE_SECTIONS.filter((section) => visibleSectionIds.includes(section.id))
     : WORKSPACE_SECTIONS
-  ).concat(billingSection ? [{ id: 'billing', label: t("Plans & billing"), shortLabel: 'Billing', icon: '✦' }] : [])
+  const withOnline = showOnlineReservations
+    ? [
+      ...baseSections.slice(0, baseSections.findIndex((section) => section.id === 'reservations') + 1),
+      { id: 'online', label: 'Online reservations', shortLabel: 'Online', icon: '🔗' },
+      ...baseSections.slice(baseSections.findIndex((section) => section.id === 'reservations') + 1),
+    ].filter((section, index, list) => list.findIndex((entry) => entry.id === section.id) === index)
+    : baseSections
+  const sections = withOnline.concat(billingSection ? [{ id: 'billing', label: t("Plans & billing"), shortLabel: 'Billing', icon: '✦' }] : [])
   const sectionKey = sections.map((section) => section.id).join('|')
   const sectionIds = new Set(sections.map((section) => section.id))
   const resolvedSection = sectionIds.has(activeSection)
@@ -170,6 +180,9 @@ export function WorkspaceView({
           ) : null}
           {resolvedSection === 'reservations' ? (
             <WorkspaceReservationSeatingsSection {...reservationSeatingsProps} />
+          ) : null}
+          {resolvedSection === 'online' && showOnlineReservations ? (
+            <OnlineReservationsSection {...(onlineBookingProps || {})} />
           ) : null}
           {resolvedSection === 'team' ? (
             <WorkspaceTeamSection {...teamProps} workspace={workspace} />

@@ -14664,6 +14664,7 @@ function ReservationsUnifiedCanvas({
             todayKey={floorPlanProps.todayKey}
             seatings={floorPlanProps.seatings ?? []}
             onChange={setHostEditForm}
+            onStatusChange={handleStatusChange}
             onSave={async () => {
               if (!onHostEditSave) return
               if (!hostEditForm) {
@@ -26442,6 +26443,11 @@ function App() {
             onSectionChange={handleSettingsSectionChange}
             visibleSectionIds={canOpenWorkspaceProfile ? null : LIMITED_SETTINGS_SECTION_IDS}
             limitedAccess={settingsLimited}
+            showOnlineReservations={isManagerRole(role)}
+            onlineBookingProps={{
+              workspaceId: activeWorkspaceId,
+              venueName: workspaceProfile.businessName || workspace?.name || '',
+            }}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,

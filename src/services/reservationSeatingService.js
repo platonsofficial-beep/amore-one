@@ -6,6 +6,53 @@ import { supabase } from '../lib/supabaseClient'
 
 const SEATINGS_TABLE = 'reservation_seatings'
 const VIEWPORT_SEATING_FIXTURE_KEY = 'amore-viewport-seatings-v1'
+const ONLINE_CAP_KEY = 'one.onlineSeatingCaps.v1'
+
+function readOnlineCaps(workspaceId) {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const parsed = JSON.parse(localStorage.getItem(ONLINE_CAP_KEY) || '{}')
+    return parsed?.[workspaceId] && typeof parsed[workspaceId] === 'object' ? parsed[workspaceId] : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeOnlineCap(workspaceId, id, seating) {
+  if (typeof localStorage === 'undefined' || !id) return
+  const all = (() => {
+    try { return JSON.parse(localStorage.getItem(ONLINE_CAP_KEY) || '{}') } catch { return {} }
+  })()
+  all[workspaceId] = {
+    ...(all[workspaceId] || {}),
+    [id]: {
+      onlineCapacity: seating.onlineCapacity ?? seating.online_capacity ?? null,
+      onlineAreaCaps: seating.onlineAreaCaps ?? seating.online_area_caps ?? {},
+    },
+  }
+  localStorage.setItem(ONLINE_CAP_KEY, JSON.stringify(all))
+}
+
+function mergeOnlineCaps(workspaceId, seatings) {
+  const caps = readOnlineCaps(workspaceId)
+  return seatings.map((seating) => {
+    const extra = caps[seating.id]
+    if (!extra) return seating
+    return mapSeating({ ...seating, ...extra, id: seating.id })
+  })
+}
+
+function isMissingOnlineColumnError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return message.includes('online_capacity') || message.includes('online_area_caps')
+}
+
+function rowWithoutOnline(row) {
+  const next = { ...row }
+  delete next.online_capacity
+  delete next.online_area_caps
+  return next
+}
 
 function isTableUnavailableError(error) {
   const message = error?.message?.toLowerCase() ?? ''
@@ -30,6 +77,8 @@ function mapSeating(record) {
     daysOfWeek: record.days_of_week ?? record.daysOfWeek,
     sortOrder: record.sort_order ?? record.sortOrder,
     isActive: record.is_active ?? record.isActive,
+    onlineCapacity: record.online_capacity ?? record.onlineCapacity,
+    onlineAreaCaps: record.online_area_caps ?? record.onlineAreaCaps,
     createdAt: record.created_at ?? record.createdAt,
     updatedAt: record.updated_at ?? record.updatedAt,
   })
@@ -82,7 +131,7 @@ export async function getReservationSeatings(workspaceId, { includeInactive = fa
     throw new Error(error.message || 'Unable to load reservation seatings right now.')
   }
 
-  return (data ?? []).map(mapSeating).filter(Boolean)
+  return mergeOnlineCaps(normalizedWorkspaceId, (data ?? []).map(mapSeating).filter(Boolean))
 }
 
 export async function createReservationSeating({ workspaceId, seating }) {
@@ -91,18 +140,30 @@ export async function createReservationSeating({ workspaceId, seating }) {
     throw new Error('Seating details are required.')
   }
 
-  const { data, error } = await supabase
+  const row = serializeReservationSeatingRow(seating, normalizedWorkspaceId)
+  let { data, error } = await supabase
     .from(SEATINGS_TABLE)
-    .insert([serializeReservationSeatingRow(seating, normalizedWorkspaceId)])
+    .insert([row])
     .select('*')
     .single()
+
+  if (error && isMissingOnlineColumnError(error)) {
+    const retry = await supabase
+      .from(SEATINGS_TABLE)
+      .insert([rowWithoutOnline(row)])
+      .select('*')
+      .single()
+    data = retry.data
+    error = retry.error
+    if (!error && data?.id) writeOnlineCap(normalizedWorkspaceId, data.id, seating)
+  }
 
   if (error) {
     console.error('[reservationSeatingService] createReservationSeating error:', error)
     throw new Error(error.message || 'Unable to create seating right now.')
   }
 
-  return mapSeating(data)
+  return mapSeating({ ...data, ...seating, id: data.id })
 }
 
 export async function updateReservationSeating({ workspaceId, id, seating }) {
@@ -115,20 +176,34 @@ export async function updateReservationSeating({ workspaceId, id, seating }) {
     throw new Error('Seating details are required.')
   }
 
-  const { data, error } = await supabase
+  const row = serializeReservationSeatingRow(seating, normalizedWorkspaceId)
+  let { data, error } = await supabase
     .from(SEATINGS_TABLE)
-    .update(serializeReservationSeatingRow(seating, normalizedWorkspaceId))
+    .update(row)
     .eq('workspace_id', normalizedWorkspaceId)
     .eq('id', normalizedId)
     .select('*')
     .single()
+
+  if (error && isMissingOnlineColumnError(error)) {
+    const retry = await supabase
+      .from(SEATINGS_TABLE)
+      .update(rowWithoutOnline(row))
+      .eq('workspace_id', normalizedWorkspaceId)
+      .eq('id', normalizedId)
+      .select('*')
+      .single()
+    data = retry.data
+    error = retry.error
+    if (!error) writeOnlineCap(normalizedWorkspaceId, normalizedId, seating)
+  }
 
   if (error) {
     console.error('[reservationSeatingService] updateReservationSeating error:', error)
     throw new Error(error.message || 'Unable to update seating right now.')
   }
 
-  return mapSeating(data)
+  return mapSeating({ ...data, ...seating, id: data.id })
 }
 
 export async function deleteReservationSeating({ workspaceId, id }) {

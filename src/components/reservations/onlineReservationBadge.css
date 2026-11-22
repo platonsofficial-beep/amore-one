@@ -1,0 +1,44 @@
+.host-reservation-list .host-reservation-card-main.is-time-grouped .host-reservation-card-subline {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.host-reservation-list .host-reservation-card-main.is-time-grouped:has(.host-reservation-card-guest-type-row) .host-reservation-card-subline {
+  grid-column: 2 / -1;
+}
+
+.host-reservation-card-subline,
+.mobile-host-reservation-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.host-reservation-card-subline > .host-reservation-card-details,
+.host-reservation-card-subline > .host-queue-row-details,
+.mobile-host-reservation-row-meta > span,
+.mobile-host-reservation-row-meta > .host-queue-row-details {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reservation-online-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: 22px;
+  margin-left: 0;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-gold-a12);
+  color: var(--one-gold-light);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
