@@ -3,6 +3,9 @@ import {
   canAccessMobileExpandedModule,
   canAccessOperationsSection,
   canAccessTeamSection,
+  canAccessModule,
+  canManageAnnouncements,
+  canManageOperations,
   canManageReservations,
   canManageStock,
   canOpenMobileFullSchedule,
@@ -27,12 +30,15 @@ export const TODAY_QUICK_SHORTCUTS = [
   { id: 'reservations', group: 'reservations', labelKey: 'Reservations' },
   { id: 'stock', group: 'stock', labelKey: 'Stock' },
   { id: 'stock-orders', group: 'stock', labelKey: 'Order drafts' },
+  { id: 'new-order', group: 'stock', labelKey: 'New order' },
   { id: 'inventory-count', group: 'stock', labelKey: 'Counts' },
   { id: 'schedule', group: 'team', labelKey: 'Schedule' },
   { id: 'team-today', group: 'team', labelKey: 'Team today' },
   { id: 'clock', group: 'team', labelKey: 'Clock in / My hours' },
   { id: 'operations', group: 'operations', labelKey: 'Operations' },
   { id: 'tasks', group: 'operations', labelKey: 'Tasks' },
+  { id: 'new-task', group: 'operations', labelKey: 'New task' },
+  { id: 'new-announcement', group: 'operations', labelKey: 'New team announcement' },
   { id: 'chat', group: 'chat', labelKey: 'Chat' },
 ]
 
@@ -77,6 +83,8 @@ export function shortcutIsAllowed(id, access) {
       return canAccessMobileExpandedModule(access, 'stock')
     case 'stock-orders':
       return canAccessMobileExpandedModule(access, 'stock') && canManageStock(access)
+    case 'new-order':
+      return canAccessModule(access, 'stock') && canManageStock(access)
     case 'schedule':
       return canOpenMobileFullSchedule(access) || canAccessTeamSection(access, 'schedule')
     case 'team-today':
@@ -87,6 +95,10 @@ export function shortcutIsAllowed(id, access) {
       return canAccessMobileExpandedModule(access, 'operations')
     case 'tasks':
       return canAccessOperationsSection(access, 'tasks') || canAccessHostMobileTasksTab(access)
+    case 'new-task':
+      return canAccessModule(access, 'operations') && canManageOperations(access)
+    case 'new-announcement':
+      return canManageAnnouncements(access)
     case 'chat':
       return canUseChat(access)
     default:

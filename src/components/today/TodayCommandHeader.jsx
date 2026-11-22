@@ -10,10 +10,8 @@ export function TodayCommandHeader({
   dateLabel = '',
   workspaceBadge = '',
   chips = [],
-  quickActions = [],
   profileChipDisplay,
   employees = [],
-  onQuickAction,
   onChipSelect,
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
@@ -22,8 +20,6 @@ export function TodayCommandHeader({
   accountActions = [],
   onAccountAction,
 }) {
-  const availableQuickActions = (quickActions ?? []).filter((action) => action.available)
-
   return (
     <header className="topbar topbar-command today-command-header" aria-label={t("Today command header")}>
       <div className="today-command-header-shell">
@@ -101,23 +97,6 @@ export function TodayCommandHeader({
                   )
                 })}
               </div>
-            </div>
-          ) : null}
-
-          {availableQuickActions.length > 0 ? (
-            <div className="today-command-row today-command-row-actions" aria-label={t("Quick actions")}>
-              {availableQuickActions.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  className="today-command-action-pill"
-                  data-help={`home.${action.id.replace('add-', '').replace('create-', '')}`}
-                  onClick={() => onQuickAction?.(action.id)}
-                >
-                  <span className="today-command-action-plus" aria-hidden="true">+</span>
-                  <span>{t(action.label)}</span>
-                </button>
-              ))}
             </div>
           ) : null}
         </div>
