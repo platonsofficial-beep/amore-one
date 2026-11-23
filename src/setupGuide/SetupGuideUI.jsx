@@ -39,19 +39,100 @@ function storage() {
   }
 }
 
+function bottomNavBox() {
+  const nav = document.querySelector('.mobile-bottom-nav')
+  if (!nav) return null
+  const rect = nav.getBoundingClientRect()
+  if (rect.width < 8 || rect.height < 8) return null
+  return rect
+}
+
+function coachWidth() {
+  const landscape = window.innerWidth > window.innerHeight
+  const max = landscape ? 420 : 360
+  return Math.min(max, window.innerWidth - 24)
+}
+
+function coachFloor() {
+  const nav = bottomNavBox()
+  return (nav ? nav.top : window.innerHeight) - 12
+}
+
+function overlapsBox(a, b) {
+  const separatedX = a.right <= b.left || b.right <= a.left
+  const separatedY = a.bottom <= b.top || b.bottom <= a.top
+  return !separatedX && !separatedY
+}
+
 function placeCoach(rect) {
   const margin = 12
-  const cardHeight = 220
-  const width = Math.min(360, window.innerWidth - margin * 2)
-  const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin)
-  const below = rect.bottom + margin
-  const above = rect.top - cardHeight - margin
-  let top = below
-  if (below + cardHeight > window.innerHeight - margin && above >= margin) top = above
-  if (window.innerHeight < 500) {
-    top = rect.bottom + margin + cardHeight < window.innerHeight ? below : Math.max(margin, above)
+  const width = coachWidth()
+  const landscape = window.innerWidth > window.innerHeight
+  const cardHeight = landscape ? 160 : 300
+  const floor = coachFloor()
+  const target = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+  const belowTop = rect.bottom + margin
+  const aboveTop = rect.top - cardHeight - margin
+  const spots = []
+  if (aboveTop >= 52) spots.push({ left: margin, top: aboveTop })
+  if (belowTop + cardHeight <= floor) spots.push({ left: margin, top: belowTop })
+  if (landscape) spots.push({ left: window.innerWidth - width - margin, top: Math.max(52, floor - cardHeight) })
+  if (rect.top > window.innerHeight * 0.38) spots.unshift({ left: margin, top: 52 })
+  for (let i = 0; i < spots.length; i += 1) {
+    const spot = spots[i]
+    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + cardHeight }
+    if (card.bottom > floor) continue
+    if (overlapsBox(card, target)) continue
+    return { left: spot.left, top: spot.top, width }
   }
-  return { left, top, width }
+  return { left: margin, top: 52, width }
+}
+
+function dockedCoach() {
+  const width = coachWidth()
+  const landscape = window.innerWidth > window.innerHeight
+  const cardHeight = landscape ? 160 : 220
+  const floor = coachFloor()
+  return {
+    left: landscape ? Math.max(12, window.innerWidth - width - 12) : 12,
+    top: Math.max(52, floor - cardHeight),
+    width,
+  }
+}
+
+function usableCoachTarget(node) {
+  if (!node || node.closest('.mobile-bottom-nav, .setup-guide-coach, .venue-wizard-bar')) return false
+  const rect = node.getBoundingClientRect()
+  if (rect.width < 24 || rect.height < 20) return false
+  const nav = bottomNavBox()
+  if (nav && overlapsBox(rect, nav)) return false
+  if (rect.bottom < 48 || rect.top > window.innerHeight - 8) return false
+  return true
+}
+
+function scrollParent(node) {
+  let current = node.parentElement
+  while (current && current !== document.body) {
+    const style = window.getComputedStyle(current)
+    const canScroll = (style.overflowY === 'auto' || style.overflowY === 'scroll') && current.scrollHeight > current.clientHeight + 8
+    if (canScroll) return current
+    current = current.parentElement
+  }
+  return document.scrollingElement
+}
+
+function revealCoachTarget(node) {
+  const scroller = scrollParent(node)
+  if (!scroller) return
+  const landscape = window.innerWidth > window.innerHeight
+  const desired = landscape ? 168 : 360
+  const rect = node.getBoundingClientRect()
+  const nav = bottomNavBox()
+  const limit = (nav ? nav.top : window.innerHeight) - 12
+  const tooHigh = rect.top < desired - 4
+  const tooLow = rect.bottom > limit || rect.top > desired + 40
+  if (!tooHigh && !tooLow) return
+  scroller.scrollTop += rect.top - desired
 }
 
 export function SetupGuideTodaySlot({
@@ -384,43 +465,61 @@ function SetupCoachMount({
       setBox(null)
       return undefined
     }
-    let frame = 0
-    let tries = 0
+    const stepId = step.id
+    setBox(null)
+    let revealed = false
     const names = coachTargets(step)
-    function measure() {
-      let target = null
-      for (const name of names) {
-        const candidate = document.querySelector(`[data-help="${name}"]`)
-        if (!candidate) continue
-        const rect = candidate.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) continue
-        target = candidate
-        break
+    function collect() {
+      const nodes = []
+      for (let i = 0; i < names.length; i += 1) {
+        const found = document.querySelectorAll(`[data-help="${names[i]}"]`)
+        for (let n = 0; n < found.length; n += 1) nodes.push(found[n])
       }
-      if (!target) {
-        if (tries < 20) {
-          tries += 1
-          frame = window.requestAnimationFrame(measure)
-        } else {
-          setBox({ missing: true })
+      return nodes
+    }
+    function measure() {
+      const nodes = collect()
+      let target = null
+      for (let i = 0; i < nodes.length; i += 1) {
+        if (usableCoachTarget(nodes[i])) {
+          target = nodes[i]
+          break
+        }
+      }
+      if (!target && !revealed) {
+        const parked = nodes.find(function outsideNav(node) {
+          return !node.closest('.mobile-bottom-nav')
+        })
+        if (parked) {
+          revealCoachTarget(parked)
+          revealed = true
         }
         return
       }
+      if (!target) return
       const rect = target.getBoundingClientRect()
+      const nav = bottomNavBox()
+      if (nav && overlapsBox(rect, nav)) return
       setBox({
+        stepId,
         ring: { top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 },
         card: placeCoach(rect),
       })
     }
     measure()
+    const timer = window.setInterval(measure, 250)
+    const stop = window.setTimeout(function stopLooking() {
+      window.clearInterval(timer)
+    }, 4000)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
     return function cleanup() {
-      window.cancelAnimationFrame(frame)
+      window.clearInterval(timer)
+      window.clearTimeout(stop)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
     }
-  }, [step, helpOn])
+  }, [step, helpOn, step?.id, step?.target, step?.fallbackTarget])
 
   useEffect(function markTour() {
     if (!tourId || typeof document === 'undefined') return undefined
@@ -442,14 +541,24 @@ function SetupCoachMount({
   if (!step || helpOn || typeof document === 'undefined') return null
 
   const index = steps.findIndex((entry) => entry.id === step.id)
-  const next = steps.slice(index + 1).find((entry) => !entry.done)
-  const cardStyle = box?.card
-    ? { top: box.card.top, left: box.card.left, width: box.card.width }
-    : { left: 12, right: 12, bottom: 12 }
+  const next = steps[index + 1] || null
+  const live = box && box.stepId === step.id ? box : null
+  const card = live?.card || dockedCoach()
+  const cardStyle = { top: card.top, left: card.left, width: card.width }
+  function goNext() {
+    if (!next) {
+      if (onFinish) onFinish()
+      else onActive('')
+      return
+    }
+    onActive(next.id)
+    window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
+    if (onOpenStep) onOpenStep(next)
+  }
 
   return createPortal(
     <>
-      {box?.ring ? <div className="setup-guide-coach-ring" style={box.ring} /> : null}
+      {live?.ring ? <div className="setup-guide-coach-ring" style={live.ring} /> : null}
       <section className="setup-guide-coach" style={cardStyle} role="dialog" aria-label={t(step.titleKey)}>
         <h2>{t(step.titleKey)}</h2>
         <p>{t(step.bodyKey)}</p>
@@ -464,27 +573,23 @@ function SetupCoachMount({
           >
             {t(dismissLabel)}
           </button>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={function advance() {
-              if (continueLabel) {
+          {continueLabel ? (
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={function later() {
                 if (onFinish) onFinish()
                 else onActive('')
-                return
-              }
-              if (!next) {
-                if (onFinish) onFinish()
-                else onActive('')
-                return
-              }
-              onActive(next.id)
-              window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
-              if (onOpenStep) onOpenStep(next)
-            }}
-          >
-            {t(continueLabel || 'Next')}
-          </button>
+              }}
+            >
+              {t(continueLabel)}
+            </button>
+          ) : null}
+          {step.done || !continueLabel ? (
+            <button type="button" className="primary-btn" onClick={goNext}>
+              {t('Next')}
+            </button>
+          ) : null}
         </div>
       </section>
     </>,

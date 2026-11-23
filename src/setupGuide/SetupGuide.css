@@ -160,12 +160,10 @@
   color: var(--one-gold-light);
 }
 
-@media (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 520px) {
   .setup-guide-coach {
-    left: 12px !important;
-    right: 12px !important;
-    width: auto !important;
-    max-height: calc(100vh - 24px);
+    max-width: 420px;
+    max-height: min(220px, calc(100dvh - 24px));
     overflow: auto;
   }
 }

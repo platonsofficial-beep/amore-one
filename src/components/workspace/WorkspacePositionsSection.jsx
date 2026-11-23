@@ -39,7 +39,7 @@ export function WorkspacePositionsSection({
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
-      <div className="panel staff-panel workspace-panel">
+      <div className="panel staff-panel workspace-panel" data-help="setup.add-position">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage positions")}</p>
@@ -65,7 +65,7 @@ export function WorkspacePositionsSection({
 
           <div className="modal-actions">
             {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
-            <button type="submit" className="primary-btn workspace-action-btn" data-help="setup.add-position" disabled={isSaving}>
+            <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
               {isSaving ? t("Saving…") : editingPositionId ? t("Update Position") : t("Add Position")}
             </button>
           </div>
