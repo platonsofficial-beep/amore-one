@@ -261,6 +261,29 @@ describe('public booking email', () => {
     expect(mail.html).toContain('Η κράτησή σας είναι για το σερβίρισμα 19:00–21:00. Παρακαλούμε το τραπέζι να είναι ελεύθερο στις 21:00 για τους επόμενους επισκέπτες.')
     expect(mail.html).not.toContain('2026-07-10')
     expect(mail.html).not.toContain('<script')
+    expect(mail.html).not.toContain('tel:')
+    expect(mail.html).not.toContain('mailto:')
+    expect(mail.html).not.toContain('google.com/maps')
+  })
+
+  it('adds tap-to-call, email, and map links and hides empty contact details', () => {
+    const mail = buildPublicBookingEmail({
+      kind: 'received',
+      locale: 'en',
+      venueName: 'The Harbour Bar',
+      guestName: 'Elena',
+      date: '2026-07-10',
+      time: '20:00',
+      party: 2,
+      venuePhone: '+357 99 111222',
+      contactEmail: 'desk@harbour.example',
+      venueAddress: '12 Harbour Street',
+      city: 'Nicosia',
+    })
+    expect(mail.html).toContain('href="tel:+35799111222"')
+    expect(mail.html).toContain('href="mailto:desk@harbour.example"')
+    expect(mail.html).toContain('google.com/maps')
+    expect(mail.html).toContain('12 Harbour Street, Nicosia')
   })
 })
 
@@ -284,6 +307,17 @@ describe('public booking wiring', () => {
     expect(sql).toContain('daily_online_covers')
     expect(sql).toContain('p_understand')
     expect(sql).toContain('p_date, v_arrival,')
+    const contact = readFileSync('supabase/venue_contact_details.sql', 'utf8')
+    expect(contact).toContain('Not applied')
+    expect(contact).toContain('add column if not exists venue_phone')
+    expect(contact).toContain('add column if not exists venue_address')
+    expect(contact).toContain('add column if not exists contact_email')
+    expect(contact).toContain('get_public_booking_info')
+    expect(contact).toContain('public_booking_email_payload')
+    expect(contact).toContain('claim_public_booking_reminders')
+    expect(contact).toContain("'contactEmail'")
+    expect(contact).toContain('dayHours')
+    expect(contact).toContain('email_reminder_sent_at')
     const patch = readFileSync('supabase/online_booking_reservation_time.sql', 'utf8')
     expect(patch).toContain('p_date, v_arrival,')
     expect(patch).toContain('Not applied')

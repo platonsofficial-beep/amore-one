@@ -18100,9 +18100,11 @@ function App() {
       const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft, workspace?.id)
       setWorkspaceProfile(savedProfile)
       setWorkspaceProfileDraft(savedProfile)
-      setWorkspaceProfileNotice(savedProfile.reservationAutoClosePending
-        ? t("Workspace profile saved. The auto-close cutoff applies after the database update is approved.")
-        : t("Workspace profile saved."))
+      setWorkspaceProfileNotice(savedProfile.venueContactPending
+        ? t("Workspace profile saved. Venue contact details apply after the database update is approved.")
+        : savedProfile.reservationAutoClosePending
+          ? t("Workspace profile saved. The auto-close cutoff applies after the database update is approved.")
+          : t("Workspace profile saved."))
     } catch (error) {
       setWorkspaceProfileNotice(error.message || t("Unable to save workspace profile right now."))
     } finally {

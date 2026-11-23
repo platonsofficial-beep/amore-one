@@ -1,4 +1,5 @@
 import { formatPublicBookingWhen, seatingEndNotice } from './publicBooking.js'
+import { venueContactLines } from './venueContact.js'
 
 function escapeHtml(value) {
   return `${value ?? ''}`
@@ -28,6 +29,11 @@ export function buildPublicBookingEmail({
   confirmationMethod = 'instant',
   slug = '',
   token = '',
+  venuePhone = '',
+  contactEmail = '',
+  venueAddress = '',
+  city = '',
+  countryName = '',
 } = {}) {
   const el = locale === 'el'
   const venue = escapeHtml(venueName || 'ONE')
@@ -53,6 +59,21 @@ export function buildPublicBookingEmail({
       : confirmationMethod === 'email'
         ? (el ? 'Θα σας στείλουμε υπενθύμιση για να επιβεβαιώσετε.' : 'We will email you before the booking so you can confirm.')
         : (el ? 'Σας περιμένουμε.' : 'We look forward to seeing you.')
+  const contact = venueContactLines({
+    phone: venuePhone,
+    email: contactEmail,
+    address: venueAddress,
+    city,
+    country: countryName,
+  })
+  const contactItems = [
+    contact.telHref ? `<a href="${escapeHtml(contact.telHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.phone)}</a>` : '',
+    contact.mailHref ? `<a href="${escapeHtml(contact.mailHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.email)}</a>` : '',
+    contact.mapHref ? `<a href="${escapeHtml(contact.mapHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.address)}</a>` : '',
+  ].filter(Boolean)
+  const contactHtml = contactItems.length
+    ? `<p style="margin:16px 0 0;font-family:Arial, sans-serif;font-size:15px;line-height:1.6;">${contactItems.join('<br>')}</p>`
+    : ''
   const actions = kind === 'reminder' && confirmUrl
     ? `<p style="margin:24px 0;">
         <a href="${escapeHtml(`${confirmUrl}&action=confirm`)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;border-radius:999px;background:#d4af37;color:#0a1628;font-weight:700;text-decoration:none;">${el ? 'Επιβεβαίωση' : 'Confirm'}</a>
@@ -71,6 +92,7 @@ export function buildPublicBookingEmail({
             <h1 style="margin:0 0 12px;font-size:26px;line-height:1.2;font-family:Inter, Arial, Helvetica, sans-serif;">${title}</h1>
             <p style="margin:0 0 18px;color:#a9c0d6;font-family:Arial, sans-serif;font-size:15px;line-height:1.5;">${guest ? `${guest}, ` : ''}${intro}</p>
             <p style="margin:0;font-family:Arial, sans-serif;font-size:16px;"><strong>${when}</strong><br>${seatingName ? `${escapeHtml(seatingName)} · ` : ''}${escapeHtml(String(party))} · ${area}${area ? ` · ${smokingLabel}` : ''}${hold ? `<br>${hold}` : ''}</p>
+            ${contactHtml}
             ${actions}
           </td></tr>
         </table>

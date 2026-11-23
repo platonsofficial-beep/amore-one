@@ -37,6 +37,7 @@ describe('setup guide', () => {
     expect(visibleSetupSteps('owner').map((step) => step.id)).toEqual([
       'venue', 'team', 'employees', 'roles', 'schedule', 'reservations', 'stock', 'operations', 'chat',
     ])
+    expect(visibleSetupSteps('owner')[0].bodyKey).toContain('contact email')
     expect(visibleSetupSteps('general_manager').map((step) => step.id)).toContain('team')
     expect(visibleSetupSteps('manager').map((step) => step.id)).toEqual([
       'employees', 'roles', 'schedule', 'reservations', 'stock', 'operations', 'chat',

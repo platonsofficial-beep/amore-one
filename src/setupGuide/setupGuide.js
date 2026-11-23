@@ -21,7 +21,7 @@ export const VENUE_WIZARD_STEPS = [
     settingsSection: 'profile',
     target: 'setup.profile-name',
     titleKey: 'Name the venue',
-    bodyKey: 'Set the venue name, address, country, time zone, currency, and logo. The schedule and the booking page use these.',
+    bodyKey: 'Set the venue name, address, phone, contact email, country, time zone, currency, and logo. The schedule and the booking page use these.',
     needsSettings: true,
     module: 'settings',
   },

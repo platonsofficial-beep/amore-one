@@ -121,6 +121,32 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     saved.cleanup()
   })
 
+  it('shows venue contact fields and blocks an invalid email', async () => {
+    const onSubmit = vi.fn()
+    const { container, cleanup } = renderSection({
+      onSubmit,
+      workspaceProfile: {
+        ...baseProfile,
+        venuePhone: '+35799111222',
+        venueAddress: '12 Harbour Street',
+        contactEmail: 'not-an-email',
+      },
+    })
+    expect(container.textContent).toContain('Venue phone')
+    expect(container.textContent).toContain('Address')
+    expect(container.textContent).toContain('Contact email')
+    expect(container.querySelector('#workspace-venue-phone')?.value).toBe('99111222')
+    expect(container.querySelector('input[autocomplete="street-address"]')?.value).toBe('12 Harbour Street')
+
+    await act(async () => {
+      container.querySelector('form')?.requestSubmit()
+      await Promise.resolve()
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Enter a valid email address.')
+    cleanup()
+  })
+
   it('shows Save Profile by default', () => {
     const { container, cleanup } = renderSection()
     const button = container.querySelector('.workspace-action-btn')
