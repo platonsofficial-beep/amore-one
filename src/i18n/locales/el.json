@@ -4754,5 +4754,7 @@
   "Send the first announcement so the team knows you are open.": "Στείλε την πρώτη ανακοίνωση, για να ξέρει η ομάδα ότι ανοίξατε.",
   "Stock order": "Παραγγελία αποθέματος",
   "All stock is at or above target.": "Όλο το απόθεμα είναι στον στόχο ή από πάνω.",
-  "Link yourself to a team member to use this filter.": "Σύνδεσε τον λογαριασμό σου με ένα μέλος της ομάδας για να χρησιμοποιήσεις αυτό το φίλτρο."
+  "Link yourself to a team member to use this filter.": "Σύνδεσε τον λογαριασμό σου με ένα μέλος της ομάδας για να χρησιμοποιήσεις αυτό το φίλτρο.",
+  "About this step": "Για αυτό το βήμα",
+  "Hide step details": "Απόκρυψη λεπτομερειών"
 }
