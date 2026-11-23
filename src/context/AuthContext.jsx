@@ -41,7 +41,7 @@ import { demoVenueName } from '../lib/demoMediaDataset'
 
 const DEV_MOCK_USER = {
   id: 'dev-local-user',
-  email: 'elena@kafeneio.example',
+  email: 'owner@kafeneio.example',
   app_metadata: {},
   user_metadata: {},
   aud: 'authenticated',
