@@ -635,6 +635,14 @@ function SetupDock({
       role="region"
       aria-label={title}
     >
+      <button
+        type="button"
+        className="setup-guide-dock-close"
+        aria-label={t('Close guide')}
+        onClick={onFinish}
+      >
+        <span aria-hidden="true">×</span>
+      </button>
       <div className="setup-guide-dock-row">
         <h2>{title}</h2>
         <button
