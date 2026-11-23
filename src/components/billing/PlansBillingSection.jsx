@@ -34,6 +34,8 @@ export function PlansBillingSection({
   framed = true,
   showPortal = false,
   freeMonthEligible = false,
+  statusMessage = '',
+  statusAction = '',
 }) {
   const [interval, setInterval] = useState('month')
   const period = BILLING_INTERVALS.find((item) => item.id === interval) ?? BILLING_INTERVALS[0]
@@ -58,6 +60,24 @@ export function PlansBillingSection({
         </header>
       ) : null}
       <div className="subscription-plans-body">
+        {statusMessage ? (
+          <div className="subscription-status" role="status">
+            <p>{statusMessage}</p>
+            <button
+              type="button"
+              className="subscription-banner-action"
+              onClick={() => {
+                if (showPortal && statusAction === t("Update payment")) {
+                  onPortal?.()
+                  return
+                }
+                document.getElementById('subscription-plan-grid')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            >
+              {statusAction || t("Choose plan")}
+            </button>
+          </div>
+        ) : null}
         <div className="subscription-intervals" role="group" aria-label={t("Billing period")}>
           {BILLING_INTERVALS.map((item) => (
             <button
@@ -71,7 +91,7 @@ export function PlansBillingSection({
             </button>
           ))}
         </div>
-        <div className="subscription-plan-grid">
+        <div className="subscription-plan-grid" id="subscription-plan-grid">
           {PLANS.map((plan) => {
             const amount = SUBSCRIPTION_PRICES[plan.id][interval]
             const extra = plan.id === 'start' ? null : SUBSCRIPTION_PRICES.extra[plan.id][interval]

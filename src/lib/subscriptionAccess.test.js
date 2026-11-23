@@ -10,6 +10,7 @@ import {
   resolveSubscriptionAccess,
   venueOffersFreeMonth,
   subscriptionBannerCopy,
+  subscriptionTodayNotice,
 } from './subscriptionAccess'
 
 const TRIAL_END = '2026-11-01T12:00:00.000Z'
@@ -128,6 +129,28 @@ describe('subscription grace', () => {
     expect(previewSubscriptionAccess('locked', new Date(TRIAL_END)).allowsWrites).toBe(false)
     expect(previewSubscriptionAccess('grace-trial', new Date(TRIAL_END)).phase).toBe('grace')
     expect(previewSubscriptionAccess('plans', new Date(TRIAL_END)).phase).toBe('active')
+  })
+
+  it('keeps an early trial off Today and shows the last week and an ended trial there', () => {
+    const early = resolveSubscriptionAccess({
+      status: 'trialing',
+      trialEndsAt: '2026-12-01T12:00:00.000Z',
+    }, new Date('2026-11-20T12:00:00.000Z'))
+    expect(early.phase).toBe('trial')
+    expect(early.daysLeft).toBeGreaterThan(7)
+    expect(subscriptionBannerCopy(early).message).toContain('days left on your free month')
+    expect(subscriptionTodayNotice(early)).toBeNull()
+
+    const lastWeek = resolveSubscriptionAccess({
+      status: 'trialing',
+      trialEndsAt: '2026-11-27T12:00:00.000Z',
+    }, new Date('2026-11-20T12:00:00.000Z'))
+    expect(lastWeek.daysLeft).toBe(7)
+    expect(subscriptionTodayNotice(lastWeek).action).toBe('Choose plan')
+
+    const expired = resolveSubscriptionAccess(trialRow(), new Date(TRIAL_END))
+    expect(subscriptionTodayNotice(expired).message).toContain('free month has ended')
+    expect(subscriptionTodayNotice(resolveSubscriptionAccess(trialRow(), addSubscriptionDays(TRIAL_END, 7)))).toBeNull()
   })
 
   it('turns a 6-month total into the per-month price', () => {

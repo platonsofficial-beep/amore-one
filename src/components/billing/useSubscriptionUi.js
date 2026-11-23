@@ -5,6 +5,7 @@ import {
   readSubscriptionPreview,
   resolveSubscriptionAccess,
   subscriptionBannerCopy,
+  subscriptionTodayNotice,
   subscriptionsEnabled,
   venueOffersFreeMonth,
 } from '../../lib/subscriptionAccess'
@@ -42,6 +43,11 @@ export function useSubscriptionUi({
         showBanner: false,
         bannerMessage: '',
         bannerAction: '',
+        statusMessage: '',
+        statusAction: '',
+        todayNotice: false,
+        todayMessage: '',
+        todayAction: '',
         locked: false,
         manager: false,
         hasStripeCustomer: false,
@@ -53,11 +59,17 @@ export function useSubscriptionUi({
       : resolveSubscriptionAccess(remote)
     const manager = isManagerRole(role)
     const copy = manager ? subscriptionBannerCopy(access) : null
+    const today = manager ? subscriptionTodayNotice(access) : null
     return {
       enabled: true,
-      showBanner: Boolean(copy),
+      showBanner: false,
       bannerMessage: copy?.message ?? '',
       bannerAction: copy?.action ?? '',
+      statusMessage: copy?.message ?? '',
+      statusAction: copy?.action ?? '',
+      todayNotice: Boolean(today),
+      todayMessage: today?.message ?? '',
+      todayAction: today?.action ?? '',
       locked: access.phase === 'locked',
       manager,
       hasStripeCustomer: remote?.hasStripeCustomer === true,

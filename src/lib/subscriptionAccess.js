@@ -189,6 +189,17 @@ function countedBanner(days, singularKey, pluralKey) {
   return t(pluralKey, { count: days })
 }
 
+export const TRIAL_NOTICE_DAYS = 7
+
+export function subscriptionTodayNotice(resolved) {
+  if (!resolved) return null
+  if (resolved.phase === 'trial' && Number(resolved.daysLeft) > 0 && Number(resolved.daysLeft) <= TRIAL_NOTICE_DAYS) {
+    return subscriptionBannerCopy(resolved)
+  }
+  if (resolved.phase === 'grace') return subscriptionBannerCopy(resolved)
+  return null
+}
+
 export function subscriptionBannerCopy(resolved) {
   if (!resolved) return null
   const days = resolved.daysLeft
