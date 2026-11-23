@@ -48,7 +48,6 @@ export default function TasksView({
   onToggleChecklistItem,
   onDeleteCustomDepartment,
   currentEmployeeId = null,
-  currentEmployeeName = '',
   todayKey,
   openCreateOnMount = false,
   onOpenCreateHandled,
@@ -415,7 +414,6 @@ export default function TasksView({
         <TasksAssignmentFilter
           value={assignmentFilter}
           onChange={setAssignmentFilter}
-          currentEmployeeName={currentEmployeeName}
           hasCurrentEmployee={hasCurrentEmployee}
         />
       ) : null}

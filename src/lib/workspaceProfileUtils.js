@@ -124,10 +124,7 @@ export function areWorkspaceProfilesEqual(left = {}, right = {}) {
 }
 
 export function isWorkspaceProfileConfigured(profile = {}) {
-  return Boolean(
-    normalizeProfileField(profile.businessName)
-    || normalizeProfileField(profile.managerName),
-  )
+  return Boolean(normalizeProfileField(profile.businessName))
 }
 
 const PLACEHOLDER_VENUE_NAMES = new Set([

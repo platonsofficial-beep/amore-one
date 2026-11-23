@@ -2,7 +2,6 @@ import { t } from '../../i18n/i18n'
 export default function TasksAssignmentFilter({
   value = 'all',
   onChange,
-  currentEmployeeName = '',
   hasCurrentEmployee = false,
 }) {
   return (
@@ -30,7 +29,7 @@ export default function TasksAssignmentFilter({
       </div>
       {value === 'mine' && !hasCurrentEmployee ? (
         <p className="tasks-assignment-filter-note">
-          Match your workspace manager name ({currentEmployeeName || 'not set'}) to an employee record to use this filter.
+          {t("Link yourself to a team member to use this filter.")}
         </p>
       ) : null}
     </div>

@@ -16594,7 +16594,7 @@ function App() {
     todayDateLabel: currentDateLabel,
     timeGreeting: currentTimeGreeting,
     businessName: workspaceProfile.businessName,
-    userName: workspaceProfile.managerName,
+    userName: resolvedUserDisplayName || workspaceProfile.managerName,
   }).snapshot, [
     isTodayWeekPublished,
     dashboardPublishedShifts,
@@ -16606,6 +16606,7 @@ function App() {
     currentDateLabel,
     currentTimeGreeting,
     workspaceProfile.businessName,
+    resolvedUserDisplayName,
     workspaceProfile.managerName,
   ])
 
@@ -26735,7 +26736,6 @@ function App() {
             onToggleChecklistItem={handleToggleChecklistItem}
             onDeleteCustomDepartment={handleDeleteCustomDepartment}
             currentEmployeeId={currentTaskEmployeeId}
-            currentEmployeeName={workspaceProfile.managerName}
             todayKey={currentDateKey}
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
@@ -27143,7 +27143,6 @@ function App() {
                             onToggleChecklistItem={handleToggleChecklistItem}
                             onDeleteCustomDepartment={handleDeleteCustomDepartment}
                             currentEmployeeId={currentTaskEmployeeId}
-                            currentEmployeeName={workspaceProfile.managerName}
                             todayKey={currentDateKey}
                             isMobileLayout
                             canManage={canManageOperationsRole}

@@ -502,7 +502,7 @@
   "Completion note": "Σημείωση ολοκλήρωσης",
   "Configure service slots used for reservations, table availability, and host station.": "Ρύθμισε τις ώρες σέρβις για κρατήσεις, διαθεσιμότητα τραπεζιών και σταθμό υποδοχής.",
   "Configure Supabase environment variables in Vercel, redeploy, then reload this page.": "Ρύθμισε τις μεταβλητές Supabase στο Vercel, κάνε redeploy και ξαναφόρτωσε τη σελίδα.",
-  "Configure your business identity and manager details for the Operations Dashboard.": "Ρύθμισε την ταυτότητα του καταστήματος και τα στοιχεία υπεύθυνου για τον πίνακα λειτουργίας.",
+  "Configure your business identity for the Operations Dashboard.": "Ρύθμισε την ταυτότητα του καταστήματος για τον πίνακα λειτουργίας.",
   "Confirm archive": "Επιβεβαίωσε αρχειοθέτηση",
   "Confirm delete": "Επιβεβαίωσε διαγραφή",
   "Confirm disable": "Επιβεβαίωσε απενεργοποίηση",
@@ -1836,7 +1836,7 @@
   "Session note": "Σημείωση συνεδρίας",
   "Session progress": "Πρόοδος συνεδρίας",
   "Session warnings": "Προειδοποιήσεις συνεδρίας",
-  "Set your business name and manager details so ONE can personalize dashboards and reports.": "Βάλε όνομα καταστήματος και στοιχεία υπεύθυνου, για να προσαρμόσει το ONE τις οθόνες και τις αναφορές.",
+  "Set your business details so ONE can personalize dashboards and reports.": "Βάλε τα στοιχεία του καταστήματος, για να προσαρμόσει το ONE τις οθόνες και τις αναφορές.",
   "Settings sections": "Ενότητες ρυθμίσεων",
   "Shape": "Σχήμα",
   "Share an update for the next shift": "Σημείωση για την επόμενη βάρδια",
@@ -4753,5 +4753,6 @@
   "Tell the team": "Πες το στην ομάδα",
   "Send the first announcement so the team knows you are open.": "Στείλε την πρώτη ανακοίνωση, για να ξέρει η ομάδα ότι ανοίξατε.",
   "Stock order": "Παραγγελία αποθέματος",
-  "All stock is at or above target.": "Όλο το απόθεμα είναι στον στόχο ή από πάνω."
+  "All stock is at or above target.": "Όλο το απόθεμα είναι στον στόχο ή από πάνω.",
+  "Link yourself to a team member to use this filter.": "Σύνδεσε τον λογαριασμό σου με ένα μέλος της ομάδας για να χρησιμοποιήσεις αυτό το φίλτρο."
 }

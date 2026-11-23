@@ -502,7 +502,7 @@
   "Completion note": "Completion note",
   "Configure service slots used for reservations, table availability, and host station.": "Configure service slots used for reservations, table availability, and host station.",
   "Configure Supabase environment variables in Vercel, redeploy, then reload this page.": "Configure Supabase environment variables in Vercel, redeploy, then reload this page.",
-  "Configure your business identity and manager details for the Operations Dashboard.": "Configure your business identity and manager details for the Operations Dashboard.",
+  "Configure your business identity for the Operations Dashboard.": "Configure your business identity for the Operations Dashboard.",
   "Confirm archive": "Confirm archive",
   "Confirm delete": "Confirm delete",
   "Confirm disable": "Confirm disable",
@@ -1836,7 +1836,7 @@
   "Session note": "Session note",
   "Session progress": "Session progress",
   "Session warnings": "Session warnings",
-  "Set your business name and manager details so ONE can personalize dashboards and reports.": "Set your business name and manager details so ONE can personalize dashboards and reports.",
+  "Set your business details so ONE can personalize dashboards and reports.": "Set your business details so ONE can personalize dashboards and reports.",
   "Settings sections": "Settings sections",
   "Shape": "Shape",
   "Share an update for the next shift": "Share an update for the next shift",
@@ -4753,5 +4753,6 @@
   "Tell the team": "Tell the team",
   "Send the first announcement so the team knows you are open.": "Send the first announcement so the team knows you are open.",
   "Stock order": "Stock order",
-  "All stock is at or above target.": "All stock is at or above target."
+  "All stock is at or above target.": "All stock is at or above target.",
+  "Link yourself to a team member to use this filter.": "Link yourself to a team member to use this filter."
 }

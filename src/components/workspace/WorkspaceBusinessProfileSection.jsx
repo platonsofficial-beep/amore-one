@@ -50,7 +50,7 @@ export function WorkspaceBusinessProfileSection({
             {t("Business Profile")}
           </h3>
           <p className="workspace-section-subtitle">
-            {t("Configure your business identity and manager details for the Operations Dashboard.")}
+            {t("Configure your business identity for the Operations Dashboard.")}
           </p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function WorkspaceBusinessProfileSection({
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading business profile…")}</div> : null}
       {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
         <div className="staff-status-banner">
-          {t("Set your business name and manager details so ONE can personalize dashboards and reports.")}
+          {t("Set your business details so ONE can personalize dashboards and reports.")}
         </div>
       ) : null}
 
@@ -92,24 +92,6 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.businessName}
                 onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
                 placeholder={t("e.g. The Harbour Bar")}
-                disabled={isLoading || isSavePending}
-              />
-            </label>
-            <label className="form-field">
-              <span>{t("Manager Full Name")}</span>
-              <input
-                value={workspaceProfile.managerName}
-                onChange={(event) => onChange({ ...workspaceProfile, managerName: event.target.value })}
-                placeholder={t("Full name")}
-                disabled={isLoading || isSavePending}
-              />
-            </label>
-            <label className="form-field">
-              <span>{t("Manager Role")}</span>
-              <input
-                value={workspaceProfile.managerRole}
-                onChange={(event) => onChange({ ...workspaceProfile, managerRole: event.target.value })}
-                placeholder={t("e.g. General Manager")}
                 disabled={isLoading || isSavePending}
               />
             </label>
