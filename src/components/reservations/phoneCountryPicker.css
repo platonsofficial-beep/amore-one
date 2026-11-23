@@ -180,7 +180,12 @@
   min-height: 0;
 }
 
-.reservation-phone-field-country-picker .phone-country-picker-trigger {
+.reservation-phone-field-country-picker .phone-country-picker-trigger,
+.workspace-default-phone-country .phone-country-picker-trigger {
+  width: 100%;
+}
+
+.workspace-default-phone-country {
   width: 100%;
 }
 

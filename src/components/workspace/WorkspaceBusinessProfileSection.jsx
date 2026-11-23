@@ -7,6 +7,8 @@ import { useState } from 'react'
 import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 import { t } from '../../i18n/i18n'
+import { PhoneCountryPicker } from '../reservations/PhoneCountryPicker'
+import { resolveWorkspaceDefaultPhoneCountryCode } from '../../lib/reservationPhoneUtils'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
@@ -149,11 +151,12 @@ export function WorkspaceBusinessProfileSection({
             </label>
             <label className="form-field">
               <span>{t("Default phone country")}</span>
-              <input
-                value={workspaceProfile.defaultPhoneCountryCode}
-                onChange={(event) => onChange({ ...workspaceProfile, defaultPhoneCountryCode: event.target.value })}
-                placeholder="+357"
+              <PhoneCountryPicker
+                className="workspace-default-phone-country"
+                value={resolveWorkspaceDefaultPhoneCountryCode(workspaceProfile)}
+                onChange={(code) => onChange({ ...workspaceProfile, defaultPhoneCountryCode: code })}
                 disabled={isLoading || isSavePending}
+                ariaLabel={t("Default phone country")}
               />
             </label>
             <label className="form-field full-width">
