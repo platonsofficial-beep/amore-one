@@ -34,6 +34,16 @@ describe('inviteBootstrapUtils', () => {
     })).toEqual([])
   })
 
+  it('still accepts a pending token when the user already owns a venue', () => {
+    expect(buildInviteBootstrapAttemptPlan({
+      pendingToken: 'token-123',
+      userEmail: 'alex@example.com',
+      hasMembership: true,
+    })).toEqual([
+      { kind: 'token', token: 'token-123' },
+    ])
+  })
+
   it('recovers from duplicate accept when membership already exists', () => {
     expect(resolveInviteAcceptanceError({
       errorMessage: 'Invite has already been accepted.',
@@ -68,6 +78,14 @@ describe('inviteBootstrapUtils', () => {
       inviteSucceeded: false,
       resolvedMembership: null,
     })).toBe(false)
+  })
+
+  it('does not create a venue while an invite token is still pending', () => {
+    expect(shouldSkipOwnerMembershipBootstrap({
+      inviteSucceeded: false,
+      resolvedMembership: null,
+      hasPendingInvite: true,
+    })).toBe(true)
   })
 })
 
