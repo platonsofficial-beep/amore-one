@@ -601,7 +601,7 @@ import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans
 import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { applyBillingPreviewToday, shouldUseBillingPreviewFixture } from './lib/billingPreviewFixture'
 import { PlansBillingSection } from './components/billing/PlansBillingSection'
-import { SubscriptionBanner } from './components/billing/SubscriptionBanner'
+import { TrialTodayNotice } from './components/billing/SubscriptionBanner'
 import { SubscriptionLockScreen } from './components/billing/SubscriptionLockScreen'
 import { useSubscriptionUi } from './components/billing/useSubscriptionUi'
 import { startSubscriptionCheckout, startSubscriptionPortal } from './services/billingService'
@@ -1271,6 +1271,7 @@ function CommandCenterView({
   quickActionWorkspaceId = '',
   onRunTodayShortcut,
   setupGuide = null,
+  trialNotice = null,
 }) {
   const attentionStatus = dataStatus?.attention ?? 'ready'
   const scheduleStatus = dataStatus?.schedule ?? 'ready'
@@ -1290,6 +1291,7 @@ function CommandCenterView({
 
   return (
     <div className="today-page" aria-label={t("Today")}>
+      {trialNotice}
       {setupGuide ? <SetupGuideTodaySlot {...setupGuide} /> : null}
       <TodayQuickActions
         access={quickActionAccess}
@@ -25859,7 +25861,7 @@ function App() {
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
-    <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <SetupGuideCoachHost
         role={permissionAccess}
         userId={user?.id || ''}
@@ -25908,13 +25910,6 @@ function App() {
         })}
       />
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
-      {subscriptionUi.showBanner ? (
-        <SubscriptionBanner
-          message={subscriptionUi.bannerMessage}
-          action={subscriptionUi.bannerAction}
-          onAction={openSubscriptionBilling}
-        />
-      ) : null}
       {!isAuthLoading && activeView === 'today' && !namePromptClosed && user?.id && !resolveStoredUserDisplayName({ membership, employees }) && !isNamePromptDismissed(user.id) ? (
         <AddYourNameSheet onSave={handleSavePersonName} onDismiss={handleDismissPersonName} />
       ) : null}
@@ -26174,6 +26169,16 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'today' ? (
           <CommandCenterView
+            trialNotice={subscriptionUi.todayNotice ? (
+              <TrialTodayNotice
+                userId={user?.id || ''}
+                workspaceId={activeWorkspaceId || ''}
+                dayKey={currentDateKey}
+                message={subscriptionUi.todayMessage}
+                action={subscriptionUi.todayAction}
+                onAction={openSubscriptionBilling}
+              />
+            ) : null}
             clockCard={attendanceClockCard}
             reminderCard={shiftReminderCard}
             statusSummary={shownTodayStatusSummary}
@@ -26837,6 +26842,8 @@ function App() {
                 notice={subscriptionNotice}
                 showPortal={subscriptionUi.hasStripeCustomer}
                 freeMonthEligible={subscriptionUi.freeMonthEligible}
+                statusMessage={subscriptionUi.statusMessage}
+                statusAction={subscriptionUi.statusAction}
                 onCheckout={handleSubscriptionCheckout}
                 onPortal={handleSubscriptionPortal}
                 onClose={closeSubscriptionBilling}

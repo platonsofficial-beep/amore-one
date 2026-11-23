@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
@@ -39,7 +40,25 @@ describe('subscription screens', () => {
     expect(button.getAttribute('type')).toBe('button')
     act(() => button.click())
     expect(onAction).toHaveBeenCalledOnce()
+    expect(view.container.querySelector('.trial-today-notice')).not.toBeNull()
     view.unmount()
+
+    const onDismiss = vi.fn()
+    const dismissible = render(createElement(SubscriptionBanner, {
+      message: '7 days left on your free month.',
+      action: 'Choose plan',
+      onAction: () => {},
+      onDismiss,
+    }))
+    const close = dismissible.container.querySelector('.trial-today-notice-close')
+    expect(close?.getAttribute('aria-label')).toBe('Close')
+    act(() => close.click())
+    expect(onDismiss).toHaveBeenCalledOnce()
+    const css = readFileSync('src/components/billing/subscription.css', 'utf8')
+    expect(css).not.toContain('has-subscription-banner')
+    expect(css).not.toMatch(/\.trial-today-notice\s*\{[^}]*position:\s*(sticky|fixed)/)
+    expect(readFileSync('src/safeOverlay.css', 'utf8')).not.toContain('has-subscription-banner')
+    dismissible.unmount()
   })
 
   it('shows the payment grace banner with Update payment', () => {
@@ -84,6 +103,7 @@ describe('subscription screens', () => {
       onPortal: () => {},
     }))
     expect(view.container.textContent).toContain('Recommended')
+    expect(view.container.querySelector('.subscription-status')).toBeNull()
     expect(view.container.textContent).not.toContain('1 month free')
     expect(view.container.textContent).not.toContain('Manage billing')
     const sixMonths = [...view.container.querySelectorAll('button')].find((button) => button.textContent === '6 mo')
@@ -112,5 +132,16 @@ describe('subscription screens', () => {
     expect(proCard.textContent).toContain('1 month free')
     expect(groupCard.textContent).not.toContain('1 month free')
     eligible.unmount()
+
+    const status = render(createElement(PlansBillingSection, {
+      venueName: 'Harbour',
+      statusMessage: '30 days left on your free month.',
+      statusAction: 'Choose plan',
+      onCheckout: () => {},
+      onPortal: () => {},
+    }))
+    expect(status.container.querySelector('.subscription-status')?.textContent).toContain('30 days left on your free month.')
+    expect([...status.container.querySelectorAll('button')].some((button) => button.textContent === 'Choose plan')).toBe(true)
+    status.unmount()
   })
 })

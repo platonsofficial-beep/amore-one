@@ -1,48 +1,54 @@
-.subscription-banner {
+.trial-today-notice {
   position: relative;
-  z-index: 70;
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
   box-sizing: border-box;
-  padding: 12px 16px;
-  padding-top: max(12px, env(safe-area-inset-top, 0px));
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  margin: 0 0 12px;
+  padding: 8px 8px 8px 12px;
   background: var(--one-surface-2);
   color: var(--one-text);
-  border-bottom: 1px solid var(--one-gold-a45);
+  border: 1px solid var(--one-gold-a45);
+  border-radius: 12px;
 }
 
-.app-shell.has-subscription-banner:not(.is-mobile-shell) {
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.app-shell.has-subscription-banner:not(.is-mobile-shell) .subscription-banner {
-  grid-column: 1 / -1;
-}
-
-.app-shell.has-subscription-banner.is-mobile-shell {
+.trial-today-notice-actions {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-.app-shell.has-subscription-banner.is-mobile-shell .main-panel {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 0;
+.trial-today-notice-close {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--one-text);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
-/* The banner already fills the status-bar band. Do not reserve that band
-   again under it, or the greeting sits in a large empty gap. */
-.app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content,
-.app-shell.has-subscription-banner.is-mobile-shell .mobile-expanded-scroll {
-  padding-top: 12px;
+.subscription-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 16px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--one-surface-2);
+  border: 1px solid var(--one-gold-a45);
 }
 
-.app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content::before {
-  display: none;
+.subscription-status p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
 }
 
 .subscription-banner-copy {
@@ -328,7 +334,8 @@
 }
 
 @media (max-width: 520px) {
-  .subscription-banner {
+  .trial-today-notice,
+  .subscription-status {
     flex-direction: column;
     align-items: stretch;
   }

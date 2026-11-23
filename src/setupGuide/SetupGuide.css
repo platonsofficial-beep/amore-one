@@ -15,10 +15,6 @@
   font-weight: 700;
 }
 
-.app-shell.has-subscription-banner .venue-wizard-bar {
-  padding-top: 8px;
-}
-
 .venue-wizard-track {
   flex: 1 1 auto;
   height: 6px;
