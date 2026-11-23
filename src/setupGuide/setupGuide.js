@@ -399,11 +399,7 @@ export function reservationWizardFocus(facts = {}) {
 }
 
 export function isVenueSetupDone(profile = {}) {
-  const name = `${profile.businessName ?? ''}`.trim()
-  const city = `${profile.city ?? ''}`.trim()
-  const country = `${profile.countryCode ?? profile.countryName ?? ''}`.trim()
-  const timeZone = `${profile.timezone ?? ''}`.trim()
-  return Boolean(name && city && country && timeZone)
+  return Boolean(`${profile.businessName ?? ''}`.trim())
 }
 
 export function isProfileSetupDone(profile = {}) {
@@ -486,7 +482,18 @@ export function wizardStepNumber(steps, stepId) {
 }
 
 export function emptySetupProgress() {
-  return { skipped: false, remindAfter: '', replay: false, walking: false, paused: false, skippedStepIds: [] }
+  return { skipped: false, remindAfter: '', replay: false, walking: false, paused: false, dismissed: false, skippedStepIds: [] }
+}
+
+export function shouldAutoOpenSetupGuide(progress) {
+  const state = progress ?? emptySetupProgress()
+  if (state.replay) return true
+  if (state.dismissed) return false
+  if (state.skipped) return false
+  if (state.walking) return true
+  if (state.paused) return false
+  if (state.remindAfter) return false
+  return true
 }
 
 export function emptyStaffTourProgress() {
@@ -521,6 +528,7 @@ export function readSetupProgress(userId, workspaceId, storage) {
       replay: Boolean(parsed?.replay),
       walking: Boolean(parsed?.walking),
       paused: Boolean(parsed?.paused),
+      dismissed: Boolean(parsed?.dismissed),
       skippedStepIds,
     }
   } catch {
@@ -604,6 +612,7 @@ export function writeSetupProgress(userId, workspaceId, progress, storage) {
     replay: Boolean(progress?.replay),
     walking: Boolean(progress?.walking),
     paused: Boolean(progress?.paused),
+    dismissed: Boolean(progress?.dismissed),
     skippedStepIds: Array.isArray(progress?.skippedStepIds) ? progress.skippedStepIds : [],
   }
   storage.setItem(setupGuideStorageKey(userId, workspaceId), JSON.stringify(next))

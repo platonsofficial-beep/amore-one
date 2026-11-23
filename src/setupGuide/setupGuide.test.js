@@ -6,6 +6,7 @@ import {
   isVenueSetupDone,
   nextDateKey,
   nextWizardStep,
+  shouldAutoOpenSetupGuide,
   readSetupProgress,
   readStaffTourProgress,
   readStockTourProgress,
@@ -47,7 +48,8 @@ describe('setup guide', () => {
   it('marks a step done only from saved venue data', () => {
     expect(isProfileSetupDone({ businessName: 'Amore' })).toBe(false)
     expect(isProfileSetupDone(openProfile)).toBe(true)
-    expect(isVenueSetupDone({ businessName: 'Amore' })).toBe(false)
+    expect(isVenueSetupDone({ businessName: '  ' })).toBe(false)
+    expect(isVenueSetupDone({ businessName: 'Amore' })).toBe(true)
     const readyVenue = {
       businessName: 'Amore',
       city: 'Nicosia',
@@ -190,10 +192,25 @@ describe('setup guide', () => {
     expect(readSetupProgress('u', 'v', storage).skipped).toBe(false)
   })
 
+  it('stays closed after dismiss and opens again only from continue or replay', () => {
+    expect(shouldAutoOpenSetupGuide({ skipped: false, remindAfter: '', replay: false, walking: false, paused: false, dismissed: false })).toBe(true)
+    expect(shouldAutoOpenSetupGuide({ skipped: false, remindAfter: '', replay: false, walking: true, paused: false, dismissed: false })).toBe(true)
+    expect(shouldAutoOpenSetupGuide({ skipped: false, remindAfter: '', replay: false, walking: false, paused: true, dismissed: true })).toBe(false)
+    expect(shouldAutoOpenSetupGuide({ skipped: false, remindAfter: '', replay: true, walking: true, paused: false, dismissed: false })).toBe(true)
+    expect(shouldAutoOpenSetupGuide({ skipped: false, remindAfter: '', replay: false, walking: true, paused: false, dismissed: false })).toBe(true)
+    const named = withSetupDone(visibleSetupSteps('owner'), { profile: { businessName: 'SENTIO NICOSIA' } })
+    expect(named.find((step) => step.id === 'venue').done).toBe(true)
+    expect(nextWizardStep(named, 'venue').id).toBe('team')
+  })
+
   it('stores skip state per user and venue', () => {
     const storage = memoryStorage()
     writeSetupProgress('user-1', 'venue-1', { skipped: true, remindAfter: '', replay: false }, storage)
     expect(readSetupProgress('user-1', 'venue-1', storage).skipped).toBe(true)
     expect(readSetupProgress('user-2', 'venue-1', storage).skipped).toBe(false)
+    writeSetupProgress('user-1', 'venue-1', { dismissed: true, walking: false, paused: true, replay: false }, storage)
+    expect(readSetupProgress('user-1', 'venue-1', storage).dismissed).toBe(true)
+    expect(shouldAutoOpenSetupGuide(readSetupProgress('user-1', 'venue-1', storage))).toBe(false)
+    expect(readSetupProgress('user-1', 'venue-2', storage).dismissed).toBe(false)
   })
 })
