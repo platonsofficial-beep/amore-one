@@ -111,7 +111,7 @@ export function NewVenueSheet({ onClose, onCreated }) {
         <div className="venue-sheet-place">
           <label className="venue-field">
             <span>{t("Name")}</span>
-            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder={t("e.g. SENTIO.LIMASSOL")} />
+            <input value={form.name} onChange={update('name')} maxLength={80} required autoFocus placeholder={t("e.g. The Harbour Bar")} />
           </label>
           <label className="venue-field">
             <span>{t("City")}</span>

@@ -133,7 +133,7 @@ export function builderLayoutToHostLayout(builderLayout) {
 
   return {
     id: 'published-floor-plan',
-    name: 'AMORE',
+    name: 'Floor plan',
     zones,
     units,
     tables: units,

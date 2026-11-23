@@ -16,7 +16,7 @@ describe('workspaceProfileUtils', () => {
   })
   it('detects configured workspace profiles', () => {
     expect(isWorkspaceProfileConfigured({ businessName: 'Amore' })).toBe(true)
-    expect(isWorkspaceProfileConfigured({ managerName: 'Alex' })).toBe(true)
+    expect(isWorkspaceProfileConfigured({ managerName: 'Alex', managerRole: 'GM' })).toBe(false)
     expect(isWorkspaceProfileConfigured({})).toBe(false)
   })
 

@@ -53,6 +53,33 @@ function renderSection(props = {}) {
 }
 
 describe('WorkspaceBusinessProfileSection save button', () => {
+  it('hides manager fields and still saves when they are empty', async () => {
+    const onSubmit = vi.fn()
+    const { container, cleanup } = renderSection({
+      onSubmit,
+      workspaceProfile: {
+        ...baseProfile,
+        businessName: '',
+        managerName: '',
+        managerRole: '',
+      },
+    })
+
+    expect(container.textContent).not.toContain('Manager Full Name')
+    expect(container.textContent).not.toContain('Manager Role')
+    expect(container.textContent).not.toContain('manager details')
+    expect(container.textContent).toContain('Set your business details so ONE can personalize dashboards and reports.')
+    expect(container.querySelector('input')?.getAttribute('placeholder')).toBe('e.g. The Harbour Bar')
+
+    await act(async () => {
+      container.querySelector('form')?.requestSubmit()
+      await Promise.resolve()
+    })
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+
+    cleanup()
+  })
+
   it('shows Save Profile by default', () => {
     const { container, cleanup } = renderSection()
     const button = container.querySelector('.workspace-action-btn')

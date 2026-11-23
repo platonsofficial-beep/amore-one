@@ -91,10 +91,10 @@ export function formatInventoryOrderQtyDetail(orderNeeded, unit) {
 
 export function buildInventoryReorderCopyText(summary) {
   if (!summary?.reorderCount) {
-    return 'AMORE ORDER\n\nAll stock is at or above target.'
+    return `${t('Stock order')}\n\n${t('All stock is at or above target.')}`
   }
 
-  const lines = ['AMORE ORDER', '']
+  const lines = [t('Stock order'), '']
 
   summary.groups.forEach((group) => {
     lines.push('Supplier:')
