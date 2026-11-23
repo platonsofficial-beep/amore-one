@@ -133,10 +133,10 @@ function mapMembershipWorkspace(record) {
 
 function resolveUserIdentity(user = {}) {
   const email = `${user.email ?? ''}`.trim()
-  const metadataName = `${user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''}`.trim()
-  const displayName = metadataName || email.split('@')[0] || 'Workspace member'
-
-  return { email, displayName }
+  const metadataName = `${user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''}`
+    .trim()
+    .replace(/\s+/g, ' ')
+  return { email, displayName: metadataName }
 }
 
 function isMissingSignupVenueRpc(error) {
@@ -320,7 +320,14 @@ export async function createOwnerMembershipIfMissing(user) {
     throw new Error(error.message || 'Unable to create a venue right now.')
   }
 
-  return getCurrentMembership(authUserId)
+  const created = await getCurrentMembership(authUserId)
+  if (!created || !displayName || created.displayName === displayName) return created
+  try {
+    return await updateMembershipDisplayName(authUserId, displayName, created.workspaceId)
+  } catch (updateError) {
+    console.error('[membershipService] signup display name error:', updateError)
+    return created
+  }
 }
 
 export async function linkMembershipEmployee(authUserId, employeeId, workspaceId = null) {

@@ -717,6 +717,14 @@ body {
   .app-shell.is-mobile-shell .mobile-app-content:not(:has(.chat-screen)) {
     padding-top: calc(var(--one-portrait-band) + 8px);
   }
+  /* The trial banner already occupies this band. Keep the greeting under it. */
+  .app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content,
+  .app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content:not(:has(.chat-screen)) {
+    padding-top: 12px;
+  }
+  .app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content::before {
+    display: none;
+  }
   .mobile-screen.manager-portrait-reservations::before {
     height: var(--one-portrait-band);
   }

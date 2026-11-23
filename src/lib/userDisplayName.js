@@ -2,14 +2,6 @@ function resolveEmployeeRecordName(employee) {
   return `${employee?.name || employee?.fullName || employee?.full_name || ''}`.trim()
 }
 
-function resolveAuthEmailFallback(membership, user) {
-  const email = `${membership?.email ?? user?.email ?? ''}`.trim()
-  if (!email) return ''
-
-  const localPart = email.split('@')[0]?.trim()
-  return localPart || email
-}
-
 /**
  * Name stored for the signed-in member.
  * Linked employee full name, then workspace_members.display_name.
@@ -37,12 +29,17 @@ function isEmailDerivedName(name, membership, user) {
   return emails.some((email) => lowered === email || lowered === email.split('@')[0])
 }
 
+/** Name the person typed. An email address, or its local part, is not a name. */
+export function personNameFromAuthUser(user, membership) {
+  const name = `${user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''}`
+    .trim()
+    .replace(/\s+/g, ' ')
+  if (!name || isEmailDerivedName(name, membership, user)) return ''
+  return name
+}
+
 export function resolveUserDisplayName({ membership, employees = [], user } = {}) {
   const storedName = resolveStoredUserDisplayName({ membership, employees })
   if (storedName) return storedName
-
-  const profileName = `${user?.user_metadata?.full_name ?? user?.user_metadata?.name ?? ''}`.trim()
-  if (profileName && !isEmailDerivedName(profileName, membership, user)) return profileName
-
-  return resolveAuthEmailFallback(membership, user)
+  return personNameFromAuthUser(user, membership)
 }

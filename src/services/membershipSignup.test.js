@@ -59,6 +59,24 @@ describe('createOwnerMembershipIfMissing', () => {
     expect(fromMock.mock.calls.map((call) => call[0])).not.toContain('workspaces')
   })
 
+  it('does not name a new venue after the email address', async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === 'workspace_members') return memberQuery([])
+      throw new Error(`unexpected table ${table}`)
+    })
+    rpcMock.mockResolvedValue({ data: 'new-venue', error: null })
+
+    await createOwnerMembershipIfMissing({
+      id: 'user-5',
+      email: 'platonsofficial@example.com',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('create_signup_venue', {
+      p_name: 'My venue',
+      p_plan: 'start',
+    })
+  })
+
   it('returns null when the signup function is not installed yet', async () => {
     fromMock.mockImplementation((table) => {
       if (table === 'workspace_members') return memberQuery([])

@@ -23,6 +23,10 @@ describe('resolveStoredUserDisplayName', () => {
   it('does not invent a name from the email address', () => {
     const membership = { displayName: '', email: 'platon@example.com' }
     expect(resolveStoredUserDisplayName({ membership, user: { email: 'platon@example.com' } })).toBe('')
-    expect(resolveUserDisplayName({ membership, user: { email: 'platon@example.com' } })).toBe('platon')
+    expect(resolveUserDisplayName({ membership, user: { email: 'platon@example.com' } })).toBe('')
+    expect(resolveUserDisplayName({
+      membership,
+      user: { email: 'platon@example.com', user_metadata: { full_name: 'Platon Sachinis' } },
+    })).toBe('Platon Sachinis')
   })
 })

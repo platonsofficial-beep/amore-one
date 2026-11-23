@@ -59,9 +59,13 @@ export function formatCurrentDateLabel(date = getLocalNow(), timeZone = '') {
 }
 
 export function getTimeGreeting(date = getLocalNow(), timeZone = '') {
-  const hour = getHourInTimeZone(date, timeZone)
+  let hour = getHourInTimeZone(date, timeZone)
+  if (!Number.isFinite(hour)) hour = date.getHours()
+  // Some engines report midnight as 24 with hour12: false.
+  if (hour === 24) hour = 0
 
-  if (hour < 12) return t('Good Morning')
-  if (hour < 18) return t('Good Afternoon')
-  return t('Good Evening')
+  // Hospitality day: morning 05:00–11:59, afternoon 12:00–17:59, evening 18:00–04:59.
+  if (hour >= 5 && hour < 12) return t('Good morning')
+  if (hour >= 12 && hour < 18) return t('Good afternoon')
+  return t('Good evening')
 }

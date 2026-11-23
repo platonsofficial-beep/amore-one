@@ -40,8 +40,30 @@ describe('Create account confirm password', () => {
     expect(container.querySelectorAll('input[type="password"]').length).toBe(1)
   })
 
+  function openAccountStep(first = 'Ada', last = 'Lovelace') {
+    click(byText('Create account'))
+    const [given, family] = container.querySelectorAll('input')
+    setValue(given, first)
+    setValue(family, last)
+    act(() => {
+      container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+  }
+
+  it('asks for a first and last name before the account', () => {
+    render()
+    click(byText('Create account'))
+    expect(container.querySelector('#auth-first-name')).toBeTruthy()
+    expect(container.querySelector('#auth-last-name')).toBeTruthy()
+    expect(container.querySelector('input[type="password"]')).toBeNull()
+    act(() => {
+      container.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    })
+    expect(container.textContent).toContain('First and last name are required.')
+  })
+
   it('blocks create account on mismatch with an inline error', async () => {
-    render(); click(byText('Create account'))
+    render(); openAccountStep()
     const [pw, confirm] = container.querySelectorAll('input[type="password"]')
     expect(confirm.closest('label').textContent).toContain('Confirm password')
     setValue(container.querySelector('input[type="email"]'), 'a@b.com')
@@ -52,7 +74,7 @@ describe('Create account confirm password', () => {
   })
 
   it('creates the account when both match', async () => {
-    render(); click(byText('Create account'))
+    render(); openAccountStep('Ada', 'Lovelace')
     const [pw, confirm] = container.querySelectorAll('input[type="password"]')
     setValue(container.querySelector('input[type="email"]'), 'a@b.com')
     setValue(pw, 'secret123'); setValue(confirm, 'secret123')
@@ -60,6 +82,6 @@ describe('Create account confirm password', () => {
     act(() => { accept.click() })
     expect(container.querySelector('.auth-field-error')).toBeNull()
     await submit()
-    expect(signUp).toHaveBeenCalledWith('a@b.com', 'secret123')
+    expect(signUp).toHaveBeenCalledWith('a@b.com', 'secret123', { full_name: 'Ada Lovelace' })
   })
 })
