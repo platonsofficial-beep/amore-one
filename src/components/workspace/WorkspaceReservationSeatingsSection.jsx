@@ -7,7 +7,7 @@ import {
   normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
 import { normalizeReservationAutoCloseTime } from '../../lib/reservationAutoClose'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   readHostDiningTimerDurationPolicy,
@@ -18,6 +18,7 @@ import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatUserFacingLoadError, isLoadFailureMessage, isTechnicalErrorText } from '../../lib/userFacingLoadError'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { sumVenueCovers } from '../../lib/onlineBooking'
+import { useSettingsEditorScroll } from '../../lib/settingsEditorScroll'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { t } from '../../i18n/i18n'
 
@@ -269,6 +270,14 @@ export function WorkspaceReservationSeatingsSection({
   canEdit = true,
   onRetry,
 }) {
+  const sectionRef = useRef(null)
+  const editorRef = useRef(null)
+  const nameRef = useRef(null)
+  const beginEdit = useSettingsEditorScroll({
+    editingId: editingSeatingId,
+    sectionRef,
+    fieldRef: nameRef,
+  })
   const showAutoClose = !hoursOnly && typeof onAutoCloseTimeChange === 'function'
   const showEditActions = canEdit && typeof onStartEdit === 'function'
   const autoCloseNoticeIsError = Boolean(
@@ -383,6 +392,7 @@ export function WorkspaceReservationSeatingsSection({
               <article
                 key={normalized.id}
                 className={`position-row workspace-seating-row${normalized.isActive ? '' : ' is-inactive'}`}
+                data-settings-row={normalized.id}
               >
                 <div>
                   <strong>{normalized.name}</strong>
@@ -421,7 +431,7 @@ export function WorkspaceReservationSeatingsSection({
                     <button
                       type="button"
                       className="ghost-btn small workspace-action-btn"
-                      onClick={() => onStartEdit(normalized)}
+                      onClick={() => beginEdit(hoursOnly ? null : editorRef.current, () => onStartEdit(normalized))}
                     >
                       {t("Edit")}
                     </button>
@@ -450,7 +460,7 @@ export function WorkspaceReservationSeatingsSection({
   )
 
   return (
-    <>
+    <div ref={sectionRef}>
       {hoursOnly ? hoursList : null}
       {hoursOnly ? null : (
       <div className="workspace-section-header">
@@ -546,7 +556,7 @@ export function WorkspaceReservationSeatingsSection({
         )
         : null}
       {hoursOnly ? null : (
-      <div className="panel staff-panel workspace-panel">
+      <div className="panel staff-panel workspace-panel" ref={editorRef}>
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage seatings")}</p>
@@ -559,6 +569,7 @@ export function WorkspaceReservationSeatingsSection({
             <label className="form-field">
               <span>{t("Name")}</span>
               <input
+                ref={nameRef}
                 value={form.name}
                 onChange={(event) => onFormChange({ ...form, name: event.target.value })}
                 placeholder={t("e.g. Dinner 1")}
@@ -624,7 +635,7 @@ export function WorkspaceReservationSeatingsSection({
       )}
 
       {hoursOnly ? null : hoursList}
-    </>
+    </div>
   )
 }
 

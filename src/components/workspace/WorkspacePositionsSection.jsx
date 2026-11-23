@@ -1,6 +1,8 @@
+import { useRef } from 'react'
 import { t } from '../../i18n/i18n'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
+import { useSettingsEditorScroll } from '../../lib/settingsEditorScroll'
 const POSITION_DEPARTMENTS = ['Bar', 'Service', 'Kitchen', 'Management', 'Other']
 
 export function WorkspacePositionsSection({
@@ -19,8 +21,17 @@ export function WorkspacePositionsSection({
   getUsageCount,
   onRetry,
 }) {
+  const sectionRef = useRef(null)
+  const editorRef = useRef(null)
+  const nameRef = useRef(null)
+  const beginEdit = useSettingsEditorScroll({
+    editingId: editingPositionId,
+    sectionRef,
+    fieldRef: nameRef,
+  })
+
   return (
-    <>
+    <div ref={sectionRef}>
       <div className="workspace-section-header">
         <div>
           <p className="eyebrow">{t("Venue")}</p>
@@ -39,7 +50,7 @@ export function WorkspacePositionsSection({
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
-      <div className="panel staff-panel workspace-panel">
+      <div className="panel staff-panel workspace-panel" ref={editorRef}>
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage positions")}</p>
@@ -51,7 +62,7 @@ export function WorkspacePositionsSection({
           <div className="form-grid">
             <label className="form-field" data-help="setup.add-position">
               <span>{t("Position Name")}</span>
-              <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder={t("e.g. Mixologist")} required />
+              <input ref={nameRef} value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder={t("e.g. Mixologist")} required />
             </label>
             <label className="form-field">
               <span>{t("Department")}</span>
@@ -91,7 +102,7 @@ export function WorkspacePositionsSection({
               const usage = getUsageCount(position)
 
               return (
-                <article key={position.id} className="position-row">
+                <article key={position.id} className="position-row" data-settings-row={position.id}>
                   <div>
                     <strong>{position.name}</strong>
                     <p>{t(position.department)}</p>
@@ -100,7 +111,7 @@ export function WorkspacePositionsSection({
                   <div className="action-group">
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onMovePosition(position, 'up')} disabled={index === 0}>↑</button>
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onMovePosition(position, 'down')} disabled={index === positions.length - 1}>↓</button>
-                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onStartEdit(position)}>{t("Rename")}</button>
+                    <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => beginEdit(editorRef.current, () => onStartEdit(position))}>{t("Rename")}</button>
                     <button type="button" className="ghost-btn small workspace-action-btn" onClick={() => onRequestDelete(position)}>{t("Delete")}</button>
                   </div>
                 </article>
@@ -109,6 +120,6 @@ export function WorkspacePositionsSection({
           </div>
         )}
       </div>
-    </>
+    </div>
   )
 }
