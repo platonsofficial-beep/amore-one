@@ -54,7 +54,7 @@ export function WorkspaceBusinessProfileSection({
 
   const isSavePending = isSaving || isSubmitting
 
-  const useCurrentLocation = async () => {
+  const locateVenue = async () => {
     if (isLoading || isSavePending || locating) return
     setLocating(true)
     setLocationError('')
@@ -230,7 +230,7 @@ export function WorkspaceBusinessProfileSection({
               <button
                 type="button"
                 className="ghost-btn workspace-location-btn"
-                onClick={() => { void useCurrentLocation() }}
+                onClick={() => { void locateVenue() }}
                 disabled={isLoading || isSavePending || locating}
                 aria-busy={locating}
               >
