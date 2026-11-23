@@ -125,6 +125,7 @@ export default async function handler(req, res) {
         to: [`${invite.email}`.trim()],
         subject: mail.subject,
         html: mail.html,
+        text: mail.text,
       }),
     })
     if (!response.ok) {
