@@ -134,6 +134,15 @@
   padding-right: 108px;
 }
 
+.app-shell.is-mobile-shell.has-header-chat .mobile-screen-header,
+.app-shell.is-mobile-shell.has-header-chat .mobile-manager-command-header,
+.app-shell.is-mobile-shell.has-header-chat .mobile-expanded-header,
+.app-shell.is-mobile-shell.has-header-chat .manager-portrait-screen-header,
+.app-shell.is-mobile-shell.has-header-chat .manager-portrait-module-header,
+.app-shell.has-header-chat .help-mode-banner {
+  padding-right: 156px;
+}
+
 /* Floor layout editor owns the top-right. Hide Help "?" and its banner so
    they do not cover Publish / Exit on desktop, tablet, or phone. */
 .app-shell:not(.is-mobile-shell):not(:has(.topbar)):has(.unified-floor-editor) .help-mode-fallback,

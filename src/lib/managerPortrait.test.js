@@ -66,7 +66,6 @@ describe('manager portrait shell', () => {
     expect(ids).toEqual([
       'schedule',
       'stock',
-      'team',
       'time-clock',
       'insights',
       'settings',
@@ -78,6 +77,7 @@ describe('manager portrait shell', () => {
     expect(ids).not.toContain('today')
     expect(ids).not.toContain('reservations')
     expect(ids).not.toContain('chat')
+    expect(ids).not.toContain('team')
     expect(ids).not.toContain('tasks')
   })
 

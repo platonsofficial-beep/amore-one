@@ -7,6 +7,7 @@ import {
   canAccessTeamSection,
   canConfigureReservationSeatings,
   canManageAttendance,
+  canOpenTeamNav,
 } from './permissions'
 import { LIMITED_SETTINGS_SUBTITLE } from './settingsSections'
 import { translateKnownLabel } from './areaLabels'
@@ -116,7 +117,7 @@ export function resolveManagerPortraitScreen({
 }
 
 export function resolveManagerPortraitTab(screen) {
-  if (screen === 'today' || screen === 'reservations' || screen === 'chat' || screen === 'tasks') {
+  if (screen === 'today' || screen === 'reservations' || screen === 'chat' || screen === 'team' || screen === 'tasks') {
     return screen
   }
   return 'more'
@@ -144,7 +145,7 @@ export function buildManagerPortraitMoreItems(access, {
       icon: '📦',
     })
   }
-  if (canAccessModule(access, 'team')) {
+  if (canAccessModule(access, 'team') && !canOpenTeamNav(access)) {
     items.push({
       id: 'team',
       label: 'Team',
