@@ -35,6 +35,28 @@ function formatExpiry(expiresAt) {
   })
 }
 
+/** Gmail app dark mode inverts background-color but not background-image. */
+function solidPaint(color) {
+  return `background-color:${color};background-image:linear-gradient(${color},${color});`
+}
+
+function goldPaint() {
+  return `background-color:${GOLD};background-image:linear-gradient(${GOLD_LIGHT},${GOLD});`
+}
+
+/**
+ * Gmail inverts text colors after CSS. The screen/difference pair under
+ * u + .body undoes that inversion. Other clients ignore those selectors.
+ */
+function lockedText(content, color) {
+  const lock = `color:${color};background-image:linear-gradient(${color},${color});-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;`
+  return `<span style="${lock}">${content}</span>`
+}
+
+function gmailText(content, color) {
+  return `<span class="gmail-blend-screen gmail-screen"><span class="gmail-blend-difference">${lockedText(content, color)}</span></span>`
+}
+
 export function workspaceInviteUrl(token, appUrl = canonicalPublicAppUrl()) {
   const base = `${appUrl ?? ''}`.trim().replace(/\/$/, '') || canonicalPublicAppUrl()
   return `${base}/?invite=${encodeURIComponent(`${token ?? ''}`.trim())}`
@@ -65,6 +87,10 @@ export function buildWorkspaceInviteEmail({
     ? `${escapeHtml(person)}, this invite connects you to ${escapeHtml(venueText)} on ONE.`
     : `This invite connects you to ${escapeHtml(venueText)} on ONE.`
   const sentTo = address ? `Sent to ${escapeHtml(address)}.` : ''
+  const pagePaint = solidPaint(PAGE)
+  const cardPaint = solidPaint(CARD)
+  const rulePaint = solidPaint(GOLD)
+  const buttonPaint = goldPaint()
 
   const textLines = [
     subject,
@@ -98,85 +124,85 @@ export function buildWorkspaceInviteEmail({
   <style>
     :root { color-scheme: light dark; supported-color-schemes: light dark; }
     body { margin: 0; padding: 0; }
-    @media (prefers-color-scheme: dark) {
-      .invite-page, .invite-page td { background-color: ${PAGE} !important; }
-      .invite-card, .invite-card td { background-color: ${CARD} !important; }
-      .invite-headline { color: ${WHITE} !important; }
-      .invite-role { color: ${WHITE} !important; }
-      .invite-muted { color: ${MUTED} !important; }
-      .invite-btn { background-color: ${GOLD} !important; background-image: linear-gradient(135deg, ${GOLD_LIGHT} 0%, ${GOLD} 100%) !important; }
-      .invite-btn a { color: ${INK} !important; }
-    }
+    u + .body .gmail-blend-screen,
+    u + .body .gmail-screen { background:#000000; mix-blend-mode:screen; }
+    u + .body .gmail-blend-difference { background:#000000; mix-blend-mode:difference; }
+    [data-ogsc] .invite-headline { color:${WHITE} !important; }
+    [data-ogsc] .invite-role { color:${WHITE} !important; }
+    [data-ogsc] .invite-muted { color:${MUTED} !important; }
+    [data-ogsc] .invite-btn a { color:${INK} !important; -webkit-text-fill-color:${INK} !important; }
+    [data-ogsb] .invite-page,
+    [data-ogsb] .invite-card { background-color:${CARD} !important; background-image:linear-gradient(${CARD},${CARD}) !important; }
   </style>
 </head>
-<body class="invite-page" bgcolor="${PAGE}" style="margin:0;padding:0;background-color:${PAGE};">
-  <table role="presentation" class="invite-page" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAGE}" style="background-color:${PAGE};margin:0;padding:0;">
+<body class="body invite-page" bgcolor="${PAGE}" style="margin:0;padding:0;${pagePaint}">
+  <table role="presentation" class="invite-page" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${PAGE}" style="${pagePaint}margin:0;padding:0;">
     <tr>
-      <td align="center" bgcolor="${PAGE}" style="background-color:${PAGE};padding:28px 16px;">
-        <table role="presentation" class="invite-card" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${CARD}" style="max-width:480px;background-color:${CARD};border-radius:20px;">
+      <td align="center" class="invite-page" bgcolor="${PAGE}" style="${pagePaint}padding:28px 16px;">
+        <table role="presentation" class="invite-card" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${CARD}" style="max-width:480px;${cardPaint}border-radius:20px;">
           <tr>
-            <td align="center" bgcolor="${CARD}" style="background-color:${CARD};padding:32px 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1;font-weight:700;letter-spacing:0.32em;color:${WHITE};">
-              ${'ONE'}
+            <td align="center" class="invite-card" bgcolor="${CARD}" style="${cardPaint}padding:32px 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1;font-weight:700;letter-spacing:0.32em;color:${WHITE};">
+              ${gmailText('ONE', WHITE)}
             </td>
           </tr>
           <tr>
-            <td align="center" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 22px;">
+            <td align="center" class="invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 22px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td width="56" height="2" bgcolor="${GOLD}" style="background-color:${GOLD};font-size:0;line-height:0;">&nbsp;</td>
+                  <td width="56" height="2" bgcolor="${GOLD}" style="${rulePaint}font-size:0;line-height:0;">&nbsp;</td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td align="center" class="invite-headline" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 12px;font-family:Arial,Helvetica,sans-serif;font-size:28px;line-height:1.25;font-weight:700;color:${WHITE};">
-              ${headline}
+            <td align="center" class="invite-headline invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 12px;font-family:Arial,Helvetica,sans-serif;font-size:28px;line-height:1.25;font-weight:700;color:${WHITE};">
+              ${gmailText(headline, WHITE)}
             </td>
           </tr>
           <tr>
-            <td align="center" class="invite-muted" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:${MUTED};">
-              ${greeting}
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:${MUTED};">
+              ${gmailText(greeting, MUTED)}
             </td>
           </tr>
           <tr>
-            <td align="center" class="invite-role" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 22px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.4;font-weight:700;color:${WHITE};">
-              ${roleLine}
+            <td align="center" class="invite-role invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 22px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.4;font-weight:700;color:${WHITE};">
+              ${gmailText(roleLine, WHITE)}
             </td>
           </tr>
           <tr>
-            <td align="center" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 22px;">
+            <td align="center" class="invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 22px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
-                  <td align="center" class="invite-btn" bgcolor="${GOLD}" style="border-radius:999px;background-color:${GOLD};background-image:linear-gradient(135deg,${GOLD_LIGHT} 0%,${GOLD} 100%);">
-                    <a href="${link}" style="display:block;padding:16px 24px;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:1.2;font-weight:700;color:${INK};text-decoration:none;border-radius:999px;">${button}</a>
+                  <td align="center" class="invite-btn" bgcolor="${GOLD}" style="border-radius:999px;${buttonPaint}">
+                    <a href="${link}" style="display:block;padding:16px 24px;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:1.2;font-weight:700;color:${INK};text-decoration:none;border-radius:999px;${buttonPaint}">${lockedText(button, INK)}</a>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
           <tr>
-            <td align="center" class="invite-muted" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
-              ${fallbackLabel}
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
+              ${gmailText(fallbackLabel, MUTED)}
             </td>
           </tr>
           <tr>
-            <td align="center" class="invite-muted" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;color:${MUTED};word-break:break-all;">
-              <a href="${link}" style="color:${MUTED};text-decoration:underline;">${link}</a>
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.45;color:${MUTED};word-break:break-all;">
+              <a href="${link}" style="color:${MUTED};-webkit-text-fill-color:${MUTED};text-decoration:underline;">${gmailText(link, MUTED)}</a>
             </td>
           </tr>
           ${expiryLine ? `<tr>
-            <td align="center" class="invite-muted" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4;color:${MUTED};">
-              ${expiryLine}
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.4;color:${MUTED};">
+              ${gmailText(expiryLine, MUTED)}
             </td>
           </tr>` : ''}
           ${sentTo ? `<tr>
-            <td align="center" class="invite-muted" bgcolor="${CARD}" style="background-color:${CARD};padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
-              ${sentTo}
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:0 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
+              ${gmailText(sentTo, MUTED)}
             </td>
           </tr>` : ''}
           <tr>
-            <td align="center" bgcolor="${CARD}" style="background-color:${CARD};padding:18px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
-              ${footer}
+            <td align="center" class="invite-muted invite-card" bgcolor="${CARD}" style="${cardPaint}padding:18px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.4;color:${MUTED};">
+              ${gmailText(footer, MUTED)}
             </td>
           </tr>
         </table>
