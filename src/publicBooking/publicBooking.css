@@ -45,6 +45,16 @@
   text-underline-offset: 3px;
 }
 
+.public-booking-contact a.public-booking-directions {
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--one-gold);
+  color: var(--one-on-gold);
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .public-booking-brand {
   gap: 12px;
   min-width: 0;

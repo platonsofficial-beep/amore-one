@@ -34,6 +34,9 @@ export function buildPublicBookingEmail({
   venueAddress = '',
   city = '',
   countryName = '',
+  venueLat = null,
+  venueLng = null,
+  mapsUrl = '',
 } = {}) {
   const el = locale === 'el'
   const venue = escapeHtml(venueName || 'ONE')
@@ -65,15 +68,25 @@ export function buildPublicBookingEmail({
     address: venueAddress,
     city,
     country: countryName,
+    lat: venueLat,
+    lng: venueLng,
+    mapsUrl,
   })
   const contactItems = [
     contact.telHref ? `<a href="${escapeHtml(contact.telHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.phone)}</a>` : '',
     contact.mailHref ? `<a href="${escapeHtml(contact.mailHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.email)}</a>` : '',
-    contact.mapHref ? `<a href="${escapeHtml(contact.mapHref)}" style="color:#f3d27a;text-decoration:underline;">${escapeHtml(contact.address)}</a>` : '',
+    contact.address ? escapeHtml(contact.address) : '',
   ].filter(Boolean)
-  const contactHtml = contactItems.length
-    ? `<p style="margin:16px 0 0;font-family:Arial, sans-serif;font-size:15px;line-height:1.6;">${contactItems.join('<br>')}</p>`
+  const directionsLabel = el ? 'Οδηγίες' : 'Get directions'
+  const directions = contact.mapHref
+    ? `<p style="margin:16px 0 0;"><a href="${escapeHtml(contact.mapHref)}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#d4af37;color:#0a1628;font-weight:700;text-decoration:none;">${directionsLabel}</a></p>`
     : ''
+  const contactHtml = [
+    contactItems.length
+      ? `<p style="margin:16px 0 0;font-family:Arial, sans-serif;font-size:15px;line-height:1.6;">${contactItems.join('<br>')}</p>`
+      : '',
+    directions,
+  ].join('')
   const actions = kind === 'reminder' && confirmUrl
     ? `<p style="margin:24px 0;">
         <a href="${escapeHtml(`${confirmUrl}&action=confirm`)}" style="display:inline-block;margin:0 8px 8px 0;padding:12px 18px;border-radius:999px;background:#d4af37;color:#0a1628;font-weight:700;text-decoration:none;">${el ? 'Επιβεβαίωση' : 'Confirm'}</a>

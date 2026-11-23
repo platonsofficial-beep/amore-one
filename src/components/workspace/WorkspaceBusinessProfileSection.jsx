@@ -11,6 +11,7 @@ import { PhoneCountryPicker } from '../reservations/PhoneCountryPicker'
 import { ReservationPhoneField } from '../reservations/ReservationPhoneField'
 import { resolveWorkspaceDefaultPhoneCountryCode } from '../../lib/reservationPhoneUtils'
 import { venueContactEmailError, venueContactPhoneError } from '../../lib/venueContact'
+import { captureVenueLocation, coordinateIsSet } from '../../lib/venueLocation'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
@@ -30,7 +31,11 @@ export function WorkspaceBusinessProfileSection({
     noticeMessage && !/saved|updated|success/i.test(noticeMessage),
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [locationError, setLocationError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({ phone: '', email: '' })
+  const locationSaved = coordinateIsSet(workspaceProfile.venueLat)
+    && coordinateIsSet(workspaceProfile.venueLng)
 
   const handleSave = async () => {
     if (isLoading || isSaving || isSubmitting || !isDirty) return
@@ -48,6 +53,30 @@ export function WorkspaceBusinessProfileSection({
   }
 
   const isSavePending = isSaving || isSubmitting
+
+  const locateVenue = async () => {
+    if (isLoading || isSavePending || locating) return
+    setLocating(true)
+    setLocationError('')
+    try {
+      const result = await captureVenueLocation()
+      if (result.errorKey) {
+        setLocationError(result.errorKey)
+        return
+      }
+      onChange({
+        ...workspaceProfile,
+        venueLat: result.lat,
+        venueLng: result.lng,
+        venueAddress: result.geocodeFailed
+          ? workspaceProfile.venueAddress
+          : (result.address || workspaceProfile.venueAddress),
+        city: result.city || workspaceProfile.city,
+      })
+    } finally {
+      setLocating(false)
+    }
+  }
 
   return (
     <>
@@ -186,12 +215,33 @@ export function WorkspaceBusinessProfileSection({
               <span>{t("Address")}</span>
               <input
                 value={workspaceProfile.venueAddress || ''}
-                onChange={(event) => onChange({ ...workspaceProfile, venueAddress: event.target.value })}
+                onChange={(event) => onChange({
+                  ...workspaceProfile,
+                  venueAddress: event.target.value,
+                  venueLat: null,
+                  venueLng: null,
+                })}
                 placeholder={t("Street and number")}
                 disabled={isLoading || isSavePending}
                 autoComplete="street-address"
               />
             </label>
+            <div className="workspace-location-row">
+              <button
+                type="button"
+                className="ghost-btn workspace-location-btn"
+                onClick={() => { void locateVenue() }}
+                disabled={isLoading || isSavePending || locating}
+                aria-busy={locating}
+              >
+                <svg className="workspace-location-pin" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
+                </svg>
+                {locating ? t("Finding location…") : t("Use current location")}
+              </button>
+              {locationSaved ? <small className="workspace-location-note">{t("Location saved")}</small> : null}
+            </div>
+            {locationError ? <small className="workspace-field-error">{t(locationError)}</small> : null}
             <label className="form-field full-width">
               <span>{t("Contact email")}</span>
               <input

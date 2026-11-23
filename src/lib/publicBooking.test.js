@@ -264,6 +264,7 @@ describe('public booking email', () => {
     expect(mail.html).not.toContain('tel:')
     expect(mail.html).not.toContain('mailto:')
     expect(mail.html).not.toContain('google.com/maps')
+    expect(mail.html).not.toContain('Οδηγίες')
   })
 
   it('adds tap-to-call, email, and map links and hides empty contact details', () => {
@@ -282,8 +283,26 @@ describe('public booking email', () => {
     })
     expect(mail.html).toContain('href="tel:+35799111222"')
     expect(mail.html).toContain('href="mailto:desk@harbour.example"')
+    expect(mail.html).toContain('Get directions')
     expect(mail.html).toContain('google.com/maps')
     expect(mail.html).toContain('12 Harbour Street, Nicosia')
+  })
+
+  it('uses a gold directions button for saved coordinates', () => {
+    const mail = buildPublicBookingEmail({
+      kind: 'reminder',
+      locale: 'el',
+      venueName: 'The Harbour Bar',
+      date: '2026-07-10',
+      time: '20:00',
+      party: 2,
+      venueLat: 35.17,
+      venueLng: 33.36,
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=35.17,33.36',
+    })
+    expect(mail.html).toContain('Οδηγίες')
+    expect(mail.html).toContain('href="https://www.google.com/maps/search/?api=1&amp;query=35.17,33.36"')
+    expect(mail.html).toContain('background:#d4af37')
   })
 })
 
@@ -318,6 +337,20 @@ describe('public booking wiring', () => {
     expect(contact).toContain("'contactEmail'")
     expect(contact).toContain('dayHours')
     expect(contact).toContain('email_reminder_sent_at')
+    const location = readFileSync('supabase/venue_location.sql', 'utf8')
+    expect(location).toContain('Not applied')
+    expect(location).toContain('venue_lat double precision')
+    expect(location).toContain('venue_lng double precision')
+    expect(location).toContain('grant select (venue_lat, venue_lng)')
+    expect(location).toContain('grant insert (venue_lat, venue_lng)')
+    expect(location).toContain('grant update (venue_lat, venue_lng)')
+    expect(location).toContain("'venueLat'")
+    expect(location).toContain("'venueLng'")
+    expect(location).toContain("'mapsUrl'")
+    expect(location).toContain('https://www.google.com/maps/search/?api=1&query=')
+    expect(location).toContain('dayHours')
+    expect(location).toContain("'contactEmail'")
+    expect(location).toContain('email_reminder_sent_at')
     const patch = readFileSync('supabase/online_booking_reservation_time.sql', 'utf8')
     expect(patch).toContain('p_date, v_arrival,')
     expect(patch).toContain('Not applied')
