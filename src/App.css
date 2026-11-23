@@ -2013,9 +2013,8 @@
   color: var(--one-text);
   font-size: 1.08rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   line-height: 1.15;
-  text-transform: uppercase;
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -19777,6 +19776,34 @@ a.ghost-btn.reservation-call-link {
 
 .employee-modal-backdrop.create-workspace-storage-backdrop {
   z-index: 80;
+}
+
+.add-name-backdrop {
+  z-index: 90;
+  place-items: end center;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+.add-name-card {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.add-name-card h2,
+.add-name-card p {
+  margin: 0;
+}
+
+.add-name-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.add-name-actions .auth-submit-btn,
+.add-name-actions .auth-action-btn {
+  flex: 1 1 auto;
 }
 
 .employee-modal {

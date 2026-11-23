@@ -129,7 +129,7 @@ export function MobileManagerHomeView({
   return (
     <div className="mobile-screen mobile-home mobile-manager-home mobile-manager-command-center">
       <header className="mobile-manager-command-header">
-        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || 'Welcome'}</h1>
+        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || t('Welcome')}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
           {workspaceContext ? (

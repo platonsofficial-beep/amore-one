@@ -184,29 +184,41 @@ export function previewSubscriptionAccess(preview, now = new Date()) {
   return resolveSubscriptionAccess(null, at)
 }
 
-function dayWord(days) {
-  return days === 1 ? 'day' : 'days'
+function countedBanner(days, singularKey, pluralKey) {
+  if (days === 1) return t(singularKey)
+  return t(pluralKey, { count: days })
 }
 
 export function subscriptionBannerCopy(resolved) {
   if (!resolved) return null
   const days = resolved.daysLeft
-  const word = dayWord(days)
   if (resolved.phase === 'trial') {
     return {
-      message: `${days} ${word} left on your free month.`,
+      message: countedBanner(
+        days,
+        '1 day left on your free month.',
+        '{{count}} days left on your free month.',
+      ),
       action: t("Choose plan"),
     }
   }
   if (resolved.phase === 'grace' && resolved.reason === 'payment') {
     return {
-      message: `Payment didn't go through. ${days} ${word} left to update payment.`,
+      message: countedBanner(
+        days,
+        "Payment didn't go through. 1 day left to update payment.",
+        "Payment didn't go through. {{count}} days left to update payment.",
+      ),
       action: t("Update payment"),
     }
   }
   if (resolved.phase === 'grace') {
     return {
-      message: `Your free month has ended. You have ${days} ${word} left to choose a plan before ONE pauses.`,
+      message: countedBanner(
+        days,
+        'Your free month has ended. You have 1 day left to choose a plan before ONE pauses.',
+        'Your free month has ended. You have {{count}} days left to choose a plan before ONE pauses.',
+      ),
       action: t("Choose plan"),
     }
   }

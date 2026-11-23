@@ -34,6 +34,17 @@
   min-height: 0;
 }
 
+/* The banner already fills the status-bar band. Do not reserve that band
+   again under it, or the greeting sits in a large empty gap. */
+.app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content,
+.app-shell.has-subscription-banner.is-mobile-shell .mobile-expanded-scroll {
+  padding-top: 12px;
+}
+
+.app-shell.has-subscription-banner.is-mobile-shell .mobile-app-content::before {
+  display: none;
+}
+
 .subscription-banner-copy {
   margin: 0;
   font-size: 15px;

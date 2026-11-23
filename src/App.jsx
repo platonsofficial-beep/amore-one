@@ -591,7 +591,9 @@ import {
   shouldShowWorkspaceLoadError,
   USER_WORKSPACE_LOADING_MESSAGE,
 } from './lib/workspaceLoadUtils'
-import { resolveStoredUserDisplayName, resolveUserDisplayName } from './lib/userDisplayName'
+import { personNameFromAuthUser, resolveStoredUserDisplayName, resolveUserDisplayName } from './lib/userDisplayName'
+import { dismissNamePrompt, isNamePromptDismissed } from './lib/namePrompt'
+import { AddYourNameSheet } from './components/auth/AddYourNameSheet'
 import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
@@ -15750,6 +15752,8 @@ function App() {
   const [mobileProfileError, setMobileProfileError] = useState('')
   const [mobileNotice, setMobileNotice] = useState('')
   const [isSavingMobileProfile, setIsSavingMobileProfile] = useState(false)
+  const [namePromptClosed, setNamePromptClosed] = useState(false)
+  const personNameSyncRef = useRef('')
   const [isManagerMobileBootstrapLoading, setIsManagerMobileBootstrapLoading] = useState(false)
 
   useEffect(() => {
@@ -16447,6 +16451,31 @@ function App() {
     () => buildDashboardGreeting(currentTimeGreeting, resolvedUserDisplayName),
     [currentTimeGreeting, resolvedUserDisplayName],
   )
+
+  useEffect(() => {
+    if (isAuthDisabled) return undefined
+    const userId = `${user?.id ?? ''}`.trim()
+    if (!userId || !membership?.id) return undefined
+    if (personNameSyncRef.current === userId) return undefined
+    const person = personNameFromAuthUser(user, membership)
+    if (!person) return undefined
+    const raw = `${membership.displayName ?? ''}`.trim()
+    const stored = resolveStoredUserDisplayName({ membership, employees, user })
+    const venue = `${workspace?.name ?? ''}`.trim()
+    const missing = !stored
+    const copiedFromVenue = Boolean(venue) && raw === venue && person !== raw
+    if ((!missing && !copiedFromVenue) || raw === person) {
+      personNameSyncRef.current = userId
+      return undefined
+    }
+    personNameSyncRef.current = userId
+    updateMembershipDisplayName(userId, person, membership.workspaceId)
+      .then(() => refreshMembership())
+      .catch((error) => {
+        console.error('[App] person name sync error:', error)
+      })
+    return undefined
+  }, [employees, isAuthDisabled, membership, refreshMembership, user, workspace?.name])
 
   const dashboardShifts = useMemo(() => {
     const draftSource = isViewingTodayWeekInScheduler ? shifts : todayWeekShifts
@@ -18147,7 +18176,10 @@ function App() {
 
   useEffect(() => {
     if (!isAuthDisabled) return
-    syncDevMembershipProfile({ displayName: workspaceProfile.managerName })
+    const fromQuery = typeof window === 'undefined'
+      ? ''
+      : `${new URLSearchParams(window.location.search).get('devName') ?? ''}`.trim()
+    syncDevMembershipProfile({ displayName: fromQuery || workspaceProfile.managerName })
   }, [isAuthDisabled, workspaceProfile.managerName, syncDevMembershipProfile])
 
   useEffect(() => {
@@ -25338,6 +25370,32 @@ function App() {
     setMobileMenuScreen('main')
   }
 
+  const handleSavePersonName = useCallback(async ({ firstName, lastName }) => {
+    const displayName = `${firstName ?? ''} ${lastName ?? ''}`.replace(/\s+/g, ' ').trim()
+    if (!displayName) {
+      throw new Error(t('First and last name are required.'))
+    }
+    if (isAuthDisabled) {
+      syncDevMembershipProfile({ displayName })
+      setNamePromptClosed(true)
+      dismissNamePrompt(user?.id)
+      return
+    }
+    const userId = `${user?.id ?? ''}`.trim()
+    if (!userId) {
+      throw new Error(t('Unable to save your name right now.'))
+    }
+    await updateMembershipDisplayName(userId, displayName, activeWorkspaceId || null)
+    await refreshMembership()
+    setNamePromptClosed(true)
+    dismissNamePrompt(userId)
+  }, [activeWorkspaceId, isAuthDisabled, refreshMembership, syncDevMembershipProfile, user?.id])
+
+  const handleDismissPersonName = useCallback(() => {
+    setNamePromptClosed(true)
+    dismissNamePrompt(user?.id)
+  }, [user?.id])
+
   const handleMobileProfileSave = useCallback(async ({ displayName, phone }) => {
     const userId = `${user?.id ?? ''}`.trim()
     if (!userId) {
@@ -25796,6 +25854,9 @@ function App() {
           action={subscriptionUi.bannerAction}
           onAction={openSubscriptionBilling}
         />
+      ) : null}
+      {!isAuthLoading && activeView === 'today' && !namePromptClosed && user?.id && !resolveStoredUserDisplayName({ membership, employees }) && !isNamePromptDismissed(user.id) ? (
+        <AddYourNameSheet onSave={handleSavePersonName} onDismiss={handleDismissPersonName} />
       ) : null}
       {subscriptionUi.locked ? (
           <SubscriptionLockScreen

@@ -11,10 +11,10 @@ export function shouldUseBillingPreviewFixture(search) {
 export function applyBillingPreviewToday(summary = {}) {
   return {
     ...summary,
-    onShiftSummary: '4 on shift',
-    teamScheduledSummary: '12 scheduled today',
-    reservationsSummaryLine: '6 bookings · 18 covers',
-    tasksSummary: '3 open tasks',
+    onShiftSummary: t('4 on shift'),
+    teamScheduledSummary: t('12 scheduled today'),
+    reservationsSummaryLine: t('6 bookings · 18 covers'),
+    tasksSummary: t('3 open tasks'),
     stockSummaryLine: t("Stock levels OK"),
   }
 }

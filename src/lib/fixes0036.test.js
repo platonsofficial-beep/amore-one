@@ -12,9 +12,9 @@ describe('0036 (1) display name', () => {
     expect(resolveUserDisplayName({ membership, employees: [{ id: 'e1', name: 'TEST Role Manager' }] })).toBe('TEST Role Manager')
     expect(resolveUserDisplayName({ membership, employees: [{ id: 'e1', full_name: 'TEST Role Staff' }] })).toBe('TEST Role Staff')
   })
-  it('then profile full_name, then the email', () => {
+  it('then profile full_name, and never the email local-part', () => {
     expect(resolveUserDisplayName({ membership, employees: [], user: { user_metadata: { full_name: 'Real Name' } } })).toBe('Real Name')
-    expect(resolveUserDisplayName({ membership, employees: [], user: {} })).toBe('one-test+manager')
+    expect(resolveUserDisplayName({ membership, employees: [], user: {} })).toBe('')
     expect(resolveUserDisplayName({ membership: { displayName: 'Chip Name' }, employees: [] })).toBe('Chip Name')
   })
   it('profile screens use the resolved name', () => {
