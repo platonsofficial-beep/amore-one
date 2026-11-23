@@ -39,7 +39,7 @@ export function WorkspacePositionsSection({
       ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
-      <div className="panel staff-panel workspace-panel" data-help="setup.add-position">
+      <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
           <div>
             <p className="eyebrow">{t("Manage positions")}</p>
@@ -49,7 +49,7 @@ export function WorkspacePositionsSection({
 
         <form className="employee-form" onSubmit={onSubmit}>
           <div className="form-grid">
-            <label className="form-field">
+            <label className="form-field" data-help="setup.add-position">
               <span>{t("Position Name")}</span>
               <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder={t("e.g. Mixologist")} required />
             </label>

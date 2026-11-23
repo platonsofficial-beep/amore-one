@@ -54,8 +54,10 @@ function coachWidth() {
 }
 
 function coachFloor() {
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
   const nav = bottomNavBox()
-  return (nav ? nav.top : window.innerHeight) - 12
+  const navTop = nav && nav.top > 0 && nav.top < viewHeight ? nav.top : viewHeight
+  return Math.min(navTop, viewHeight) - 8
 }
 
 function overlapsBox(a, b) {
@@ -68,35 +70,42 @@ function placeCoach(rect) {
   const margin = 12
   const width = coachWidth()
   const landscape = window.innerWidth > window.innerHeight
-  const cardHeight = landscape ? 160 : 300
-  const floor = coachFloor()
+  const liveCard = document.querySelector('.setup-guide-coach')
+  const liveHeight = liveCard ? Math.ceil(liveCard.getBoundingClientRect().height) : 0
+  const cardHeight = Math.max(liveHeight, landscape ? 170 : 280)
+  const floor = Math.min(coachFloor(), (window.visualViewport ? window.visualViewport.height : window.innerHeight) - 8)
   const target = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+  const spots = []
   const belowTop = rect.bottom + margin
   const aboveTop = rect.top - cardHeight - margin
-  const spots = []
-  if (aboveTop >= 52) spots.push({ left: margin, top: aboveTop })
+  if (landscape) spots.push({ left: window.innerWidth - width - margin, top: Math.max(chromeBottom(), floor - cardHeight) })
   if (belowTop + cardHeight <= floor) spots.push({ left: margin, top: belowTop })
-  if (landscape) spots.push({ left: window.innerWidth - width - margin, top: Math.max(52, floor - cardHeight) })
-  if (rect.top > window.innerHeight * 0.38) spots.unshift({ left: margin, top: 52 })
+  if (aboveTop >= chromeBottom()) spots.push({ left: margin, top: aboveTop })
   for (let i = 0; i < spots.length; i += 1) {
     const spot = spots[i]
-    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + cardHeight }
+    const maxHeight = Math.max(120, floor - spot.top)
+    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + Math.min(cardHeight, maxHeight) }
     if (card.bottom > floor) continue
     if (overlapsBox(card, target)) continue
-    return { left: spot.left, top: spot.top, width }
+    return { left: spot.left, top: spot.top, width, maxHeight }
   }
-  return { left: margin, top: 52, width }
+  const top = chromeBottom()
+  const room = rect.top - 16 - top
+  return { left: margin, top, width, maxHeight: Math.max(120, Math.min(floor - top, room)) }
 }
 
 function dockedCoach() {
   const width = coachWidth()
   const landscape = window.innerWidth > window.innerHeight
-  const cardHeight = landscape ? 160 : 220
-  const floor = coachFloor()
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  const floor = Math.min(coachFloor(), viewHeight - 8)
+  const cardHeight = landscape ? 150 : 220
+  const top = Math.max(chromeBottom(), floor - cardHeight)
   return {
     left: landscape ? Math.max(12, window.innerWidth - width - 12) : 12,
-    top: Math.max(52, floor - cardHeight),
+    top,
     width,
+    maxHeight: Math.max(120, floor - top),
   }
 }
 
@@ -106,7 +115,8 @@ function usableCoachTarget(node) {
   if (rect.width < 24 || rect.height < 20) return false
   const nav = bottomNavBox()
   if (nav && overlapsBox(rect, nav)) return false
-  if (rect.bottom < 48 || rect.top > window.innerHeight - 8) return false
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  if (rect.top < chromeBottom() - 2 || rect.bottom > viewHeight - 8) return false
   return true
 }
 
@@ -121,17 +131,53 @@ function scrollParent(node) {
   return document.scrollingElement
 }
 
+function chromeBottom() {
+  let bottom = 8
+  const bar = document.querySelector('.venue-wizard-bar')
+  if (bar) {
+    const rect = bar.getBoundingClientRect()
+    if (rect.bottom > bottom) bottom = rect.bottom
+  }
+  const nav = document.querySelector('.workspace-nav')
+  if (nav) {
+    const rect = nav.getBoundingClientRect()
+    const horizontalStrip = rect.height > 0 && rect.height < 140 && rect.top < 240 && rect.width > 180
+    if (horizontalStrip && rect.bottom > bottom) bottom = rect.bottom
+  }
+  return bottom + 8
+}
+
+function viewportBox(node) {
+  const rect = node.getBoundingClientRect()
+  const vv = window.visualViewport
+  const offsetTop = vv ? vv.offsetTop : 0
+  const offsetLeft = vv ? vv.offsetLeft : 0
+  return {
+    top: rect.top - offsetTop,
+    left: rect.left - offsetLeft,
+    width: rect.width,
+    height: rect.height,
+    right: rect.right - offsetLeft,
+    bottom: rect.bottom - offsetTop,
+  }
+}
+
 function revealCoachTarget(node) {
   const scroller = scrollParent(node)
   if (!scroller) return
-  const landscape = window.innerWidth > window.innerHeight
-  const desired = landscape ? 168 : 360
   const rect = node.getBoundingClientRect()
+  const landscape = window.innerWidth > window.innerHeight
+  const desired = Math.max(chromeBottom(), landscape ? 8 : 300)
   const nav = bottomNavBox()
-  const limit = (nav ? nav.top : window.innerHeight) - 12
-  const tooHigh = rect.top < desired - 4
-  const tooLow = rect.bottom > limit || rect.top > desired + 40
+  const limit = (nav ? nav.top : (window.visualViewport ? window.visualViewport.height : window.innerHeight)) - 8
+  const tooHigh = rect.top < desired - 2
+  const tooLow = rect.bottom > limit
   if (!tooHigh && !tooLow) return
+  const horizontal = node.closest('.workspace-nav-links')
+  if (horizontal && horizontal.scrollWidth > horizontal.clientWidth + 8) {
+    const parentRect = horizontal.getBoundingClientRect()
+    horizontal.scrollLeft += rect.left - parentRect.left - 8
+  }
   scroller.scrollTop += rect.top - desired
 }
 
@@ -467,7 +513,6 @@ function SetupCoachMount({
     }
     const stepId = step.id
     setBox(null)
-    let revealed = false
     const names = coachTargets(step)
     function collect() {
       const nodes = []
@@ -479,27 +524,27 @@ function SetupCoachMount({
     }
     function measure() {
       const nodes = collect()
-      let target = null
-      for (let i = 0; i < nodes.length; i += 1) {
-        if (usableCoachTarget(nodes[i])) {
-          target = nodes[i]
-          break
-        }
-      }
-      if (!target && !revealed) {
-        const parked = nodes.find(function outsideNav(node) {
-          return !node.closest('.mobile-bottom-nav')
-        })
-        if (parked) {
-          revealCoachTarget(parked)
-          revealed = true
-        }
+      const raw = nodes.find(function outsideNav(node) {
+        return !node.closest('.mobile-bottom-nav')
+      })
+      if (!raw) {
+        setBox({ stepId, missing: true, card: dockedCoach() })
         return
       }
-      if (!target) return
-      const rect = target.getBoundingClientRect()
+      if (!usableCoachTarget(raw)) {
+        revealCoachTarget(raw)
+        setBox(function clearStale(current) {
+          const card = current && current.stepId === stepId ? current.card : dockedCoach()
+          return { stepId, missing: true, card: card || dockedCoach() }
+        })
+        return
+      }
+      const rect = viewportBox(raw)
       const nav = bottomNavBox()
-      if (nav && overlapsBox(rect, nav)) return
+      if (nav && overlapsBox(rect, nav)) {
+        revealCoachTarget(raw)
+        return
+      }
       setBox({
         stepId,
         ring: { top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 },
@@ -507,17 +552,21 @@ function SetupCoachMount({
       })
     }
     measure()
-    const timer = window.setInterval(measure, 250)
+    const timer = window.setInterval(measure, 200)
     const stop = window.setTimeout(function stopLooking() {
       window.clearInterval(timer)
-    }, 4000)
+    }, 5000)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
+    window.visualViewport?.addEventListener('resize', measure)
+    window.visualViewport?.addEventListener('scroll', measure)
     return function cleanup() {
       window.clearInterval(timer)
       window.clearTimeout(stop)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
+      window.visualViewport?.removeEventListener('resize', measure)
+      window.visualViewport?.removeEventListener('scroll', measure)
     }
   }, [step, helpOn, step?.id, step?.target, step?.fallbackTarget])
 
@@ -544,7 +593,12 @@ function SetupCoachMount({
   const next = steps[index + 1] || null
   const live = box && box.stepId === step.id ? box : null
   const card = live?.card || dockedCoach()
-  const cardStyle = { top: card.top, left: card.left, width: card.width }
+  const cardStyle = {
+    top: card.top,
+    left: card.left,
+    width: card.width,
+    maxHeight: card.maxHeight,
+  }
   function goNext() {
     if (!next) {
       if (onFinish) onFinish()

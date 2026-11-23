@@ -120,9 +120,12 @@
   z-index: 141;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  box-sizing: border-box;
   width: min(360px, calc(100vw - 24px));
-  padding: 14px;
+  max-height: calc(100dvh - 16px);
+  padding: 12px;
+  overflow: hidden;
   border-radius: 16px;
   border: 1px solid var(--one-gold-line);
   background: var(--one-navy-800);
@@ -134,15 +137,23 @@
   margin: 0;
 }
 
+.setup-guide-coach p {
+  overflow: auto;
+  min-height: 0;
+}
+
 .setup-guide-coach-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
 .setup-guide-coach-actions button {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 10px;
   border-radius: 999px;
   border: 0;
   font: inherit;
@@ -163,8 +174,13 @@
 @media (orientation: landscape) and (max-height: 520px) {
   .setup-guide-coach {
     max-width: 420px;
-    max-height: min(220px, calc(100dvh - 24px));
-    overflow: auto;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .setup-guide-coach p {
+    font-size: 0.82rem;
+    line-height: 1.3;
   }
 }
 
