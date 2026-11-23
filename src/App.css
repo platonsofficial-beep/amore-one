@@ -16585,20 +16585,10 @@ a.ghost-btn.reservation-call-link {
 
 .employee-account-connection-card {
   margin-top: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.22);
-  border: 1px solid var(--one-overlay-06);
-}
-
-.employee-account-connection-card.is-connected {
-  border-color: rgba(88, 196, 130, 0.28);
-  background: rgba(88, 196, 130, 0.08);
-}
-
-.employee-account-connection-card.is-pending {
-  border-color: var(--one-gold-a24);
-  background: var(--one-gold-a08);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .employee-account-connection-label {
@@ -16636,7 +16626,11 @@ a.ghost-btn.reservation-call-link {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 16px;
+}
+
+.employee-account-connection-card > .employee-account-connection-btn {
+  margin-top: 16px;
 }
 
 .employee-account-connection-btn {
