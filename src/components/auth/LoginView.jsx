@@ -320,7 +320,7 @@ export function LoginView() {
                   autoComplete="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  placeholder={t("you@venue.com")}
+                  placeholder={t("Your email")}
                   disabled={isSubmitting}
                   required
                 />
