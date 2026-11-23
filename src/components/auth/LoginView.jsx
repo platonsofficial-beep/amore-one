@@ -1,5 +1,5 @@
 import { LegalLinks } from '../privacy/PrivacySections'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { OneFullLogo } from '../brand/OneFullLogo'
 import { useAuth } from '../../context/AuthContext'
 import {
@@ -43,15 +43,60 @@ function PasswordField({
   error,
 }) {
   const [visible, setVisible] = useState(false)
+  const inputRef = useRef(null)
+  const caretRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    const caret = caretRef.current
+    if (!input || !caret) return
+    caretRef.current = null
+    input.focus()
+    const max = input.value.length
+    const start = Math.min(caret.start ?? max, max)
+    const end = Math.min(caret.end ?? max, max)
+    try {
+      input.setSelectionRange(start, end)
+    } catch {
+      // A password input can reject a selection range.
+    }
+  }, [visible])
+
+  function rememberCaret() {
+    const input = inputRef.current
+    if (!input || document.activeElement !== input || typeof input.selectionStart !== 'number') return
+    caretRef.current = { start: input.selectionStart, end: input.selectionEnd }
+  }
+
+  function toggleVisibility() {
+    const input = inputRef.current
+    // iOS strong-password autofill writes the DOM value without React's onChange.
+    // Read it before the input is replaced, or the new field mounts empty.
+    if (input && input.value !== value) onChange({ target: { value: input.value } })
+    if (!caretRef.current) {
+      const length = `${input?.value ?? value}`.length
+      caretRef.current = { start: length, end: length }
+    }
+    setVisible((current) => !current)
+  }
+
   return (
     <label className="form-field auth-field" htmlFor={id}>
       <span>{label}</span>
       <span className="auth-password-row">
         <input
+          // iOS Safari keeps an autofilled password masked when only `type` changes.
+          // A new key mounts a fresh input that is already text or already a password.
+          key={visible ? 'shown' : 'hidden'}
+          ref={inputRef}
           id={id}
           name={name}
           type={visible ? 'text' : 'password'}
           autoComplete={autoComplete}
+          autoCapitalize="off"
+          autoCorrect="off"
+          spellCheck={false}
+          style={visible ? { WebkitTextSecurity: 'none' } : undefined}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -65,7 +110,14 @@ function PasswordField({
           className="auth-password-toggle"
           aria-label={visible ? t("Hide password") : t("Show password")}
           aria-pressed={visible}
-          onClick={() => setVisible((current) => !current)}
+          onPointerDown={(event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) return
+            rememberCaret()
+          }}
+          onMouseDown={(event) => {
+            event.preventDefault()
+          }}
+          onClick={toggleVisibility}
           disabled={disabled}
         >
           <span aria-hidden="true">{visible ? '🙈' : '👁'}</span>
