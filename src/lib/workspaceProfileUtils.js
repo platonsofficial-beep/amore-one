@@ -100,6 +100,8 @@ const WORKSPACE_PROFILE_FIELDS = [
   'venuePhone',
   'venueAddress',
   'contactEmail',
+  'venueLat',
+  'venueLng',
   'reservationAutoCloseTime',
 ]
 

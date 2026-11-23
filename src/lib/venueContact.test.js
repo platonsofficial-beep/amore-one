@@ -32,5 +32,14 @@ describe('venue contact', () => {
     expect(lines.mapHref).toContain('Nicosia')
     expect(lines.address).toBe('12 Harbour Street, Nicosia')
     expect(venueContactLines({ city: 'Nicosia' }).address).toBe('')
+    expect(venueContactLines({ city: 'Nicosia' }).mapHref).toBe('')
+    const pinned = venueContactLines({
+      address: 'Makariou 12, 1065, Nicosia',
+      city: 'Nicosia',
+      lat: 35.17,
+      lng: 33.36,
+    })
+    expect(pinned.address).toBe('Makariou 12, 1065, Nicosia')
+    expect(pinned.mapHref).toBe('https://www.google.com/maps/search/?api=1&query=35.17,33.36')
   })
 })

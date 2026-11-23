@@ -118,14 +118,18 @@ function VenueContact({ info }) {
     address: info?.venueAddress,
     city: info?.city,
     country: info?.countryName,
+    lat: info?.venueLat,
+    lng: info?.venueLng,
+    mapsUrl: info?.mapsUrl,
   })
-  if (!lines.phone && !lines.email && !lines.address) return null
+  if (!lines.phone && !lines.email && !lines.address && !lines.mapHref) return null
   return (
     <div className="public-booking-contact">
       {lines.telHref ? <a href={lines.telHref}>{lines.phone}</a> : null}
       {lines.mailHref ? <a href={lines.mailHref}>{lines.email}</a> : null}
+      {lines.address ? <span>{lines.address}</span> : null}
       {lines.mapHref ? (
-        <a href={lines.mapHref} target="_blank" rel="noreferrer">{lines.address}</a>
+        <a className="public-booking-directions" href={lines.mapHref} target="_blank" rel="noreferrer">{t('Get directions')}</a>
       ) : null}
     </div>
   )

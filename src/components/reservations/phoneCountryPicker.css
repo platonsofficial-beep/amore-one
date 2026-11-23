@@ -194,6 +194,32 @@
   font-size: 0.82rem;
 }
 
+.workspace-location-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.workspace-location-btn {
+  min-height: 44px;
+  min-width: 44px;
+  gap: 8px;
+  padding: 8px 14px;
+}
+
+.workspace-location-pin {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.workspace-location-note {
+  color: var(--one-gold);
+  font-size: 0.82rem;
+}
+
 .form-field .reservation-phone-field-country-picker .phone-country-picker-trigger,
 .host-reservation-edit-field .reservation-phone-field-country-picker .phone-country-picker-trigger,
 .mobile-host-form-field .reservation-phone-field-country-picker .phone-country-picker-trigger {

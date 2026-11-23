@@ -147,6 +147,91 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     cleanup()
   })
 
+  it('fills the address from the current location and hides the coordinates', async () => {
+    const onChange = vi.fn()
+    const { container, cleanup } = renderSection({
+      onChange,
+      workspaceProfile: { ...baseProfile, venueAddress: 'Old lane' },
+    })
+    let grant = null
+    navigator.geolocation = {
+      getCurrentPosition: (ok) => { grant = ok },
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ address: { road: 'Makariou', house_number: '12', postcode: '1065', city: 'Nicosia' } }),
+    })))
+    const button = container.querySelector('.workspace-location-btn')
+    expect(button?.textContent).toContain('Use current location')
+    expect(button?.querySelector('svg')).not.toBeNull()
+
+    await act(async () => {
+      button.click()
+    })
+    expect(container.textContent).toContain('Finding location…')
+    await act(async () => {
+      grant({ coords: { latitude: 35.17, longitude: 33.36 } })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      venueAddress: 'Makariou 12, 1065, Nicosia',
+      city: 'Nicosia',
+      venueLat: 35.17,
+      venueLng: 33.36,
+    }))
+    expect(container.textContent).not.toContain('35.17')
+    cleanup()
+    const saved = renderSection({
+      workspaceProfile: { ...baseProfile, venueLat: 35.17, venueLng: 33.36 },
+    })
+    expect(saved.container.textContent).toContain('Location saved')
+    expect(saved.container.textContent).not.toContain('35.17')
+    expect(saved.container.textContent).not.toContain('33.36')
+    saved.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('keeps the typed address when reverse geocoding fails and explains a denied permission', async () => {
+    const denied = vi.fn()
+    const deniedView = renderSection({
+      onChange: denied,
+      workspaceProfile: { ...baseProfile, venueAddress: '12 Harbour Street' },
+    })
+    navigator.geolocation = {
+      getCurrentPosition: (_ok, fail) => fail({ code: 1 }),
+    }
+    await act(async () => {
+      deniedView.container.querySelector('.workspace-location-btn').click()
+      await Promise.resolve()
+    })
+    expect(denied).not.toHaveBeenCalled()
+    expect(deniedView.container.textContent).toContain('Location permission was denied.')
+    deniedView.cleanup()
+
+    const kept = vi.fn()
+    const keptView = renderSection({
+      onChange: kept,
+      workspaceProfile: { ...baseProfile, venueAddress: '12 Harbour Street' },
+    })
+    navigator.geolocation = {
+      getCurrentPosition: (ok) => ok({ coords: { latitude: 35.17, longitude: 33.36 } }),
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, json: async () => ({}) })))
+    await act(async () => {
+      keptView.container.querySelector('.workspace-location-btn').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(kept).toHaveBeenCalledWith(expect.objectContaining({
+      venueAddress: '12 Harbour Street',
+      venueLat: 35.17,
+      venueLng: 33.36,
+    }))
+    keptView.cleanup()
+    vi.unstubAllGlobals()
+  })
+
   it('shows Save Profile by default', () => {
     const { container, cleanup } = renderSection()
     const button = container.querySelector('.workspace-action-btn')

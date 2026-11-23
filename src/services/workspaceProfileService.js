@@ -29,6 +29,8 @@ export const EMPTY_WORKSPACE_PROFILE = {
   venuePhone: '',
   venueAddress: '',
   contactEmail: '',
+  venueLat: null,
+  venueLng: null,
   reservationAutoCloseTime: DEFAULT_RESERVATION_AUTO_CLOSE_TIME,
 }
 
@@ -77,6 +79,27 @@ export function withoutVenueContactColumns(payload = {}) {
   return next
 }
 
+function normalizeCoordinate(value) {
+  if (value === null || value === undefined || value === '') return null
+  const number = Number(value)
+  return Number.isFinite(number) ? number : null
+}
+
+export function isMissingVenueLocationColumnError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const mentionsColumn = message.includes('schema cache')
+    || message.includes('column')
+    || message.includes('does not exist')
+  return mentionsColumn && (message.includes('venue_lat') || message.includes('venue_lng'))
+}
+
+export function withoutVenueLocationColumns(payload = {}) {
+  const next = { ...payload }
+  delete next.venue_lat
+  delete next.venue_lng
+  return next
+}
+
 function getWorkspaceProfileErrorMessage(error, action = 'load') {
   if (isTableUnavailableError(error)) {
     return 'Workspace profile table is not ready yet.'
@@ -105,6 +128,8 @@ function normalizeProfile(profile = {}) {
     venuePhone: `${profile.venuePhone ?? profile.venue_phone ?? ''}`.trim(),
     venueAddress: `${profile.venueAddress ?? profile.venue_address ?? ''}`.trim(),
     contactEmail: `${profile.contactEmail ?? profile.contact_email ?? ''}`.trim(),
+    venueLat: normalizeCoordinate(profile.venueLat ?? profile.venue_lat),
+    venueLng: normalizeCoordinate(profile.venueLng ?? profile.venue_lng),
     reservationAutoCloseTime: normalizeReservationAutoCloseTime(
       profile.reservationAutoCloseTime ?? profile.reservation_auto_close_time,
     ),
@@ -138,6 +163,8 @@ function mapWorkspaceProfile(record) {
     venuePhone: record.venue_phone ?? record.venuePhone ?? '',
     venueAddress: record.venue_address ?? record.venueAddress ?? '',
     contactEmail: record.contact_email ?? record.contactEmail ?? '',
+    venueLat: record.venue_lat ?? record.venueLat,
+    venueLng: record.venue_lng ?? record.venueLng,
     reservationAutoCloseTime: record.reservation_auto_close_time ?? record.reservationAutoCloseTime,
   }))
 }
@@ -161,6 +188,8 @@ function serializeWorkspaceProfile(profile, workspaceId = '') {
     venue_phone: normalized.venuePhone,
     venue_address: normalized.venueAddress,
     contact_email: normalized.contactEmail,
+    venue_lat: normalized.venueLat,
+    venue_lng: normalized.venueLng,
     reservation_auto_close_time: normalized.reservationAutoCloseTime,
   }
 }
@@ -260,14 +289,18 @@ export async function saveWorkspaceProfile(profile, workspaceId = '') {
   let nextPayload = payload
   let reservationAutoClosePending = false
   let venueContactPending = false
+  let venueLocationPending = false
 
-  for (let attempt = 0; attempt < 2 && result.error; attempt += 1) {
+  for (let attempt = 0; attempt < 3 && result.error; attempt += 1) {
     if (isMissingReservationAutoCloseColumnError(result.error)) {
       nextPayload = withoutReservationAutoCloseColumn(nextPayload)
       reservationAutoClosePending = true
     } else if (isMissingVenueContactColumnError(result.error)) {
       nextPayload = withoutVenueContactColumns(nextPayload)
       venueContactPending = true
+    } else if (isMissingVenueLocationColumnError(result.error)) {
+      nextPayload = withoutVenueLocationColumns(nextPayload)
+      venueLocationPending = true
     } else {
       break
     }
@@ -301,6 +334,13 @@ export async function saveWorkspaceProfile(profile, workspaceId = '') {
         venueAddress: normalized.venueAddress,
         contactEmail: normalized.contactEmail,
         venueContactPending: true,
+      }
+      : {}),
+    ...(venueLocationPending
+      ? {
+        venueLat: normalized.venueLat,
+        venueLng: normalized.venueLng,
+        venueLocationPending: true,
       }
       : {}),
   }
