@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabaseClient'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
+import { t } from '../i18n/i18n'
 import { getSession } from './authService'
 
 const WORKSPACE_INVITES_TABLE = 'workspace_invites'
@@ -107,7 +108,7 @@ async function revokeActiveInvitesForEmployee(workspaceId, employeeId) {
 
   if (error) {
     console.warn('[inviteService] revokeActiveInvitesForEmployee error:', error)
-    throw new Error(error.message || 'Unable to revoke existing invite.')
+    throw new Error(error.message || t("Unable to cancel the existing invite."))
   }
 }
 
@@ -394,11 +395,11 @@ export async function revokeInvite(inviteId) {
       throw new Error('Workspace invites are not ready yet.')
     }
 
-    throw new Error(error.message || 'Unable to revoke invite right now.')
+    throw new Error(error.message || t("Unable to cancel the invite right now."))
   }
 
   if (!data) {
-    throw new Error('Invite could not be revoked.')
+    throw new Error(t("The invite could not be cancelled."))
   }
 
   return mapInvite(data)

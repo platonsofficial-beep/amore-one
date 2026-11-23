@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { EmployeePostHireInvitePrompt } from './EmployeePostHireInvitePrompt'
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+import { getLocale, setLocale } from '../../i18n/i18n'
 
 const getEmployeeAccountConnectionStatusMock = vi.hoisted(() => vi.fn())
 const createEmployeeInviteMock = vi.hoisted(() => vi.fn())
@@ -168,6 +169,39 @@ describe('EmployeeAccountConnectionSection auto-open invite', () => {
     expect(container.querySelector('#employee-invite-title')).toBeNull()
     expect(onAutoOpenInviteConsumed).not.toHaveBeenCalled()
 
+    unmount()
+  })
+
+  it('cancels a pending invite and formats the expiry in the app language', async () => {
+    const previous = getLocale()
+    setLocale('en')
+    getEmployeeAccountConnectionStatusMock.mockResolvedValue({
+      pendingInvite: {
+        id: 'invite-1',
+        email: 'alex@example.com',
+        role: 'staff',
+        token: 'token-1',
+        expiresAt: '2026-11-30T12:00:00.000Z',
+      },
+      linkedMembership: null,
+      acceptedInvite: null,
+      isConnected: false,
+    })
+    const { container, unmount } = renderAccountSection()
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(container.textContent).toContain('Cancel invite')
+    expect(container.textContent).not.toContain('Revoke')
+    expect(container.textContent).toContain('30 Nov 2026')
+    expect(container.textContent).not.toContain('Νοε')
+    const cancel = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Cancel invite')
+    await act(async () => {
+      cancel.click()
+      await Promise.resolve()
+    })
+    expect(revokeInviteMock).toHaveBeenCalledWith('invite-1')
+    setLocale(previous)
     unmount()
   })
 })

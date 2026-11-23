@@ -12,7 +12,7 @@ export function formatInviteErrorMessage(message = '') {
   }
 
   if (/revoked/i.test(normalized)) {
-    return t("This invite was revoked. Ask your manager to send a new invite link.")
+    return t("This invite was cancelled. Ask your manager to send a new invite link.")
   }
 
   if (/already been accepted|already accepted/i.test(normalized)) {
@@ -75,7 +75,7 @@ export function buildInvitePreviewSummary(preview = {}) {
   if (preview.isRevoked) {
     return {
       tone: 'error',
-      title: t("Invite revoked"),
+      title: t("Invite cancelled"),
       message: t("This invite is no longer active. Ask your manager for a new invite."),
       canJoin: false,
     }
