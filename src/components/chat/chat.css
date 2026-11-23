@@ -771,7 +771,8 @@
   border-bottom: 1px solid var(--one-overlay-06);
 }
 
-.app-shell.is-mobile-shell.is-chat-thread .mobile-shell-bell {
+.app-shell.is-mobile-shell.is-chat-thread .mobile-shell-bell,
+.app-shell.is-mobile-shell.is-chat-thread .mobile-shell-chat {
   display: none;
 }
 
@@ -788,6 +789,10 @@
 @media (max-width: 760px) and (orientation: portrait) {
   .app-shell.is-mobile-shell .chat-list-header {
     padding-right: 108px;
+  }
+
+  .app-shell.is-mobile-shell.has-header-chat .chat-list-header {
+    padding-right: 152px;
   }
 }
 

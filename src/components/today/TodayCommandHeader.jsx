@@ -16,6 +16,7 @@ export function TodayCommandHeader({
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
   notificationBell = null,
+  chatButton = null,
   onOpenNotifications,
   accountActions = [],
   onAccountAction,
@@ -49,6 +50,7 @@ export function TodayCommandHeader({
             </div>
 
             <div className="today-command-header-aside">
+              {chatButton}
               <HelpModeToggle />
               {notificationBell}
               <UserMenu

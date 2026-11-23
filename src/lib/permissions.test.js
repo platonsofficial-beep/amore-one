@@ -309,21 +309,34 @@ describe('permissions', () => {
       expect(tabIds(getMobileBottomTabs('host', 'host'))).not.toContain('stock')
     })
 
-    it('gives managers Today, Reservations, Chat, Operations and More', () => {
+    it('gives managers Today, Reservations, Team, Operations and More', () => {
       expect(tabIds(getMobileBottomTabs('manager', 'manager'))).toEqual([
         'today',
         'reservations',
-        'chat',
+        'team',
         'tasks',
         'more',
       ])
       expect(tabIds(getMobileBottomTabs('owner', 'manager'))).toEqual([
         'today',
         'reservations',
-        'chat',
+        'team',
         'tasks',
         'more',
       ])
+    })
+
+    it('keeps Chat in the bar when Team is not allowed', () => {
+      expect(tabIds(getMobileBottomTabs({
+        role: 'manager',
+        permissions: {
+          today: 'view',
+          reservations: 'view',
+          operations: 'view',
+          team: 'none',
+          chat: 'view',
+        },
+      }, 'manager'))).toEqual(['today', 'reservations', 'chat', 'tasks', 'more'])
     })
 
     it('filters manager tabs the member cannot open', () => {

@@ -634,6 +634,7 @@ import { MobileReservationQuickCreateSheet } from './components/mobile/reservati
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { HelpModeChrome, HelpModeToggle } from './help/HelpMode'
+import { ChatHeaderButton } from './components/chat/ChatHeaderButton'
 import { HelpAssistantRoot } from './help/HelpAssistant'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
@@ -17157,6 +17158,19 @@ function App() {
   const isStaffAccount = isStaffHostAccount && !isHostAccount
   const useHostStationShell = isHostAccount && activeView === 'reservations' && (!useMobileExperience || mobileReservationsHostMode)
   const useDedicatedShell = useMobileExperience
+  const showHeaderChat = canUseChatRole && (
+    !useDedicatedShell || !mobileBottomTabs.some((tab) => tab.id === 'chat')
+  )
+  const openHeaderChat = useCallback(() => {
+    setManagerMoreOpen(false)
+    setChatConversationId('')
+    setMobileReservationsHostMode(false)
+    if (useDedicatedShell && isManagementMobileRole(role)) {
+      setMobileManagerTab('chat')
+      persistManagerMobileTab('chat')
+    }
+    handleActiveViewChange('chat')
+  }, [handleActiveViewChange, role, useDedicatedShell])
   const isStaffHostScheduleRail = isStaffHostAccount && isShortLandscapeRail && isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
   const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell && !isStaffHostScheduleRail
   const isStockFocusMode = isStockWorkspaceView(activeView) && !useDedicatedShell
@@ -24837,6 +24851,7 @@ function App() {
       if (tab === 'today') handleActiveViewChange('today')
       else if (tab === 'reservations') handleActiveViewChange('reservations')
       else if (tab === 'chat') handleActiveViewChange('chat')
+      else if (tab === 'team') handleActiveViewChange('team')
       else if (tab === 'tasks') {
         handleActiveViewChange('operations')
         handleOperationsSectionChange('dashboard')
@@ -24857,6 +24872,14 @@ function App() {
       persistMobileTab('chat', isHostMobileRole(role) ? 'host' : 'staff')
       setMobileReservationsHostMode(false)
       handleActiveViewChange('chat')
+      return
+    }
+
+    if (tab === 'team') {
+      setMobileStaffTab('team')
+      persistMobileTab('team', isHostMobileRole(role) ? 'host' : 'staff')
+      setMobileReservationsHostMode(false)
+      handleActiveViewChange('team')
       return
     }
 
@@ -25861,7 +25884,7 @@ function App() {
       workspaceId={workspace?.id ?? ''}
       includeDraft={activeView === 'floor-plan-builder'}
     >
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${showHeaderChat && useDedicatedShell ? ' has-header-chat' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <SetupGuideCoachHost
         role={permissionAccess}
         userId={user?.id || ''}
@@ -25926,6 +25949,11 @@ function App() {
       ) : null}
       <GuestPreviewStage />
       <HelpModeChrome />
+      {showHeaderChat && useDedicatedShell ? (
+        <div className="mobile-shell-chat">
+          <ChatHeaderButton unread={chatInbox.unread} onOpen={openHeaderChat} />
+        </div>
+      ) : null}
       <HelpAssistantRoot
         role={role}
         venueName={workspace?.name || ''}
@@ -27402,6 +27430,9 @@ function App() {
                     onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                     canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                     notificationBell={notificationBell}
+                    chatButton={showHeaderChat && !useDedicatedShell ? (
+                      <ChatHeaderButton unread={chatInbox.unread} onOpen={openHeaderChat} />
+                    ) : null}
                     onOpenNotifications={avatarNotifications}
                     accountActions={staffHostAccountActions}
                     onAccountAction={handleStaffHostAccountAction}
@@ -27434,6 +27465,9 @@ function App() {
                           onChange={(event) => setSearchTerm(event.target.value)}
                         />
                       </label>
+                      ) : null}
+                      {showHeaderChat && !useDedicatedShell ? (
+                        <ChatHeaderButton unread={chatInbox.unread} onOpen={openHeaderChat} />
                       ) : null}
                       <HelpModeToggle />
                       {notificationBell}

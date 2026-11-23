@@ -2004,8 +2004,10 @@
 
 .today-command-identity {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .today-command-greeting {
@@ -53130,7 +53132,8 @@ summary:focus-visible {
   right: 8px;
 }
 
-.app-shell.is-mobile-shell .mobile-shell-bell {
+.app-shell.is-mobile-shell .mobile-shell-bell,
+.app-shell.is-mobile-shell .mobile-shell-chat {
   position: fixed;
   /* Same line as the Help "?" button, below the status bar and its gap. */
   top: var(--one-top-buttons-top, max(8px, env(safe-area-inset-top)));
@@ -53138,9 +53141,27 @@ summary:focus-visible {
   z-index: 45;
 }
 
-.app-shell.is-mobile-shell .mobile-shell-bell .icon-btn {
+.app-shell.is-mobile-shell .mobile-shell-chat {
+  right: calc(96px + max(8px, var(--safe-r, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))));
+}
+
+.app-shell.is-mobile-shell .mobile-shell-bell .icon-btn,
+.app-shell.is-mobile-shell .mobile-shell-chat .chat-header-btn {
   background: rgba(18, 32, 51, 0.92);
   border: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.chat-header-btn {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--one-gold-a45);
+  background: var(--one-surface-2);
+  color: var(--one-gold);
 }
 
 .app-shell.is-mobile-shell .mobile-schedule-segments {

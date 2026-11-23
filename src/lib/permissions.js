@@ -208,6 +208,8 @@ export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'more', label: 'More', icon: '≡' },
 ]
 
+export const TEAM_BOTTOM_TAB = { id: 'team', label: 'Team', icon: '👥' }
+
 const OPERATIONS_SECTION_IDS = new Set(['dashboard', 'tasks', 'checklists'])
 const TEAM_MANAGE_SECTIONS = new Set(['today', 'members'])
 
@@ -585,9 +587,17 @@ export function getTodayQuickActions(role) {
   ]
 }
 
+export function canOpenTeamNav(access) {
+  return canAccessTeamSection(access, 'members') || canAccessTeamSection(access, 'today')
+}
+
 function tabsVisibleForChat(tabs, role) {
-  if (canUseChat(role)) return tabs
-  return tabs.filter((tab) => tab.id !== 'chat')
+  return tabs.flatMap((tab) => {
+    if (tab.id !== 'chat') return [tab]
+    if (canOpenTeamNav(role)) return [TEAM_BOTTOM_TAB]
+    if (canUseChat(role)) return [tab]
+    return []
+  })
 }
 
 export function getMobileBottomTabs(role, variant = 'staff') {
@@ -596,12 +606,11 @@ export function getMobileBottomTabs(role, variant = 'staff') {
   }
 
   if (variant === 'manager') {
-    return MOBILE_MANAGER_BOTTOM_TABS.filter((tab) => {
+    return tabsVisibleForChat(MOBILE_MANAGER_BOTTOM_TABS.filter((tab) => {
       if (tab.id === 'reservations') return canAccessModule(role, 'reservations')
-      if (tab.id === 'chat') return canUseChat(role)
       if (tab.id === 'tasks') return canAccessModule(role, 'operations')
       return true
-    })
+    }), role)
   }
 
   return tabsVisibleForChat(MOBILE_STAFF_BOTTOM_TABS, role)
