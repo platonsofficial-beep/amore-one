@@ -19,6 +19,7 @@ vi.mock('../../services/inviteService', () => ({
   createEmployeeInvite: createEmployeeInviteMock,
   revokeInvite: revokeInviteMock,
   buildInviteUrl: buildInviteUrlMock,
+  sendWorkspaceInviteEmail: vi.fn(),
 }))
 
 const EMPLOYEE = {

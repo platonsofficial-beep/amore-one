@@ -168,6 +168,32 @@ export async function createEmployeeInvite({
   return mapInvite(data)
 }
 
+export async function sendWorkspaceInviteEmail(inviteId) {
+  const session = await getSession()
+  const accessToken = `${session?.access_token ?? ''}`.trim()
+  if (!accessToken) {
+    throw new Error(t('Sign in again, then send the invite.'))
+  }
+  const response = await fetch('/api/workspace-invite-mail', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ inviteId }),
+  })
+  if (!response.ok) {
+    let message = ''
+    try {
+      const body = await response.json()
+      message = `${body?.message ?? ''}`.trim()
+    } catch {
+      message = ''
+    }
+    throw new Error(message || t('The invite email could not be sent.'))
+  }
+}
+
 export async function getInvitePreview(token) {
   const normalizedToken = `${token ?? ''}`.trim()
   if (!normalizedToken) {

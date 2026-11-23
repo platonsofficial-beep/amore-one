@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 const HANDLERS = [
   './api/online-booking-reminders.js',
   './api/online-booking-notify.js',
+  './api/workspace-invite-mail.js',
 ]
 
 describe('booking API handlers load in plain Node ESM', () => {
