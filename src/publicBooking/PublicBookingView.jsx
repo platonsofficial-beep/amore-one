@@ -11,6 +11,7 @@ import {
   seatingWindow,
 } from '../lib/publicBooking'
 import { getLocale, setLocale, t } from '../i18n/i18n'
+import { venueContactLines } from '../lib/venueContact'
 
 function formatDateChip(dateKey, timeZone) {
   const at = new Date(`${dateKey}T12:00:00Z`)
@@ -110,6 +111,26 @@ function reasonText(reason, maxParty) {
   return t('Online reservations are not available right now.')
 }
 
+function VenueContact({ info }) {
+  const lines = venueContactLines({
+    phone: info?.venuePhone,
+    email: info?.contactEmail,
+    address: info?.venueAddress,
+    city: info?.city,
+    country: info?.countryName,
+  })
+  if (!lines.phone && !lines.email && !lines.address) return null
+  return (
+    <div className="public-booking-contact">
+      {lines.telHref ? <a href={lines.telHref}>{lines.phone}</a> : null}
+      {lines.mailHref ? <a href={lines.mailHref}>{lines.email}</a> : null}
+      {lines.mapHref ? (
+        <a href={lines.mapHref} target="_blank" rel="noreferrer">{lines.address}</a>
+      ) : null}
+    </div>
+  )
+}
+
 export function PublicBookingView({
   phase = 'book',
   info = null,
@@ -184,6 +205,7 @@ export function PublicBookingView({
           <button type="button" aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>{'EN'}</button>
         </div>
       </header>
+      <VenueContact info={info} />
 
       {phase === 'loading' ? <p className="public-booking-status">{t('Loading online reservations…')}</p> : null}
 

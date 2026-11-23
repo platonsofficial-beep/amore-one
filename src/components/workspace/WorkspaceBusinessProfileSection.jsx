@@ -8,7 +8,9 @@ import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 import { t } from '../../i18n/i18n'
 import { PhoneCountryPicker } from '../reservations/PhoneCountryPicker'
+import { ReservationPhoneField } from '../reservations/ReservationPhoneField'
 import { resolveWorkspaceDefaultPhoneCountryCode } from '../../lib/reservationPhoneUtils'
+import { venueContactEmailError, venueContactPhoneError } from '../../lib/venueContact'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 
@@ -28,9 +30,14 @@ export function WorkspaceBusinessProfileSection({
     noticeMessage && !/saved|updated|success/i.test(noticeMessage),
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState({ phone: '', email: '' })
 
   const handleSave = async () => {
     if (isLoading || isSaving || isSubmitting || !isDirty) return
+    const phone = venueContactPhoneError(workspaceProfile.venuePhone)
+    const email = venueContactEmailError(workspaceProfile.contactEmail)
+    setFieldErrors({ phone, email })
+    if (phone || email) return
 
     setIsSubmitting(true)
     try {
@@ -81,6 +88,7 @@ export function WorkspaceBusinessProfileSection({
 
         <form
           className="employee-form"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault()
             void handleSave()
@@ -158,6 +166,46 @@ export function WorkspaceBusinessProfileSection({
                 disabled={isLoading || isSavePending}
                 ariaLabel={t("Default phone country")}
               />
+            </label>
+            <label className="form-field full-width" htmlFor="workspace-venue-phone">
+              <span>{t("Venue phone")}</span>
+              <ReservationPhoneField
+                id="workspace-venue-phone"
+                value={workspaceProfile.venuePhone || ''}
+                workspaceProfile={workspaceProfile}
+                disabled={isLoading || isSavePending}
+                placeholder={t("Local number")}
+                onChange={(venuePhone) => {
+                  setFieldErrors((current) => ({ ...current, phone: '' }))
+                  onChange({ ...workspaceProfile, venuePhone })
+                }}
+              />
+              {fieldErrors.phone ? <small className="workspace-field-error">{t(fieldErrors.phone)}</small> : null}
+            </label>
+            <label className="form-field full-width">
+              <span>{t("Address")}</span>
+              <input
+                value={workspaceProfile.venueAddress || ''}
+                onChange={(event) => onChange({ ...workspaceProfile, venueAddress: event.target.value })}
+                placeholder={t("Street and number")}
+                disabled={isLoading || isSavePending}
+                autoComplete="street-address"
+              />
+            </label>
+            <label className="form-field full-width">
+              <span>{t("Contact email")}</span>
+              <input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={workspaceProfile.contactEmail || ''}
+                onChange={(event) => {
+                  setFieldErrors((current) => ({ ...current, email: '' }))
+                  onChange({ ...workspaceProfile, contactEmail: event.target.value })
+                }}
+                disabled={isLoading || isSavePending}
+              />
+              {fieldErrors.email ? <small className="workspace-field-error">{t(fieldErrors.email)}</small> : null}
             </label>
             <label className="form-field full-width">
               <span>{t("Logo")}</span>

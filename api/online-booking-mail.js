@@ -43,6 +43,11 @@ export async function sendBookingEmail(payload, { kind = 'received', locale = 'e
     confirmationMethod: payload.confirmationMethod,
     slug: payload.slug,
     token: payload.token,
+    venuePhone: payload.venuePhone,
+    contactEmail: payload.contactEmail,
+    venueAddress: payload.venueAddress,
+    city: payload.city,
+    countryName: payload.countryName,
   })
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',

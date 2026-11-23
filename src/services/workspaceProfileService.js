@@ -26,6 +26,9 @@ export const EMPTY_WORKSPACE_PROFILE = {
   countryName: '',
   city: '',
   defaultPhoneCountryCode: '',
+  venuePhone: '',
+  venueAddress: '',
+  contactEmail: '',
   reservationAutoCloseTime: DEFAULT_RESERVATION_AUTO_CLOSE_TIME,
 }
 
@@ -58,6 +61,22 @@ export function withoutReservationAutoCloseColumn(payload = {}) {
   return next
 }
 
+export function isMissingVenueContactColumnError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const mentionsColumn = message.includes('schema cache')
+    || message.includes('column')
+    || message.includes('does not exist')
+  return mentionsColumn && ['venue_phone', 'venue_address', 'contact_email'].some((column) => message.includes(column))
+}
+
+export function withoutVenueContactColumns(payload = {}) {
+  const next = { ...payload }
+  delete next.venue_phone
+  delete next.venue_address
+  delete next.contact_email
+  return next
+}
+
 function getWorkspaceProfileErrorMessage(error, action = 'load') {
   if (isTableUnavailableError(error)) {
     return 'Workspace profile table is not ready yet.'
@@ -83,6 +102,9 @@ function normalizeProfile(profile = {}) {
     countryName: normalizeLocationDisplayValue(profile.countryName ?? profile.country_name ?? ''),
     city: normalizeLocationDisplayValue(profile.city ?? ''),
     defaultPhoneCountryCode: `${profile.defaultPhoneCountryCode ?? profile.default_phone_country_code ?? ''}`.trim(),
+    venuePhone: `${profile.venuePhone ?? profile.venue_phone ?? ''}`.trim(),
+    venueAddress: `${profile.venueAddress ?? profile.venue_address ?? ''}`.trim(),
+    contactEmail: `${profile.contactEmail ?? profile.contact_email ?? ''}`.trim(),
     reservationAutoCloseTime: normalizeReservationAutoCloseTime(
       profile.reservationAutoCloseTime ?? profile.reservation_auto_close_time,
     ),
@@ -113,6 +135,9 @@ function mapWorkspaceProfile(record) {
     countryName: record.country_name ?? record.countryName ?? '',
     city: record.city ?? '',
     defaultPhoneCountryCode: record.default_phone_country_code ?? record.defaultPhoneCountryCode ?? '',
+    venuePhone: record.venue_phone ?? record.venuePhone ?? '',
+    venueAddress: record.venue_address ?? record.venueAddress ?? '',
+    contactEmail: record.contact_email ?? record.contactEmail ?? '',
     reservationAutoCloseTime: record.reservation_auto_close_time ?? record.reservationAutoCloseTime,
   }))
 }
@@ -133,6 +158,9 @@ function serializeWorkspaceProfile(profile, workspaceId = '') {
     country_name: normalized.countryName,
     city: normalized.city,
     default_phone_country_code: normalized.defaultPhoneCountryCode,
+    venue_phone: normalized.venuePhone,
+    venue_address: normalized.venueAddress,
+    contact_email: normalized.contactEmail,
     reservation_auto_close_time: normalized.reservationAutoCloseTime,
   }
 }
@@ -228,39 +256,52 @@ export async function saveWorkspaceProfile(profile, workspaceId = '') {
       .single()
 
   const { data, error } = await request
+  let result = { data, error }
+  let nextPayload = payload
+  let reservationAutoClosePending = false
+  let venueContactPending = false
 
-  if (error && isMissingReservationAutoCloseColumnError(error)) {
-    const retryPayload = withoutReservationAutoCloseColumn(payload)
-    const retry = existing?.id
-      ? supabase
+  for (let attempt = 0; attempt < 2 && result.error; attempt += 1) {
+    if (isMissingReservationAutoCloseColumnError(result.error)) {
+      nextPayload = withoutReservationAutoCloseColumn(nextPayload)
+      reservationAutoClosePending = true
+    } else if (isMissingVenueContactColumnError(result.error)) {
+      nextPayload = withoutVenueContactColumns(nextPayload)
+      venueContactPending = true
+    } else {
+      break
+    }
+    result = existing?.id
+      ? await supabase
         .from(WORKSPACE_PROFILES_TABLE)
-        .update(retryPayload)
+        .update(nextPayload)
         .eq('id', existing.id)
         .select('*')
         .single()
-      : supabase
+      : await supabase
         .from(WORKSPACE_PROFILES_TABLE)
-        .insert([retryPayload])
+        .insert([nextPayload])
         .select('*')
         .single()
-    const retried = await retry
-
-    if (retried.error) {
-      console.error('[workspaceProfileService] saveWorkspaceProfile error:', retried.error)
-      throw new Error(getWorkspaceProfileErrorMessage(retried.error, 'save'))
-    }
-
-    return {
-      ...mapWorkspaceProfile(retried.data),
-      reservationAutoCloseTime: normalized.reservationAutoCloseTime,
-      reservationAutoClosePending: true,
-    }
   }
 
-  if (error) {
-    console.error('[workspaceProfileService] saveWorkspaceProfile error:', error)
-    throw new Error(getWorkspaceProfileErrorMessage(error, 'save'))
+  if (result.error) {
+    console.error('[workspaceProfileService] saveWorkspaceProfile error:', result.error)
+    throw new Error(getWorkspaceProfileErrorMessage(result.error, 'save'))
   }
 
-  return mapWorkspaceProfile(data)
+  return {
+    ...mapWorkspaceProfile(result.data),
+    ...(reservationAutoClosePending
+      ? { reservationAutoCloseTime: normalized.reservationAutoCloseTime, reservationAutoClosePending: true }
+      : {}),
+    ...(venueContactPending
+      ? {
+        venuePhone: normalized.venuePhone,
+        venueAddress: normalized.venueAddress,
+        contactEmail: normalized.contactEmail,
+        venueContactPending: true,
+      }
+      : {}),
+  }
 }

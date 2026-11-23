@@ -189,6 +189,11 @@
   width: 100%;
 }
 
+.workspace-field-error {
+  color: var(--one-danger);
+  font-size: 0.82rem;
+}
+
 .form-field .reservation-phone-field-country-picker .phone-country-picker-trigger,
 .host-reservation-edit-field .reservation-phone-field-country-picker .phone-country-picker-trigger,
 .mobile-host-form-field .reservation-phone-field-country-picker .phone-country-picker-trigger {
