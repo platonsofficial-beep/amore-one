@@ -1,4 +1,5 @@
 import { formatPublicBookingWhen, seatingEndNotice } from './publicBooking.js'
+import { canonicalPublicAppUrl } from './publicAppUrl.js'
 import { venueContactLines } from './venueContact.js'
 
 function escapeHtml(value) {
@@ -10,7 +11,7 @@ function escapeHtml(value) {
 }
 
 export function publicConfirmUrl(slug, token) {
-  return `https://app.onehospitality.app/book/${slug}/confirm?token=${encodeURIComponent(token)}`
+  return `${canonicalPublicAppUrl()}/book/${slug}/confirm?token=${encodeURIComponent(token)}`
 }
 
 export function buildPublicBookingEmail({

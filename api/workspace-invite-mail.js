@@ -1,7 +1,7 @@
+import { canonicalPublicAppUrl } from '../src/lib/publicAppUrl.js'
 import { buildWorkspaceInviteEmail, workspaceInviteUrl } from '../src/lib/workspaceInviteEmail.js'
 
 const FROM_FALLBACK = 'ONE <no-reply@onehospitality.app>'
-const APP_FALLBACK = 'https://app.onehospitality.app'
 
 function serviceHeaders(extra = {}) {
   return {
@@ -106,14 +106,13 @@ export default async function handler(req, res) {
       readVenueName(invite.workspace_id),
       readName('employees', invite.employee_id, 'full_name'),
     ])
-    const appUrl = process.env.INVITE_APP_URL || APP_FALLBACK
     const mail = buildWorkspaceInviteEmail({
       venueName,
       employeeName,
       role: invite.role,
       email: invite.email,
       expiresAt: invite.expires_at,
-      inviteUrl: workspaceInviteUrl(invite.token, appUrl),
+      inviteUrl: workspaceInviteUrl(invite.token, canonicalPublicAppUrl()),
     })
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',

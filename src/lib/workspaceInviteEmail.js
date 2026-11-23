@@ -1,3 +1,5 @@
+import { canonicalPublicAppUrl } from './publicAppUrl.js'
+
 const ROLE_LABELS = {
   owner: 'Owner',
   general_manager: 'General manager',
@@ -14,8 +16,8 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
 }
 
-export function workspaceInviteUrl(token, appUrl = 'https://app.onehospitality.app') {
-  const base = `${appUrl ?? ''}`.trim().replace(/\/$/, '') || 'https://app.onehospitality.app'
+export function workspaceInviteUrl(token, appUrl = canonicalPublicAppUrl()) {
+  const base = `${appUrl ?? ''}`.trim().replace(/\/$/, '') || canonicalPublicAppUrl()
   return `${base}/?invite=${encodeURIComponent(`${token ?? ''}`.trim())}`
 }
 
