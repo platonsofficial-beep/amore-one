@@ -101,6 +101,15 @@ describe('staffService identity mapping', () => {
     supabaseMocks.reset()
   })
 
+  it('returns an empty roster when the venue has no employees', async () => {
+    supabaseMocks.setQueryResult({ data: [], error: null })
+
+    const employees = await getEmployees(WORKSPACE_ID)
+
+    expect(employees).toEqual([])
+    expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+  })
+
   it('maps identity_color to identityColor and preserves null', async () => {
     supabaseMocks.setQueryResult({
       data: [

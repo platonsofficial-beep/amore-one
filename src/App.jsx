@@ -128,6 +128,7 @@ import {
 import { HostLoadNotice } from './components/reservations/HostLoadNotice'
 import { formatHostLoadError, isHostLoadFailureMessage } from './lib/hostLoadNotice'
 import { withTimeout } from './lib/withTimeout'
+import { loadTeamRoster } from './lib/teamRosterLoad'
 import { translateKnownLabel } from './lib/areaLabels'
 import { LocaleDateField } from './components/LocaleDateField'
 import { isLoadFailureMessage, logLoadFailure, presentLoadFailure } from './lib/userFacingLoadError'
@@ -18327,31 +18328,38 @@ function App() {
       setIsLoadingStaff(true)
       setStaffNotice('')
 
-      try {
-        const remoteEmployees = await withTimeout(getEmployees(activeWorkspaceId))
+      const applyRoster = (remoteEmployees) => {
         if (!isMounted) return
         const nextEmployees = remoteEmployees.length === 0 && shouldUseSchedulePreviewFixture(window.location.search)
           ? buildSchedulePreviewEmployees()
           : remoteEmployees
         setEmployees(nextEmployees)
         setScheduleEmployees(nextEmployees.filter((employee) => !isEmployeeDisabled(employee)))
-      } catch (error) {
-        if (!isMounted) return
-        if (shouldUseSchedulePreviewFixture(window.location.search)) {
-          const previewEmployees = buildSchedulePreviewEmployees()
-          setEmployees(previewEmployees)
-          setScheduleEmployees(previewEmployees)
-          return
-        }
-        setEmployees([])
-        setScheduleEmployees([])
-        logLoadFailure('the team', error)
-        setStaffNotice("Couldn't load")
-      } finally {
-        if (isMounted) {
-          setIsLoadingStaff(false)
-        }
+        setStaffNotice('')
+        setIsLoadingStaff(false)
       }
+
+      if (shouldUseSchedulePreviewFixture(window.location.search) && !activeWorkspaceId) {
+        applyRoster([])
+        return
+      }
+
+      await loadTeamRoster(getEmployees(activeWorkspaceId), {
+        isCurrent: () => isMounted,
+        onRoster: applyRoster,
+        onFailure: (error) => {
+          if (!isMounted) return
+          if (shouldUseSchedulePreviewFixture(window.location.search)) {
+            applyRoster([])
+            return
+          }
+          setEmployees([])
+          setScheduleEmployees([])
+          logLoadFailure('the team', error)
+          setStaffNotice("Couldn't load")
+          setIsLoadingStaff(false)
+        },
+      })
     }
 
     loadPositions()
