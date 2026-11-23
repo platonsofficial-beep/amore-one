@@ -1,4 +1,6 @@
+import { buildAuthEmailRedirect } from '../lib/authRedirect'
 import { supabase } from '../lib/supabaseClient'
+import { readPendingInviteToken } from '../lib/inviteTokenStorage'
 import { unregisterCurrentDevice } from './pushNotificationService'
 
 export async function getSession() {
@@ -36,11 +38,17 @@ export async function signInWithPassword(email, password) {
 }
 
 export async function signUp(email, password, metadata = null) {
-  const dataFields = metadata && typeof metadata === 'object' ? metadata : null
+  const dataFields = metadata && typeof metadata === 'object' ? { ...metadata } : {}
+  const inviteToken = readPendingInviteToken()
+  if (inviteToken) dataFields.invite_token = inviteToken
+  const redirectTo = typeof window === 'undefined' ? '' : buildAuthEmailRedirect()
+  const options = {}
+  if (Object.keys(dataFields).length > 0) options.data = dataFields
+  if (redirectTo) options.emailRedirectTo = redirectTo
   const { data, error } = await supabase.auth.signUp({
     email: `${email ?? ''}`.trim(),
     password: `${password ?? ''}`,
-    ...(dataFields ? { options: { data: dataFields } } : {}),
+    ...(Object.keys(options).length > 0 ? { options } : {}),
   })
 
   if (error) {

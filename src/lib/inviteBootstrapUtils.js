@@ -9,9 +9,11 @@ export function normalizeInviteEmail(email = '') {
 export function shouldSkipOwnerMembershipBootstrap({
   inviteSucceeded = false,
   resolvedMembership = null,
+  hasPendingInvite = false,
 } = {}) {
   if (resolvedMembership) return true
-  return Boolean(inviteSucceeded)
+  if (inviteSucceeded) return true
+  return Boolean(hasPendingInvite)
 }
 
 export function resolveInviteAcceptanceError({
@@ -56,6 +58,7 @@ export function buildInviteBootstrapAttemptPlan({
     attempts.push({ kind: 'token', token: normalizedToken })
   }
 
+  // The email RPC returns the current membership and does not join a second venue.
   if (!hasMembership && normalizedEmail) {
     attempts.push({ kind: 'email', email: normalizedEmail })
   }

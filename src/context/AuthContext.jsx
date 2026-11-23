@@ -15,7 +15,7 @@ import {
   setStoredActiveWorkspaceId,
 } from '../services/membershipService'
 import { resolveMemberAccess } from '../lib/memberAccess'
-import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
+import { WORKSPACE_ROLE_LABELS, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { fetchMemberPermissionRows } from '../services/memberPermissionService'
 import { markSessionEnded } from '../lib/authMessageUtils'
 import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
@@ -24,6 +24,7 @@ import { clearBootCache, readBootCache, readStoredSupabaseSession, updateBootCac
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
+  readPendingInviteToken,
 } from '../lib/inviteTokenStorage'
 import { clearMobileSessionState } from '../lib/mobileNavigationPersistence'
 import {
@@ -35,7 +36,7 @@ import {
   coerceHydratedWorkspace,
   resolveWorkspaceLoadError,
 } from '../lib/workspaceLoadUtils'
-import { getLocale, subscribeLocale, t } from '../i18n/i18n'
+import { getLocale, subscribeLocale, t, useT } from '../i18n/i18n'
 import { resolveDemoDisplayName } from '../lib/demoAttendance'
 import { demoVenueName } from '../lib/demoMediaDataset'
 
@@ -112,6 +113,7 @@ export const BOOTSTRAP_TIMEOUT_MESSAGE = 'The server is taking too long to respo
 export const MEMBERSHIP_LOST_MESSAGE = 'Your access to this workspace has ended. Please sign in again or ask your manager.'
 
 export function AuthProvider({ children }) {
+  const translate = useT()
   const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
   const [session, setSession] = useState(isAuthDisabled ? DEV_MOCK_SESSION : null)
   const [user, setUser] = useState(isAuthDisabled ? DEV_MOCK_USER : null)
@@ -251,6 +253,7 @@ export function AuthProvider({ children }) {
     const skipOwnerBootstrap = shouldSkipOwnerMembershipBootstrap({
       inviteSucceeded,
       resolvedMembership,
+      hasPendingInvite: Boolean(readPendingInviteToken()),
     })
 
     if (!resolvedMembership && !skipOwnerBootstrap) {
@@ -655,17 +658,20 @@ export function AuthProvider({ children }) {
   }, [membership?.role, isAuthDisabled])
 
   const roleLabel = useMemo(() => {
-    if (membership?.role) {
-      return getWorkspaceRoleLabel(normalizeWorkspaceRole(membership.role, membership.role))
+    const normalized = membership?.role
+      ? normalizeWorkspaceRole(membership.role, membership.role)
+      : ''
+    if (normalized) {
+      return translate(WORKSPACE_ROLE_LABELS[normalized] || 'Staff')
     }
     if (isAuthDisabled) {
-      return 'Owner'
+      return translate('Owner')
     }
     if (isLoading) {
-      return 'Loading…'
+      return translate('Loading…')
     }
-    return 'Unassigned'
-  }, [membership?.role, isAuthDisabled, isLoading])
+    return translate('Unassigned')
+  }, [membership?.role, isAuthDisabled, isLoading, translate])
 
   const isOwner = useMemo(
     () => isOwnerRole(role),
