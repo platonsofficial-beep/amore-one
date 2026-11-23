@@ -71,8 +71,8 @@ function placeCoach(rect) {
   const width = coachWidth()
   const landscape = window.innerWidth > window.innerHeight
   const liveCard = document.querySelector('.setup-guide-coach')
-  const liveHeight = liveCard ? Math.ceil(liveCard.getBoundingClientRect().height) : 0
-  const cardHeight = Math.max(liveHeight, landscape ? 170 : 280)
+  const liveHeight = liveCard ? Math.ceil(Math.max(liveCard.getBoundingClientRect().height, liveCard.scrollHeight)) : 0
+  const cardHeight = Math.max(liveHeight + 8, landscape ? 180 : 280)
   const floor = Math.min(coachFloor(), (window.visualViewport ? window.visualViewport.height : window.innerHeight) - 8)
   const target = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
   const spots = []
@@ -83,30 +83,43 @@ function placeCoach(rect) {
   if (aboveTop >= chromeBottom()) spots.push({ left: margin, top: aboveTop })
   for (let i = 0; i < spots.length; i += 1) {
     const spot = spots[i]
-    const maxHeight = Math.max(120, floor - spot.top)
-    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + Math.min(cardHeight, maxHeight) }
+    const maxHeight = floor - spot.top
+    if (maxHeight < cardHeight) continue
+    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + cardHeight }
     if (card.bottom > floor) continue
     if (overlapsBox(card, target)) continue
     return { left: spot.left, top: spot.top, width, maxHeight }
   }
   const top = chromeBottom()
-  const room = rect.top - 16 - top
-  return { left: margin, top, width, maxHeight: Math.max(120, Math.min(floor - top, room)) }
+  return { left: margin, top, width, maxHeight: Math.max(floor - top, 0) }
 }
 
 function dockedCoach() {
   const width = coachWidth()
-  const landscape = window.innerWidth > window.innerHeight
+  const live = document.querySelector('.setup-guide-coach')
+  const needed = live ? live.scrollHeight + 8 : 200
   const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
   const floor = Math.min(coachFloor(), viewHeight - 8)
-  const cardHeight = landscape ? 150 : 220
-  const top = Math.max(chromeBottom(), floor - cardHeight)
+  const top = Math.max(chromeBottom(), floor - needed)
   return {
-    left: landscape ? Math.max(12, window.innerWidth - width - 12) : 12,
+    left: window.innerWidth > window.innerHeight ? Math.max(12, window.innerWidth - width - 12) : 12,
     top,
     width,
-    maxHeight: Math.max(120, floor - top),
+    maxHeight: floor - top,
   }
+}
+
+function clippedCoachFix() {
+  const coach = document.querySelector('.setup-guide-coach')
+  if (!coach || coach.scrollHeight <= coach.clientHeight + 1) return null
+  const rect = coach.getBoundingClientRect()
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  const floor = Math.min(coachFloor(), viewHeight - 8)
+  const needed = coach.scrollHeight + 8
+  const top = Math.max(chromeBottom(), floor - needed)
+  const maxHeight = Math.min(needed, floor - top)
+  if (Math.abs(rect.top - top) < 2 && coach.clientHeight + 1 >= maxHeight) return null
+  return { top, maxHeight }
 }
 
 function usableCoachTarget(node) {
@@ -381,8 +394,9 @@ export function SetupGuideCoachHost({
   useEffect(() => {
     if (!tutorialOn || !nameReady || !steps.length) return undefined
     const pin = readWizardPin()
-    if (pin === 'hold' || pin === 'roles') {
-      const pinned = steps.find((step) => step.id === (pin === 'roles' ? 'roles' : 'venue')) || steps[0]
+    if (pin) {
+      const pinnedId = pin === 'hold' ? 'venue' : pin
+      const pinned = steps.find((step) => step.id === pinnedId) || steps[0]
       if (pinned && startedRef.current !== `pin:${pinned.id}`) {
         startedRef.current = `pin:${pinned.id}`
         setActiveId(pinned.id)
@@ -416,7 +430,7 @@ export function SetupGuideCoachHost({
 
   useEffect(() => {
     const pin = readWizardPin()
-    if (pin === 'hold' || pin === 'roles') return undefined
+    if (pin) return undefined
     if (!activeId) return undefined
     const current = steps.find((step) => step.id === activeId)
     if (!current?.done) return undefined
@@ -545,10 +559,16 @@ function SetupCoachMount({
         revealCoachTarget(raw)
         return
       }
+      const card = placeCoach(rect)
+      const fix = clippedCoachFix()
+      if (fix) {
+        card.top = fix.top
+        card.maxHeight = fix.maxHeight
+      }
       setBox({
         stepId,
         ring: { top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 },
-        card: placeCoach(rect),
+        card,
       })
     }
     measure()
