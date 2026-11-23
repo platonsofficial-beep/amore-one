@@ -4,7 +4,7 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WorkspaceBusinessProfileSection } from './WorkspaceBusinessProfileSection'
 
 const baseProfile = {
@@ -52,6 +52,17 @@ function renderSection(props = {}) {
   }
 }
 
+beforeEach(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: vi.fn(() => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  })
+})
+
 describe('WorkspaceBusinessProfileSection save button', () => {
   it('hides manager fields and still saves when they are empty', async () => {
     const onSubmit = vi.fn()
@@ -78,6 +89,36 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1)
 
     cleanup()
+  })
+
+  it('uses the flag dial-code picker and keeps the saved +code', () => {
+    const onChange = vi.fn()
+    const derived = renderSection({
+      onChange,
+      workspaceProfile: {
+        ...baseProfile,
+        countryCode: 'GR',
+        defaultPhoneCountryCode: '',
+      },
+    })
+    const derivedButton = derived.container.querySelector('.workspace-default-phone-country-trigger')
+    expect(derivedButton?.textContent).toContain('+30')
+    expect(derived.container.querySelector('input[placeholder="+357"]')).toBeNull()
+    derived.cleanup()
+
+    const saved = renderSection({ onChange })
+    const trigger = saved.container.querySelector('.workspace-default-phone-country-trigger')
+    expect(trigger?.textContent).toContain('+357')
+    act(() => {
+      trigger.click()
+    })
+    const greece = [...saved.container.ownerDocument.querySelectorAll('.phone-country-picker-option')]
+      .find((button) => button.textContent.includes('+30'))
+    act(() => {
+      greece.click()
+    })
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ defaultPhoneCountryCode: '+30' }))
+    saved.cleanup()
   })
 
   it('shows Save Profile by default', () => {

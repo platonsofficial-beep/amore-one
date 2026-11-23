@@ -7,6 +7,7 @@ import {
   nextDateKey,
   nextWizardStep,
   readSetupProgress,
+  shouldAutoOpenSetupGuide,
   readStaffTourProgress,
   readStockTourProgress,
   shouldShowSetupChecklist,
@@ -273,6 +274,7 @@ export function SetupGuideTodaySlot({
               replay: false,
               walking: true,
               paused: false,
+              dismissed: false,
               skippedStepIds: progress.skippedStepIds || [],
             })
             const next = steps.find((step) => !step.done) || steps[0]
@@ -291,6 +293,7 @@ export function SetupGuideTodaySlot({
             replay: true,
             walking: true,
             paused: false,
+            dismissed: false,
             skippedStepIds: [],
           })}
         >
@@ -362,7 +365,6 @@ export function SetupGuideCoachHost({
   tutorialOn = false,
   nameReady = true,
   onOpenStep,
-  onContinueLater,
 }) {
   const floor = usePublishedFloorPlan()
   const [activeId, setActiveId] = useSetupCoachStep()
@@ -404,11 +406,7 @@ export function SetupGuideCoachHost({
       }
       return undefined
     }
-    if (progress.skipped && !progress.replay) return undefined
-    if (progress.remindAfter && !progress.replay && !progress.walking) return undefined
-    if (progress.paused && !progress.replay && !progress.walking) return undefined
-    const shouldWalk = progress.walking || progress.replay || (!progress.paused && !progress.skipped)
-    if (!shouldWalk) return undefined
+    if (!shouldAutoOpenSetupGuide(progress)) return undefined
     if (startedRef.current === 'walk' && !progress.replay) return undefined
     const first = nextWizardStep(steps, '', progress.skippedStepIds)
     if (!first) return undefined
@@ -417,6 +415,7 @@ export function SetupGuideCoachHost({
       save({
         skipped: false,
         paused: false,
+        dismissed: false,
         walking: true,
         replay: false,
         remindAfter: '',
@@ -431,29 +430,31 @@ export function SetupGuideCoachHost({
   useEffect(() => {
     const pin = readWizardPin()
     if (pin) return undefined
+    if (!shouldAutoOpenSetupGuide(progress)) return undefined
     if (!activeId) return undefined
     const current = steps.find((step) => step.id === activeId)
     if (!current?.done) return undefined
     const next = nextWizardStep(steps, activeId, progress.skippedStepIds)
     if (!next) {
       setActiveId('')
-      save({ walking: false, paused: false, replay: false })
+      save({ walking: false, paused: true, dismissed: true, replay: false })
       return undefined
     }
     setActiveId(next.id)
     openRef.current?.(next)
     return undefined
-  }, [activeId, steps, progress.skippedStepIds])
+  }, [activeId, steps, progress, progress.skippedStepIds])
 
-  const index = wizardStepNumber(steps, activeId)
+  const guideOpen = Boolean(activeId) && shouldAutoOpenSetupGuide(progress)
+  const index = wizardStepNumber(steps, guideOpen ? activeId : '')
 
   return (
     <>
-      {activeId && index ? (
+      {guideOpen && index ? (
         <VenueWizardBar step={index} total={steps.length} />
       ) : null}
       <SetupCoachMount
-        activeId={activeId}
+        activeId={guideOpen ? activeId : ''}
         steps={steps}
         onActive={setActiveId}
         onOpenStep={onOpenStep}
@@ -467,16 +468,15 @@ export function SetupGuideCoachHost({
           save({ skippedStepIds, walking: Boolean(next), paused: !next, replay: false })
           if (!next) {
             setActiveId('')
-            onContinueLater?.()
+            save({ walking: false, paused: true, dismissed: true, replay: false })
             return
           }
           setActiveId(next.id)
           onOpenStep?.(next)
         }}
         onFinish={() => {
-          save({ walking: false, paused: true, replay: false })
+          save({ walking: false, paused: true, dismissed: true, replay: false })
           setActiveId('')
-          onContinueLater?.()
         }}
       />
     </>

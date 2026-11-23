@@ -25872,7 +25872,6 @@ function App() {
         tutorialOn={tutorialChoice === 'yes'}
         nameReady={namePromptClosed || Boolean(resolveStoredUserDisplayName({ membership, employees })) || isNamePromptDismissed(user?.id)}
         onOpenStep={openSetupStep}
-        onContinueLater={function returnToToday() { handleActiveViewChange('today') }}
       />
       <StaffTourHost
         role={permissionAccess}
