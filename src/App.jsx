@@ -5784,7 +5784,7 @@ function ScheduleView({
   const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate, timeZone)
 
   const scheduleHeader = isMobileScheduleShell ? (
-    <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label={t("Schedule controls")}>
+    <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label={t("Schedule controls")} data-help="setup.schedule">
       <div className="mobile-manager-schedule-toolbar-top">
         <div className="mobile-manager-schedule-toolbar-copy">
           <p className="eyebrow">{t("Schedule")}</p>
@@ -25704,14 +25704,51 @@ function App() {
     if (!step) return
     if (step.view === 'settings') {
       handleActiveViewChange('settings')
-      handleSettingsSectionChange(step.settingsSection)
+      handleSettingsSectionChange(step.settingsSection || 'profile')
       return
     }
     if (step.view === 'reservations') {
-      requestFloorEditor()
+      if (step.openFloor !== false) requestFloorEditor()
       handleActiveViewChange('reservations')
+      return
     }
-  }, [handleActiveViewChange, handleSettingsSectionChange])
+    if (step.view === 'team') {
+      if (useDedicatedShell && step.teamSection === 'schedule') {
+        handleMobileOpenFullSchedule()
+        return
+      }
+      if (useDedicatedShell) handleMobileNavigateModule('team')
+      else handleActiveViewChange('team')
+      handleTeamSectionChange(step.teamSection || 'members')
+      return
+    }
+    if (step.view === 'stock') {
+      if (useDedicatedShell) handleMobileNavigateModule('stock')
+      else handleActiveViewChange('stock')
+      if (step.stockSection) handleStockSectionChange(step.stockSection)
+      return
+    }
+    if (step.view === 'operations') {
+      if (useDedicatedShell) handleMobileNavigateModule('operations')
+      else handleActiveViewChange('operations')
+      handleOperationsSectionChange(step.operationsSection || 'tasks')
+      return
+    }
+    if (step.view === 'chat') {
+      if (useDedicatedShell) handleMobileTabChange('chat')
+      else handleActiveViewChange('chat')
+    }
+  }, [
+    useDedicatedShell,
+    handleActiveViewChange,
+    handleSettingsSectionChange,
+    handleTeamSectionChange,
+    handleMobileNavigateModule,
+    handleMobileOpenFullSchedule,
+    handleStockSectionChange,
+    handleOperationsSectionChange,
+    handleMobileTabChange,
+  ])
 
   const openStaffTourStep = useCallback((step) => {
     if (!step) return
@@ -25812,10 +25849,21 @@ function App() {
     <div className={`app-shell${subscriptionUi.showBanner ? ' has-subscription-banner' : ''}${useDedicatedShell ? ' is-mobile-shell' : ''}${activeView === 'settings' ? ' is-settings-view' : ''}${activeView === 'my-week' || activeView === 'account' || activeView === 'clock' ? ' is-personal-view' : ''}${activeView === 'chat' && !useDedicatedShell ? ' is-chat-view' : ''}${activeView === 'chat' && chatThreadOpen ? ' is-chat-thread' : ''}${activeView === 'time-clock' ? ' is-attendance-view' : ''}${isHostAccount ? ' is-host-account' : ''}${isStaffAccount ? ' is-staff-account' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useHostStationShell && !useMobileExperience ? ' is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && !useMobileExperience) ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}${useReservationsHostDedicatedShell && !useDedicatedShell ? ' is-reservations-dedicated-shell' : ''}`}>
       <SetupGuideCoachHost
         role={permissionAccess}
+        userId={user?.id || ''}
+        workspaceId={activeWorkspaceId}
         profile={workspaceProfile}
         positions={positions}
         seatings={reservationSeatings}
+        employees={employees}
+        shifts={shifts}
+        suppliers={suppliers}
+        stockItems={stockItems}
+        tasks={tasks}
+        announcements={operationsAnnouncements}
+        tutorialOn={tutorialChoice === 'yes'}
+        nameReady={namePromptClosed || Boolean(resolveStoredUserDisplayName({ membership, employees })) || isNamePromptDismissed(user?.id)}
         onOpenStep={openSetupStep}
+        onContinueLater={function returnToToday() { handleActiveViewChange('today') }}
       />
       <StaffTourHost
         role={permissionAccess}
@@ -26147,6 +26195,12 @@ function App() {
             onRunTodayShortcut={runTodayShortcut}
             setupGuide={{
               role: permissionAccess,
+              employees,
+              shifts,
+              suppliers,
+              stockItems,
+              tasks,
+              announcements: operationsAnnouncements,
               userId: user?.id || '',
               workspaceId: activeWorkspaceId || '',
               todayKey: currentDateKey,
@@ -26836,6 +26890,12 @@ function App() {
                       timeZone: workspaceTimeZone,
                       setupGuide: {
                         role: permissionAccess,
+                        employees,
+                        shifts,
+                        suppliers,
+                        stockItems,
+                        tasks,
+                        announcements: operationsAnnouncements,
                         userId: user?.id || '',
                         workspaceId: activeWorkspaceId || '',
                         todayKey: currentDateKey,

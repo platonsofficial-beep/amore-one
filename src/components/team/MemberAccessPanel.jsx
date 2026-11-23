@@ -179,7 +179,7 @@ export function MemberAccessPanel({
   }
 
   return (
-    <section className="employee-profile-drawer-section member-access" aria-label={t("Access")}>
+    <section className="employee-profile-drawer-section member-access" aria-label={t("Access")} data-help="setup.permissions">
       <h4 className="employee-profile-drawer-section-title">{t("Access")}</h4>
       {linkedMembership?.role ? <p className="member-access-preset">{t("Preset: {{name}}", { name: presetName })}</p> : null}
 

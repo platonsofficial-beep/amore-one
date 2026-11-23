@@ -52,7 +52,7 @@ export function WorkspaceView({
   const withOnline = showOnlineReservations
     ? [
       ...baseSections.slice(0, baseSections.findIndex((section) => section.id === 'reservations') + 1),
-      { id: 'online', label: 'Online reservations', shortLabel: 'Online', icon: '🔗' },
+      { id: 'online', label: 'Online reservations', shortLabel: 'Booking link', icon: '🔗' },
       ...baseSections.slice(baseSections.findIndex((section) => section.id === 'reservations') + 1),
     ].filter((section, index, list) => list.findIndex((entry) => entry.id === section.id) === index)
     : baseSections

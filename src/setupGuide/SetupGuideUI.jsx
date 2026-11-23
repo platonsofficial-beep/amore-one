@@ -5,6 +5,7 @@ import { useHelpModeEnabled } from '../help/HelpMode'
 import { usePublishedFloorPlan } from '../lib/PublishedFloorPlanContext'
 import {
   nextDateKey,
+  nextWizardStep,
   readSetupProgress,
   readStaffTourProgress,
   readStockTourProgress,
@@ -15,6 +16,7 @@ import {
   visibleSetupSteps,
   visibleStaffTourSteps,
   visibleStockTourSteps,
+  wizardStepNumber,
   withSetupDone,
   writeSetupProgress,
   writeStaffTourProgress,
@@ -60,21 +62,21 @@ export function SetupGuideTodaySlot({
   profile = null,
   positions = [],
   seatings = [],
+  employees = [],
+  shifts = [],
+  suppliers = [],
+  stockItems = [],
+  tasks = [],
+  checklists = [],
+  announcements = [],
   onOpenStep,
   tutorialOn = false,
 }) {
   const floor = usePublishedFloorPlan()
   const [progress, setProgress] = useState(() => readSetupProgress(userId, workspaceId, storage()))
-  const steps = withSetupDone(visibleSetupSteps(role), {
-    profile,
-    positions,
-    seatings,
-    floor: {
-      publishedAt: floor?.publishedAt,
-      zones: floor?.layout?.zones,
-      tables: floor?.layout?.tables,
-    },
-  })
+  const steps = withSetupDone(visibleSetupSteps(role), wizardFacts(profile, positions, seatings, floor, {
+    employees, shifts, suppliers, stockItems, tasks, checklists, announcements,
+  }))
 
   useEffect(() => {
     setProgress(readSetupProgress(userId, workspaceId, storage()))
@@ -124,13 +126,51 @@ export function SetupGuideTodaySlot({
       <div className="setup-guide-actions">
         <button
           type="button"
-          onClick={() => save({ skipped: true, remindAfter: '', replay: false })}
+          onClick={() => {
+            save({
+              skipped: false,
+              remindAfter: '',
+              replay: false,
+              walking: true,
+              paused: false,
+              skippedStepIds: progress.skippedStepIds || [],
+            })
+            const next = steps.find((step) => !step.done) || steps[0]
+            if (!next) return
+            window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
+            onOpenStep?.(next)
+          }}
+        >
+          {t('Continue setup')}
+        </button>
+        <button
+          type="button"
+          onClick={() => save({
+            skipped: false,
+            remindAfter: '',
+            replay: true,
+            walking: true,
+            paused: false,
+            skippedStepIds: [],
+          })}
+        >
+          {t('Replay setup')}
+        </button>
+        <button
+          type="button"
+          onClick={() => save({ skipped: true, remindAfter: '', replay: false, walking: false, paused: true })}
         >
           {t('Skip setup')}
         </button>
         <button
           type="button"
-          onClick={() => save({ skipped: false, remindAfter: nextDateKey(todayKey), replay: false })}
+          onClick={() => save({
+            skipped: false,
+            remindAfter: nextDateKey(todayKey),
+            replay: false,
+            walking: false,
+            paused: true,
+          })}
         >
           {t('Remind me tomorrow')}
         </button>
@@ -139,28 +179,183 @@ export function SetupGuideTodaySlot({
   )
 }
 
-export function SetupGuideCoachHost({
-  role = '',
-  profile = null,
-  positions = [],
-  seatings = [],
-  onOpenStep,
-}) {
-  const floor = usePublishedFloorPlan()
-  const [activeId, setActiveId] = useSetupCoachStep()
-  const steps = withSetupDone(visibleSetupSteps(role), {
+function wizardFacts(profile, positions, seatings, floor, extra) {
+  return {
     profile,
     positions,
     seatings,
+    employees: extra.employees,
+    shifts: extra.shifts,
+    suppliers: extra.suppliers,
+    stockItems: extra.stockItems,
+    tasks: extra.tasks,
+    checklists: extra.checklists,
+    announcements: extra.announcements,
     floor: {
       publishedAt: floor?.publishedAt,
       zones: floor?.layout?.zones,
       tables: floor?.layout?.tables,
     },
-  })
+  }
+}
+
+function readWizardPin() {
+  if (typeof window === 'undefined') return ''
+  if (import.meta.env.VITE_AUTH_DISABLED !== 'true') return ''
+  return `${new URLSearchParams(window.location.search).get('setupWizard') ?? ''}`.trim()
+}
+
+export function SetupGuideCoachHost({
+  role = '',
+  userId = '',
+  workspaceId = '',
+  profile = null,
+  positions = [],
+  seatings = [],
+  employees = [],
+  shifts = [],
+  suppliers = [],
+  stockItems = [],
+  tasks = [],
+  checklists = [],
+  announcements = [],
+  tutorialOn = false,
+  nameReady = true,
+  onOpenStep,
+  onContinueLater,
+}) {
+  const floor = usePublishedFloorPlan()
+  const [activeId, setActiveId] = useSetupCoachStep()
+  const [progress, setProgress] = useState(() => readSetupProgress(userId, workspaceId, storage()))
+  const steps = withSetupDone(visibleSetupSteps(role), wizardFacts(profile, positions, seatings, floor, {
+    employees, shifts, suppliers, stockItems, tasks, checklists, announcements,
+  }))
+  const openRef = useRef(onOpenStep)
+  openRef.current = onOpenStep
+  const startedRef = useRef('')
+
+  useEffect(() => {
+    setProgress(readSetupProgress(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(() => {
+    const refresh = () => setProgress(readSetupProgress(userId, workspaceId, storage()))
+    window.addEventListener('one-setup-progress', refresh)
+    return () => window.removeEventListener('one-setup-progress', refresh)
+  }, [userId, workspaceId])
+
+  const save = (next) => {
+    const stored = writeSetupProgress(userId, workspaceId, { ...progress, ...next }, storage())
+    setProgress(stored)
+    window.dispatchEvent(new Event('one-setup-progress'))
+    return stored
+  }
+
+  useEffect(() => {
+    if (!tutorialOn || !nameReady || !steps.length) return undefined
+    const pin = readWizardPin()
+    if (pin === 'hold' || pin === 'roles') {
+      const pinned = steps.find((step) => step.id === (pin === 'roles' ? 'roles' : 'venue')) || steps[0]
+      if (pinned && startedRef.current !== `pin:${pinned.id}`) {
+        startedRef.current = `pin:${pinned.id}`
+        setActiveId(pinned.id)
+        openRef.current?.(pinned)
+      }
+      return undefined
+    }
+    if (progress.skipped && !progress.replay) return undefined
+    if (progress.remindAfter && !progress.replay && !progress.walking) return undefined
+    if (progress.paused && !progress.replay && !progress.walking) return undefined
+    const shouldWalk = progress.walking || progress.replay || (!progress.paused && !progress.skipped)
+    if (!shouldWalk) return undefined
+    if (startedRef.current === 'walk' && !progress.replay) return undefined
+    const first = nextWizardStep(steps, '', progress.skippedStepIds)
+    if (!first) return undefined
+    startedRef.current = 'walk'
+    if (!progress.walking || progress.replay) {
+      save({
+        skipped: false,
+        paused: false,
+        walking: true,
+        replay: false,
+        remindAfter: '',
+        skippedStepIds: progress.replay ? [] : progress.skippedStepIds,
+      })
+    }
+    setActiveId(first.id)
+    openRef.current?.(first)
+    return undefined
+  }, [tutorialOn, nameReady, steps, progress, userId, workspaceId])
+
+  useEffect(() => {
+    const pin = readWizardPin()
+    if (pin === 'hold' || pin === 'roles') return undefined
+    if (!activeId) return undefined
+    const current = steps.find((step) => step.id === activeId)
+    if (!current?.done) return undefined
+    const next = nextWizardStep(steps, activeId, progress.skippedStepIds)
+    if (!next) {
+      setActiveId('')
+      save({ walking: false, paused: false, replay: false })
+      return undefined
+    }
+    setActiveId(next.id)
+    openRef.current?.(next)
+    return undefined
+  }, [activeId, steps, progress.skippedStepIds])
+
+  const index = wizardStepNumber(steps, activeId)
 
   return (
-    <SetupCoachMount activeId={activeId} steps={steps} onActive={setActiveId} onOpenStep={onOpenStep} tourId="setup" />
+    <>
+      {activeId && index ? (
+        <VenueWizardBar step={index} total={steps.length} />
+      ) : null}
+      <SetupCoachMount
+        activeId={activeId}
+        steps={steps}
+        onActive={setActiveId}
+        onOpenStep={onOpenStep}
+        tourId="setup"
+        dismissLabel="Skip"
+        continueLabel="Continue later"
+        onDismiss={() => {
+          const skippedStepIds = [...new Set([...(progress.skippedStepIds || []), activeId].filter(Boolean))]
+          const next = nextWizardStep(steps, activeId, skippedStepIds)
+          save({ skippedStepIds, walking: Boolean(next), paused: !next, replay: false })
+          if (!next) {
+            setActiveId('')
+            onContinueLater?.()
+            return
+          }
+          setActiveId(next.id)
+          onOpenStep?.(next)
+        }}
+        onFinish={() => {
+          save({ walking: false, paused: true, replay: false })
+          setActiveId('')
+          onContinueLater?.()
+        }}
+      />
+    </>
+  )
+}
+
+function VenueWizardBar({ step, total }) {
+  const [top, setTop] = useState(0)
+  useEffect(() => {
+    const banner = document.querySelector('.subscription-banner')
+    const height = banner ? Math.round(banner.getBoundingClientRect().height) : 0
+    setTop(height)
+  }, [])
+  return createPortal(
+    <div className="venue-wizard-bar" role="status" style={{ top }}>
+      <span>{t('Step {{step}} of {{total}}', { step, total })}</span>
+      <span className="venue-wizard-track" aria-hidden="true">
+        <span style={{ width: `${Math.round((step / total) * 100)}%` }} />
+      </span>
+    </div>,
+    document.body,
   )
 }
 
@@ -177,6 +372,7 @@ function SetupCoachMount({
   onDismiss,
   onFinish,
   dismissLabel = 'Skip this step',
+  continueLabel = '',
   tourId = '',
 }) {
   const helpOn = useHelpModeEnabled()
@@ -236,6 +432,7 @@ function SetupCoachMount({
       return undefined
     }
     document.body.dataset.oneActiveTour = tourId
+    window.dispatchEvent(new Event('one-tour-active'))
     return function cleanup() {
       if (document.body.dataset.oneActiveTour === tourId) delete document.body.dataset.oneActiveTour
       window.dispatchEvent(new Event('one-tour-idle'))
@@ -271,6 +468,11 @@ function SetupCoachMount({
             type="button"
             className="primary-btn"
             onClick={function advance() {
+              if (continueLabel) {
+                if (onFinish) onFinish()
+                else onActive('')
+                return
+              }
               if (!next) {
                 if (onFinish) onFinish()
                 else onActive('')
@@ -281,7 +483,7 @@ function SetupCoachMount({
               if (onOpenStep) onOpenStep(next)
             }}
           >
-            {t('Next')}
+            {t(continueLabel || 'Next')}
           </button>
         </div>
       </section>
@@ -546,6 +748,19 @@ export function ScreenGuideHost({
   }, [userId, workspaceId])
 
   const seen = Boolean(screenId && progress.seen[screenId])
+  useEffect(function yieldToVenueWizard() {
+    function sync() {
+      const otherTour = document.body.dataset.oneActiveTour && document.body.dataset.oneActiveTour !== 'screen'
+      if (otherTour) setActiveId('')
+    }
+    window.addEventListener('one-tour-active', sync)
+    window.addEventListener('one-setup-coach', sync)
+    return function cleanup() {
+      window.removeEventListener('one-tour-active', sync)
+      window.removeEventListener('one-setup-coach', sync)
+    }
+  }, [])
+
   useEffect(function openScreen() {
     const otherTour = typeof document !== 'undefined'
       && document.body.dataset.oneActiveTour
