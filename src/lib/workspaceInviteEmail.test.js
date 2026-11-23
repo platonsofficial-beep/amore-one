@@ -18,7 +18,25 @@ describe('workspace invite email', () => {
     expect(mail.html).toContain('Accept invite')
     expect(mail.html).toContain('https://app.onehospitality.app/?invite=tok')
     expect(mail.html).toContain('SENTIO NICOSIA')
+    expect(mail.html).toContain('Role: Staff')
     expect(mail.html).toContain('30 Nov 2026')
+    expect(mail.html).toContain('bgcolor="#0f1b2d"')
+    expect(mail.html).toContain('name="color-scheme" content="light dark"')
+    expect(mail.html).toContain('ONE · onehospitality.app')
     expect(mail.html).not.toContain('<script')
+    expect(mail.text).toContain('Role: Staff')
+    expect(mail.text).toContain('https://app.onehospitality.app/?invite=tok')
+    expect(mail.text).toContain('ONE · onehospitality.app')
+  })
+
+  it('states the invited role on its own line', () => {
+    const mail = buildWorkspaceInviteEmail({
+      venueName: 'SENTIO NICOSIA',
+      role: 'manager',
+      inviteUrl: 'https://app.onehospitality.app/?invite=tok',
+    })
+    expect(mail.html).toContain('Role: Manager')
+    expect(mail.text).toContain('Role: Manager')
+    expect(mail.html).toContain("You're invited to SENTIO NICOSIA")
   })
 })

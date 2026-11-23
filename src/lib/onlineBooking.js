@@ -1,4 +1,6 @@
-export const ONLINE_BOOKING_ORIGIN = 'https://app.onehospitality.app'
+import { CANONICAL_APP_ORIGIN, publicShareOrigin } from './publicAppUrl.js'
+
+export const ONLINE_BOOKING_ORIGIN = CANONICAL_APP_ORIGIN
 export const DEFAULT_ONLINE_MAX_PARTY = 8
 export const DEFAULT_ONLINE_WINDOW_DAYS = 30
 export const DEFAULT_ONLINE_NOTICE_MINUTES = 120
@@ -70,14 +72,14 @@ export function slugifyVenueName(name) {
   return collapsed || 'venue'
 }
 
-export function onlineBookingUrl(slug) {
-  return `${ONLINE_BOOKING_ORIGIN}/book/${slugifyVenueName(slug)}`
+export function onlineBookingUrl(slug, origin = publicShareOrigin()) {
+  return `${origin}/book/${slugifyVenueName(slug)}`
 }
 
 /** Link for a slug that is already valid. Empty stays empty — never "venue". */
-export function publicBookingLink(slug) {
+export function publicBookingLink(slug, origin = publicShareOrigin()) {
   const committed = commitPublicSlug(slug)
-  return committed ? `${ONLINE_BOOKING_ORIGIN}/book/${committed}` : ''
+  return committed ? `${origin}/book/${committed}` : ''
 }
 
 export function normalizeConfirmationMethod(value, autoConfirm) {

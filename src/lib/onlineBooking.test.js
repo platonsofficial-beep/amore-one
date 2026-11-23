@@ -11,6 +11,7 @@ import {
   commitPublicSlug,
   draftPublicSlug,
   onlineBookingUrl,
+  publicBookingLink,
   slugifyVenueName,
   sumVenueCovers,
 } from './onlineBooking'
@@ -20,6 +21,8 @@ describe('online booking settings', () => {
   it('builds a public slug and link from the venue name', () => {
     expect(slugifyVenueName('Amoré  Kitchen')).toBe('amore-kitchen')
     expect(onlineBookingUrl('Amoré  Kitchen')).toBe('https://app.onehospitality.app/book/amore-kitchen')
+    expect(publicBookingLink('amore-kitchen', 'https://amore-one-sandy.vercel.app')).toBe('https://amore-one-sandy.vercel.app/book/amore-kitchen')
+    expect(publicBookingLink('amore-kitchen')).toBe('https://app.onehospitality.app/book/amore-kitchen')
   })
 
   it('keeps a public link draft editable and commits it on blur', () => {

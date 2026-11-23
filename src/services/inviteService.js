@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabaseClient'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { t } from '../i18n/i18n'
+import { publicShareOrigin } from '../lib/publicAppUrl.js'
 import { getSession } from './authService'
 
 const WORKSPACE_INVITES_TABLE = 'workspace_invites'
@@ -266,17 +267,12 @@ export async function acceptPendingInviteForAuthenticatedUser() {
   return data ?? null
 }
 
-export function buildInviteUrl(token) {
+export function buildInviteUrl(token, origin = publicShareOrigin()) {
   const normalizedToken = `${token ?? ''}`.trim()
   if (!normalizedToken) return ''
 
-  if (typeof window === 'undefined') {
-    return `?invite=${encodeURIComponent(normalizedToken)}`
-  }
-
-  const url = new URL(window.location.origin)
-  url.searchParams.set('invite', normalizedToken)
-  return url.toString()
+  const base = `${origin || publicShareOrigin()}`.replace(/\/$/, '')
+  return `${base}/?invite=${encodeURIComponent(normalizedToken)}`
 }
 
 export async function getPendingEmployeeInvite(workspaceId, employeeId) {
