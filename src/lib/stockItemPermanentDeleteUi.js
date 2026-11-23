@@ -1,4 +1,4 @@
-import { t } from '../i18n/i18n'
+import { t, uiLocale } from '../i18n/i18n'
 /**
  * P8.16.25 / P8.16.26c / P8.16.29 — Single product permanent delete confirmation helpers.
  */
@@ -48,7 +48,7 @@ function formatBlockStartedDate(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(uiLocale('en-GB'), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',

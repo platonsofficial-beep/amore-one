@@ -6,15 +6,15 @@ import {
   revokeInvite,
 } from '../../services/inviteService'
 import { EmployeeInviteModal } from './EmployeeInviteModal'
-import { t } from '../../i18n/i18n'
+import { t, uiLocale } from '../../i18n/i18n'
 
 function formatInviteExpiryDate(value) {
   const timestamp = Date.parse(value ?? '')
   if (!Number.isFinite(timestamp)) return '—'
 
-  return new Date(timestamp).toLocaleDateString(undefined, {
-    month: 'short',
+  return new Date(timestamp).toLocaleDateString(uiLocale('en-GB'), {
     day: 'numeric',
+    month: 'short',
     year: 'numeric',
   })
 }
@@ -148,7 +148,7 @@ export function EmployeeAccountConnectionSection({
       await revokeInvite(pendingInvite.id)
       await loadConnectionStatus()
     } catch (error) {
-      setActionError(error?.message || t("Unable to revoke invite right now."))
+      setActionError(error?.message || t("Unable to cancel the invite right now."))
     } finally {
       setIsRevoking(false)
     }
@@ -219,7 +219,7 @@ export function EmployeeAccountConnectionSection({
                   onClick={handleRevokeInvite}
                   disabled={isRevoking}
                 >
-                  {isRevoking ? 'Revoking…' : t("Revoke invite")}
+                  {isRevoking ? t("Cancelling…") : t("Cancel invite")}
                 </button>
               </div>
             ) : null}

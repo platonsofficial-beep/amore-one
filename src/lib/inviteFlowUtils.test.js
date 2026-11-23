@@ -10,7 +10,7 @@ import {
 describe('inviteFlowUtils', () => {
   it('formats expired, revoked, and accepted invite errors', () => {
     expect(formatInviteErrorMessage('Invite has expired')).toContain('expired')
-    expect(formatInviteErrorMessage('Invite was revoked')).toContain('revoked')
+    expect(formatInviteErrorMessage('Invite was revoked')).toContain('cancelled')
     expect(formatInviteErrorMessage('Invite has already been accepted')).toContain('already used')
     expect(formatInviteErrorMessage('Invite not found')).toContain('not found')
   })
