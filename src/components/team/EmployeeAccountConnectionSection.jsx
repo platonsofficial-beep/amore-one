@@ -155,7 +155,6 @@ export function EmployeeAccountConnectionSection({
   }
 
   const handleInviteCreated = async () => {
-    setIsInviteModalOpen(false)
     await loadConnectionStatus()
   }
 

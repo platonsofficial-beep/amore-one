@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
-import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
-import { buildInviteUrl, createEmployeeInvite } from '../../services/inviteService'
+import { buildInviteUrl, createEmployeeInvite, sendWorkspaceInviteEmail } from '../../services/inviteService'
 import { t } from '../../i18n/i18n'
 
 const INVITE_ROLE_OPTIONS = [
@@ -54,6 +53,8 @@ export function EmployeeInviteModal({
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [createdInvite, setCreatedInvite] = useState(null)
+  const [emailSent, setEmailSent] = useState(false)
+  const [emailError, setEmailError] = useState('')
   const [copyNotice, setCopyNotice] = useState('')
 
   useEffect(() => {
@@ -64,6 +65,8 @@ export function EmployeeInviteModal({
     setIsSaving(false)
     setErrorMessage('')
     setCreatedInvite(null)
+    setEmailSent(false)
+    setEmailError('')
     setCopyNotice('')
   }, [isOpen, employee?.id, employee?.email])
 
@@ -115,6 +118,17 @@ export function EmployeeInviteModal({
         role,
       })
 
+      let sent = false
+      try {
+        await sendWorkspaceInviteEmail(invite.id)
+        sent = true
+      } catch (emailFailure) {
+        const raw = `${emailFailure?.message ?? ''}`.trim()
+        setEmailError(raw
+          ? t(raw)
+          : t("The invite was created, but the email could not be sent. Copy the link and share it."))
+      }
+      setEmailSent(sent)
       setCreatedInvite(invite)
       onInviteCreated?.(invite)
     } catch (error) {
@@ -150,9 +164,11 @@ export function EmployeeInviteModal({
         {createdInvite ? (
           <div className="employee-invite-success">
             <p className="employee-invite-success-copy">
-              {t("Share this link with")} <strong>{createdInvite.email || email}</strong> so they can sign in and connect as{' '}
-              <strong>{getWorkspaceRoleLabel(createdInvite.role)}</strong>.
+              {emailSent
+                ? t("Invite email sent to {{email}}.", { email: createdInvite.email || email })
+                : t("The invite was created, but the email could not be sent. Copy the link and share it.")}
             </p>
+            {emailError ? <p className="employee-invite-error" role="alert">{emailError}</p> : null}
 
             <label className="form-field full-width">
               <span>{t("Invite link")}</span>
@@ -166,7 +182,7 @@ export function EmployeeInviteModal({
                 {t("Done")}
               </button>
               <button type="button" className="primary-btn" onClick={handleCopyLink}>
-                {t("Copy link")}
+                {t("Copy invite link")}
               </button>
             </div>
           </div>
