@@ -537,7 +537,7 @@ export function seatingDaysPreviewState(params) {
   return {
     info: {
       ok: true,
-      venueName: 'SENTIO',
+      venueName: 'The Harbour Bar',
       timeZone: 'Europe/Nicosia',
       maxPartySize: 8,
       bookingWindowDays: 60,

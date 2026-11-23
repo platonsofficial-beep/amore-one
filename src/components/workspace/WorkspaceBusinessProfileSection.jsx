@@ -91,7 +91,7 @@ export function WorkspaceBusinessProfileSection({
                 data-help="setup.profile-name"
                 value={workspaceProfile.businessName}
                 onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
-                placeholder={t("e.g. Amore Nicosia")}
+                placeholder={t("e.g. The Harbour Bar")}
                 disabled={isLoading || isSavePending}
               />
             </label>

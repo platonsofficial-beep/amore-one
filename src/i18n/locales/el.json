@@ -688,7 +688,7 @@
   "Duration": "Διάρκεια",
   "Duration (minutes)": "Διάρκεια (λεπτά)",
   "e.g. 700 ml, 1 L, 250 ml": "π.χ. 700 ml, 1 L, 250 ml",
-  "e.g. Amore Nicosia": "π.χ. Amore Nicosia",
+  "e.g. The Harbour Bar": "π.χ. The Harbour Bar",
   "e.g. Bar": "π.χ. Bar",
   "e.g. Bar closing": "π.χ. Κλείσιμο μπαρ",
   "e.g. Bar Closing": "π.χ. Κλείσιμο μπαρ",
@@ -703,7 +703,6 @@
   "e.g. Malakakos": "π.χ. Malakakos",
   "e.g. Mixologist": "π.χ. Mixologist",
   "e.g. Patio": "π.χ. Βεράντα",
-  "e.g. SENTIO.LIMASSOL": "π.χ. SENTIO.LIMASSOL",
   "e.g. Sommelier, VIP Host, Pizza Chef": "π.χ. Sommelier, VIP Υποδοχή, Pizza Chef",
   "e.g. T1": "π.χ. T1",
   "e.g. Usually supplied in cases": "π.χ. Συνήθως έρχεται σε κιβώτια",
@@ -4733,7 +4732,7 @@
   "Step {{step}} of {{total}}": "Βήμα {{step}} από {{total}}",
   "Continue setup": "Συνέχισε το στήσιμο",
   "Replay setup": "Ξανά από την αρχή",
-  "Continue later": "Συνέχεια αργότερα",
+  "Finish setup later": "Ολοκλήρωση αργότερα",
   "Booking link": "Σύνδεσμος",
   "Name the venue": "Το όνομα του μαγαζιού",
   "Set the venue name, address, country, time zone, currency, and logo. The schedule and the booking page use these.": "Βάλε όνομα, διεύθυνση, χώρα, ζώνη ώρας, νόμισμα και λογότυπο. Το πρόγραμμα και οι κρατήσεις τα χρησιμοποιούν.",
@@ -4752,5 +4751,7 @@
   "Tasks and checklists": "Εργασίες και λίστες",
   "Add the first task and a checklist for the shift.": "Πρόσθεσε την πρώτη εργασία και μια λίστα για τη βάρδια.",
   "Tell the team": "Πες το στην ομάδα",
-  "Send the first announcement so the team knows you are open.": "Στείλε την πρώτη ανακοίνωση, για να ξέρει η ομάδα ότι ανοίξατε."
+  "Send the first announcement so the team knows you are open.": "Στείλε την πρώτη ανακοίνωση, για να ξέρει η ομάδα ότι ανοίξατε.",
+  "Stock order": "Παραγγελία αποθέματος",
+  "All stock is at or above target.": "Όλο το απόθεμα είναι στον στόχο ή από πάνω."
 }

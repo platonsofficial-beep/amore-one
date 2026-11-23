@@ -9440,7 +9440,7 @@ function buildFloorPlanSnapshot({
 }) {
   if (!layout?.tables?.length) {
     return {
-      layout: layout ?? { id: 'empty', name: 'AMORE', zones: [], tables: [], units: [] },
+      layout: layout ?? { id: 'empty', name: 'Floor plan', zones: [], tables: [], units: [] },
       tableStates: [],
       stats: buildFloorPlanLiveStats([], reservations, todayKey, nowMinutes),
     }
@@ -11887,7 +11887,7 @@ function FloorPlanView({
               onChange={setActiveFloorAreaId}
             />
           ) : (
-            <h3>{floorPlanSnapshot.layout.name}</h3>
+            <h3>{t(floorPlanSnapshot.layout.name || 'Floor plan')}</h3>
           )}
         </div>
         <div className="floor-plan-toolbar-actions">

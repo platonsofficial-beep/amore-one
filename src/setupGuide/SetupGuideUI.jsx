@@ -458,8 +458,8 @@ export function SetupGuideCoachHost({
         onActive={setActiveId}
         onOpenStep={onOpenStep}
         tourId="setup"
-        dismissLabel="Skip"
-        continueLabel="Continue later"
+        dismissLabel="Skip this step"
+        continueLabel="Finish setup later"
         onDismiss={() => {
           const skippedStepIds = [...new Set([...(progress.skippedStepIds || []), activeId].filter(Boolean))]
           const next = nextWizardStep(steps, activeId, skippedStepIds)
@@ -650,7 +650,7 @@ function SetupCoachMount({
           {continueLabel ? (
             <button
               type="button"
-              className="ghost-btn"
+              className="setup-guide-coach-later"
               onClick={function later() {
                 if (onFinish) onFinish()
                 else onActive('')
