@@ -1,3 +1,38 @@
+.venue-wizard-bar {
+  position: fixed;
+  z-index: 72;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 16px;
+  background: var(--one-navy-800);
+  color: var(--one-text);
+  border-bottom: 1px solid var(--one-gold-line);
+  font-weight: 700;
+}
+
+.app-shell.has-subscription-banner .venue-wizard-bar {
+  padding-top: 8px;
+}
+
+.venue-wizard-track {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--one-overlay-12);
+  overflow: hidden;
+}
+
+.venue-wizard-track span {
+  display: block;
+  height: 100%;
+  background: var(--one-gold);
+}
+
 .setup-guide-card {
   display: flex;
   flex-direction: column;
@@ -85,9 +120,13 @@
   z-index: 141;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+  box-sizing: border-box;
   width: min(360px, calc(100vw - 24px));
-  padding: 14px;
+  height: auto;
+  max-height: calc(100dvh - 16px);
+  padding: 12px;
+  overflow: auto;
   border-radius: 16px;
   border: 1px solid var(--one-gold-line);
   background: var(--one-navy-800);
@@ -99,15 +138,25 @@
   margin: 0;
 }
 
+.setup-guide-coach p {
+  overflow: visible;
+}
+
 .setup-guide-coach-actions {
   display: flex;
-  flex-wrap: wrap;
+  position: sticky;
+  bottom: 0;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   gap: 8px;
+  background: var(--one-navy-800);
 }
 
 .setup-guide-coach-actions button {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 10px;
   border-radius: 999px;
   border: 0;
   font: inherit;
@@ -125,13 +174,16 @@
   color: var(--one-gold-light);
 }
 
-@media (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 520px) {
   .setup-guide-coach {
-    left: 12px !important;
-    right: 12px !important;
-    width: auto !important;
-    max-height: calc(100vh - 24px);
-    overflow: auto;
+    max-width: 420px;
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .setup-guide-coach p {
+    font-size: 0.82rem;
+    line-height: 1.3;
   }
 }
 

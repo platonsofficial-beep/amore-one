@@ -5,6 +5,7 @@ import { useHelpModeEnabled } from '../help/HelpMode'
 import { usePublishedFloorPlan } from '../lib/PublishedFloorPlanContext'
 import {
   nextDateKey,
+  nextWizardStep,
   readSetupProgress,
   readStaffTourProgress,
   readStockTourProgress,
@@ -15,6 +16,7 @@ import {
   visibleSetupSteps,
   visibleStaffTourSteps,
   visibleStockTourSteps,
+  wizardStepNumber,
   withSetupDone,
   writeSetupProgress,
   writeStaffTourProgress,
@@ -37,19 +39,159 @@ function storage() {
   }
 }
 
+function bottomNavBox() {
+  const nav = document.querySelector('.mobile-bottom-nav')
+  if (!nav) return null
+  const rect = nav.getBoundingClientRect()
+  if (rect.width < 8 || rect.height < 8) return null
+  return rect
+}
+
+function coachWidth() {
+  const landscape = window.innerWidth > window.innerHeight
+  const max = landscape ? 420 : 360
+  return Math.min(max, window.innerWidth - 24)
+}
+
+function coachFloor() {
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  const nav = bottomNavBox()
+  const navTop = nav && nav.top > 0 && nav.top < viewHeight ? nav.top : viewHeight
+  return Math.min(navTop, viewHeight) - 8
+}
+
+function overlapsBox(a, b) {
+  const separatedX = a.right <= b.left || b.right <= a.left
+  const separatedY = a.bottom <= b.top || b.bottom <= a.top
+  return !separatedX && !separatedY
+}
+
 function placeCoach(rect) {
   const margin = 12
-  const cardHeight = 220
-  const width = Math.min(360, window.innerWidth - margin * 2)
-  const left = Math.min(Math.max(margin, rect.left), window.innerWidth - width - margin)
-  const below = rect.bottom + margin
-  const above = rect.top - cardHeight - margin
-  let top = below
-  if (below + cardHeight > window.innerHeight - margin && above >= margin) top = above
-  if (window.innerHeight < 500) {
-    top = rect.bottom + margin + cardHeight < window.innerHeight ? below : Math.max(margin, above)
+  const width = coachWidth()
+  const landscape = window.innerWidth > window.innerHeight
+  const liveCard = document.querySelector('.setup-guide-coach')
+  const liveHeight = liveCard ? Math.ceil(Math.max(liveCard.getBoundingClientRect().height, liveCard.scrollHeight)) : 0
+  const cardHeight = Math.max(liveHeight + 8, landscape ? 180 : 280)
+  const floor = Math.min(coachFloor(), (window.visualViewport ? window.visualViewport.height : window.innerHeight) - 8)
+  const target = { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom }
+  const spots = []
+  const belowTop = rect.bottom + margin
+  const aboveTop = rect.top - cardHeight - margin
+  if (landscape) spots.push({ left: window.innerWidth - width - margin, top: Math.max(chromeBottom(), floor - cardHeight) })
+  if (belowTop + cardHeight <= floor) spots.push({ left: margin, top: belowTop })
+  if (aboveTop >= chromeBottom()) spots.push({ left: margin, top: aboveTop })
+  for (let i = 0; i < spots.length; i += 1) {
+    const spot = spots[i]
+    const maxHeight = floor - spot.top
+    if (maxHeight < cardHeight) continue
+    const card = { left: spot.left, right: spot.left + width, top: spot.top, bottom: spot.top + cardHeight }
+    if (card.bottom > floor) continue
+    if (overlapsBox(card, target)) continue
+    return { left: spot.left, top: spot.top, width, maxHeight }
   }
-  return { left, top, width }
+  const top = chromeBottom()
+  return { left: margin, top, width, maxHeight: Math.max(floor - top, 0) }
+}
+
+function dockedCoach() {
+  const width = coachWidth()
+  const live = document.querySelector('.setup-guide-coach')
+  const needed = live ? live.scrollHeight + 8 : 200
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  const floor = Math.min(coachFloor(), viewHeight - 8)
+  const top = Math.max(chromeBottom(), floor - needed)
+  return {
+    left: window.innerWidth > window.innerHeight ? Math.max(12, window.innerWidth - width - 12) : 12,
+    top,
+    width,
+    maxHeight: floor - top,
+  }
+}
+
+function clippedCoachFix() {
+  const coach = document.querySelector('.setup-guide-coach')
+  if (!coach || coach.scrollHeight <= coach.clientHeight + 1) return null
+  const rect = coach.getBoundingClientRect()
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  const floor = Math.min(coachFloor(), viewHeight - 8)
+  const needed = coach.scrollHeight + 8
+  const top = Math.max(chromeBottom(), floor - needed)
+  const maxHeight = Math.min(needed, floor - top)
+  if (Math.abs(rect.top - top) < 2 && coach.clientHeight + 1 >= maxHeight) return null
+  return { top, maxHeight }
+}
+
+function usableCoachTarget(node) {
+  if (!node || node.closest('.mobile-bottom-nav, .setup-guide-coach, .venue-wizard-bar')) return false
+  const rect = node.getBoundingClientRect()
+  if (rect.width < 24 || rect.height < 20) return false
+  const nav = bottomNavBox()
+  if (nav && overlapsBox(rect, nav)) return false
+  const viewHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight
+  if (rect.top < chromeBottom() - 2 || rect.bottom > viewHeight - 8) return false
+  return true
+}
+
+function scrollParent(node) {
+  let current = node.parentElement
+  while (current && current !== document.body) {
+    const style = window.getComputedStyle(current)
+    const canScroll = (style.overflowY === 'auto' || style.overflowY === 'scroll') && current.scrollHeight > current.clientHeight + 8
+    if (canScroll) return current
+    current = current.parentElement
+  }
+  return document.scrollingElement
+}
+
+function chromeBottom() {
+  let bottom = 8
+  const bar = document.querySelector('.venue-wizard-bar')
+  if (bar) {
+    const rect = bar.getBoundingClientRect()
+    if (rect.bottom > bottom) bottom = rect.bottom
+  }
+  const nav = document.querySelector('.workspace-nav')
+  if (nav) {
+    const rect = nav.getBoundingClientRect()
+    const horizontalStrip = rect.height > 0 && rect.height < 140 && rect.top < 240 && rect.width > 180
+    if (horizontalStrip && rect.bottom > bottom) bottom = rect.bottom
+  }
+  return bottom + 8
+}
+
+function viewportBox(node) {
+  const rect = node.getBoundingClientRect()
+  const vv = window.visualViewport
+  const offsetTop = vv ? vv.offsetTop : 0
+  const offsetLeft = vv ? vv.offsetLeft : 0
+  return {
+    top: rect.top - offsetTop,
+    left: rect.left - offsetLeft,
+    width: rect.width,
+    height: rect.height,
+    right: rect.right - offsetLeft,
+    bottom: rect.bottom - offsetTop,
+  }
+}
+
+function revealCoachTarget(node) {
+  const scroller = scrollParent(node)
+  if (!scroller) return
+  const rect = node.getBoundingClientRect()
+  const landscape = window.innerWidth > window.innerHeight
+  const desired = Math.max(chromeBottom(), landscape ? 8 : 300)
+  const nav = bottomNavBox()
+  const limit = (nav ? nav.top : (window.visualViewport ? window.visualViewport.height : window.innerHeight)) - 8
+  const tooHigh = rect.top < desired - 2
+  const tooLow = rect.bottom > limit
+  if (!tooHigh && !tooLow) return
+  const horizontal = node.closest('.workspace-nav-links')
+  if (horizontal && horizontal.scrollWidth > horizontal.clientWidth + 8) {
+    const parentRect = horizontal.getBoundingClientRect()
+    horizontal.scrollLeft += rect.left - parentRect.left - 8
+  }
+  scroller.scrollTop += rect.top - desired
 }
 
 export function SetupGuideTodaySlot({
@@ -60,21 +202,21 @@ export function SetupGuideTodaySlot({
   profile = null,
   positions = [],
   seatings = [],
+  employees = [],
+  shifts = [],
+  suppliers = [],
+  stockItems = [],
+  tasks = [],
+  checklists = [],
+  announcements = [],
   onOpenStep,
   tutorialOn = false,
 }) {
   const floor = usePublishedFloorPlan()
   const [progress, setProgress] = useState(() => readSetupProgress(userId, workspaceId, storage()))
-  const steps = withSetupDone(visibleSetupSteps(role), {
-    profile,
-    positions,
-    seatings,
-    floor: {
-      publishedAt: floor?.publishedAt,
-      zones: floor?.layout?.zones,
-      tables: floor?.layout?.tables,
-    },
-  })
+  const steps = withSetupDone(visibleSetupSteps(role), wizardFacts(profile, positions, seatings, floor, {
+    employees, shifts, suppliers, stockItems, tasks, checklists, announcements,
+  }))
 
   useEffect(() => {
     setProgress(readSetupProgress(userId, workspaceId, storage()))
@@ -124,13 +266,51 @@ export function SetupGuideTodaySlot({
       <div className="setup-guide-actions">
         <button
           type="button"
-          onClick={() => save({ skipped: true, remindAfter: '', replay: false })}
+          onClick={() => {
+            save({
+              skipped: false,
+              remindAfter: '',
+              replay: false,
+              walking: true,
+              paused: false,
+              skippedStepIds: progress.skippedStepIds || [],
+            })
+            const next = steps.find((step) => !step.done) || steps[0]
+            if (!next) return
+            window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
+            onOpenStep?.(next)
+          }}
+        >
+          {t('Continue setup')}
+        </button>
+        <button
+          type="button"
+          onClick={() => save({
+            skipped: false,
+            remindAfter: '',
+            replay: true,
+            walking: true,
+            paused: false,
+            skippedStepIds: [],
+          })}
+        >
+          {t('Replay setup')}
+        </button>
+        <button
+          type="button"
+          onClick={() => save({ skipped: true, remindAfter: '', replay: false, walking: false, paused: true })}
         >
           {t('Skip setup')}
         </button>
         <button
           type="button"
-          onClick={() => save({ skipped: false, remindAfter: nextDateKey(todayKey), replay: false })}
+          onClick={() => save({
+            skipped: false,
+            remindAfter: nextDateKey(todayKey),
+            replay: false,
+            walking: false,
+            paused: true,
+          })}
         >
           {t('Remind me tomorrow')}
         </button>
@@ -139,28 +319,184 @@ export function SetupGuideTodaySlot({
   )
 }
 
-export function SetupGuideCoachHost({
-  role = '',
-  profile = null,
-  positions = [],
-  seatings = [],
-  onOpenStep,
-}) {
-  const floor = usePublishedFloorPlan()
-  const [activeId, setActiveId] = useSetupCoachStep()
-  const steps = withSetupDone(visibleSetupSteps(role), {
+function wizardFacts(profile, positions, seatings, floor, extra) {
+  return {
     profile,
     positions,
     seatings,
+    employees: extra.employees,
+    shifts: extra.shifts,
+    suppliers: extra.suppliers,
+    stockItems: extra.stockItems,
+    tasks: extra.tasks,
+    checklists: extra.checklists,
+    announcements: extra.announcements,
     floor: {
       publishedAt: floor?.publishedAt,
       zones: floor?.layout?.zones,
       tables: floor?.layout?.tables,
     },
-  })
+  }
+}
+
+function readWizardPin() {
+  if (typeof window === 'undefined') return ''
+  if (import.meta.env.VITE_AUTH_DISABLED !== 'true') return ''
+  return `${new URLSearchParams(window.location.search).get('setupWizard') ?? ''}`.trim()
+}
+
+export function SetupGuideCoachHost({
+  role = '',
+  userId = '',
+  workspaceId = '',
+  profile = null,
+  positions = [],
+  seatings = [],
+  employees = [],
+  shifts = [],
+  suppliers = [],
+  stockItems = [],
+  tasks = [],
+  checklists = [],
+  announcements = [],
+  tutorialOn = false,
+  nameReady = true,
+  onOpenStep,
+  onContinueLater,
+}) {
+  const floor = usePublishedFloorPlan()
+  const [activeId, setActiveId] = useSetupCoachStep()
+  const [progress, setProgress] = useState(() => readSetupProgress(userId, workspaceId, storage()))
+  const steps = withSetupDone(visibleSetupSteps(role), wizardFacts(profile, positions, seatings, floor, {
+    employees, shifts, suppliers, stockItems, tasks, checklists, announcements,
+  }))
+  const openRef = useRef(onOpenStep)
+  openRef.current = onOpenStep
+  const startedRef = useRef('')
+
+  useEffect(() => {
+    setProgress(readSetupProgress(userId, workspaceId, storage()))
+  }, [userId, workspaceId])
+
+  useEffect(() => {
+    const refresh = () => setProgress(readSetupProgress(userId, workspaceId, storage()))
+    window.addEventListener('one-setup-progress', refresh)
+    return () => window.removeEventListener('one-setup-progress', refresh)
+  }, [userId, workspaceId])
+
+  const save = (next) => {
+    const stored = writeSetupProgress(userId, workspaceId, { ...progress, ...next }, storage())
+    setProgress(stored)
+    window.dispatchEvent(new Event('one-setup-progress'))
+    return stored
+  }
+
+  useEffect(() => {
+    if (!tutorialOn || !nameReady || !steps.length) return undefined
+    const pin = readWizardPin()
+    if (pin) {
+      const pinnedId = pin === 'hold' ? 'venue' : pin
+      const pinned = steps.find((step) => step.id === pinnedId) || steps[0]
+      if (pinned && startedRef.current !== `pin:${pinned.id}`) {
+        startedRef.current = `pin:${pinned.id}`
+        setActiveId(pinned.id)
+        openRef.current?.(pinned)
+      }
+      return undefined
+    }
+    if (progress.skipped && !progress.replay) return undefined
+    if (progress.remindAfter && !progress.replay && !progress.walking) return undefined
+    if (progress.paused && !progress.replay && !progress.walking) return undefined
+    const shouldWalk = progress.walking || progress.replay || (!progress.paused && !progress.skipped)
+    if (!shouldWalk) return undefined
+    if (startedRef.current === 'walk' && !progress.replay) return undefined
+    const first = nextWizardStep(steps, '', progress.skippedStepIds)
+    if (!first) return undefined
+    startedRef.current = 'walk'
+    if (!progress.walking || progress.replay) {
+      save({
+        skipped: false,
+        paused: false,
+        walking: true,
+        replay: false,
+        remindAfter: '',
+        skippedStepIds: progress.replay ? [] : progress.skippedStepIds,
+      })
+    }
+    setActiveId(first.id)
+    openRef.current?.(first)
+    return undefined
+  }, [tutorialOn, nameReady, steps, progress, userId, workspaceId])
+
+  useEffect(() => {
+    const pin = readWizardPin()
+    if (pin) return undefined
+    if (!activeId) return undefined
+    const current = steps.find((step) => step.id === activeId)
+    if (!current?.done) return undefined
+    const next = nextWizardStep(steps, activeId, progress.skippedStepIds)
+    if (!next) {
+      setActiveId('')
+      save({ walking: false, paused: false, replay: false })
+      return undefined
+    }
+    setActiveId(next.id)
+    openRef.current?.(next)
+    return undefined
+  }, [activeId, steps, progress.skippedStepIds])
+
+  const index = wizardStepNumber(steps, activeId)
 
   return (
-    <SetupCoachMount activeId={activeId} steps={steps} onActive={setActiveId} onOpenStep={onOpenStep} tourId="setup" />
+    <>
+      {activeId && index ? (
+        <VenueWizardBar step={index} total={steps.length} />
+      ) : null}
+      <SetupCoachMount
+        activeId={activeId}
+        steps={steps}
+        onActive={setActiveId}
+        onOpenStep={onOpenStep}
+        tourId="setup"
+        dismissLabel="Skip"
+        continueLabel="Continue later"
+        onDismiss={() => {
+          const skippedStepIds = [...new Set([...(progress.skippedStepIds || []), activeId].filter(Boolean))]
+          const next = nextWizardStep(steps, activeId, skippedStepIds)
+          save({ skippedStepIds, walking: Boolean(next), paused: !next, replay: false })
+          if (!next) {
+            setActiveId('')
+            onContinueLater?.()
+            return
+          }
+          setActiveId(next.id)
+          onOpenStep?.(next)
+        }}
+        onFinish={() => {
+          save({ walking: false, paused: true, replay: false })
+          setActiveId('')
+          onContinueLater?.()
+        }}
+      />
+    </>
+  )
+}
+
+function VenueWizardBar({ step, total }) {
+  const [top, setTop] = useState(0)
+  useEffect(() => {
+    const banner = document.querySelector('.subscription-banner')
+    const height = banner ? Math.round(banner.getBoundingClientRect().height) : 0
+    setTop(height)
+  }, [])
+  return createPortal(
+    <div className="venue-wizard-bar" role="status" style={{ top }}>
+      <span>{t('Step {{step}} of {{total}}', { step, total })}</span>
+      <span className="venue-wizard-track" aria-hidden="true">
+        <span style={{ width: `${Math.round((step / total) * 100)}%` }} />
+      </span>
+    </div>,
+    document.body,
   )
 }
 
@@ -177,6 +513,7 @@ function SetupCoachMount({
   onDismiss,
   onFinish,
   dismissLabel = 'Skip this step',
+  continueLabel = '',
   tourId = '',
 }) {
   const helpOn = useHelpModeEnabled()
@@ -188,43 +525,70 @@ function SetupCoachMount({
       setBox(null)
       return undefined
     }
-    let frame = 0
-    let tries = 0
+    const stepId = step.id
+    setBox(null)
     const names = coachTargets(step)
-    function measure() {
-      let target = null
-      for (const name of names) {
-        const candidate = document.querySelector(`[data-help="${name}"]`)
-        if (!candidate) continue
-        const rect = candidate.getBoundingClientRect()
-        if (rect.width < 1 || rect.height < 1) continue
-        target = candidate
-        break
+    function collect() {
+      const nodes = []
+      for (let i = 0; i < names.length; i += 1) {
+        const found = document.querySelectorAll(`[data-help="${names[i]}"]`)
+        for (let n = 0; n < found.length; n += 1) nodes.push(found[n])
       }
-      if (!target) {
-        if (tries < 20) {
-          tries += 1
-          frame = window.requestAnimationFrame(measure)
-        } else {
-          setBox({ missing: true })
-        }
+      return nodes
+    }
+    function measure() {
+      const nodes = collect()
+      const raw = nodes.find(function outsideNav(node) {
+        return !node.closest('.mobile-bottom-nav')
+      })
+      if (!raw) {
+        setBox({ stepId, missing: true, card: dockedCoach() })
         return
       }
-      const rect = target.getBoundingClientRect()
+      if (!usableCoachTarget(raw)) {
+        revealCoachTarget(raw)
+        setBox(function clearStale(current) {
+          const card = current && current.stepId === stepId ? current.card : dockedCoach()
+          return { stepId, missing: true, card: card || dockedCoach() }
+        })
+        return
+      }
+      const rect = viewportBox(raw)
+      const nav = bottomNavBox()
+      if (nav && overlapsBox(rect, nav)) {
+        revealCoachTarget(raw)
+        return
+      }
+      const card = placeCoach(rect)
+      const fix = clippedCoachFix()
+      if (fix) {
+        card.top = fix.top
+        card.maxHeight = fix.maxHeight
+      }
       setBox({
+        stepId,
         ring: { top: rect.top - 4, left: rect.left - 4, width: rect.width + 8, height: rect.height + 8 },
-        card: placeCoach(rect),
+        card,
       })
     }
     measure()
+    const timer = window.setInterval(measure, 200)
+    const stop = window.setTimeout(function stopLooking() {
+      window.clearInterval(timer)
+    }, 5000)
     window.addEventListener('resize', measure)
     window.addEventListener('scroll', measure, true)
+    window.visualViewport?.addEventListener('resize', measure)
+    window.visualViewport?.addEventListener('scroll', measure)
     return function cleanup() {
-      window.cancelAnimationFrame(frame)
+      window.clearInterval(timer)
+      window.clearTimeout(stop)
       window.removeEventListener('resize', measure)
       window.removeEventListener('scroll', measure, true)
+      window.visualViewport?.removeEventListener('resize', measure)
+      window.visualViewport?.removeEventListener('scroll', measure)
     }
-  }, [step, helpOn])
+  }, [step, helpOn, step?.id, step?.target, step?.fallbackTarget])
 
   useEffect(function markTour() {
     if (!tourId || typeof document === 'undefined') return undefined
@@ -236,6 +600,7 @@ function SetupCoachMount({
       return undefined
     }
     document.body.dataset.oneActiveTour = tourId
+    window.dispatchEvent(new Event('one-tour-active'))
     return function cleanup() {
       if (document.body.dataset.oneActiveTour === tourId) delete document.body.dataset.oneActiveTour
       window.dispatchEvent(new Event('one-tour-idle'))
@@ -245,14 +610,29 @@ function SetupCoachMount({
   if (!step || helpOn || typeof document === 'undefined') return null
 
   const index = steps.findIndex((entry) => entry.id === step.id)
-  const next = steps.slice(index + 1).find((entry) => !entry.done)
-  const cardStyle = box?.card
-    ? { top: box.card.top, left: box.card.left, width: box.card.width }
-    : { left: 12, right: 12, bottom: 12 }
+  const next = steps[index + 1] || null
+  const live = box && box.stepId === step.id ? box : null
+  const card = live?.card || dockedCoach()
+  const cardStyle = {
+    top: card.top,
+    left: card.left,
+    width: card.width,
+    maxHeight: card.maxHeight,
+  }
+  function goNext() {
+    if (!next) {
+      if (onFinish) onFinish()
+      else onActive('')
+      return
+    }
+    onActive(next.id)
+    window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
+    if (onOpenStep) onOpenStep(next)
+  }
 
   return createPortal(
     <>
-      {box?.ring ? <div className="setup-guide-coach-ring" style={box.ring} /> : null}
+      {live?.ring ? <div className="setup-guide-coach-ring" style={live.ring} /> : null}
       <section className="setup-guide-coach" style={cardStyle} role="dialog" aria-label={t(step.titleKey)}>
         <h2>{t(step.titleKey)}</h2>
         <p>{t(step.bodyKey)}</p>
@@ -267,22 +647,23 @@ function SetupCoachMount({
           >
             {t(dismissLabel)}
           </button>
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={function advance() {
-              if (!next) {
+          {continueLabel ? (
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={function later() {
                 if (onFinish) onFinish()
                 else onActive('')
-                return
-              }
-              onActive(next.id)
-              window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: next }))
-              if (onOpenStep) onOpenStep(next)
-            }}
-          >
-            {t('Next')}
-          </button>
+              }}
+            >
+              {t(continueLabel)}
+            </button>
+          ) : null}
+          {step.done || !continueLabel ? (
+            <button type="button" className="primary-btn" onClick={goNext}>
+              {t('Next')}
+            </button>
+          ) : null}
         </div>
       </section>
     </>,
@@ -546,6 +927,19 @@ export function ScreenGuideHost({
   }, [userId, workspaceId])
 
   const seen = Boolean(screenId && progress.seen[screenId])
+  useEffect(function yieldToVenueWizard() {
+    function sync() {
+      const otherTour = document.body.dataset.oneActiveTour && document.body.dataset.oneActiveTour !== 'screen'
+      if (otherTour) setActiveId('')
+    }
+    window.addEventListener('one-tour-active', sync)
+    window.addEventListener('one-setup-coach', sync)
+    return function cleanup() {
+      window.removeEventListener('one-tour-active', sync)
+      window.removeEventListener('one-setup-coach', sync)
+    }
+  }, [])
+
   useEffect(function openScreen() {
     const otherTour = typeof document !== 'undefined'
       && document.body.dataset.oneActiveTour

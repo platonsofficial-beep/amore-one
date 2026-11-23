@@ -3,7 +3,9 @@ import { getRolePreset } from '../lib/permissions'
 import {
   floorSetupDone,
   isProfileSetupDone,
+  isVenueSetupDone,
   nextDateKey,
+  nextWizardStep,
   readSetupProgress,
   readStaffTourProgress,
   readStockTourProgress,
@@ -30,13 +32,13 @@ function memoryStorage() {
 const openProfile = { businessName: 'Amore', timezone: 'Europe/Athens', defaultPhoneCountryCode: 'GR' }
 
 describe('setup guide', () => {
-  it('shows every phase-1 step to the owner and only the floor to a manager', () => {
+  it('shows the nine setup steps to the owner and hides settings steps from a manager', () => {
     expect(visibleSetupSteps('owner').map((step) => step.id)).toEqual([
-      'profile', 'positions', 'seatings', 'floor-area', 'floor-tables', 'floor-publish',
+      'venue', 'team', 'employees', 'roles', 'schedule', 'reservations', 'stock', 'operations', 'chat',
     ])
-    expect(visibleSetupSteps('general_manager').map((step) => step.id)).toContain('positions')
+    expect(visibleSetupSteps('general_manager').map((step) => step.id)).toContain('team')
     expect(visibleSetupSteps('manager').map((step) => step.id)).toEqual([
-      'floor-area', 'floor-tables', 'floor-publish',
+      'employees', 'roles', 'schedule', 'reservations', 'stock', 'operations', 'chat',
     ])
     expect(visibleSetupSteps('staff')).toEqual([])
     expect(visibleSetupSteps('host')).toEqual([])
@@ -45,10 +47,24 @@ describe('setup guide', () => {
   it('marks a step done only from saved venue data', () => {
     expect(isProfileSetupDone({ businessName: 'Amore' })).toBe(false)
     expect(isProfileSetupDone(openProfile)).toBe(true)
+    expect(isVenueSetupDone({ businessName: 'Amore' })).toBe(false)
+    const readyVenue = {
+      businessName: 'Amore',
+      city: 'Nicosia',
+      countryCode: 'CY',
+      timezone: 'Europe/Nicosia',
+    }
+    expect(isVenueSetupDone(readyVenue)).toBe(true)
     const steps = withSetupDone(visibleSetupSteps('owner'), {
-      profile: openProfile,
+      profile: readyVenue,
       positions: [{ id: 'server' }],
       seatings: [{ id: 'dinner', isActive: true }],
+      employees: [{ id: 'e1', role: 'staff' }],
+      shifts: [{ id: 's1' }],
+      suppliers: [{ id: 'sup' }],
+      stockItems: [{ id: 'item' }],
+      tasks: [{ id: 'task' }],
+      announcements: [{ id: 'note' }],
       floor: {
         publishedAt: '2026-11-22T12:00:00Z',
         zones: [{ label: 'Main' }],
@@ -56,7 +72,16 @@ describe('setup guide', () => {
       },
     })
     expect(steps.every((step) => step.done)).toBe(true)
+    expect(steps.find((step) => step.id === 'reservations').target).toBe('setup.online')
     expect(floorSetupDone({ zones: [{ label: 'Main' }], tables: [] })['floor-publish']).toBe(false)
+    const open = withSetupDone(visibleSetupSteps('owner'), {
+      profile: readyVenue,
+      positions: [],
+      seatings: [],
+      floor: {},
+    })
+    expect(nextWizardStep(open, 'venue').id).toBe('team')
+    expect(nextWizardStep(open, '', ['venue', 'team']).id).toBe('employees')
   })
 
   it('hides a finished venue until replay, and honors skip and remind tomorrow', () => {

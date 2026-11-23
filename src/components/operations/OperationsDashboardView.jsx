@@ -830,7 +830,7 @@ export function OperationsDashboardView({
         </section>
       ) : null}
 
-      <section className="operations-section panel staff-panel" aria-label={t("Open tasks")}>
+      <section className="operations-section panel staff-panel" aria-label={t("Open tasks")} data-help="setup.tasks">
         <header className="operations-section-header">
           <div>
             <p className="eyebrow">{t("Tasks")}</p>

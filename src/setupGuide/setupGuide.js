@@ -14,65 +14,97 @@ export const SETUP_GUIDE_STORAGE_PREFIX = 'one.setupGuide.v1'
 export const STAFF_TOUR_STORAGE_PREFIX = 'one.staffTour.v1'
 export const STOCK_TOUR_STORAGE_PREFIX = 'one.stockTour.v1'
 
-export const SETUP_STEPS = [
+export const VENUE_WIZARD_STEPS = [
   {
-    id: 'profile',
+    id: 'venue',
     view: 'settings',
     settingsSection: 'profile',
     target: 'setup.profile-name',
-    titleKey: 'Confirm the venue',
-    bodyKey: 'Check the name, time zone, and phone country. The schedule and the booking page use these.',
+    titleKey: 'Name the venue',
+    bodyKey: 'Set the venue name, address, country, time zone, currency, and logo. The schedule and the booking page use these.',
     needsSettings: true,
+    module: 'settings',
   },
   {
-    id: 'positions',
+    id: 'team',
     view: 'settings',
     settingsSection: 'positions',
     target: 'setup.add-position',
-    titleKey: 'Add a position',
-    bodyKey: 'Add the jobs you roster, such as Server or Cook, and set a department on each.',
+    titleKey: 'Departments and positions',
+    bodyKey: 'Add departments such as Bar and Kitchen, and the jobs you roster, such as Waiter.',
     needsSettings: true,
+    module: 'settings',
   },
   {
-    id: 'seatings',
+    id: 'employees',
+    view: 'team',
+    teamSection: 'members',
+    target: 'setup.invite',
+    titleKey: 'Invite your team',
+    bodyKey: 'Add the first people and send their invite.',
+    module: 'team',
+  },
+  {
+    id: 'roles',
+    view: 'team',
+    teamSection: 'members',
+    target: 'setup.permissions',
+    fallbackTarget: 'setup.invite',
+    titleKey: 'Roles and permissions',
+    bodyKey: 'Open a person and choose what they can see. Owners see the whole venue. Everyone else sees only their sections.',
+    module: 'team',
+  },
+  {
+    id: 'schedule',
+    view: 'team',
+    teamSection: 'schedule',
+    target: 'setup.schedule',
+    fallbackTarget: 'nav.team',
+    titleKey: 'First shifts',
+    bodyKey: 'Add the first shifts of the week.',
+    module: 'team',
+  },
+  {
+    id: 'reservations',
     view: 'settings',
     settingsSection: 'reservations',
     target: 'setup.add-seating',
-    titleKey: 'Add a seating',
-    bodyKey: 'Add each service, for example Dinner 19:00 for 120 minutes, on the days you open.',
-    needsSettings: true,
+    titleKey: 'Seatings, floor, and online booking',
+    bodyKey: 'Add a seating and the hours for each day, then the room and tables. Publish the floor, then turn on the public booking link.',
+    module: 'reservations',
   },
   {
-    id: 'floor-area',
-    view: 'reservations',
-    openFloor: true,
-    target: 'setup.create-area',
-    fallbackTarget: 'reservations.edit-layout',
-    titleKey: 'Name the room',
-    bodyKey: 'Add an area, such as Main or Terrace.',
-    needsSettings: false,
+    id: 'stock',
+    view: 'stock',
+    stockSection: 'storages',
+    target: 'stock.storages-page',
+    fallbackTarget: 'stock.storages',
+    titleKey: 'Stock setup',
+    bodyKey: 'Check the storages, then add a supplier, products, and par levels.',
+    module: 'stock',
   },
   {
-    id: 'floor-tables',
-    view: 'reservations',
-    openFloor: true,
-    target: 'setup.add-table',
-    fallbackTarget: 'reservations.edit-layout',
-    titleKey: 'Place the tables',
-    bodyKey: 'Add a table and set how many guests it seats.',
-    needsSettings: false,
+    id: 'operations',
+    view: 'operations',
+    operationsSection: 'tasks',
+    target: 'setup.tasks',
+    fallbackTarget: 'nav.operations',
+    titleKey: 'Tasks and checklists',
+    bodyKey: 'Add the first task and a checklist for the shift.',
+    module: 'operations',
   },
   {
-    id: 'floor-publish',
-    view: 'reservations',
-    openFloor: true,
-    target: 'setup.publish-layout',
-    fallbackTarget: 'reservations.edit-layout',
-    titleKey: 'Publish the floor',
-    bodyKey: 'Press Publish. The live floor uses the published plan, not the draft.',
-    needsSettings: false,
+    id: 'chat',
+    view: 'chat',
+    target: 'chat.new',
+    fallbackTarget: 'nav.chat',
+    titleKey: 'Tell the team',
+    bodyKey: 'Send the first announcement so the team knows you are open.',
+    module: 'chat',
   },
 ]
+
+export const SETUP_STEPS = VENUE_WIZARD_STEPS
 
 function roleName(role) {
   if (role && typeof role === 'object') return `${role.role ?? ''}`.trim()
@@ -314,11 +346,64 @@ export function visibleStockTourSteps(role) {
 export function visibleSetupSteps(role) {
   const audience = setupGuideAudience(role)
   if (audience !== 'full' && audience !== 'limited') return []
-  return SETUP_STEPS.filter((step) => {
+  return VENUE_WIZARD_STEPS.filter((step) => {
+    if (step.id === 'chat') return canUseChat(role)
     if (step.needsSettings && !canAccessModule(role, 'settings')) return false
-    if (step.view === 'reservations' && !canAccessModule(role, 'reservations')) return false
+    if (step.module && !canAccessModule(role, step.module)) return false
     return true
   })
+}
+
+export function reservationWizardFocus(facts = {}) {
+  if (!isSeatingsSetupDone(facts.seatings)) {
+    return {
+      view: 'settings',
+      settingsSection: 'reservations',
+      openFloor: false,
+      target: 'setup.add-seating',
+      fallbackTarget: 'settings.reservations',
+    }
+  }
+  const floor = floorSetupDone(facts.floor)
+  if (!floor['floor-area']) {
+    return {
+      view: 'reservations',
+      openFloor: true,
+      target: 'setup.create-area',
+      fallbackTarget: 'reservations.edit-layout',
+    }
+  }
+  if (!floor['floor-tables']) {
+    return {
+      view: 'reservations',
+      openFloor: true,
+      target: 'setup.add-table',
+      fallbackTarget: 'reservations.edit-layout',
+    }
+  }
+  if (!floor['floor-publish']) {
+    return {
+      view: 'reservations',
+      openFloor: true,
+      target: 'setup.publish-layout',
+      fallbackTarget: 'reservations.edit-layout',
+    }
+  }
+  return {
+    view: 'settings',
+    settingsSection: 'online',
+    openFloor: false,
+    target: 'setup.online',
+    fallbackTarget: 'settings.reservations',
+  }
+}
+
+export function isVenueSetupDone(profile = {}) {
+  const name = `${profile.businessName ?? ''}`.trim()
+  const city = `${profile.city ?? ''}`.trim()
+  const country = `${profile.countryCode ?? profile.countryName ?? ''}`.trim()
+  const timeZone = `${profile.timezone ?? ''}`.trim()
+  return Boolean(name && city && country && timeZone)
 }
 
 export function isProfileSetupDone(profile = {}) {
@@ -352,19 +437,56 @@ export function floorSetupDone(published = {}) {
   }
 }
 
-export function withSetupDone(steps, facts) {
+export function withSetupDone(steps, facts = {}) {
   const floor = floorSetupDone(facts.floor)
+  const reservationsReady = isSeatingsSetupDone(facts.seatings) && floor['floor-publish']
+  const focus = reservationWizardFocus(facts)
   const doneById = {
     profile: isProfileSetupDone(facts.profile),
     positions: isPositionsSetupDone(facts.positions),
     seatings: isSeatingsSetupDone(facts.seatings),
+    venue: isVenueSetupDone(facts.profile),
+    team: isPositionsSetupDone(facts.positions),
+    employees: (facts.employees ?? []).length > 0,
+    roles: (facts.employees ?? []).some((person) => `${person?.role ?? person?.accessRole ?? ''}`.trim()),
+    schedule: (facts.shifts ?? []).length > 0,
+    reservations: reservationsReady,
+    stock: (facts.suppliers ?? []).length > 0 && (facts.stockItems ?? []).length > 0,
+    operations: (facts.tasks ?? []).length > 0 || (facts.checklists ?? []).length > 0,
+    chat: (facts.announcements ?? []).length > 0,
     ...floor,
   }
-  return steps.map((step) => ({ ...step, done: Boolean(doneById[step.id]) }))
+  return steps.map((step) => {
+    const next = { ...step, done: Boolean(doneById[step.id]) }
+    if (step.id === 'reservations') {
+      next.view = focus.view
+      next.settingsSection = focus.settingsSection
+      next.openFloor = focus.openFloor
+      next.target = focus.target
+      next.fallbackTarget = focus.fallbackTarget
+    }
+    return next
+  })
+}
+
+export function nextWizardStep(steps, afterId = '', skippedIds = []) {
+  const skipped = new Set(skippedIds)
+  const start = steps.findIndex((step) => step.id === afterId)
+  const ordered = start >= 0 ? steps.slice(start + 1) : steps
+  return ordered.find((step) => !step.done && !skipped.has(step.id)) ?? null
+}
+
+export function wizardStepNumber(steps, stepId) {
+  let index = -1
+  for (let cursor = 0; cursor < steps.length; cursor += 1) {
+    if (steps[cursor].id === stepId) index = cursor
+  }
+  if (index < 0) return 0
+  return index + 1
 }
 
 export function emptySetupProgress() {
-  return { skipped: false, remindAfter: '', replay: false }
+  return { skipped: false, remindAfter: '', replay: false, walking: false, paused: false, skippedStepIds: [] }
 }
 
 export function emptyStaffTourProgress() {
@@ -390,10 +512,16 @@ export function readSetupProgress(userId, workspaceId, storage) {
     const raw = storage.getItem(setupGuideStorageKey(userId, workspaceId))
     if (!raw) return fallback
     const parsed = JSON.parse(raw)
+    const skippedStepIds = Array.isArray(parsed?.skippedStepIds)
+      ? parsed.skippedStepIds.map((id) => `${id ?? ''}`.trim()).filter(Boolean)
+      : []
     return {
       skipped: Boolean(parsed?.skipped),
       remindAfter: `${parsed?.remindAfter ?? ''}`.slice(0, 10),
       replay: Boolean(parsed?.replay),
+      walking: Boolean(parsed?.walking),
+      paused: Boolean(parsed?.paused),
+      skippedStepIds,
     }
   } catch {
     return fallback
@@ -474,6 +602,9 @@ export function writeSetupProgress(userId, workspaceId, progress, storage) {
     skipped: Boolean(progress?.skipped),
     remindAfter: `${progress?.remindAfter ?? ''}`.slice(0, 10),
     replay: Boolean(progress?.replay),
+    walking: Boolean(progress?.walking),
+    paused: Boolean(progress?.paused),
+    skippedStepIds: Array.isArray(progress?.skippedStepIds) ? progress.skippedStepIds : [],
   }
   storage.setItem(setupGuideStorageKey(userId, workspaceId), JSON.stringify(next))
   return next

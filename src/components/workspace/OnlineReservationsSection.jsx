@@ -251,7 +251,7 @@ export function OnlineReservationsSection({
   const noticeIsError = splitOver || /used|unable|error|required/i.test(notice)
 
   return (
-    <section className="online-booking-panel" aria-label={t("Online reservations")}>
+    <section className="online-booking-panel" aria-label={t("Online reservations")} data-help="setup.online">
       <div className="workspace-section-header">
         <div>
           <p className="eyebrow">{t("Reservations")}</p>

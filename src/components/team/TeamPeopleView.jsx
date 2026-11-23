@@ -330,7 +330,7 @@ export function TeamPeopleView({
           </p>
         </div>
         <div className="team-people-header-actions">
-          <button type="button" className="primary-btn team-people-add-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
+          <button type="button" className="primary-btn team-people-add-btn" data-help="setup.invite" onClick={onOpenAddEmployee} disabled={isSaving}>
             {isSaving ? t("Saving…") : t("+ Add Employee")}
           </button>
         </div>

@@ -49,7 +49,7 @@ export function WorkspacePositionsSection({
 
         <form className="employee-form" onSubmit={onSubmit}>
           <div className="form-grid">
-            <label className="form-field">
+            <label className="form-field" data-help="setup.add-position">
               <span>{t("Position Name")}</span>
               <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder={t("e.g. Mixologist")} required />
             </label>
@@ -65,7 +65,7 @@ export function WorkspacePositionsSection({
 
           <div className="modal-actions">
             {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
-            <button type="submit" className="primary-btn workspace-action-btn" data-help="setup.add-position" disabled={isSaving}>
+            <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>
               {isSaving ? t("Saving…") : editingPositionId ? t("Update Position") : t("Add Position")}
             </button>
           </div>
