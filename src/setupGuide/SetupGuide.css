@@ -204,6 +204,162 @@
   }
 }
 
+.is-setup-target,
+.is-setup-target:focus,
+.is-setup-target:focus-visible {
+  outline: 2px solid var(--one-gold);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+.setup-guide-dock {
+  position: fixed;
+  z-index: 60;
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(var(--setup-dock-nav, env(safe-area-inset-bottom, 0px)) + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  min-height: 56px;
+  padding: 6px 10px 6px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--one-gold-line);
+  background: var(--one-navy-800);
+  color: var(--one-text);
+  box-shadow: 0 10px 28px var(--one-overlay-55);
+}
+
+.setup-guide-dock.is-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.setup-guide-dock-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.setup-guide-dock h2 {
+  flex: 1 1 8rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.setup-guide-dock p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.setup-guide-dock-info {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: 1px solid var(--one-gold-line);
+  background: transparent;
+  color: var(--one-gold-light);
+  font: inherit;
+  font-weight: 700;
+}
+
+.setup-guide-dock-info::before {
+  content: "i";
+}
+
+.setup-guide-dock.is-open .setup-guide-dock-info::before {
+  content: "⌃";
+}
+
+.setup-guide-dock-actions {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.setup-guide-dock-skip,
+.setup-guide-dock-later,
+.setup-guide-dock-next {
+  min-height: 44px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.setup-guide-dock-skip {
+  border: 1px solid var(--one-gold-line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--one-gold-light);
+}
+
+.setup-guide-dock-later {
+  border: 0;
+  background: transparent;
+  color: var(--one-text);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.setup-guide-dock-next {
+  border: 0;
+  border-radius: 999px;
+  background: var(--one-primary-bg);
+  color: var(--one-on-gold);
+}
+
+@media (min-width: 720px), (orientation: landscape) and (max-height: 520px) {
+  .setup-guide-dock {
+    min-height: 56px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .setup-guide-dock-row {
+    flex-wrap: nowrap;
+  }
+
+  .setup-guide-dock h2 {
+    flex: 1 1 auto;
+  }
+
+  .setup-guide-dock-actions {
+    flex: 0 1 auto;
+  }
+}
+
+.app-shell.is-mobile-shell.has-setup-dock:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) .mobile-manager-app:not(.is-reservations-host-mode) .mobile-app-content,
+.app-shell.is-mobile-shell.has-setup-dock:not(.stock-focus-mode):not(:has(.inventory-count-session)):not(.is-host-only-station) .mobile-manager-app:not(.is-reservations-host-mode) .mobile-expanded-scroll {
+  padding-bottom: calc(8px + var(--setup-dock-space, 96px));
+  scroll-padding-top: 72px;
+  scroll-padding-bottom: calc(8px + var(--setup-dock-space, 96px));
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-shell.is-mobile-shell.has-setup-dock:not(:has(.inventory-count-session)) .mobile-app-content,
+  .app-shell.is-mobile-shell.has-setup-dock:not(:has(.inventory-count-session)) .mobile-expanded-scroll {
+    padding-bottom: calc(var(--one-mobile-bottom-inset, 0px) + var(--setup-dock-space, 72px) + 20px);
+  }
+}
+
+.app-shell.has-setup-dock:not(.is-mobile-shell) .workspace-page {
+  padding-bottom: calc(24px + var(--setup-dock-space, 80px));
+}
+
 .tutorial-optin-scrim {
   position: fixed;
   inset: 0;

@@ -458,6 +458,7 @@ export function SetupGuideCoachHost({
         onActive={setActiveId}
         onOpenStep={onOpenStep}
         tourId="setup"
+        docked
         dismissLabel="Skip this step"
         continueLabel="Finish setup later"
         onDismiss={() => {
@@ -505,6 +506,165 @@ function coachTargets(step) {
   return [step.target, step.fallbackTarget].filter(Boolean)
 }
 
+const DETAILS_SEEN_KEY = 'one.setupCoach.detailsSeen'
+
+function detailsAlreadySeen() {
+  try {
+    return localStorage.getItem(DETAILS_SEEN_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function rememberDetailsSeen() {
+  try {
+    localStorage.setItem(DETAILS_SEEN_KEY, '1')
+  } catch {
+    // Private mode can block storage. The description still opens this visit.
+  }
+}
+
+function keyboardCoversDock() {
+  const viewport = window.visualViewport
+  if (!viewport) return false
+  return window.innerHeight - viewport.height > 140
+}
+
+function clearSetupTarget() {
+  const marked = document.querySelectorAll('.is-setup-target')
+  for (let i = 0; i < marked.length; i += 1) marked[i].classList.remove('is-setup-target')
+}
+
+function scrollTargetBelowChrome(node) {
+  const scroller = scrollParent(node)
+  if (!scroller || !node) return
+  const rect = node.getBoundingClientRect()
+  const desired = chromeBottom() + 12
+  const dock = document.querySelector('.setup-guide-dock')
+  const nav = bottomNavBox()
+  const limit = (dock ? dock.getBoundingClientRect().top : (nav ? nav.top : window.innerHeight)) - 12
+  const tooHigh = rect.top < desired - 2
+  const tooLow = rect.bottom > limit
+  if (!tooHigh && !tooLow) return
+  const horizontal = node.closest('.workspace-nav-links')
+  if (horizontal && horizontal.scrollWidth > horizontal.clientWidth + 8) {
+    const parentRect = horizontal.getBoundingClientRect()
+    horizontal.scrollLeft += rect.left - parentRect.left - 8
+  }
+  scroller.scrollTop += rect.top - desired
+}
+
+function syncSetupDockChrome(dock, keyboard) {
+  const root = document.documentElement
+  const shell = document.querySelector('.app-shell')
+  if (!dock || keyboard) {
+    shell?.classList.remove('has-setup-dock')
+    root.style.removeProperty('--setup-dock-space')
+    root.style.removeProperty('--setup-dock-nav')
+    return
+  }
+  const nav = bottomNavBox()
+  const navSpace = nav ? Math.max(0, window.innerHeight - nav.top) : 0
+  const height = Math.ceil(dock.getBoundingClientRect().height)
+  shell?.classList.add('has-setup-dock')
+  root.style.setProperty('--setup-dock-nav', `${navSpace}px`)
+  root.style.setProperty('--setup-dock-space', `${height + 8}px`)
+}
+
+function SetupDock({
+  step,
+  dismissLabel,
+  continueLabel,
+  onDismiss,
+  onFinish,
+  onNext,
+  showNext,
+}) {
+  const dockRef = useRef(null)
+  const [detailsOpen, setDetailsOpen] = useState(function initialDetails() {
+    return !detailsAlreadySeen()
+  })
+  const [keyboard, setKeyboard] = useState(false)
+
+  useEffect(function collapseAfterFirstView() {
+    if (!detailsAlreadySeen()) {
+      setDetailsOpen(true)
+      rememberDetailsSeen()
+      return undefined
+    }
+    setDetailsOpen(false)
+    return undefined
+  }, [step.id])
+
+  useEffect(function watchKeyboard() {
+    function read() {
+      setKeyboard(keyboardCoversDock())
+    }
+    read()
+    window.visualViewport?.addEventListener('resize', read)
+    window.visualViewport?.addEventListener('scroll', read)
+    window.addEventListener('resize', read)
+    return function cleanup() {
+      window.visualViewport?.removeEventListener('resize', read)
+      window.visualViewport?.removeEventListener('scroll', read)
+      window.removeEventListener('resize', read)
+    }
+  }, [])
+
+  useEffect(function reserveDockSpace() {
+    const dock = dockRef.current
+    function apply() {
+      syncSetupDockChrome(dock, keyboard)
+    }
+    apply()
+    const observer = dock && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(apply) : null
+    if (dock && observer) observer.observe(dock)
+    window.addEventListener('resize', apply)
+    return function cleanup() {
+      if (observer) observer.disconnect()
+      window.removeEventListener('resize', apply)
+      syncSetupDockChrome(null, true)
+    }
+  }, [keyboard, detailsOpen, step.id])
+
+  const title = t(step.titleKey)
+  return (
+    <section
+      ref={dockRef}
+      className={`setup-guide-dock${detailsOpen ? ' is-open' : ''}${keyboard ? ' is-hidden' : ''}`}
+      role="region"
+      aria-label={title}
+    >
+      <div className="setup-guide-dock-row">
+        <h2>{title}</h2>
+        <button
+          type="button"
+          className="setup-guide-dock-info"
+          aria-expanded={detailsOpen}
+          aria-label={detailsOpen ? t('Hide step details') : t('About this step')}
+          onClick={function toggleDetails() { setDetailsOpen(function flip(current) { return !current }) }}
+        />
+        <div className="setup-guide-dock-actions">
+          <button type="button" className="ghost-btn setup-guide-dock-skip" onClick={onDismiss}>
+            {t(dismissLabel)}
+          </button>
+          {continueLabel ? (
+            <button type="button" className="setup-guide-dock-later" onClick={onFinish}>
+              {t(continueLabel)}
+            </button>
+          ) : null}
+          {showNext ? (
+            <button type="button" className="primary-btn setup-guide-dock-next" onClick={onNext}>
+              {t('Next')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {detailsOpen ? <p>{t(step.bodyKey)}</p> : null}
+    </section>
+  )
+}
+
 function SetupCoachMount({
   activeId,
   steps,
@@ -515,13 +675,14 @@ function SetupCoachMount({
   dismissLabel = 'Skip this step',
   continueLabel = '',
   tourId = '',
+  docked = false,
 }) {
   const helpOn = useHelpModeEnabled()
   const [box, setBox] = useState(null)
   const step = steps.find((entry) => entry.id === activeId) ?? null
 
   useEffect(() => {
-    if (!step || helpOn) {
+    if (docked || !step || helpOn) {
       setBox(null)
       return undefined
     }
@@ -588,7 +749,45 @@ function SetupCoachMount({
       window.visualViewport?.removeEventListener('resize', measure)
       window.visualViewport?.removeEventListener('scroll', measure)
     }
-  }, [step, helpOn, step?.id, step?.target, step?.fallbackTarget])
+  }, [docked, step, helpOn, step?.id, step?.target, step?.fallbackTarget])
+
+  useEffect(() => {
+    if (!docked || !step || helpOn) {
+      clearSetupTarget()
+      return undefined
+    }
+    const names = coachTargets(step)
+    function collect() {
+      const nodes = []
+      for (let i = 0; i < names.length; i += 1) {
+        const found = document.querySelectorAll(`[data-help="${names[i]}"]`)
+        for (let n = 0; n < found.length; n += 1) nodes.push(found[n])
+      }
+      return nodes
+    }
+    function focusTarget() {
+      const nodes = collect()
+      const raw = nodes.find(function outsideNav(node) {
+        return !node.closest('.mobile-bottom-nav')
+      })
+      clearSetupTarget()
+      if (!raw) return
+      raw.classList.add('is-setup-target')
+      scrollTargetBelowChrome(raw)
+    }
+    focusTarget()
+    const timer = window.setInterval(focusTarget, 400)
+    const stop = window.setTimeout(function stopLooking() {
+      window.clearInterval(timer)
+    }, 2400)
+    window.addEventListener('resize', focusTarget)
+    return function cleanup() {
+      window.clearInterval(timer)
+      window.clearTimeout(stop)
+      window.removeEventListener('resize', focusTarget)
+      clearSetupTarget()
+    }
+  }, [docked, step, helpOn, step?.id, step?.target, step?.fallbackTarget])
 
   useEffect(function markTour() {
     if (!tourId || typeof document === 'undefined') return undefined
@@ -610,6 +809,37 @@ function SetupCoachMount({
   if (!step || helpOn || typeof document === 'undefined') return null
 
   const index = steps.findIndex((entry) => entry.id === step.id)
+  if (docked) {
+    return createPortal(
+      <SetupDock
+        step={step}
+        dismissLabel={dismissLabel}
+        continueLabel={continueLabel}
+        showNext={Boolean(step.done || !continueLabel)}
+        onDismiss={function skipStep() {
+          if (onDismiss) onDismiss()
+          else onActive('')
+        }}
+        onFinish={function later() {
+          if (onFinish) onFinish()
+          else onActive('')
+        }}
+        onNext={function goDockNext() {
+          const following = steps[index + 1] || null
+          if (!following) {
+            if (onFinish) onFinish()
+            else onActive('')
+            return
+          }
+          onActive(following.id)
+          window.dispatchEvent(new CustomEvent('one-setup-coach', { detail: following }))
+          if (onOpenStep) onOpenStep(following)
+        }}
+      />,
+      document.body,
+    )
+  }
+
   const next = steps[index + 1] || null
   const live = box && box.stepId === step.id ? box : null
   const card = live?.card || dockedCoach()
