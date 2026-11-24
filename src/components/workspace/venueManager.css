@@ -112,6 +112,7 @@
 @media (min-width: 700px) {
   .venue-sheet-backdrop.is-today-venue {
     align-items: center;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -123,7 +124,7 @@
   }
 
   .venue-sheet-backdrop.is-today-venue .venue-sheet {
-    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - var(--today-venue-nav-clearance, 0px) - env(safe-area-inset-bottom, 0px) - 16px);
   }
 }
 
@@ -137,6 +138,23 @@
   .venue-manager .venue-switcher {
     width: 100%;
   }
+}
+
+.venue-sheet-backdrop.is-today-venue {
+  z-index: 13000;
+  padding-bottom: calc(var(--today-venue-nav-clearance, 0px) + env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+.venue-sheet-backdrop.is-today-venue .venue-sheet {
+  max-height: calc(100dvh - var(--today-venue-nav-clearance, 0px) - env(safe-area-inset-bottom, 0px) - var(--one-safe-top-chrome, 12px) - 24px);
+  overflow: hidden;
+}
+
+.venue-sheet-backdrop.is-today-venue .mobile-today-venue-options {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .venue-sheet-backdrop {
