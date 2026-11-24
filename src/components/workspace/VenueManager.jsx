@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOptionalAuth } from '../../context/AuthContext'
 import { createVenue } from '../../services/workspaceService'
 import { t } from '../../i18n/i18n'
+import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import './venueManager.css'
 
 const DEFAULT_TIMEZONE = 'Europe/Nicosia'
@@ -56,6 +57,13 @@ export function TodayVenueControl({
   function close() {
     setIsOpen(false)
   }
+  function openSheet() {
+    setIsOpen(true)
+  }
+  async function chooseVenue(workspaceId, selected) {
+    if (!selected) await onSwitch?.(workspaceId)
+    close()
+  }
   return (
     <>
       <button
@@ -63,12 +71,13 @@ export function TodayVenueControl({
         className="mobile-today-venue-switch"
         aria-haspopup="dialog"
         aria-expanded={isOpen}
-        onClick={function openSheet() { setIsOpen(true) }}
+        onClick={openSheet}
       >
-        {label}
+        <span className="mobile-today-venue-switch-label">{label}</span>
+        <span className="mobile-today-venue-chevron" aria-hidden="true" />
       </button>
       {isOpen ? (
-        <div className="venue-sheet-backdrop" role="presentation" onClick={close}>
+        <div className="venue-sheet-backdrop is-today-venue" role="presentation" onClick={close}>
           <div
             className="venue-sheet panel staff-panel"
             role="dialog"
@@ -83,18 +92,20 @@ export function TodayVenueControl({
             <div className="mobile-today-venue-options">
               {memberships.map((item) => {
                 const selected = `${item.workspaceId}` === `${activeWorkspaceId}`
+                const role = item.role ? getWorkspaceRoleLabel(item.role) : ''
                 return (
                   <button
                     key={item.workspaceId}
                     type="button"
                     className={`mobile-today-venue-option${selected ? ' is-selected' : ''}`}
                     aria-current={selected ? 'true' : undefined}
-                    onClick={async () => {
-                      if (!selected) await onSwitch?.(item.workspaceId)
-                      close()
-                    }}
+                    onClick={function pickVenue() { chooseVenue(item.workspaceId, selected) }}
                   >
-                    {item.workspaceName || t("Venue")}
+                    <span className="mobile-today-venue-option-copy">
+                      <span className="mobile-today-venue-option-name">{item.workspaceName || t("Venue")}</span>
+                      {role ? <span className="mobile-today-venue-option-role">{role}</span> : null}
+                    </span>
+                    {selected ? <span className="mobile-today-venue-check" aria-hidden="true" /> : null}
                   </button>
                 )
               })}

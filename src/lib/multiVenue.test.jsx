@@ -153,15 +153,28 @@ describe('venue UI', () => {
       roleLabel: 'Manager',
       activeWorkspaceId: 'sentio',
       memberships: [
-        { workspaceId: 'sentio', workspaceName: 'SENTIO NICOSIA' },
-        { workspaceId: 'own', workspaceName: 'Stelios Papadimas' },
+        { workspaceId: 'sentio', workspaceName: 'SENTIO NICOSIA', role: 'manager' },
+        { workspaceId: 'own', workspaceName: 'Stelios Papadimas', role: 'owner' },
       ],
     }))
     const button = container.querySelector('.mobile-today-venue-switch')
+    expect(button?.querySelector('.mobile-today-venue-chevron')).toBeTruthy()
     expect(button?.textContent).toContain('SENTIO NICOSIA')
     expect(button?.textContent).toContain('Manager')
     act(() => button.dispatchEvent(new MouseEvent('click', { bubbles: true })))
     expect(container.textContent).toContain('Stelios Papadimas')
+    expect(container.querySelector('.mobile-today-venue-option.is-selected .mobile-today-venue-check')).toBeTruthy()
+  })
+
+  it('hides the venue chevron when there is only one venue', () => {
+    const { container } = render(createElement(TodayVenueControl, {
+      venueName: 'SENTIO NICOSIA',
+      roleLabel: 'Owner',
+      memberships: [{ workspaceId: 'sentio', workspaceName: 'SENTIO NICOSIA', role: 'owner' }],
+    }))
+    expect(container.querySelector('.mobile-today-venue-chevron')).toBeNull()
+    expect(container.querySelector('button')).toBeNull()
+    expect(container.textContent).toContain('SENTIO NICOSIA')
   })
 
   it('shows the switcher only with 2+ memberships', () => {

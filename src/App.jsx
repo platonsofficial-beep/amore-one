@@ -26903,7 +26903,7 @@ function App() {
                   const isHostMobileShellLocal = !isAuthLoading && isHostMobileRole(role)
                   const mobileHomeProps = isManagerMobileShell
                     ? {
-                      venueName: workspaceProfile.businessName,
+                      venueName: workspaceProfile.businessName || workspace?.name || '',
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
@@ -26974,7 +26974,7 @@ function App() {
                       reminderCard: shiftReminderCard,
                     }
                     : {
-                      venueName: workspaceProfile.businessName,
+                      venueName: workspaceProfile.businessName || workspace?.name || '',
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
@@ -27432,9 +27432,13 @@ function App() {
                   <TodayCommandHeader
                     greeting={mobileGreeting}
                     executiveMessage={todayExecutiveMessage}
-                    businessName={brandDisplay.businessName}
+                    businessName={brandDisplay.businessName || todayWorkspaceBadge}
                     dateLabel={dashboardHeroDateLabel}
                     workspaceBadge={todayWorkspaceBadge}
+                    roleLabel={roleLabel}
+                    memberships={memberships}
+                    activeWorkspaceId={activeWorkspaceId}
+                    onSwitchVenue={switchWorkspace}
                     chips={todayCommandHeaderChipsWithStatus}
                     onChipSelect={handleTodayChipSelect}
                     profileChipDisplay={profileChipDisplay}
