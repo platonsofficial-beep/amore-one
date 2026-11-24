@@ -55,7 +55,7 @@ export function MobileScheduleView({
     return (
       <div className="mobile-screen mobile-schedule">
         <ScheduleWeekHeader
-          employeeName="Your week"
+          employeeName={t("Your week")}
           weekLabel={weekLabel}
           isWeekUpdating={isWeekUpdating}
           isWeekNavigationDisabled={isWeekUpdating}

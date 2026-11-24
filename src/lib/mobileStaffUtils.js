@@ -87,7 +87,7 @@ export function buildMobileEmployeeShiftSummary({
     return {
       tone: 'live',
       headline: t("On shift now"),
-      detail: endLabel ? `Until ${endLabel}` : t("Currently working"),
+      detail: endLabel ? t("Until {{time}}", { time: endLabel }) : t("Currently working"),
     }
   }
 
@@ -118,7 +118,7 @@ export function buildMobileEmployeeShiftSummary({
     return {
       tone: 'live',
       headline: t("Service is live"),
-      detail: `${liveFloor.onShiftCount} team member${liveFloor.onShiftCount === 1 ? '' : 's'} on shift`,
+      detail: t("{{count}} team member on shift", { count: liveFloor.onShiftCount }),
     }
   }
 
@@ -149,7 +149,7 @@ export function buildMobileEmployeeWeekSchedule({
   }
 
   const employee = (employees ?? []).find((item) => `${item.id}` === `${employeeId}`)
-  const employeeName = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || 'You'
+  const employeeName = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || t("You")
 
   const days = (weekDays ?? []).map((day) => {
     const dayShifts = (publishedShifts ?? [])
@@ -253,17 +253,17 @@ function isMobileOperationsTaskOverdue(task, todayKey) {
 }
 
 export function getMobileOperationsTaskStatusLabel(task, todayKey = '') {
-  if (isMobileOperationsTaskDone(task)) return 'Completed'
+  if (isMobileOperationsTaskDone(task)) return t("Completed")
 
-  if (isMobileOperationsTaskOverdue(task, todayKey)) return 'Overdue'
-  return 'Pending'
+  if (isMobileOperationsTaskOverdue(task, todayKey)) return t("Overdue")
+  return t("Pending")
 }
 
 export function getMobileOperationsStaffOwnershipLabel(task, currentEmployeeId = null) {
   const assigneeId = getTaskAssigneeId(task)
   if (!assigneeId) return t("Team task")
   if (currentEmployeeId && `${assigneeId}` === `${currentEmployeeId}`) return t("Assigned to you")
-  return 'Assigned'
+  return t("Assigned")
 }
 
 export function groupMobileStaffPendingTasks(pendingTasks = [], todayKey = '') {
@@ -381,11 +381,11 @@ export function calculateMobileOperationsTaskOverview(tasks = [], todayKey = '')
 
   let statusMessage = ''
   if (overdue > 0) {
-    statusMessage = `${overdue} overdue`
+    statusMessage = t("{{count}} overdue", { count: overdue })
   } else if (active === 0 && completedToday > 0) {
-    statusMessage = 'All caught up today'
+    statusMessage = t("All caught up today")
   } else if (active > 0) {
-    statusMessage = `${active} open`
+    statusMessage = t("{{count}} open", { count: active })
   }
 
   return {
