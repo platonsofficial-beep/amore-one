@@ -26,10 +26,105 @@
   max-width: 100%;
 }
 
+.mobile-today-venue-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.mobile-today-venue-switch-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-today-venue-chevron {
+  flex: 0 0 auto;
+  width: 0.42em;
+  height: 0.42em;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg) translateY(-1px);
+}
+
+.mobile-today-venue-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-today-venue-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--one-overlay-06);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.mobile-today-venue-option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mobile-today-venue-option-role {
+  color: var(--one-text-muted);
+  font-size: 0.82rem;
+}
+
+.mobile-today-venue-check {
+  flex: 0 0 auto;
+  width: 0.55em;
+  height: 0.3em;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.mobile-today-venue-option.is-selected {
+  box-shadow: inset 0 0 0 1px var(--one-gold);
+}
+
 .venue-manager-new {
   min-width: 44px;
   min-height: 44px;
   padding: 10px 16px;
+}
+
+@media (min-width: 700px) {
+  .venue-sheet-backdrop.is-today-venue {
+    align-items: center;
+  }
+}
+
+@media (max-height: 500px) {
+  .venue-sheet-backdrop.is-today-venue {
+    align-items: center;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .venue-sheet-backdrop.is-today-venue .venue-sheet {
+    max-height: calc(100vh - 16px);
+  }
 }
 
 @media (max-width: 760px) {

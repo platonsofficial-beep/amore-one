@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { act } from 'react'
+import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -35,6 +35,7 @@ import { pickWorkspaceProfileRecord } from '../services/workspaceProfileService'
 import {
   NewVenueSheet,
   VenueManager,
+  TodayVenueControl,
   canCreateVenue,
   shouldShowVenueSwitcher,
 } from '../components/workspace/VenueManager'
@@ -76,6 +77,15 @@ describe('active membership selection', () => {
       { workspaceId: 'ws-a', workspaceName: 'Alpha', role: 'staff', closed: false },
       { workspaceId: 'ws-b', workspaceName: 'Beta', role: 'owner', closed: false },
     ])
+  })
+
+  it('prefers the venue display name over the workspace row name', () => {
+    const list = summarizeMemberships(rows, [
+      { id: 'ws-a', name: 'Platon Sachinis', business_name: 'SENTIO NICOSIA' },
+      { id: 'ws-b', name: 'Beta' },
+    ])
+    expect(list.find((item) => item.workspaceId === 'ws-a').workspaceName).toBe('SENTIO NICOSIA')
+    expect(list.find((item) => item.workspaceId === 'ws-b').workspaceName).toBe('Beta')
   })
 })
 
@@ -135,6 +145,36 @@ describe('venue UI', () => {
     expect(canCreateVenue('general_manager')).toBe(true)
     expect(canCreateVenue('manager')).toBe(false)
     expect(canCreateVenue('staff')).toBe(false)
+  })
+
+  it('opens venue choices from the Today header when there are two venues', () => {
+    const { container } = render(createElement(TodayVenueControl, {
+      venueName: 'SENTIO NICOSIA',
+      roleLabel: 'Manager',
+      activeWorkspaceId: 'sentio',
+      memberships: [
+        { workspaceId: 'sentio', workspaceName: 'SENTIO NICOSIA', role: 'manager' },
+        { workspaceId: 'own', workspaceName: 'Stelios Papadimas', role: 'owner' },
+      ],
+    }))
+    const button = container.querySelector('.mobile-today-venue-switch')
+    expect(button?.querySelector('.mobile-today-venue-chevron')).toBeTruthy()
+    expect(button?.textContent).toContain('SENTIO NICOSIA')
+    expect(button?.textContent).toContain('Manager')
+    act(() => button.dispatchEvent(new MouseEvent('click', { bubbles: true })))
+    expect(container.textContent).toContain('Stelios Papadimas')
+    expect(container.querySelector('.mobile-today-venue-option.is-selected .mobile-today-venue-check')).toBeTruthy()
+  })
+
+  it('hides the venue chevron when there is only one venue', () => {
+    const { container } = render(createElement(TodayVenueControl, {
+      venueName: 'SENTIO NICOSIA',
+      roleLabel: 'Owner',
+      memberships: [{ workspaceId: 'sentio', workspaceName: 'SENTIO NICOSIA', role: 'owner' }],
+    }))
+    expect(container.querySelector('.mobile-today-venue-chevron')).toBeNull()
+    expect(container.querySelector('button')).toBeNull()
+    expect(container.textContent).toContain('SENTIO NICOSIA')
   })
 
   it('shows the switcher only with 2+ memberships', () => {

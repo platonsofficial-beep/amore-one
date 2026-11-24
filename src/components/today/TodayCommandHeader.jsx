@@ -2,6 +2,7 @@ import { LoadingLines } from '../common/DataPending'
 import { t } from '../../i18n/i18n'
 import { UserMenu } from '../auth/UserMenu'
 import { HelpModeToggle } from '../../help/HelpMode'
+import { TodayVenueControl } from '../workspace/VenueManager'
 
 export function TodayCommandHeader({
   greeting = '',
@@ -9,6 +10,10 @@ export function TodayCommandHeader({
   businessName = '',
   dateLabel = '',
   workspaceBadge = '',
+  roleLabel = '',
+  memberships = [],
+  activeWorkspaceId = '',
+  onSwitchVenue,
   chips = [],
   profileChipDisplay,
   employees = [],
@@ -38,13 +43,13 @@ export function TodayCommandHeader({
                 </p>
               ) : null}
               <div className="today-command-venue-row">
-                {workspaceBadge ? (
-                  <span className="today-command-workspace-badge" aria-label={t("Venue")}>
-                    {workspaceBadge}
-                  </span>
-                ) : businessName ? (
-                  <p className="today-command-venue">{businessName}</p>
-                ) : null}
+                <TodayVenueControl
+                  venueName={businessName || workspaceBadge}
+                  roleLabel={roleLabel}
+                  memberships={memberships}
+                  activeWorkspaceId={activeWorkspaceId}
+                  onSwitch={onSwitchVenue}
+                />
               </div>
               <p className="today-command-date">{dateLabel}</p>
             </div>

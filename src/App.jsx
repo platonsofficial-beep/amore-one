@@ -15722,6 +15722,8 @@ function App() {
     user,
     workspace,
     membership,
+    memberships,
+    switchWorkspace,
     membershipLoadError,
     workspaceLoadError,
     signOut,
@@ -18060,7 +18062,7 @@ function App() {
     if (notice) {
       setInviteAcceptedNotice(notice)
     }
-  }, [isAuthLoading])
+  }, [isAuthLoading, membership?.workspaceId])
 
   useEffect(() => {
     if (activeView !== 'reservations') {
@@ -26901,10 +26903,15 @@ function App() {
                   const isHostMobileShellLocal = !isAuthLoading && isHostMobileRole(role)
                   const mobileHomeProps = isManagerMobileShell
                     ? {
-                      venueName: workspaceProfile.businessName,
+                      venueName: workspaceProfile.businessName || workspace?.name || '',
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
+                      memberships,
+                      activeWorkspaceId,
+                      onSwitchVenue: switchWorkspace,
+                      inviteNotice: inviteAcceptedNotice,
+                      onDismissInviteNotice() { setInviteAcceptedNotice('') },
                       statusSummary: shownTodayStatusSummary,
                       dataStatus: todayDataStatus,
                       onRetryData: retryTodayData,
@@ -26967,10 +26974,15 @@ function App() {
                       reminderCard: shiftReminderCard,
                     }
                     : {
-                      venueName: workspaceProfile.businessName,
+                      venueName: workspaceProfile.businessName || workspace?.name || '',
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
+                      memberships,
+                      activeWorkspaceId,
+                      onSwitchVenue: switchWorkspace,
+                      inviteNotice: inviteAcceptedNotice,
+                      onDismissInviteNotice() { setInviteAcceptedNotice('') },
                       shiftSummary: mobileShiftSummary,
                       tasksSummary: mobileTaskOverview,
                       needsEmployeeLink: mobileNeedsEmployeeLink,
@@ -27420,9 +27432,13 @@ function App() {
                   <TodayCommandHeader
                     greeting={mobileGreeting}
                     executiveMessage={todayExecutiveMessage}
-                    businessName={brandDisplay.businessName}
+                    businessName={brandDisplay.businessName || todayWorkspaceBadge}
                     dateLabel={dashboardHeroDateLabel}
                     workspaceBadge={todayWorkspaceBadge}
+                    roleLabel={roleLabel}
+                    memberships={memberships}
+                    activeWorkspaceId={activeWorkspaceId}
+                    onSwitchVenue={switchWorkspace}
                     chips={todayCommandHeaderChipsWithStatus}
                     onChipSelect={handleTodayChipSelect}
                     profileChipDisplay={profileChipDisplay}

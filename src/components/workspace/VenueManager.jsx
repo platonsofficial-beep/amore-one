@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useOptionalAuth } from '../../context/AuthContext'
 import { createVenue } from '../../services/workspaceService'
 import { t } from '../../i18n/i18n'
+import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import './venueManager.css'
 
 const DEFAULT_TIMEZONE = 'Europe/Nicosia'
@@ -39,6 +40,83 @@ export function shouldShowVenueSwitcher(memberships) {
 }
 
 /** Compact venue switcher; renders only when the user belongs to 2+ venues. */
+export function TodayVenueControl({
+  venueName = '',
+  roleLabel = '',
+  memberships = [],
+  activeWorkspaceId = '',
+  onSwitch,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const label = [venueName, roleLabel].filter(Boolean).join(' · ')
+  if (!label) return null
+  if (!shouldShowVenueSwitcher(memberships)) {
+    return <span className="mobile-manager-command-workspace">{label}</span>
+  }
+
+  function close() {
+    setIsOpen(false)
+  }
+  function openSheet() {
+    setIsOpen(true)
+  }
+  async function chooseVenue(workspaceId, selected) {
+    if (!selected) await onSwitch?.(workspaceId)
+    close()
+  }
+  return (
+    <>
+      <button
+        type="button"
+        className="mobile-today-venue-switch"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={openSheet}
+      >
+        <span className="mobile-today-venue-switch-label">{label}</span>
+        <span className="mobile-today-venue-chevron" aria-hidden="true" />
+      </button>
+      {isOpen ? (
+        <div className="venue-sheet-backdrop is-today-venue" role="presentation" onClick={close}>
+          <div
+            className="venue-sheet panel staff-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="today-venue-switch-title"
+            onClick={function stopSheetClick(event) { event.stopPropagation() }}
+          >
+            <header className="venue-sheet-header">
+              <h3 id="today-venue-switch-title">{t("Switch venue")}</h3>
+              <button type="button" className="venue-sheet-close" aria-label={t("Close")} onClick={close}>✕</button>
+            </header>
+            <div className="mobile-today-venue-options">
+              {memberships.map((item) => {
+                const selected = `${item.workspaceId}` === `${activeWorkspaceId}`
+                const role = item.role ? getWorkspaceRoleLabel(item.role) : ''
+                return (
+                  <button
+                    key={item.workspaceId}
+                    type="button"
+                    className={`mobile-today-venue-option${selected ? ' is-selected' : ''}`}
+                    aria-current={selected ? 'true' : undefined}
+                    onClick={function pickVenue() { chooseVenue(item.workspaceId, selected) }}
+                  >
+                    <span className="mobile-today-venue-option-copy">
+                      <span className="mobile-today-venue-option-name">{item.workspaceName || t("Venue")}</span>
+                      {role ? <span className="mobile-today-venue-option-role">{role}</span> : null}
+                    </span>
+                    {selected ? <span className="mobile-today-venue-check" aria-hidden="true" /> : null}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 export function VenueSwitcher({ className = '' }) {
   const { memberships, membership, switchWorkspace } = useOptionalAuth() ?? {}
   const [isSwitching, setIsSwitching] = useState(false)
