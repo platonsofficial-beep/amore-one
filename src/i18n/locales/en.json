@@ -4801,9 +4801,10 @@
   "Create a venue you own, or join one with an invite.": "Create a venue you own, or join one with an invite.",
   "Create my own venue": "Create my own venue",
   "I have an invite": "I have an invite",
-  "Paste your invite link": "Paste your invite link",
+  "Paste the link you received to join the venue.": "Paste the link you received to join the venue.",
+  "Start screen invite link": "Invite link",
+  "https://app.onehospitality.app/...": "https://app.onehospitality.app/...",
   "Join this venue": "Join this venue",
-  "Paste your invite link.": "Paste your invite link.",
   "This invite was sent to {{email}}. Sign in with that email.": "This invite was sent to {{email}}. Sign in with that email.",
   "Creating your venue…": "Creating your venue…",
   "Sign in again and try once more.": "Sign in again and try once more."

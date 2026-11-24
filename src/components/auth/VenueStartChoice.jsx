@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { OneFullLogo } from '../brand/OneFullLogo'
 import { useAuth } from '../../context/AuthContext'
 import { LanguagePicker } from '../../i18n/LanguagePicker'
 import { t } from '../../i18n/i18n'
+import { revealVenueStartField, venueStartKeyboardInset } from '../../lib/venueStartLayout'
 
 export function VenueStartChoice() {
   const { startOwnVenue, joinVenueWithInvite, signOut } = useAuth()
@@ -10,6 +11,8 @@ export function VenueStartChoice() {
   const [inviteText, setInviteText] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const pageRef = useRef(null)
+  const fieldRef = useRef(null)
 
   function showChoose() {
     setErrorMessage('')
@@ -48,8 +51,33 @@ export function VenueStartChoice() {
 
   const isInviteStep = step === 'invite'
 
+  useEffect(function watchInviteKeyboard() {
+    if (!isInviteStep) return undefined
+    const page = pageRef.current
+    function syncKeyboard() {
+      const inset = venueStartKeyboardInset(window.visualViewport, window.innerHeight)
+      page?.style.setProperty('--venue-start-keyboard', `${inset}px`)
+      if (document.activeElement === fieldRef.current) revealVenueStartField(fieldRef.current)
+    }
+    syncKeyboard()
+    const viewport = window.visualViewport
+    viewport?.addEventListener('resize', syncKeyboard)
+    viewport?.addEventListener('scroll', syncKeyboard)
+    return function stopWatchingKeyboard() {
+      viewport?.removeEventListener('resize', syncKeyboard)
+      viewport?.removeEventListener('scroll', syncKeyboard)
+      page?.style.removeProperty('--venue-start-keyboard')
+    }
+  }, [isInviteStep])
+
+  function revealInviteField() {
+    window.requestAnimationFrame(function frame() {
+      revealVenueStartField(fieldRef.current)
+    })
+  }
+
   return (
-    <div className="auth-page">
+    <div className="auth-page is-venue-start" ref={pageRef}>
       <div className="auth-card panel staff-panel venue-start-card">
         <header className="auth-header">
           <OneFullLogo compact />
@@ -58,7 +86,7 @@ export function VenueStartChoice() {
           </h1>
           <p className="auth-subtitle">
             {isInviteStep
-              ? t("Paste your invite link")
+              ? t("Paste the link you received to join the venue.")
               : t("Create a venue you own, or join one with an invite.")}
           </p>
         </header>
@@ -68,13 +96,15 @@ export function VenueStartChoice() {
         {isInviteStep ? (
           <form className="auth-form" onSubmit={joinInvite}>
             <label className="form-field auth-field" htmlFor="venue-start-invite">
-              <span>{t("Paste your invite link")}</span>
+              <span>{t("Start screen invite link")}</span>
               <input
                 id="venue-start-invite"
+                ref={fieldRef}
                 name="invite"
                 value={inviteText}
                 onChange={function updateInvite(event) { setInviteText(event.target.value) }}
-                placeholder={t("Paste your invite link")}
+                onFocus={revealInviteField}
+                placeholder={t("https://app.onehospitality.app/...")}
                 autoComplete="off"
                 autoCapitalize="off"
                 autoCorrect="off"

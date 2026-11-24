@@ -73,7 +73,7 @@ async function rememberAcceptedVenue(record, fallbackName = '') {
 export async function acceptPastedWorkspaceInvite({ raw, user } = {}) {
   const token = parseInviteTokenInput(raw)
   if (!token) {
-    throw new Error(t("Paste your invite link."))
+    throw new Error(t("Paste the link you received to join the venue."))
   }
 
   let preview

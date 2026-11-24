@@ -123,8 +123,12 @@ describe('venue start choice', () => {
     act(() => {
       clickButton('I have an invite')
     })
-    expect(container.textContent).toContain('Paste your invite link')
+    expect(container.textContent).toContain('Paste the link you received to join the venue.')
+    expect(container.textContent).toContain('Invite link')
+    expect(container.textContent).not.toContain('Paste your invite link')
     expect(container.textContent.toLowerCase()).not.toContain('code')
+    expect(container.querySelector('#venue-start-invite').getAttribute('placeholder')).toBe('https://app.onehospitality.app/...')
+    expect(container.querySelector('.auth-page').className).toContain('is-venue-start')
     const input = container.querySelector('#venue-start-invite')
     const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
     await act(async () => {

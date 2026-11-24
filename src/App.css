@@ -29521,8 +29521,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.45;
 }
 
+.auth-page.is-venue-start {
+  align-items: center;
+  align-items: safe center;
+  min-height: 100dvh;
+  overflow: auto;
+  padding-bottom: calc(
+    max(16px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)))
+    + var(--venue-start-keyboard, 0px)
+  );
+  scroll-padding-bottom: calc(24px + var(--venue-start-keyboard, 0px));
+}
+
 .venue-start-card {
   width: min(100%, 460px);
+  margin-block: auto;
+}
+
+.venue-start-card .auth-field input {
+  scroll-margin-block: 24px;
 }
 
 .venue-start-actions {

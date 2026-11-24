@@ -123,7 +123,7 @@ describe('acceptPastedWorkspaceInvite', () => {
     await expect(acceptPastedWorkspaceInvite({
       raw: '   ',
       user: { email: 'guest@example.com' },
-    })).rejects.toThrow('Paste your invite link.')
+    })).rejects.toThrow('Paste the link you received to join the venue.')
     expect(acceptInvite).not.toHaveBeenCalled()
 
     getInvitePreview.mockResolvedValue(openPreview)
