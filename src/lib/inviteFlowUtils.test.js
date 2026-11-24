@@ -45,9 +45,10 @@ describe('inviteFlowUtils', () => {
     expect(expired.title).toBe('Invite expired')
   })
 
-  it('builds an accepted notice with workspace name', () => {
-    expect(buildInviteAcceptedNotice('Amore Nicosia')).toContain('Amore Nicosia')
-    expect(buildInviteAcceptedNotice('')).toContain('Welcome to ONE')
+  it('builds an accepted notice with the venue and role', () => {
+    expect(buildInviteAcceptedNotice('SENTIO NICOSIA', 'Manager')).toBe('You joined SENTIO NICOSIA as Manager.')
+    expect(buildInviteAcceptedNotice('SENTIO NICOSIA')).toBe('You joined SENTIO NICOSIA.')
+    expect(buildInviteAcceptedNotice('')).toBe('You joined the venue.')
   })
 
   it('detects fatal invite errors and bootstrap skip rules', () => {

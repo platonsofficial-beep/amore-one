@@ -193,6 +193,7 @@ export function AuthProvider({ children }) {
     let joinedWorkspaceRecord = null
 
     let inviteSucceeded = false
+    let invitedWorkspaceId = ''
     // Reuse the invite check's membership read when it already found one.
     let prefetchedContext = null
 
@@ -208,6 +209,11 @@ export function AuthProvider({ children }) {
       if (loadSeq !== authLoadSeqRef.current) return
 
       inviteSucceeded = inviteResult.inviteSucceeded
+      invitedWorkspaceId = `${inviteResult.workspaceId ?? ''}`.trim()
+      if (invitedWorkspaceId) {
+        setStoredActiveWorkspaceId(invitedWorkspaceId)
+        prefetchedContext = null
+      }
       if (inviteResult.inviteErrorMessage) {
         setMembershipLoadError(inviteResult.inviteErrorMessage)
       }
@@ -217,9 +223,14 @@ export function AuthProvider({ children }) {
     }
 
     try {
-      const membershipContext = prefetchedContext ?? await getCurrentMembershipContextWithRetry(membershipUserId, {
-        attempts: inviteSucceeded ? 4 : 1,
-      })
+      const membershipContext = invitedWorkspaceId
+        ? await getCurrentMembershipContextWithRetry(membershipUserId, {
+          attempts: 4,
+          preferredWorkspaceId: invitedWorkspaceId,
+        })
+        : (prefetchedContext ?? await getCurrentMembershipContextWithRetry(membershipUserId, {
+          attempts: inviteSucceeded ? 4 : 1,
+        }))
       if (loadSeq !== authLoadSeqRef.current) return
 
       resolvedMembership = membershipContext.membership
@@ -274,7 +285,9 @@ export function AuthProvider({ children }) {
     if (loadSeq !== authLoadSeqRef.current) return
 
     setMembership(normalizeMembershipForContext(resolvedMembership))
-    if (resolvedMembership?.workspaceId) {
+    if (invitedWorkspaceId) {
+      setStoredActiveWorkspaceId(invitedWorkspaceId)
+    } else if (resolvedMembership?.workspaceId) {
       setStoredActiveWorkspaceId(resolvedMembership.workspaceId)
     }
 

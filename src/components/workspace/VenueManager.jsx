@@ -39,6 +39,73 @@ export function shouldShowVenueSwitcher(memberships) {
 }
 
 /** Compact venue switcher; renders only when the user belongs to 2+ venues. */
+export function TodayVenueControl({
+  venueName = '',
+  roleLabel = '',
+  memberships = [],
+  activeWorkspaceId = '',
+  onSwitch,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const label = [venueName, roleLabel].filter(Boolean).join(' · ')
+  if (!label) return null
+  if (!shouldShowVenueSwitcher(memberships)) {
+    return <span className="mobile-manager-command-workspace">{label}</span>
+  }
+
+  function close() {
+    setIsOpen(false)
+  }
+  return (
+    <>
+      <button
+        type="button"
+        className="mobile-today-venue-switch"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        onClick={function openSheet() { setIsOpen(true) }}
+      >
+        {label}
+      </button>
+      {isOpen ? (
+        <div className="venue-sheet-backdrop" role="presentation" onClick={close}>
+          <div
+            className="venue-sheet panel staff-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="today-venue-switch-title"
+            onClick={function stopSheetClick(event) { event.stopPropagation() }}
+          >
+            <header className="venue-sheet-header">
+              <h3 id="today-venue-switch-title">{t("Switch venue")}</h3>
+              <button type="button" className="venue-sheet-close" aria-label={t("Close")} onClick={close}>✕</button>
+            </header>
+            <div className="mobile-today-venue-options">
+              {memberships.map((item) => {
+                const selected = `${item.workspaceId}` === `${activeWorkspaceId}`
+                return (
+                  <button
+                    key={item.workspaceId}
+                    type="button"
+                    className={`mobile-today-venue-option${selected ? ' is-selected' : ''}`}
+                    aria-current={selected ? 'true' : undefined}
+                    onClick={async () => {
+                      if (!selected) await onSwitch?.(item.workspaceId)
+                      close()
+                    }}
+                  >
+                    {item.workspaceName || t("Venue")}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
 export function VenueSwitcher({ className = '' }) {
   const { memberships, membership, switchWorkspace } = useOptionalAuth() ?? {}
   const [isSwitching, setIsSwitching] = useState(false)

@@ -111,9 +111,10 @@ export function buildInvitePreviewSummary(preview = {}) {
   }
 }
 
-export function buildInviteAcceptedNotice(workspaceName = '') {
-  const trimmed = `${workspaceName ?? ''}`.trim()
-  return trimmed
-    ? t("Welcome to {{venue}}. Your workspace invite was accepted.", { venue: trimmed })
-    : t("Welcome to ONE. Your workspace invite was accepted.")
+export function buildInviteAcceptedNotice(workspaceName = '', roleLabel = '') {
+  const venue = `${workspaceName ?? ''}`.trim()
+  const role = `${roleLabel ?? ''}`.trim()
+  if (venue && role) return t("You joined {{venue}} as {{role}}.", { venue, role })
+  if (venue) return t("You joined {{venue}}.", { venue })
+  return t("You joined the venue.")
 }

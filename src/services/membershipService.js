@@ -131,6 +131,11 @@ function mapMembershipWorkspace(record) {
   return mapWorkspace(workspaceRecord)
 }
 
+export function venueSwitcherLabel(businessName = '', workspaceName = '') {
+  const business = `${businessName ?? ''}`.trim()
+  return business || `${workspaceName ?? ''}`.trim()
+}
+
 function resolveUserIdentity(user = {}) {
   const email = `${user.email ?? ''}`.trim()
   const metadataName = `${user.user_metadata?.full_name ?? user.user_metadata?.name ?? ''}`
@@ -148,7 +153,7 @@ function isMissingSignupVenueRpc(error) {
     || message.includes('schema cache')
 }
 
-async function fetchMembershipContext(authUserId) {
+async function fetchMembershipContext(authUserId, preferredWorkspaceId = '') {
   const givenUserId = `${authUserId ?? ''}`.trim()
   // Only ask the auth client when the caller did not pass a user id.
   const session = givenUserId ? null : await getSession()
@@ -174,7 +179,8 @@ async function fetchMembershipContext(authUserId) {
   }
 
   const rows = Array.isArray(data) ? data : (data ? [data] : [])
-  let selectedRow = selectActiveMembershipRow(rows, getStoredActiveWorkspaceId())
+  const preferred = `${preferredWorkspaceId ?? ''}`.trim() || getStoredActiveWorkspaceId()
+  let selectedRow = selectActiveMembershipRow(rows, preferred)
   const selectedWorkspaceKey = `${selectedRow?.workspace_id ?? selectedRow?.workspaceId ?? ''}`
 
   if (selectedRow && !resolveRecordEmployeeId(selectedRow)) {
@@ -220,7 +226,7 @@ export function summarizeMemberships(rows = [], workspaceRecords = []) {
   const names = new Map(
     (Array.isArray(workspaceRecords) ? workspaceRecords : [])
       .filter(Boolean)
-      .map((record) => [`${record.id}`, `${record.name ?? ''}`.trim()]),
+      .map((record) => [`${record.id}`, venueSwitcherLabel(record.business_name ?? record.businessName, record.name)]),
   )
   const closed = new Set(
     (Array.isArray(workspaceRecords) ? workspaceRecords : [])
@@ -255,6 +261,21 @@ async function buildMembershipList(rows, joinedWorkspaceRecord) {
       console.error('[membershipService] workspace names error:', error)
     }
   }
+  if (ids.length > 0) {
+    try {
+      const { data } = await supabase.from('workspace_profiles').select('workspace_id, business_name').in('workspace_id', ids)
+      const byId = new Map(records.map((record) => [`${record.id}`, record]))
+      for (const profile of Array.isArray(data) ? data : []) {
+        const id = `${profile?.workspace_id ?? ''}`.trim()
+        const current = byId.get(id) || { id }
+        const business = `${profile?.business_name ?? ''}`.trim()
+        if (business) byId.set(id, { ...current, id, business_name: business })
+      }
+      records = [...byId.values()]
+    } catch (error) {
+      console.error('[membershipService] venue display names error:', error)
+    }
+  }
   return summarizeMemberships(rows, records)
 }
 
@@ -268,16 +289,18 @@ export async function getCurrentMembership(authUserId) {
   return membership
 }
 
-export async function getCurrentMembershipContext(authUserId) {
-  return fetchMembershipContext(authUserId)
+export async function getCurrentMembershipContext(authUserId, { preferredWorkspaceId = '' } = {}) {
+  return fetchMembershipContext(authUserId, preferredWorkspaceId)
 }
 
-export async function getCurrentMembershipContextWithRetry(authUserId, { attempts = 3 } = {}) {
+export async function getCurrentMembershipContextWithRetry(authUserId, { attempts = 3, preferredWorkspaceId = '' } = {}) {
   const maxAttempts = Math.max(1, Number(attempts) || 1)
+  const preferred = `${preferredWorkspaceId ?? ''}`.trim()
 
   for (let index = 0; index < maxAttempts; index += 1) {
-    const context = await fetchMembershipContext(authUserId)
-    if (context.membership) {
+    const context = await fetchMembershipContext(authUserId, preferred)
+    const landed = `${context.membership?.workspaceId ?? ''}`.trim()
+    if (context.membership && (!preferred || landed === preferred)) {
       return context
     }
 
@@ -288,7 +311,7 @@ export async function getCurrentMembershipContextWithRetry(authUserId, { attempt
     }
   }
 
-  return fetchMembershipContext(authUserId)
+  return fetchMembershipContext(authUserId, preferred)
 }
 
 export async function createOwnerMembershipIfMissing(user) {

@@ -1,5 +1,6 @@
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 import { TodayQuickActions } from '../today/TodayQuickActions'
+import { TodayVenueControl } from '../workspace/VenueManager'
 import { t } from '../../i18n/i18n'
 
 export function MobileHomeView({
@@ -7,6 +8,11 @@ export function MobileHomeView({
   greeting = '',
   dateLabel = '',
   roleLabel = '',
+  memberships = [],
+  activeWorkspaceId = '',
+  onSwitchVenue,
+  inviteNotice = '',
+  onDismissInviteNotice,
   shiftSummary = {},
   tasksSummary = {},
   needsEmployeeLink = false,
@@ -34,18 +40,28 @@ export function MobileHomeView({
 
   const shiftNeedsLink = needsEmployeeLink || shiftSummary?.needsEmployeeLink
   const tasksNeedsLink = needsEmployeeLink || tasksNeedEmployeeLink
-  const workspaceContext = [venueName, roleLabel].filter(Boolean).join(' · ')
-
   return (
     <div className="mobile-screen mobile-home">
       {/* Same Today header as managers: greeting, then date and venue · role. */}
+      {inviteNotice ? (
+        <div className="staff-status-banner auth-banner-success workspace-invite-notice" role="status">
+          {inviteNotice}
+          <button type="button" className="ghost-btn small workspace-invite-notice-dismiss" onClick={onDismissInviteNotice}>
+            {t("Dismiss")}
+          </button>
+        </div>
+      ) : null}
       <header className="mobile-manager-command-header">
         <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || 'Welcome'}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
-          {workspaceContext ? (
-            <span className="mobile-manager-command-workspace">{workspaceContext}</span>
-          ) : null}
+          <TodayVenueControl
+            venueName={venueName}
+            roleLabel={roleLabel}
+            memberships={memberships}
+            activeWorkspaceId={activeWorkspaceId}
+            onSwitch={onSwitchVenue}
+          />
         </p>
       </header>
 

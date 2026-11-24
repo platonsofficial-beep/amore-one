@@ -15722,6 +15722,8 @@ function App() {
     user,
     workspace,
     membership,
+    memberships,
+    switchWorkspace,
     membershipLoadError,
     workspaceLoadError,
     signOut,
@@ -18060,7 +18062,7 @@ function App() {
     if (notice) {
       setInviteAcceptedNotice(notice)
     }
-  }, [isAuthLoading])
+  }, [isAuthLoading, membership?.workspaceId])
 
   useEffect(() => {
     if (activeView !== 'reservations') {
@@ -26905,6 +26907,11 @@ function App() {
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
+                      memberships,
+                      activeWorkspaceId,
+                      onSwitchVenue: switchWorkspace,
+                      inviteNotice: inviteAcceptedNotice,
+                      onDismissInviteNotice() { setInviteAcceptedNotice('') },
                       statusSummary: shownTodayStatusSummary,
                       dataStatus: todayDataStatus,
                       onRetryData: retryTodayData,
@@ -26971,6 +26978,11 @@ function App() {
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
+                      memberships,
+                      activeWorkspaceId,
+                      onSwitchVenue: switchWorkspace,
+                      inviteNotice: inviteAcceptedNotice,
+                      onDismissInviteNotice() { setInviteAcceptedNotice('') },
                       shiftSummary: mobileShiftSummary,
                       tasksSummary: mobileTaskOverview,
                       needsEmployeeLink: mobileNeedsEmployeeLink,

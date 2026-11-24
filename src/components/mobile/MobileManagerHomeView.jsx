@@ -8,9 +8,14 @@ import { OnShiftSheet } from '../today/OnShiftSheet'
 import { PendingValue } from '../common/DataPending'
 import { areaStatus } from '../../lib/loadStatus'
 import { TodayQuickActions } from '../today/TodayQuickActions'
+import { TodayVenueControl } from '../workspace/VenueManager'
 import { t } from '../../i18n/i18n'
 
 const ATTENTION_PREVIEW_LIMIT = 3
+
+function hasExtraAttention(count) {
+  return count - ATTENTION_PREVIEW_LIMIT > 0
+}
 
 function getAttentionCategory(item) {
   const key = `${item?.key ?? ''}`
@@ -57,6 +62,11 @@ export function MobileManagerHomeView({
   greeting = '',
   dateLabel = '',
   roleLabel = '',
+  memberships = [],
+  activeWorkspaceId = '',
+  onSwitchVenue,
+  inviteNotice = '',
+  onDismissInviteNotice,
   statusSummary = {},
   attentionItems = [],
   stockSummary = null,
@@ -123,18 +133,28 @@ export function MobileManagerHomeView({
 
   const previewAttentionItems = mergedAttentionItems.slice(0, ATTENTION_PREVIEW_LIMIT)
   const visibleAttentionItems = showAllAttention ? mergedAttentionItems : previewAttentionItems
-  const hasMoreAttention = mergedAttentionItems.length > ATTENTION_PREVIEW_LIMIT
-  const workspaceContext = [venueName, roleLabel].filter(Boolean).join(' · ')
-
+  const hasMoreAttention = hasExtraAttention(mergedAttentionItems.length)
   return (
     <div className="mobile-screen mobile-home mobile-manager-home mobile-manager-command-center">
+      {inviteNotice ? (
+        <div className="staff-status-banner auth-banner-success workspace-invite-notice" role="status">
+          {inviteNotice}
+          <button type="button" className="ghost-btn small workspace-invite-notice-dismiss" onClick={onDismissInviteNotice}>
+            {t("Dismiss")}
+          </button>
+        </div>
+      ) : null}
       <header className="mobile-manager-command-header">
         <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || t('Welcome')}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
-          {workspaceContext ? (
-            <span className="mobile-manager-command-workspace">{workspaceContext}</span>
-          ) : null}
+          <TodayVenueControl
+            venueName={venueName}
+            roleLabel={roleLabel}
+            memberships={memberships}
+            activeWorkspaceId={activeWorkspaceId}
+            onSwitch={onSwitchVenue}
+          />
         </p>
       </header>
 

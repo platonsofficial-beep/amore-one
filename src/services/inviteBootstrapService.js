@@ -7,6 +7,7 @@ import {
   resolveInviteAcceptanceError,
 } from '../lib/inviteBootstrapUtils'
 import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
+import { getWorkspaceRoleLabel } from '../lib/membershipRoles'
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
@@ -14,7 +15,7 @@ import {
   writePendingInviteToken,
 } from '../lib/inviteTokenStorage'
 import { supabase } from '../lib/supabaseClient'
-import { setStoredActiveWorkspaceId } from './membershipService'
+import { setStoredActiveWorkspaceId, venueSwitcherLabel } from './membershipService'
 import { acceptInvite, acceptPendingInviteForAuthenticatedUser, getInvitePreview } from './inviteService'
 
 function inviteTokenFromUser(user) {
@@ -31,15 +32,39 @@ async function clearStoredInviteToken(token) {
   }
 }
 
-async function tryAcceptInviteToken(token) {
-  const invitePreview = await getInvitePreview(token).catch(() => null)
-  const accepted = await acceptInvite(token)
-  const workspaceId = `${accepted?.workspace_id ?? accepted?.workspaceId ?? ''}`.trim()
-  if (workspaceId) setStoredActiveWorkspaceId(workspaceId)
-  return {
-    workspaceName: invitePreview?.workspaceName ?? '',
-    workspaceId,
+function acceptedWorkspaceId(record) {
+  return `${record?.workspace_id ?? record?.workspaceId ?? ''}`.trim()
+}
+
+function acceptedRole(record) {
+  return `${record?.role ?? ''}`.trim()
+}
+
+async function readVenueDisplayName(workspaceId, fallback = '') {
+  const id = `${workspaceId ?? ''}`.trim()
+  const backup = `${fallback ?? ''}`.trim()
+  if (!id || typeof supabase?.from !== 'function') return backup
+  try {
+    const { data, error } = await supabase
+      .from('workspace_profiles')
+      .select('business_name')
+      .eq('workspace_id', id)
+      .limit(1)
+    if (error) return backup
+    const row = Array.isArray(data) ? data[0] : null
+    return venueSwitcherLabel(row?.business_name, backup)
+  } catch {
+    return backup
   }
+}
+
+async function rememberAcceptedVenue(record, fallbackName = '') {
+  const workspaceId = acceptedWorkspaceId(record)
+  if (workspaceId) setStoredActiveWorkspaceId(workspaceId)
+  const venueName = await readVenueDisplayName(workspaceId, fallbackName)
+  const roleLabel = acceptedRole(record) ? getWorkspaceRoleLabel(acceptedRole(record)) : ''
+  writeInviteAcceptedNotice(buildInviteAcceptedNotice(venueName, roleLabel))
+  return { workspaceId, venueName, roleLabel }
 }
 
 export async function resolveWorkspaceInviteOnBootstrap({
@@ -55,6 +80,7 @@ export async function resolveWorkspaceInviteOnBootstrap({
   const pendingToken = readPendingInviteToken()
   let inviteSucceeded = false
   let inviteErrorMessage = ''
+  let workspaceId = ''
 
   const membershipBeforeAttempts = await fetchMembership().catch(() => null)
   if (membershipBeforeAttempts && !pendingToken) {
@@ -73,18 +99,21 @@ export async function resolveWorkspaceInviteOnBootstrap({
   for (const attempt of attempts) {
     try {
       if (attempt.kind === 'token') {
-        const acceptedInvite = await tryAcceptInviteToken(attempt.token)
+        const invitePreview = await getInvitePreview(attempt.token).catch(() => null)
+        const accepted = await acceptInvite(attempt.token)
+        const remembered = await rememberAcceptedVenue(accepted, invitePreview?.workspaceName)
+        workspaceId = remembered.workspaceId
         inviteSucceeded = true
         await clearStoredInviteToken(attempt.token)
-        writeInviteAcceptedNotice(buildInviteAcceptedNotice(acceptedInvite.workspaceName))
         break
       }
 
       if (attempt.kind === 'email') {
         const acceptedMembership = await acceptPendingInviteForAuthenticatedUser()
         if (acceptedMembership) {
+          const remembered = await rememberAcceptedVenue(acceptedMembership, '')
+          workspaceId = remembered.workspaceId
           inviteSucceeded = true
-          writeInviteAcceptedNotice(buildInviteAcceptedNotice(''))
           break
         }
       }
@@ -115,5 +144,6 @@ export async function resolveWorkspaceInviteOnBootstrap({
   return {
     inviteSucceeded,
     inviteErrorMessage,
+    workspaceId,
   }
 }
