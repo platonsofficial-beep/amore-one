@@ -11,7 +11,7 @@ import { TodayAnnouncementsPanel } from './TodayAnnouncementsPanel'
 import { buildTodayExecutiveMessage } from '../../lib/todayExecutiveMessage'
 import { areaStatus, combineLoadStatus, loadAreaForCard, nextLoadStatus, stockLiveLoadStatus } from '../../lib/loadStatus'
 
-const FAKE_ALL_GOOD = /Stock levels OK|0 open drafts|Schedule not published|No shifts scheduled today|No inventory counts yet|Everything looks under control/
+const FAKE_ALL_GOOD = /Stock levels OK|0 open drafts|Schedule not published|No shifts scheduled today|No inventory counts yet|Nothing needs attention/
 
 let container
 let root
@@ -102,7 +102,7 @@ describe('Today cards before data arrives', () => {
     expect(container.textContent).not.toMatch(FAKE_ALL_GOOD)
 
     render(createElement(MobileManagerHomeView, { ...props, dataStatus: all('ready') }))
-    expect(container.textContent).toContain('Everything looks under control')
+    expect(container.textContent).toContain('Nothing needs attention')
   })
 
   it('executive message never says "Everything is ready" before data arrives', () => {

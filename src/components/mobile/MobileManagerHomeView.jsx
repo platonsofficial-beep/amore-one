@@ -267,7 +267,7 @@ export function MobileManagerHomeView({
               <PendingValue status={statusOf('attention')} lines={2} onRetry={retry('all')} />
             </div>
           ) : mergedAttentionItems.length === 0 ? (
-            <p className="mobile-manager-attention-empty">{t("Everything looks under control today.")}</p>
+            <p className="mobile-manager-attention-empty">{t("Nothing needs attention")}</p>
           ) : (
             <>
               <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed" aria-label={t("Attention items")}>

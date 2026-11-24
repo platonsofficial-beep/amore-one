@@ -4143,6 +4143,7 @@
   "{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.": "{{name}} stays for everyone. This only hides it from your list and clears what you can see, up to now. It comes back when someone sends a new message.",
   "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.": "This removes the chat from your list and clears what you can see, up to now. A new message brings it back, with only the new messages. The other person keeps the full history.",
   "No one on shift now": "No one on shift now",
+  "Nothing needs attention": "Nothing needs attention",
   "{{count}} on shift_one": "{{count}} on shift",
   "{{count}} on shift_other": "{{count}} on shift",
   "{{count}} clocked in_one": "{{count}} clocked in",
