@@ -333,7 +333,7 @@ export function formatTeamTodayCollapsedSummary({
 }
 
 export function formatAttentionCollapsedSummary(items = []) {
-  if (!items.length) return t("All clear for now")
+  if (!items.length) return t("Nothing needs attention")
 
   const urgentCount = items.filter((item) => item.priority === 'urgent' || item.tone === 'critical').length
   const reminderCount = items.length - urgentCount

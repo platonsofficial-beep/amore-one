@@ -226,7 +226,7 @@ export function WorkspaceBusinessProfileSection({
                 autoComplete="street-address"
               />
             </label>
-            <div className="workspace-location-row">
+            <div className="workspace-location-row" id="workspace-venue-location">
               <button
                 type="button"
                 className="ghost-btn workspace-location-btn"

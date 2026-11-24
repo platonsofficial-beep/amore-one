@@ -47,13 +47,49 @@ function requireContext(workspaceId, weekStartDate) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStartDate ?? '')) throw new Error('A valid week start date is required.')
 }
 
+function unpublishedWeekSnapshot(weekStartDate) {
+  return {
+    publication: {
+      id: null,
+      weekStartDate,
+      status: 'draft',
+      publishedAt: null,
+      unpublishedAt: null,
+      publishedBy: null,
+      createdAt: null,
+      revision: 0,
+    },
+    publishedShifts: [],
+  }
+}
+
+/** The snapshot RPC refuses to run once a second venue exists, and a missing
+ * publication is not a failed Today load. Both mean "nothing is published". */
+export function isUnpublishedScheduleRead(error) {
+  const message = `${error?.message ?? ''}`
+  return message.includes('single_workspace')
+    || message.includes('single-venue')
+    || message.includes('could not be verified')
+}
+
 export async function getWeekSchedulePublicationState(weekStartDate, workspaceId) {
   requireContext(workspaceId, weekStartDate)
   const { data, error } = await supabase.rpc('get_week_schedule_snapshot', {
     p_workspace_id: workspaceId, p_week_start_date: weekStartDate,
   })
-  if (error) throw publicationError(error)
-  return mapSnapshot(data)
+  if (error) {
+    const wrapped = publicationError(error)
+    if (isUnpublishedScheduleRead(error) || isUnpublishedScheduleRead(wrapped)) {
+      return unpublishedWeekSnapshot(weekStartDate)
+    }
+    throw wrapped
+  }
+  try {
+    return mapSnapshot(data)
+  } catch (mapError) {
+    if (isUnpublishedScheduleRead(mapError)) return unpublishedWeekSnapshot(weekStartDate)
+    throw mapError
+  }
 }
 
 export function serializePublicationDraftShift(shift) {

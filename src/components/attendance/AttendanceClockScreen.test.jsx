@@ -91,7 +91,35 @@ describe('AttendanceClockScreen', () => {
 
     expect(view.container.textContent).toContain('▶ Clock in')
     expect(view.container.textContent).toContain('Venue location is not set yet')
+    expect(view.container.textContent).not.toContain('Set location')
     expect(view.container.querySelector('.attendance-action-in').textContent).toContain('Clock in')
+    view.unmount()
+  })
+
+  it('lets someone who can edit the venue set the location', async () => {
+    settingsMock.mockResolvedValue({ venue_lat: null, venue_lng: null, radius_m: 50, late_grace_minutes: 10 })
+    const onSetVenueLocation = vi.fn()
+    const view = renderClock({ canSetVenueLocation: true, onSetVenueLocation })
+    await view.flush()
+
+    expect(view.container.textContent).toContain('Set your venue location so staff can clock in.')
+    expect(view.container.textContent).not.toContain('Ask the owner')
+    const button = view.container.querySelector('.attendance-clock-set-location')
+    expect(button?.textContent).toContain('Set location')
+    act(() => { button.click() })
+    expect(onSetVenueLocation).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  it('translates the missing-location prompt for the owner', async () => {
+    settingsMock.mockResolvedValue({ venue_lat: null, venue_lng: null, radius_m: 50, late_grace_minutes: 10 })
+    setLocale('el')
+    const view = renderClock({ canSetVenueLocation: true })
+    await view.flush()
+
+    expect(view.container.textContent).toContain('Βάλε την τοποθεσία του καταστήματος')
+    expect(view.container.textContent).toContain('Ορισμός τοποθεσίας')
+    expect(view.container.textContent).not.toContain('Set location')
     view.unmount()
   })
 

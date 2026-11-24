@@ -6,6 +6,7 @@ import { canManageAttendance, resolvePermittedActiveView } from './permissions'
 import {
   LOCATION_OFF_MESSAGE,
   NO_VENUE_LOCATION_MESSAGE,
+  venueLocationPrompt,
   OFFLINE_MESSAGE,
   POOR_ACCURACY_MESSAGE,
   actualWorkedMinutes,
@@ -42,6 +43,9 @@ describe('attendance messages', () => {
     expect(failureMessage({ ok: false, reason: 'not_clocked_in' })).toBe('Clock in before you clock out.')
     expect(OFFLINE_MESSAGE).toBe('Needs internet connection.')
     expect(NO_VENUE_LOCATION_MESSAGE).toContain('Venue location is not set yet')
+    expect(venueLocationPrompt({ canEdit: false }).action).toBe('')
+    expect(venueLocationPrompt({ canEdit: true }).message).toContain('Set your venue location')
+    expect(venueLocationPrompt({ canEdit: true }).action).toBe('Set location')
   })
 
   it('offers a manager request only for location problems', () => {

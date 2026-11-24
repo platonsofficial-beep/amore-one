@@ -24803,6 +24803,23 @@ function App() {
     handleSettingsSectionChange('profile')
   }
 
+  const openVenueLocationSettings = () => {
+    if (!canOpenWorkspaceProfile) return
+    handleActiveViewChange('settings')
+    handleSettingsSectionChange('profile')
+    setMobileMenuScreen('main')
+    if (isManagementMobileRole(role) && useMobileExperience) {
+      setMobileExpandedView(null)
+    } else if (useMobileExperience) {
+      setMobileExpandedView('workspace')
+    }
+    window.setTimeout(() => {
+      const location = document.getElementById('workspace-venue-location')
+      location?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      location?.querySelector('button')?.focus()
+    }, 80)
+  }
+
   const handleMobileBack = () => {
     if (isHostMobileRole(role)) {
       setMobileExpandedView(null)
@@ -26067,6 +26084,8 @@ function App() {
               employeeName={billingPreviewActive ? t("Alex Costa") : (mobileLinkedEmployee?.name || (isAuthDisabled ? resolveDemoDisplayName(workspaceProfile.managerName, getLocale()) : ''))}
               timeZone={workspaceTimeZone}
               isManager={isManagementMobileRole(role)}
+              canSetVenueLocation={canOpenWorkspaceProfile}
+              onSetVenueLocation={openVenueLocationSettings}
               previewMode={billingPreviewActive}
               demoFixtures={isAuthDisabled && !billingPreviewActive}
             />

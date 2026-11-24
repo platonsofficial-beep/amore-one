@@ -10,6 +10,23 @@ export const OFFLINE_MESSAGE = 'Needs internet connection.'
 
 export const NO_VENUE_LOCATION_MESSAGE = 'Venue location is not set yet. Ask the owner to set it in Settings > Venue.'
 
+export const SET_VENUE_LOCATION_MESSAGE = 'Set your venue location so staff can clock in.'
+
+export const SET_VENUE_LOCATION_ACTION = 'Set location'
+
+export function venueLocationPrompt({ canEdit = false } = {}) {
+  if (canEdit) {
+    return {
+      message: t(SET_VENUE_LOCATION_MESSAGE),
+      action: t(SET_VENUE_LOCATION_ACTION),
+    }
+  }
+  return {
+    message: t(NO_VENUE_LOCATION_MESSAGE),
+    action: '',
+  }
+}
+
 export const LOCATION_OFF_MESSAGE = 'Location is off. Turn it on in Settings > Safari/Chrome > Location'
 
 export const POOR_ACCURACY_MESSAGE = 'GPS is not accurate enough, move near a window or send a request.'
