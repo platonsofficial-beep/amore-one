@@ -56,12 +56,14 @@ describe('inviteFlowUtils', () => {
 
   it('talks about the invite link in English and Greek', () => {
     setLocale('en')
-    expect(t("Paste your invite link")).toBe('Paste your invite link')
-    expect(t("Paste your invite link.")).toBe('Paste your invite link.')
+    expect(t("Paste the link you received to join the venue.")).toBe('Paste the link you received to join the venue.')
+    expect(t("Start screen invite link")).toBe('Invite link')
+    expect(t("https://app.onehospitality.app/...")).toBe('https://app.onehospitality.app/...')
     setLocale('el')
-    expect(t("Paste your invite link")).toBe('Επικόλλησε το link της πρόσκλησης')
-    expect(t("Paste your invite link.")).toBe('Επικόλλησε το link της πρόσκλησης.')
-    expect(t("Paste your invite link")).not.toMatch(/κωδικ/i)
+    expect(t("Paste the link you received to join the venue.")).toBe('Επικόλλησε το link που σου ήρθε για να μπεις στο μαγαζί.')
+    expect(t("Start screen invite link")).toBe('Link πρόσκλησης')
+    expect(t("https://app.onehospitality.app/...")).toBe('https://app.onehospitality.app/...')
+    expect(t("Start screen invite link")).not.toMatch(/κωδικ/i)
     setLocale('en')
   })
 
