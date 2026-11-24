@@ -4801,10 +4801,9 @@
   "Create a venue you own, or join one with an invite.": "Create a venue you own, or join one with an invite.",
   "Create my own venue": "Create my own venue",
   "I have an invite": "I have an invite",
-  "Paste the invite link or code": "Paste the invite link or code",
-  "Invite link or code": "Invite link or code",
+  "Paste your invite link": "Paste your invite link",
   "Join this venue": "Join this venue",
-  "Paste an invite link or code.": "Paste an invite link or code.",
+  "Paste your invite link.": "Paste your invite link.",
   "This invite was sent to {{email}}. Sign in with that email.": "This invite was sent to {{email}}. Sign in with that email.",
   "Creating your venue…": "Creating your venue…",
   "Sign in again and try once more.": "Sign in again and try once more."

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale, t } from '../i18n/i18n'
 import {
   buildInviteAcceptedNotice,
   buildInvitePreviewSummary,
@@ -53,7 +54,18 @@ describe('inviteFlowUtils', () => {
     expect(buildInviteAcceptedNotice('')).toBe('You joined the venue.')
   })
 
-  it('reads an invite token from a link, a path, or a bare code', () => {
+  it('talks about the invite link in English and Greek', () => {
+    setLocale('en')
+    expect(t("Paste your invite link")).toBe('Paste your invite link')
+    expect(t("Paste your invite link.")).toBe('Paste your invite link.')
+    setLocale('el')
+    expect(t("Paste your invite link")).toBe('Επικόλλησε το link της πρόσκλησης')
+    expect(t("Paste your invite link.")).toBe('Επικόλλησε το link της πρόσκλησης.')
+    expect(t("Paste your invite link")).not.toMatch(/κωδικ/i)
+    setLocale('en')
+  })
+
+  it('reads an invite token from a link, a path, or a bare token', () => {
     expect(parseInviteTokenInput('https://app.onehospitality.app/?invite=abc-123')).toBe('abc-123')
     expect(parseInviteTokenInput('https://app.onehospitality.app/invite/path-token')).toBe('path-token')
     expect(parseInviteTokenInput('  bare-token  ')).toBe('bare-token')

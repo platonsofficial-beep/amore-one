@@ -4801,10 +4801,9 @@
   "Create a venue you own, or join one with an invite.": "Φτιάξε ένα κατάστημα δικό σου, ή μπες σε ένα με πρόσκληση.",
   "Create my own venue": "Δημιουργία του δικού μου καταστήματος",
   "I have an invite": "Έχω πρόσκληση",
-  "Paste the invite link or code": "Επικόλλησε τον σύνδεσμο ή τον κωδικό της πρόσκλησης",
-  "Invite link or code": "Σύνδεσμος ή κωδικός πρόσκλησης",
+  "Paste your invite link": "Επικόλλησε το link της πρόσκλησης",
   "Join this venue": "Μπες σε αυτό το κατάστημα",
-  "Paste an invite link or code.": "Επικόλλησε έναν σύνδεσμο ή κωδικό πρόσκλησης.",
+  "Paste your invite link.": "Επικόλλησε το link της πρόσκλησης.",
   "This invite was sent to {{email}}. Sign in with that email.": "Αυτή η πρόσκληση στάλθηκε στο {{email}}. Συνδέσου με αυτό το email.",
   "Creating your venue…": "Δημιουργία του καταστήματός σου…",
   "Sign in again and try once more.": "Συνδέσου ξανά και δοκίμασε άλλη μια φορά."

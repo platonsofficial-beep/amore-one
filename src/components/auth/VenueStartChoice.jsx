@@ -58,7 +58,7 @@ export function VenueStartChoice() {
           </h1>
           <p className="auth-subtitle">
             {isInviteStep
-              ? t("Paste the invite link or code")
+              ? t("Paste your invite link")
               : t("Create a venue you own, or join one with an invite.")}
           </p>
         </header>
@@ -68,13 +68,13 @@ export function VenueStartChoice() {
         {isInviteStep ? (
           <form className="auth-form" onSubmit={joinInvite}>
             <label className="form-field auth-field" htmlFor="venue-start-invite">
-              <span>{t("Invite link or code")}</span>
+              <span>{t("Paste your invite link")}</span>
               <input
                 id="venue-start-invite"
                 name="invite"
                 value={inviteText}
                 onChange={function updateInvite(event) { setInviteText(event.target.value) }}
-                placeholder={t("Invite link or code")}
+                placeholder={t("Paste your invite link")}
                 autoComplete="off"
                 autoCapitalize="off"
                 autoCorrect="off"

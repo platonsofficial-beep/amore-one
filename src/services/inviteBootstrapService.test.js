@@ -119,6 +119,22 @@ describe('acceptPastedWorkspaceInvite', () => {
     clearPendingInviteToken()
   })
 
+  it('asks for the invite link when the paste is empty, and still accepts a bare token', async () => {
+    await expect(acceptPastedWorkspaceInvite({
+      raw: '   ',
+      user: { email: 'guest@example.com' },
+    })).rejects.toThrow('Paste your invite link.')
+    expect(acceptInvite).not.toHaveBeenCalled()
+
+    getInvitePreview.mockResolvedValue(openPreview)
+    acceptInvite.mockResolvedValue({ workspace_id: 'ws-sentio', role: 'manager' })
+    await acceptPastedWorkspaceInvite({
+      raw: 'paste-1',
+      user: { email: 'guest@example.com' },
+    })
+    expect(acceptInvite).toHaveBeenCalledWith('paste-1')
+  })
+
   it('accepts a pasted link, switches to that venue, and stores the joined notice', async () => {
     getInvitePreview.mockResolvedValue(openPreview)
     acceptInvite.mockResolvedValue({ workspace_id: 'ws-sentio', role: 'manager' })

@@ -123,6 +123,8 @@ describe('venue start choice', () => {
     act(() => {
       clickButton('I have an invite')
     })
+    expect(container.textContent).toContain('Paste your invite link')
+    expect(container.textContent.toLowerCase()).not.toContain('code')
     const input = container.querySelector('#venue-start-invite')
     const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
     await act(async () => {
