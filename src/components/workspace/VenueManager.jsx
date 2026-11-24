@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useOptionalAuth } from '../../context/AuthContext'
 import { createVenue } from '../../services/workspaceService'
 import { t } from '../../i18n/i18n'
@@ -39,6 +40,16 @@ export function shouldShowVenueSwitcher(memberships) {
   return Array.isArray(memberships) && memberships.length >= 2
 }
 
+/** Visible bottom-tab height, including its safe-area padding. Zero when the bar is hidden. */
+export function measureBottomNavClearance(doc = typeof document === 'undefined' ? null : document) {
+  const nav = doc?.querySelector?.('.mobile-bottom-nav')
+  if (!nav || typeof window === 'undefined') return 0
+  const style = window.getComputedStyle(nav)
+  if (style.display === 'none' || style.visibility === 'hidden') return 0
+  const height = Math.ceil(nav.getBoundingClientRect().height)
+  return height > 1 ? height : 0
+}
+
 /** Compact venue switcher; renders only when the user belongs to 2+ venues. */
 export function TodayVenueControl({
   venueName = '',
@@ -48,7 +59,21 @@ export function TodayVenueControl({
   onSwitch,
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [navClearance, setNavClearance] = useState(0)
   const label = [venueName, roleLabel].filter(Boolean).join(' · ')
+  useLayoutEffect(() => {
+    if (!isOpen) return undefined
+    function measure() {
+      setNavClearance(measureBottomNavClearance())
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    window.addEventListener('orientationchange', measure)
+    return function stopMeasuring() {
+      window.removeEventListener('resize', measure)
+      window.removeEventListener('orientationchange', measure)
+    }
+  }, [isOpen])
   if (!label) return null
   if (!shouldShowVenueSwitcher(memberships)) {
     return <span className="mobile-manager-command-workspace">{label}</span>
@@ -76,8 +101,13 @@ export function TodayVenueControl({
         <span className="mobile-today-venue-switch-label">{label}</span>
         <span className="mobile-today-venue-chevron" aria-hidden="true" />
       </button>
-      {isOpen ? (
-        <div className="venue-sheet-backdrop is-today-venue" role="presentation" onClick={close}>
+      {isOpen ? createPortal(
+        <div
+          className="venue-sheet-backdrop is-today-venue"
+          role="presentation"
+          style={{ '--today-venue-nav-clearance': `${navClearance}px` }}
+          onClick={close}
+        >
           <div
             className="venue-sheet panel staff-panel"
             role="dialog"
@@ -111,7 +141,8 @@ export function TodayVenueControl({
               })}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   )

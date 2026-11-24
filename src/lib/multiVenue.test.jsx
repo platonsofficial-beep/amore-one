@@ -37,6 +37,7 @@ import {
   VenueManager,
   TodayVenueControl,
   canCreateVenue,
+  measureBottomNavClearance,
   shouldShowVenueSwitcher,
 } from '../components/workspace/VenueManager'
 
@@ -162,8 +163,22 @@ describe('venue UI', () => {
     expect(button?.textContent).toContain('SENTIO NICOSIA')
     expect(button?.textContent).toContain('Manager')
     act(() => button.dispatchEvent(new MouseEvent('click', { bubbles: true })))
-    expect(container.textContent).toContain('Stelios Papadimas')
-    expect(container.querySelector('.mobile-today-venue-option.is-selected .mobile-today-venue-check')).toBeTruthy()
+    const sheet = document.body.querySelector('.venue-sheet-backdrop.is-today-venue')
+    expect(sheet?.parentElement).toBe(document.body)
+    expect(sheet?.textContent).toContain('Stelios Papadimas')
+    expect(sheet?.querySelector('.mobile-today-venue-option.is-selected .mobile-today-venue-check')).toBeTruthy()
+    expect(sheet?.style.getPropertyValue('--today-venue-nav-clearance')).toBe('0px')
+  })
+
+  it('counts a visible bottom nav and ignores a hidden one', () => {
+    const nav = document.createElement('nav')
+    nav.className = 'mobile-bottom-nav'
+    document.body.appendChild(nav)
+    nav.getBoundingClientRect = () => ({ height: 83, width: 390, top: 0, left: 0, right: 0, bottom: 0 })
+    expect(measureBottomNavClearance(document)).toBe(83)
+    nav.style.display = 'none'
+    expect(measureBottomNavClearance(document)).toBe(0)
+    nav.remove()
   })
 
   it('hides the venue chevron when there is only one venue', () => {
