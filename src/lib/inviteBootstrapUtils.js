@@ -16,6 +16,11 @@ export function shouldSkipOwnerMembershipBootstrap({
   return Boolean(hasPendingInvite)
 }
 
+/** A brand-new account chooses a venue or pastes an invite. Bootstrap never creates one. */
+export function shouldAutoCreateSignupVenue() {
+  return false
+}
+
 export function resolveInviteAcceptanceError({
   errorMessage = '',
   hasMembership = false,

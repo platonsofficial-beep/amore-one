@@ -28,8 +28,9 @@ vi.mock('../lib/supabaseClient', () => ({
   supabase: { auth: { updateUser: (...args) => updateUser(...args) } },
 }))
 
-import { resolveWorkspaceInviteOnBootstrap } from './inviteBootstrapService'
+import { acceptPastedWorkspaceInvite, resolveWorkspaceInviteOnBootstrap } from './inviteBootstrapService'
 import { clearPendingInviteToken, writePendingInviteToken } from '../lib/inviteTokenStorage'
+import { readAndClearInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
 
 function installWindow() {
   const memory = new Map()
@@ -95,5 +96,82 @@ describe('resolveWorkspaceInviteOnBootstrap', () => {
 
     expect(acceptInvite).toHaveBeenCalledWith('from-mail')
     expect(setStoredActiveWorkspaceId).toHaveBeenCalledWith('ws-sentio')
+  })
+})
+
+const openPreview = {
+  found: true,
+  workspaceName: 'SENTIO NICOSIA',
+  email: 'guest@example.com',
+  isExpired: false,
+  isRevoked: false,
+  isAccepted: false,
+}
+
+describe('acceptPastedWorkspaceInvite', () => {
+  beforeEach(() => {
+    acceptInvite.mockReset()
+    getInvitePreview.mockReset()
+    setStoredActiveWorkspaceId.mockReset()
+    updateUser.mockReset()
+    updateUser.mockResolvedValue({ data: {} })
+    installWindow()
+    clearPendingInviteToken()
+  })
+
+  it('asks for the invite link when the paste is empty, and still accepts a bare token', async () => {
+    await expect(acceptPastedWorkspaceInvite({
+      raw: '   ',
+      user: { email: 'guest@example.com' },
+    })).rejects.toThrow('Paste your invite link.')
+    expect(acceptInvite).not.toHaveBeenCalled()
+
+    getInvitePreview.mockResolvedValue(openPreview)
+    acceptInvite.mockResolvedValue({ workspace_id: 'ws-sentio', role: 'manager' })
+    await acceptPastedWorkspaceInvite({
+      raw: 'paste-1',
+      user: { email: 'guest@example.com' },
+    })
+    expect(acceptInvite).toHaveBeenCalledWith('paste-1')
+  })
+
+  it('accepts a pasted link, switches to that venue, and stores the joined notice', async () => {
+    getInvitePreview.mockResolvedValue(openPreview)
+    acceptInvite.mockResolvedValue({ workspace_id: 'ws-sentio', role: 'manager' })
+
+    const result = await acceptPastedWorkspaceInvite({
+      raw: 'https://app.onehospitality.app/?invite=paste-1',
+      user: { email: 'guest@example.com' },
+    })
+
+    expect(acceptInvite).toHaveBeenCalledWith('paste-1')
+    expect(setStoredActiveWorkspaceId).toHaveBeenCalledWith('ws-sentio')
+    expect(result.workspaceId).toBe('ws-sentio')
+    expect(readAndClearInviteAcceptedNotice()).toBe('You joined SENTIO NICOSIA as Manager.')
+  })
+
+  it('does not accept an invite sent to a different email', async () => {
+    getInvitePreview.mockResolvedValue(openPreview)
+
+    await expect(acceptPastedWorkspaceInvite({
+      raw: 'paste-1',
+      user: { email: 'other@example.com' },
+    })).rejects.toThrow(/guest@example.com/)
+    expect(acceptInvite).not.toHaveBeenCalled()
+  })
+
+  it('does not accept an expired, revoked, used, or unknown invite', async () => {
+    getInvitePreview.mockResolvedValue({ ...openPreview, isRevoked: true })
+    await expect(acceptPastedWorkspaceInvite({
+      raw: 'paste-1',
+      user: { email: 'guest@example.com' },
+    })).rejects.toThrow(/no longer active|cancelled/i)
+
+    getInvitePreview.mockResolvedValue({ found: false })
+    await expect(acceptPastedWorkspaceInvite({
+      raw: 'missing',
+      user: { email: 'guest@example.com' },
+    })).rejects.toThrow(/not valid|not found/i)
+    expect(acceptInvite).not.toHaveBeenCalled()
   })
 })

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale, t } from '../i18n/i18n'
 import {
   buildInviteAcceptedNotice,
   buildInvitePreviewSummary,
   formatInviteErrorMessage,
   isFatalInviteError,
+  parseInviteTokenInput,
+  pastedInviteDecision,
   shouldSkipMembershipBootstrapAfterInviteAttempt,
 } from './inviteFlowUtils'
 
@@ -49,6 +52,47 @@ describe('inviteFlowUtils', () => {
     expect(buildInviteAcceptedNotice('SENTIO NICOSIA', 'Manager')).toBe('You joined SENTIO NICOSIA as Manager.')
     expect(buildInviteAcceptedNotice('SENTIO NICOSIA')).toBe('You joined SENTIO NICOSIA.')
     expect(buildInviteAcceptedNotice('')).toBe('You joined the venue.')
+  })
+
+  it('talks about the invite link in English and Greek', () => {
+    setLocale('en')
+    expect(t("Paste your invite link")).toBe('Paste your invite link')
+    expect(t("Paste your invite link.")).toBe('Paste your invite link.')
+    setLocale('el')
+    expect(t("Paste your invite link")).toBe('Επικόλλησε το link της πρόσκλησης')
+    expect(t("Paste your invite link.")).toBe('Επικόλλησε το link της πρόσκλησης.')
+    expect(t("Paste your invite link")).not.toMatch(/κωδικ/i)
+    setLocale('en')
+  })
+
+  it('reads an invite token from a link, a path, or a bare token', () => {
+    expect(parseInviteTokenInput('https://app.onehospitality.app/?invite=abc-123')).toBe('abc-123')
+    expect(parseInviteTokenInput('https://app.onehospitality.app/invite/path-token')).toBe('path-token')
+    expect(parseInviteTokenInput('  bare-token  ')).toBe('bare-token')
+    expect(parseInviteTokenInput('https://app.onehospitality.app/today')).toBe('')
+    expect(parseInviteTokenInput('')).toBe('')
+  })
+
+  it('rejects a pasted invite that belongs to another email and keeps valid ones', () => {
+    const preview = {
+      found: true,
+      workspaceName: 'SENTIO NICOSIA',
+      email: 'guest@example.com',
+      isExpired: false,
+      isRevoked: false,
+      isAccepted: false,
+    }
+    expect(pastedInviteDecision({ preview, userEmail: 'owner@example.com' }).ok).toBe(false)
+    expect(pastedInviteDecision({ preview, userEmail: 'owner@example.com' }).message).toContain('guest@example.com')
+    expect(pastedInviteDecision({ preview, userEmail: 'Guest@Example.com' }).ok).toBe(true)
+    expect(pastedInviteDecision({
+      preview: { ...preview, isExpired: true },
+      userEmail: 'guest@example.com',
+    }).message).toContain('expired')
+    expect(pastedInviteDecision({
+      preview: { found: false },
+      userEmail: 'guest@example.com',
+    }).ok).toBe(false)
   })
 
   it('detects fatal invite errors and bootstrap skip rules', () => {

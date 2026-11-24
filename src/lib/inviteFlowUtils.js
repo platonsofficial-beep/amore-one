@@ -1,4 +1,4 @@
-import { shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
+import { normalizeInviteEmail, shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
 import { t } from '../i18n/i18n'
 
 export function formatInviteErrorMessage(message = '') {
@@ -41,7 +41,47 @@ export function shouldSkipMembershipBootstrapAfterInviteAttempt({
   return shouldSkipOwnerMembershipBootstrap({ inviteSucceeded, resolvedMembership })
 }
 
-export { shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
+export { shouldAutoCreateSignupVenue, shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
+
+export function parseInviteTokenInput(value = '') {
+  const raw = `${value ?? ''}`.trim()
+  if (!raw) return ''
+
+  const fromQuery = raw.match(/[?&]invite=([^&#\s]+)/i)
+  if (fromQuery) return decodeInviteToken(fromQuery[1])
+
+  const fromPath = raw.match(/\/invite\/([^/?#\s]+)/i)
+  if (fromPath) return decodeInviteToken(fromPath[1])
+
+  if (/^https?:\/\//i.test(raw)) return ''
+  return raw
+}
+
+function decodeInviteToken(value) {
+  try {
+    return decodeURIComponent(`${value ?? ''}`).trim()
+  } catch {
+    return `${value ?? ''}`.trim()
+  }
+}
+
+export function pastedInviteDecision({ preview, userEmail = '' } = {}) {
+  const summary = buildInvitePreviewSummary(preview)
+  if (!summary.canJoin) {
+    return { ok: false, message: summary.message }
+  }
+
+  const invited = normalizeInviteEmail(preview?.email)
+  const current = normalizeInviteEmail(userEmail)
+  if (invited && current && invited !== current) {
+    return {
+      ok: false,
+      message: t("This invite was sent to {{email}}. Sign in with that email.", { email: `${preview.email}`.trim() }),
+    }
+  }
+
+  return { ok: true, message: '' }
+}
 
 export function shouldShowJoiningWorkspaceMessage({
   isLoading = false,

@@ -4796,5 +4796,15 @@
   "Link yourself to a team member to use this filter.": "Σύνδεσε τον λογαριασμό σου με ένα μέλος της ομάδας για να χρησιμοποιήσεις αυτό το φίλτρο.",
   "About this step": "Για αυτό το βήμα",
   "Hide step details": "Απόκρυψη λεπτομερειών",
-  "Close guide": "Κλείσιμο οδηγού"
+  "Close guide": "Κλείσιμο οδηγού",
+  "How do you want to start?": "Πώς θέλεις να ξεκινήσεις;",
+  "Create a venue you own, or join one with an invite.": "Φτιάξε ένα κατάστημα δικό σου, ή μπες σε ένα με πρόσκληση.",
+  "Create my own venue": "Δημιουργία του δικού μου καταστήματος",
+  "I have an invite": "Έχω πρόσκληση",
+  "Paste your invite link": "Επικόλλησε το link της πρόσκλησης",
+  "Join this venue": "Μπες σε αυτό το κατάστημα",
+  "Paste your invite link.": "Επικόλλησε το link της πρόσκλησης.",
+  "This invite was sent to {{email}}. Sign in with that email.": "Αυτή η πρόσκληση στάλθηκε στο {{email}}. Συνδέσου με αυτό το email.",
+  "Creating your venue…": "Δημιουργία του καταστήματός σου…",
+  "Sign in again and try once more.": "Συνδέσου ξανά και δοκίμασε άλλη μια φορά."
 }
