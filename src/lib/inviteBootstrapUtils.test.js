@@ -3,6 +3,7 @@ import {
   buildInviteBootstrapAttemptPlan,
   normalizeInviteEmail,
   resolveInviteAcceptanceError,
+  shouldAutoCreateSignupVenue,
   shouldSkipOwnerMembershipBootstrap,
 } from './inviteBootstrapUtils'
 import {
@@ -77,6 +78,15 @@ describe('inviteBootstrapUtils', () => {
     expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
       inviteSucceeded: false,
       resolvedMembership: null,
+    })).toBe(false)
+  })
+
+  it('never auto-creates a venue for a new account with no invite', () => {
+    expect(shouldAutoCreateSignupVenue()).toBe(false)
+    expect(shouldSkipOwnerMembershipBootstrap({
+      inviteSucceeded: false,
+      resolvedMembership: null,
+      hasPendingInvite: false,
     })).toBe(false)
   })
 

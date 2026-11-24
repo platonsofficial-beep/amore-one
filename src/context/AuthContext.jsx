@@ -7,7 +7,7 @@ import {
   signOut as authSignOut,
   signUp as authSignUp,
 } from '../services/authService'
-import { resolveWorkspaceInviteOnBootstrap } from '../services/inviteBootstrapService'
+import { acceptPastedWorkspaceInvite, resolveWorkspaceInviteOnBootstrap } from '../services/inviteBootstrapService'
 import {
   createOwnerMembershipIfMissing,
   getCurrentMembershipContext,
@@ -18,7 +18,7 @@ import { resolveMemberAccess } from '../lib/memberAccess'
 import { WORKSPACE_ROLE_LABELS, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { fetchMemberPermissionRows } from '../services/memberPermissionService'
 import { markSessionEnded } from '../lib/authMessageUtils'
-import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
+import { shouldAutoCreateSignupVenue, shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
 import { shouldSkipSameUserReload } from '../lib/authReloadPolicy'
 import { clearBootCache, readBootCache, readStoredSupabaseSession, updateBootCachePermissions, writeBootCache } from '../lib/bootCache'
 import {
@@ -124,6 +124,7 @@ export function AuthProvider({ children }) {
   const [storedPermissionRows, setStoredPermissionRows] = useState(null)
   const [workspaceLoadError, setWorkspaceLoadError] = useState(null)
   const [isJoiningWorkspace, setIsJoiningWorkspace] = useState(false)
+  const [venueWaitLabel, setVenueWaitLabel] = useState('')
   const [devProfileDisplayName, setDevProfileDisplayName] = useState('')
   const [isLoading, setIsLoading] = useState(!isAuthDisabled)
   const [isBootstrapping, setIsBootstrapping] = useState(!isAuthDisabled)
@@ -267,7 +268,7 @@ export function AuthProvider({ children }) {
       hasPendingInvite: Boolean(readPendingInviteToken()),
     })
 
-    if (!resolvedMembership && !skipOwnerBootstrap) {
+    if (shouldAutoCreateSignupVenue() && !resolvedMembership && !skipOwnerBootstrap) {
       try {
         const createdMembership = await createOwnerMembershipIfMissing(activeSession?.user ?? nextUser)
         if (loadSeq !== authLoadSeqRef.current) return
@@ -553,6 +554,44 @@ export function AuthProvider({ children }) {
     }
   }, [isAuthDisabled, clearAuthenticatedState, finishBootstrapping, loadWorkspaceContext, syncSessionOnly])
 
+  const startOwnVenue = useCallback(async () => {
+    const activeSession = await getSession()
+    const nextUser = activeSession?.user ?? user
+    if (!nextUser?.id) {
+      throw new Error(t("Sign in again and try once more."))
+    }
+    await createOwnerMembershipIfMissing(nextUser)
+    setVenueWaitLabel(t("Creating your venue…"))
+    try {
+      await loadWorkspaceContext(nextUser)
+      const context = await getCurrentMembershipContext(`${nextUser.id}`)
+      if (!context?.membership) {
+        throw new Error(t("The venue could not be created."))
+      }
+    } finally {
+      setVenueWaitLabel('')
+    }
+  }, [loadWorkspaceContext, user])
+
+  const joinVenueWithInvite = useCallback(async (raw) => {
+    const activeSession = await getSession()
+    const nextUser = activeSession?.user ?? user
+    if (!nextUser?.id) {
+      throw new Error(t("Sign in again and try once more."))
+    }
+    await acceptPastedWorkspaceInvite({ raw, user: nextUser })
+    setVenueWaitLabel(t("Joining your venue…"))
+    try {
+      await loadWorkspaceContext(nextUser)
+      const context = await getCurrentMembershipContext(`${nextUser.id}`)
+      if (!context?.membership) {
+        throw new Error(t("Unable to accept workspace invite."))
+      }
+    } finally {
+      setVenueWaitLabel('')
+    }
+  }, [loadWorkspaceContext, user])
+
   const switchWorkspace = useCallback(async (workspaceId) => {
     const nextWorkspaceId = `${workspaceId ?? ''}`.trim()
     if (!nextWorkspaceId || isAuthDisabled) return
@@ -710,6 +749,7 @@ export function AuthProvider({ children }) {
     isBootstrapping,
     isAuthDisabled,
     isJoiningWorkspace,
+    venueWaitLabel,
     membershipLoadError,
     workspaceLoadError,
     signIn,
@@ -719,6 +759,8 @@ export function AuthProvider({ children }) {
     syncDevMembershipProfile,
     refreshMembership,
     switchWorkspace,
+    startOwnVenue,
+    joinVenueWithInvite,
   }), [
     user,
     session,
@@ -733,6 +775,7 @@ export function AuthProvider({ children }) {
     isBootstrapping,
     isAuthDisabled,
     isJoiningWorkspace,
+    venueWaitLabel,
     membershipLoadError,
     workspaceLoadError,
     signIn,
@@ -742,6 +785,8 @@ export function AuthProvider({ children }) {
     syncDevMembershipProfile,
     refreshMembership,
     switchWorkspace,
+    startOwnVenue,
+    joinVenueWithInvite,
   ])
 
   return (

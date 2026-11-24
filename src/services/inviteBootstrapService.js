@@ -1,12 +1,15 @@
 import {
   buildInviteAcceptedNotice,
   formatInviteErrorMessage,
+  parseInviteTokenInput,
+  pastedInviteDecision,
 } from '../lib/inviteFlowUtils'
 import {
   buildInviteBootstrapAttemptPlan,
   resolveInviteAcceptanceError,
 } from '../lib/inviteBootstrapUtils'
 import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
+import { t } from '../i18n/i18n'
 import { getWorkspaceRoleLabel } from '../lib/membershipRoles'
 import {
   captureInviteTokenFromLocation,
@@ -65,6 +68,30 @@ async function rememberAcceptedVenue(record, fallbackName = '') {
   const roleLabel = acceptedRole(record) ? getWorkspaceRoleLabel(acceptedRole(record)) : ''
   writeInviteAcceptedNotice(buildInviteAcceptedNotice(venueName, roleLabel))
   return { workspaceId, venueName, roleLabel }
+}
+
+export async function acceptPastedWorkspaceInvite({ raw, user } = {}) {
+  const token = parseInviteTokenInput(raw)
+  if (!token) {
+    throw new Error(t("Paste an invite link or code."))
+  }
+
+  let preview
+  try {
+    preview = await getInvitePreview(token)
+  } catch (error) {
+    throw new Error(formatInviteErrorMessage(error?.message || ''))
+  }
+
+  const decision = pastedInviteDecision({ preview, userEmail: user?.email })
+  if (!decision.ok) {
+    throw new Error(decision.message)
+  }
+
+  const accepted = await acceptInvite(token)
+  const remembered = await rememberAcceptedVenue(accepted, preview?.workspaceName)
+  await clearStoredInviteToken(token)
+  return remembered
 }
 
 export async function resolveWorkspaceInviteOnBootstrap({
