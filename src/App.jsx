@@ -1,6 +1,6 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from './lib/supabaseClient'
-import { getLocale, subscribeLocale, t, uiLocale, upper } from './i18n/i18n'
+import { getLocale, subscribeLocale, t, uiLocale, upper, useLocale } from './i18n/i18n'
 import { resolveDemoDisplayName } from './lib/demoAttendance'
 import { applyDemoProfile } from './lib/demoMediaDataset'
 import { startVisibleInterval } from './lib/visibleInterval'
@@ -15383,6 +15383,7 @@ function ReservationsView(props) {
 }
 
 function App() {
+  const locale = useLocale()
   const persistedNavigation = readPersistedNavigation()
   const [activeView, setActiveView] = useState(() => persistedNavigation.activeView)
   const [teamSection, setTeamSection] = useState(() => persistedNavigation.teamSection)
@@ -16853,6 +16854,7 @@ function App() {
 
   useEffect(() => {
     if (isMobileWeekLoading) return
+    void locale
 
     setDisplayedMobileSchedule({
       weekStart: mobileWeekStart,
@@ -16865,6 +16867,7 @@ function App() {
     mobileWeekStart,
     mobileEmployeeWeekSchedule,
     isMobileWeekPublished,
+    locale,
   ])
 
   const mobileScheduleDisplay = isMobileWeekLoading ? displayedMobileSchedule : {
@@ -16880,6 +16883,7 @@ function App() {
   }, [mobileScheduleDisplay.weekStart, mobileWeekStart])
 
   const mobileShiftSummary = useMemo(() => {
+    void locale
     if (!mobileEmployeeId) {
       return {
         tone: 'neutral',
@@ -16904,6 +16908,7 @@ function App() {
     currentDateKey,
     localNow,
     liveFloorState,
+    locale,
   ])
 
   const mobileTaskGroups = useMemo(

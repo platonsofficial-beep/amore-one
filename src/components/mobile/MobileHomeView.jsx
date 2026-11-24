@@ -52,7 +52,7 @@ export function MobileHomeView({
         </div>
       ) : null}
       <header className="mobile-manager-command-header">
-        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || 'Welcome'}</h1>
+        <h1 className="mobile-manager-command-greeting" data-help="today.home">{greeting || t("Welcome")}</h1>
         <p className="mobile-manager-command-meta">
           <span className="mobile-manager-command-date">{dateLabel}</span>
           <TodayVenueControl
@@ -96,8 +96,8 @@ export function MobileHomeView({
       </section>
 
       {onOpenTasks ? (
-        <button type="button" className="mobile-card mobile-home-tasks-link" onClick={onOpenTasks} aria-label={`Operations, ${active} active`}>
-          <p className="mobile-card-label">Operations · {tasksNeedsLink ? '—' : active}</p>
+        <button type="button" className="mobile-card mobile-home-tasks-link" onClick={onOpenTasks} aria-label={t("Operations, {{count}} active", { count: active })}>
+          <p className="mobile-card-label">{t("Operations")} · {tasksNeedsLink ? '—' : active}</p>
           {tasksNeedsLink ? (
             <p className="mobile-card-detail">{t("Link your employee profile to view your tasks.")}</p>
           ) : showEmptyToday ? (

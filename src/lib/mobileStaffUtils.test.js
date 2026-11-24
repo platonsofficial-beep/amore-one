@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { setLocale } from '../i18n/i18n'
 import {
   buildMobileEmployeeShiftSummary,
   calculateMobileOperationsTaskOverview,
@@ -82,6 +83,30 @@ describe('mobileStaffUtils task workflow', () => {
 })
 
 describe('mobileStaffUtils shift summary', () => {
+  afterEach(() => {
+    setLocale('en')
+  })
+
+  it('follows the app language for the unpublished shift card', () => {
+    setLocale('el')
+    expect(buildMobileEmployeeShiftSummary({
+      isWeekPublished: false,
+      todayKey: TODAY,
+    })).toMatchObject({
+      headline: 'Το πρόγραμμα δεν δημοσιεύτηκε',
+      detail: 'Ο υπεύθυνος δεν έχει δημοσιεύσει την εβδομάδα ακόμα.',
+    })
+
+    setLocale('en')
+    expect(buildMobileEmployeeShiftSummary({
+      isWeekPublished: false,
+      todayKey: TODAY,
+    })).toMatchObject({
+      headline: 'Schedule not published',
+      detail: "Your manager has not published this week yet.",
+    })
+  })
+
   it('shows unpublished schedule state', () => {
     expect(buildMobileEmployeeShiftSummary({
       isWeekPublished: false,
