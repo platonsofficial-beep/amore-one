@@ -51954,6 +51954,11 @@ summary:focus-visible {
   background: var(--one-overlay-06);
 }
 
+.attendance-clock-set-location {
+  min-height: 44px;
+  margin-top: 8px;
+}
+
 .attendance-clock-banner.is-alert {
   background: rgba(176, 74, 74, 0.2);
 }

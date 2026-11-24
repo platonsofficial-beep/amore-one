@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LoadFailed, LoadingLines } from '../common/DataPending'
 import {
-  NO_VENUE_LOCATION_MESSAGE,
+  venueLocationPrompt,
   OFFLINE_MESSAGE,
   POOR_ACCURACY_MESSAGE,
   actualWorkedMinutes,
@@ -100,6 +100,8 @@ export function AttendanceClockScreen({
   // Owners/managers fix hours themselves in Time clock; never ask them to
   // "send to manager".
   isManager = false,
+  canSetVenueLocation = false,
+  onSetVenueLocation,
   previewMode = false,
   // Auth-disabled demo only. Gives the clock card a venue pin and a shift
   // today when the local mock has neither.
@@ -386,6 +388,7 @@ export function AttendanceClockScreen({
   const latestEntry = snapshot.entries[0] ?? null
   // Only offer a change request for an entry that still matters: open,
   // flagged for review, or worked today. Old closed shifts stay closed.
+  const missingLocation = venueLocationPrompt({ canEdit: canSetVenueLocation })
   const canRequestChange = !isManager && Boolean(latestEntry) && (
     !latestEntry.clock_out_at
     || latestEntry.status === 'needs_review'
@@ -424,7 +427,14 @@ export function AttendanceClockScreen({
       ) : null}
 
       {settingsLoaded && !venueReady && !loadError ? (
-        <p className="attendance-clock-banner" role="status">{t(NO_VENUE_LOCATION_MESSAGE)}</p>
+        <div className="attendance-clock-banner" role="status">
+          <p>{missingLocation.message}</p>
+          {missingLocation.action ? (
+            <button type="button" className="ghost-btn attendance-clock-set-location" onClick={onSetVenueLocation}>
+              {missingLocation.action}
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {loadError ? (
         <div className="attendance-clock-banner is-alert" role="alert">

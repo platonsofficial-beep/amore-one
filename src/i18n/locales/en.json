@@ -3973,6 +3973,8 @@
   "Reminders": "Reminders",
   "Clock": "Clock",
   "Venue location is not set yet. Ask the owner to set it in Settings > Venue.": "Venue location is not set yet. Ask the owner to set it in Settings > Venue.",
+  "Set your venue location so staff can clock in.": "Set your venue location so staff can clock in.",
+  "Set location": "Set location",
   "Tomorrow": "Tomorrow",
   "{{assigned}} / {{required}} scheduled": "{{assigned}} / {{required}} scheduled",
   "{{count}} Open": "{{count}} Open",

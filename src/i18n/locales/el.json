@@ -3973,6 +3973,8 @@
   "Reminders": "Υπενθυμίσεις",
   "Clock": "Ρολόι",
   "Venue location is not set yet. Ask the owner to set it in Settings > Venue.": "Η τοποθεσία του καταστήματος δεν έχει μπει. Πες στον ιδιοκτήτη να τη βάλει στις Ρυθμίσεις > Στήσιμο.",
+  "Set your venue location so staff can clock in.": "Βάλε την τοποθεσία του καταστήματος για να χτυπάνε οι εργαζόμενοι κάρτα.",
+  "Set location": "Ορισμός τοποθεσίας",
   "Tomorrow": "Αύριο",
   "{{assigned}} / {{required}} scheduled": "{{assigned}} / {{required}} στο πρόγραμμα",
   "{{count}} Open": "{{count}} ανοιχτές",
