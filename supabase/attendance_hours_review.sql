@@ -26,6 +26,9 @@ create table if not exists public.attendance_hours_review_backfill (
   applied_at timestamptz not null default now()
 );
 
+alter table public.attendance_hours_review_backfill enable row level security;
+revoke all on public.attendance_hours_review_backfill from anon, authenticated;
+
 do $$
 begin
   if not exists (select 1 from public.attendance_hours_review_backfill) then
