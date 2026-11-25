@@ -29033,6 +29033,46 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
+.staff-hours-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--one-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.staff-hours-link-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.staff-hours-link .hours-review-count {
+  flex: 0 0 auto;
+  min-width: 22px;
+  height: 22px;
+  font-size: 0.75rem;
+  background: var(--one-navy-900);
+  color: var(--one-gold);
+  box-shadow: inset 0 0 0 1px var(--one-gold);
+}
+
+.staff-hours-link-chevron {
+  flex: 0 0 auto;
+  color: var(--one-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 .workspace-stat-card {
   display: flex;
   flex-direction: column;

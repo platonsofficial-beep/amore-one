@@ -88,6 +88,10 @@ export function groupReviewDays(entries) {
     }))
 }
 
+export function pendingReviewCount(entries) {
+  return (entries ?? []).filter((entry) => entryReviewStatus(entry) === 'pending').length
+}
+
 export function isUnscheduledEntry(entry) {
   if (entry?.is_unscheduled === true) return true
   if (entry?.is_unscheduled === false) return false
