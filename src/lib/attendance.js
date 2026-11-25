@@ -60,6 +60,12 @@ export function venueLocationIsSet(settings) {
   return Number.isFinite(lat) && Number.isFinite(lng)
 }
 
+/** The clock geofence is empty, but the business profile already has a pin. */
+export function clockNeedsProfileLocation(settings, profileLat, profileLng) {
+  if (venueLocationIsSet(settings)) return false
+  return venueLocationIsSet({ venue_lat: profileLat, venue_lng: profileLng })
+}
+
 export function failureMessage(result) {
   const reason = `${result?.reason ?? ''}`.trim()
   if (reason === 'outside') {

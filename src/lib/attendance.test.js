@@ -30,6 +30,7 @@ import {
   needsManagerRequest,
   shiftDurationMinutes,
   summarizeHours,
+  clockNeedsProfileLocation,
   venueLocationIsSet,
 } from './attendance'
 
@@ -70,6 +71,13 @@ describe('attendance messages', () => {
     expect(venueLocationIsSet(null)).toBe(false)
     expect(venueLocationIsSet({ venue_lat: null, venue_lng: null })).toBe(false)
     expect(venueLocationIsSet({ venue_lat: 35.18, venue_lng: 33.38 })).toBe(true)
+  })
+
+  it('uses a saved profile pin when the clock geofence is still empty', () => {
+    expect(clockNeedsProfileLocation(null, 35.15, 33.29)).toBe(true)
+    expect(clockNeedsProfileLocation({ venue_lat: null, venue_lng: null }, 35.15, 33.29)).toBe(true)
+    expect(clockNeedsProfileLocation({ venue_lat: 35.15, venue_lng: 33.29 }, 35.15, 33.29)).toBe(false)
+    expect(clockNeedsProfileLocation(null, null, null)).toBe(false)
   })
 })
 

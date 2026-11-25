@@ -736,6 +736,7 @@ import {
   getWorkspaceProfile,
   saveWorkspaceProfile,
 } from './services/workspaceProfileService'
+import { syncProfileLocationToClock } from './services/attendanceService'
 import { resolveActiveWorkspaceId } from './services/workspaceService'
 import {
   buildExecutiveLabourSummary,
@@ -18121,6 +18122,18 @@ function App() {
 
     try {
       const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft, workspace?.id)
+      if (!savedProfile.venueLocationPending) {
+        try {
+          await syncProfileLocationToClock({
+            workspaceId: workspace?.id,
+            lat: savedProfile.venueLat,
+            lng: savedProfile.venueLng,
+            timezone: savedProfile.timezone,
+          })
+        } catch (syncError) {
+          console.error('[App] clock location sync error:', syncError)
+        }
+      }
       setWorkspaceProfile(savedProfile)
       setWorkspaceProfileDraft(savedProfile)
       setWorkspaceProfileNotice(savedProfile.venueLocationPending
@@ -26086,6 +26099,8 @@ function App() {
               isManager={isManagementMobileRole(role)}
               canSetVenueLocation={canOpenWorkspaceProfile}
               onSetVenueLocation={openVenueLocationSettings}
+              venueLat={workspaceProfile.venueLat}
+              venueLng={workspaceProfile.venueLng}
               previewMode={billingPreviewActive}
               demoFixtures={isAuthDisabled && !billingPreviewActive}
             />

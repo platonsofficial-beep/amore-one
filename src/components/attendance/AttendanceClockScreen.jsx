@@ -7,6 +7,7 @@ import {
   actualWorkedMinutes,
   attendanceErrorMessage,
   clockInMessage,
+  clockNeedsProfileLocation,
   clockOutMessage,
   dateKeyInZone,
   describeTodayShift,
@@ -37,6 +38,7 @@ import {
   loadAttendanceBreaks,
   loadAttendanceEntries,
   loadAttendanceSettings,
+  syncProfileLocationToClock,
   loadAttendanceShifts,
   requestEdit,
   startBreak,
@@ -102,6 +104,8 @@ export function AttendanceClockScreen({
   isManager = false,
   canSetVenueLocation = false,
   onSetVenueLocation,
+  venueLat = null,
+  venueLng = null,
   previewMode = false,
   // Auth-disabled demo only. Gives the clock card a venue pin and a shift
   // today when the local mock has neither.
@@ -141,8 +145,24 @@ export function AttendanceClockScreen({
       return
     }
     const range = attendanceRange(new Date(), timeZone)
-    const [settings, entries, shifts] = await Promise.all([
-      loadAttendanceSettings(workspaceId),
+    let settings = await loadAttendanceSettings(workspaceId)
+    if (canSetVenueLocation && clockNeedsProfileLocation(settings, venueLat, venueLng)) {
+      try {
+        const synced = await syncProfileLocationToClock({
+          workspaceId,
+          lat: venueLat,
+          lng: venueLng,
+          timezone: timeZone,
+        })
+        settings = await loadAttendanceSettings(workspaceId)
+        if (synced && !venueLocationIsSet(settings)) {
+          settings = { ...(settings ?? {}), venue_lat: Number(venueLat), venue_lng: Number(venueLng) }
+        }
+      } catch (syncError) {
+        console.error('[AttendanceClockScreen] profile location sync error:', syncError)
+      }
+    }
+    const [entries, shifts] = await Promise.all([
       loadAttendanceEntries(workspaceId, {
         fromDate: range.fromDate,
         toDate: range.toDate,
@@ -163,7 +183,7 @@ export function AttendanceClockScreen({
       : loaded)
     setSettingsLoaded(true)
     setLoadError('')
-  }, [demoFixtures, employeeId, memberId, timeZone, workspaceId])
+  }, [canSetVenueLocation, demoFixtures, employeeId, memberId, timeZone, venueLat, venueLng, workspaceId])
 
   useEffect(() => {
     if (!previewMode) return undefined
