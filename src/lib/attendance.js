@@ -130,8 +130,13 @@ export function attendanceErrorMessage(error) {
   if (lowered.includes('cannot_decide_own')) return t("You cannot approve your own request. The owner can.")
   if (lowered.includes('already_decided')) return t("This request was already decided.")
   if (lowered.includes('invalid_times')) return t("Clock out has to be after clock in.")
-  if (lowered.includes('not_a_member') || lowered.includes('forbidden')) {
+  if (lowered.includes('not_a_member') || lowered.includes('forbidden') || lowered.includes('not_allowed')) {
     return t("You cannot do that with your access.")
+  }
+  if (lowered.includes('still_clocked_in')) return t("Clock out before these hours can be approved.")
+  if (lowered.includes('not_decided')) return t("These hours are still waiting.")
+  if (/sqlstate|syntax error|does not exist|permission denied|violates|invalid input syntax|column |relation /i.test(message)) {
+    return t("Something went wrong. Try again.")
   }
   return message
 }
@@ -417,6 +422,12 @@ export function describeTodayShift(shifts, {
   }
 }
 
+export function entryReviewStatus(entry) {
+  const status = `${entry?.review_status ?? ''}`.trim()
+  if (status === 'pending' || status === 'approved' || status === 'declined') return status
+  return 'approved'
+}
+
 export function summarizeHours({
   shifts = [],
   entries = [],
@@ -427,12 +438,19 @@ export function summarizeHours({
     (sum, shift) => sum + shiftDurationMinutes(shiftStartTime(shift), shiftEndTime(shift)),
     0,
   )
+  const minutesFor = (entry) => (
+    entry?.clock_out_at ? actualWorkedMinutes(entry, breaksByEntryId[entry.id] ?? [], now) : 0
+  )
   const actual = entries.reduce((sum, entry) => (
-    sum + actualWorkedMinutes(entry, breaksByEntryId[entry.id] ?? [], now)
+    entryReviewStatus(entry) === 'approved' ? sum + minutesFor(entry) : sum
+  ), 0)
+  const waiting = entries.reduce((sum, entry) => (
+    entryReviewStatus(entry) === 'pending' ? sum + minutesFor(entry) : sum
   ), 0)
   return {
     scheduled,
     actual,
+    waiting,
     difference: actual - scheduled,
   }
 }

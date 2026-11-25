@@ -44,13 +44,13 @@ export async function loadAttendanceSettings(workspaceId) {
     .maybeSingle())
 }
 
-export async function loadAttendanceEntries(workspaceId, { fromDate = '', toDate = '', memberId = '' } = {}) {
+const ENTRY_COLUMNS = 'id, workspace_id, member_id, employee_id, shift_id, work_date, clock_in_at, clock_out_at, in_distance_m, in_accuracy_m, in_inside, out_distance_m, out_accuracy_m, out_inside, scheduled_start_at, late_minutes, is_late, status, auto_closed, created_at, member:workspace_members!attendance_entries_member_id_fkey(display_name)'
+const ENTRY_REVIEW_COLUMNS = `${ENTRY_COLUMNS}, review_status, is_unscheduled, reviewed_by, reviewed_at, review_note`
+
+async function selectEntries(workspaceId, { fromDate = '', toDate = '', memberId = '' } = {}, columns) {
   const client = requireClient()
   const id = requireWorkspaceId(workspaceId)
-  let query = client
-    .from(ENTRIES_TABLE)
-    .select('id, workspace_id, member_id, employee_id, shift_id, work_date, clock_in_at, clock_out_at, in_distance_m, in_accuracy_m, in_inside, out_distance_m, out_accuracy_m, out_inside, scheduled_start_at, late_minutes, is_late, status, auto_closed, created_at, member:workspace_members!attendance_entries_member_id_fkey(display_name)')
-    .eq('workspace_id', id)
+  let query = client.from(ENTRIES_TABLE).select(columns).eq('workspace_id', id)
   if (fromDate && toDate) {
     query = query.or(`clock_out_at.is.null,and(work_date.gte.${fromDate},work_date.lte.${toDate})`)
   } else if (fromDate) {
@@ -58,6 +58,15 @@ export async function loadAttendanceEntries(workspaceId, { fromDate = '', toDate
   }
   if (`${memberId ?? ''}`.trim()) query = query.eq('member_id', `${memberId}`.trim())
   return unwrap(await query.order('clock_in_at', { ascending: false })) ?? []
+}
+
+export async function loadAttendanceEntries(workspaceId, options = {}) {
+  try {
+    return await selectEntries(workspaceId, options, ENTRY_REVIEW_COLUMNS)
+  } catch (error) {
+    if (!isMissingReviewColumn(error)) throw error
+    return selectEntries(workspaceId, options, ENTRY_COLUMNS)
+  }
 }
 
 export async function loadAttendanceBreaks(entryIds) {
@@ -209,6 +218,44 @@ export async function syncProfileLocationToClock({
   })
   return true
 }
+
+function isMissingReviewColumn(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return message.includes('review_status') || message.includes('is_unscheduled') || message.includes('reviewed_at')
+}
+
+export async function reviewEntry({ entryId, approve, note = '' }) {
+  const client = requireClient()
+  const id = `${entryId ?? ''}`.trim()
+  if (!id) throw new Error('A time entry is required.')
+  return unwrap(await client.rpc('attendance_review_entry', {
+    p_entry: id,
+    p_approve: Boolean(approve),
+    p_note: note || null,
+  }))
+}
+
+export async function reviewBulkApprove({ workspaceId, entryIds = [], includeUnscheduled = false }) {
+  const client = requireClient()
+  const id = requireWorkspaceId(workspaceId)
+  return unwrap(await client.rpc('attendance_review_bulk_approve', {
+    p_workspace_id: id,
+    p_entry_ids: entryIds,
+    p_include_unscheduled: Boolean(includeUnscheduled),
+  }))
+}
+
+export async function reviewReopen({ entryId, note }) {
+  const client = requireClient()
+  const id = `${entryId ?? ''}`.trim()
+  if (!id) throw new Error('A time entry is required.')
+  return unwrap(await client.rpc('attendance_review_reopen', {
+    p_entry: id,
+    p_note: note || null,
+  }))
+}
+
+export { isMissingReviewColumn }
 
 export async function setAttendanceSettings({
   workspaceId,

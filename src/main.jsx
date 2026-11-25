@@ -15,9 +15,17 @@ const LEGAL_PATHS = ['/privacy', '/terms', '/dpa', '/cookies', '/delete-account'
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)
 const bookingPath = parsePublicBookingPath(window.location.pathname)
 const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
-const supabaseSetupError = bookingPath ? null : getSupabaseSetupError()
+const hoursShot = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'hours'
+  ? (new URLSearchParams(window.location.search).get('shot') || 'list')
+  : ''
+const supabaseSetupError = hoursShot || bookingPath ? null : getSupabaseSetupError()
 
-if (bookingPath) {
+if (hoursShot) {
+  const { HoursReviewPreview } = await import('./hoursReviewPreview.jsx')
+  createRoot(document.getElementById('root')).render(
+    <HoursReviewPreview shot={hoursShot} />,
+  )
+} else if (bookingPath) {
   import('./publicBooking/publicBookingEntry.jsx')
     .then(({ mountPublicBooking }) => mountPublicBooking(bookingPath))
     .catch(() => {

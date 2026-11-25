@@ -8,6 +8,7 @@ import {
   attendanceErrorMessage,
   clockInMessage,
   clockNeedsProfileLocation,
+  entryReviewStatus,
   clockOutMessage,
   dateKeyInZone,
   describeTodayShift,
@@ -513,14 +514,24 @@ export function AttendanceClockScreen({
             <dd>{formatHoursMinutes(hours.scheduled)}</dd>
           </div>
           <div>
-            <dt>{t("Actual")}</dt>
+            <dt>{t("Approved")}</dt>
             <dd>{formatHoursMinutes(hours.actual)}</dd>
           </div>
           <div>
-            <dt>{t("Difference")}</dt>
-            <dd>{formatSignedHours(hours.difference)}</dd>
+            <dt>{t("Waiting")}</dt>
+            <dd>{formatHoursMinutes(hours.waiting)}</dd>
           </div>
         </dl>
+        <ul className="attendance-list">
+          {weekEntries.map((entry) => (
+            <li key={entry.id}>
+              <span>{formatClockTime(entry.clock_in_at, timeZone)}–{entry.clock_out_at ? formatClockTime(entry.clock_out_at, timeZone) : t("now")}</span>
+              <span className={`attendance-pill is-${entryReviewStatus(entry)}`}>
+                {entryReviewStatus(entry) === 'approved' ? t("Approved") : entryReviewStatus(entry) === 'declined' ? t("Declined") : t("Waiting")}
+              </span>
+            </li>
+          ))}
+        </ul>
         {canRequestChange ? (
           <button
             type="button"
