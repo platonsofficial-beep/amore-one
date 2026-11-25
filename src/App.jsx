@@ -26897,6 +26897,8 @@ function App() {
             teamProps={{
               employees,
               managerName: workspaceProfile.managerName,
+              timeZone: workspaceTimeZone,
+              onOpenStaffHours: () => openNotification({ data: { view: 'attendance', tab: 'hours' } }),
               onManageStaff: () => {
                 handleActiveViewChange('team')
                 handleTeamSectionChange('members')

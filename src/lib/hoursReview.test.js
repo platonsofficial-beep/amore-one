@@ -5,6 +5,7 @@ import {
   filterReviewEntries,
   groupReviewDays,
   monthPersonRows,
+  pendingReviewCount,
   reviewRangeBounds,
   scheduledEntryIds,
 } from './hoursReview'
@@ -71,6 +72,16 @@ describe('hours review', () => {
     const csv = approvedHoursCsv([{ ...alex, review_status: 'approved', clockInLabel: '18:00', clockOutLabel: '00:00' }])
     expect(csv).toContain('Alex')
     expect(csv).not.toContain('Nina')
+  })
+
+  it('counts pending reviews and treats legacy rows as already approved', () => {
+    expect(pendingReviewCount([
+      nina,
+      { ...alex, review_status: 'approved' },
+      { ...alex, id: 'e3', review_status: 'declined' },
+      { ...alex, id: 'e4', review_status: '' },
+    ])).toBe(1)
+    expect(pendingReviewCount(null)).toBe(0)
   })
 
   it('hides raw database errors', () => {

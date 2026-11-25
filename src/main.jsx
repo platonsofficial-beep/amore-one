@@ -15,15 +15,24 @@ const LEGAL_PATHS = ['/privacy', '/terms', '/dpa', '/cookies', '/delete-account'
 const legalPath = LEGAL_PATHS.find((path) => window.location.pathname.replace(/\/+$/, '') === path)
 const bookingPath = parsePublicBookingPath(window.location.pathname)
 const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
-const hoursShot = import.meta.env.DEV && new URLSearchParams(window.location.search).get('preview') === 'hours'
-  ? (new URLSearchParams(window.location.search).get('shot') || 'list')
+const previewParams = import.meta.env.DEV ? new URLSearchParams(window.location.search) : null
+const hoursShot = previewParams?.get('preview') === 'hours'
+  ? (previewParams.get('shot') || 'list')
   : ''
-const supabaseSetupError = hoursShot || bookingPath ? null : getSupabaseSetupError()
+const staffHoursShot = previewParams?.get('preview') === 'staff-hours'
+  ? (previewParams.get('shot') || 'settings')
+  : ''
+const supabaseSetupError = hoursShot || staffHoursShot || bookingPath ? null : getSupabaseSetupError()
 
 if (hoursShot) {
   const { HoursReviewPreview } = await import('./hoursReviewPreview.jsx')
   createRoot(document.getElementById('root')).render(
     <HoursReviewPreview shot={hoursShot} />,
+  )
+} else if (staffHoursShot) {
+  const { StaffHoursSettingsPreview } = await import('./staffHoursSettingsPreview.jsx')
+  createRoot(document.getElementById('root')).render(
+    <StaffHoursSettingsPreview shot={staffHoursShot} />,
   )
 } else if (bookingPath) {
   import('./publicBooking/publicBookingEntry.jsx')

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { resolveDisplayedLinkedEmployee } from '../../lib/linkedEmployeeDisplay'
-import { canLinkMembershipEmployee } from '../../lib/permissions'
+import { canLinkMembershipEmployee, canManageAttendance } from '../../lib/permissions'
+import { StaffHoursSettingsRow } from './StaffHoursSettingsRow'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { buildWorkspaceIdentityLines } from '../../lib/workspaceProfileUtils'
 import {
@@ -34,6 +35,9 @@ export function WorkspaceTeamSection({
   employees = [],
   managerName = '',
   onManageStaff,
+  onOpenStaffHours,
+  timeZone = '',
+  pendingHours,
   workspace = null,
   workspaceProfile: workspaceProfileProp = null,
 }) {
@@ -131,6 +135,7 @@ export function WorkspaceTeamSection({
     businessName: workspaceProfile?.businessName,
   })
   const canLinkEmployee = canLinkMembershipEmployee(permissionAccess ?? role)
+  const canReviewHours = canManageAttendance(permissionAccess ?? role) && typeof onOpenStaffHours === 'function'
 
   const handleOpenLinkModal = () => {
     setSelectedEmployeeId(effectiveLinkedEmployeeId ? String(effectiveLinkedEmployeeId) : '')
@@ -192,6 +197,15 @@ export function WorkspaceTeamSection({
           {t("Manage Staff →")}
         </button>
       </div>
+
+      {canReviewHours ? (
+        <StaffHoursSettingsRow
+          workspaceId={workspace?.id ?? authWorkspace?.id ?? ''}
+          timeZone={timeZone}
+          pendingCount={pendingHours}
+          onOpen={onOpenStaffHours}
+        />
+      ) : null}
 
       <div className="panel staff-panel workspace-panel workspace-member-panel">
         <div className="panel-heading">
