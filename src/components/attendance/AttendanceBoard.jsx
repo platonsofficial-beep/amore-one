@@ -35,6 +35,7 @@ import {
   loadAttendanceShifts,
 } from '../../services/attendanceService'
 import { PersonAvatar } from '../identity/PersonAvatar'
+import { HoursReview } from './HoursReview'
 import { t } from '../../i18n/i18n'
 
 function AttendanceFace({ employeeId = '', memberId = '', name = '' }) {
@@ -68,6 +69,8 @@ export function AttendanceBoard({
   isOwner = false,
   timeZone = 'Europe/Nicosia',
   employees = [],
+  initialTab = 'today',
+  hoursFixture = null,
 }) {
   const [entries, setEntries] = useState([])
   const [breaks, setBreaks] = useState([])
@@ -86,6 +89,8 @@ export function AttendanceBoard({
   const [fixNote, setFixNote] = useState('')
   const [audit, setAudit] = useState([])
   const [now, setNow] = useState(() => new Date())
+  const [tab, setTab] = useState(initialTab === 'hours' ? 'hours' : 'today')
+  const [pendingHours, setPendingHours] = useState(0)
 
   const reload = useCallback(async () => {
     if (!`${workspaceId ?? ''}`.trim()) return
@@ -122,6 +127,10 @@ export function AttendanceBoard({
     const timer = window.setInterval(() => setNow(new Date()), 30000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (initialTab === 'hours') setTab('hours')
+  }, [initialTab])
 
   const breaksByEntry = useMemo(() => indexBreaksByEntry(breaks), [breaks])
   const todayKey = dateKeyInZone(now, timeZone)
@@ -265,8 +274,28 @@ export function AttendanceBoard({
 
   return (
     <section className="attendance-board" aria-label={t("Time clock")}>
+      <div className="attendance-person-row" role="tablist" aria-label={t("Time clock")}>
+        <button type="button" role="tab" aria-selected={tab === 'today'} className={`attendance-choice${tab === 'today' ? ' is-selected' : ''}`} onClick={function showToday() { setTab('today') }}>
+          {t("Today")}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'hours'} className={`attendance-choice${tab === 'hours' ? ' is-selected' : ''}`} onClick={function showHours() { setTab('hours') }}>
+          {t("Hours")}{pendingHours > 0 ? ` ${pendingHours}` : ''}
+        </button>
+      </div>
       {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
       {notice ? <p className="attendance-clock-message" role="status">{notice}</p> : null}
+      {tab === 'hours' ? (
+        <HoursReview
+          workspaceId={workspaceId}
+          actorMemberId={actorMemberId}
+          isOwner={isOwner}
+          timeZone={timeZone}
+          employees={employees}
+          fixture={hoursFixture}
+          onPendingCount={setPendingHours}
+        />
+      ) : null}
+      {tab === 'hours' ? null : (<>
 
       <div className="attendance-board-grid">
         <article className="attendance-panel" aria-label={t("Working now")}>
@@ -403,6 +432,7 @@ export function AttendanceBoard({
           </>
         ) : null}
       </article>
+      </>)}
 
       {fixEntry ? (
         <div className="attendance-consent" role="dialog" aria-modal="true" aria-labelledby="attendance-fix-title">

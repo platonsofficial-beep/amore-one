@@ -52156,6 +52156,169 @@ summary:focus-visible {
   gap: 12px;
 }
 
+.hours-review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.hours-review-banner {
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.hours-review-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hours-review-status {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.hours-review-status::-webkit-scrollbar {
+  display: none;
+}
+
+.hours-review-status .attendance-choice {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.hours-review-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--one-overlay-08);
+  color: var(--one-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hours-review-status .attendance-choice.is-selected .hours-review-count {
+  background: var(--one-navy-900);
+  color: var(--one-gold);
+  box-shadow: inset 0 0 0 1px var(--one-gold);
+}
+
+.hours-review-range {
+  align-self: flex-start;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.hours-review-range-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hours-review-range-options .attendance-choice {
+  width: 100%;
+  min-height: 44px;
+  justify-content: flex-start;
+}
+
+.hours-review-dates,
+.hours-review-day-head,
+.hours-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.hours-review-day-head {
+  justify-content: space-between;
+}
+
+.hours-review-actions .attendance-choice {
+  flex: 1 1 120px;
+}
+
+.attendance-pill.is-gold,
+.attendance-pill.is-pending,
+.attendance-pill.is-approved,
+.attendance-pill.is-declined {
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.attendance-pill.is-gold,
+.attendance-pill.is-pending {
+  color: var(--one-gold);
+  background: var(--one-gold-a12);
+}
+
+.hours-review-table-wrap {
+  overflow-x: auto;
+}
+
+.hours-review-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hours-review-table th,
+.hours-review-table td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--one-overlay-06);
+}
+
+@media (max-width: 640px) {
+  .hours-review-table thead {
+    display: none;
+  }
+
+  .hours-review-table,
+  .hours-review-table tbody,
+  .hours-review-table tr,
+  .hours-review-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .hours-review-table tr {
+    padding: 8px 0;
+  }
+
+  .hours-review-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .hours-review-table td::before {
+    content: attr(data-label);
+    color: var(--one-text-muted);
+  }
+}
+
 .attendance-board-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -1,6 +1,6 @@
 import { getDateKeyInTimeZone, getWeekDateKeys, getWeekStartDate } from './weekUtils'
 import { translateKnownLabel } from './areaLabels'
-import { t } from '../i18n/i18n'
+import { getLocale, t } from '../i18n/i18n'
 
 export const LOCATION_CONSENT_STORAGE_KEY = 'one.attendance.locationConsent.v1'
 
@@ -130,8 +130,13 @@ export function attendanceErrorMessage(error) {
   if (lowered.includes('cannot_decide_own')) return t("You cannot approve your own request. The owner can.")
   if (lowered.includes('already_decided')) return t("This request was already decided.")
   if (lowered.includes('invalid_times')) return t("Clock out has to be after clock in.")
-  if (lowered.includes('not_a_member') || lowered.includes('forbidden')) {
+  if (lowered.includes('not_a_member') || lowered.includes('forbidden') || lowered.includes('not_allowed')) {
     return t("You cannot do that with your access.")
+  }
+  if (lowered.includes('still_clocked_in')) return t("Clock out before these hours can be approved.")
+  if (lowered.includes('not_decided')) return t("These hours are still waiting.")
+  if (/sqlstate|syntax error|does not exist|permission denied|violates|invalid input syntax|column |relation /i.test(message)) {
+    return t("Something went wrong. Try again.")
   }
   return message
 }
@@ -142,9 +147,11 @@ export function formatHoursMinutes(totalMinutes) {
   const abs = Math.abs(rounded)
   const hours = Math.floor(abs / 60)
   const minutes = abs % 60
-  if (hours === 0) return `${sign}${minutes}m`
-  if (minutes === 0) return `${sign}${hours}h`
-  return `${sign}${hours}h ${minutes}m`
+  const hourMark = getLocale() === 'el' ? 'ώ' : 'h'
+  const minuteMark = getLocale() === 'el' ? 'λ' : 'm'
+  if (hours === 0) return `${sign}${minutes}${minuteMark}`
+  if (minutes === 0) return `${sign}${hours}${hourMark}`
+  return `${sign}${hours}${hourMark} ${minutes}${minuteMark}`
 }
 
 export function formatSignedHours(differenceMinutes) {
@@ -417,6 +424,12 @@ export function describeTodayShift(shifts, {
   }
 }
 
+export function entryReviewStatus(entry) {
+  const status = `${entry?.review_status ?? ''}`.trim()
+  if (status === 'pending' || status === 'approved' || status === 'declined') return status
+  return 'approved'
+}
+
 export function summarizeHours({
   shifts = [],
   entries = [],
@@ -427,12 +440,19 @@ export function summarizeHours({
     (sum, shift) => sum + shiftDurationMinutes(shiftStartTime(shift), shiftEndTime(shift)),
     0,
   )
+  const minutesFor = (entry) => (
+    entry?.clock_out_at ? actualWorkedMinutes(entry, breaksByEntryId[entry.id] ?? [], now) : 0
+  )
   const actual = entries.reduce((sum, entry) => (
-    sum + actualWorkedMinutes(entry, breaksByEntryId[entry.id] ?? [], now)
+    entryReviewStatus(entry) === 'approved' ? sum + minutesFor(entry) : sum
+  ), 0)
+  const waiting = entries.reduce((sum, entry) => (
+    entryReviewStatus(entry) === 'pending' ? sum + minutesFor(entry) : sum
   ), 0)
   return {
     scheduled,
     actual,
+    waiting,
     difference: actual - scheduled,
   }
 }

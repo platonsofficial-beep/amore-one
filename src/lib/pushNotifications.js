@@ -19,6 +19,14 @@ export const NOTIFICATION_GROUPS = [
     managerOnly: false,
   },
   {
+    id: 'hours_review',
+    label: t("Hours to review"),
+    detail: t("When clocked hours are waiting for approval."),
+    icon: '◷',
+    types: ['hours_review_unscheduled', 'hours_review_digest'],
+    managerOnly: true,
+  },
+  {
     id: 'timeclock_request',
     label: t("Time clock requests"),
     detail: t("When someone asks to fix a clock-in or clock-out."),
@@ -89,6 +97,8 @@ const VIEW_BY_TYPE = {
   clockin_reminder_20: 'clock',
   clockin_reminder_20_manager: 'attendance',
   timeclock_request: 'attendance',
+  hours_review_unscheduled: 'attendance',
+  hours_review_digest: 'attendance',
   schedule_published: 'schedule',
   task_assigned: 'tasks',
   task_new: 'tasks',
@@ -228,6 +238,7 @@ export function resolveNotificationTarget(row) {
     conversationId: `${data.conversation_id ?? row?.conversation_id ?? ''}`.trim(),
     messageId: `${data.message_id ?? row?.message_id ?? ''}`.trim(),
     notificationId: `${row?.id ?? ''}`.trim(),
+    tab: `${data.tab ?? ''}`.trim(),
   }
 }
 
@@ -249,7 +260,7 @@ export function planNotificationOpen(target, { useMobileExperience = false, isMa
     return { action: 'today' }
   }
 
-  if (view === 'attendance') return { action: 'attendance' }
+  if (view === 'attendance') return { action: 'attendance', tab: `${target?.tab ?? ''}`.trim() }
 
   if (view === 'schedule') {
     return {

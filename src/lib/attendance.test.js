@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { setLocale } from '../i18n/i18n'
 import { getModuleLabel, getModuleTitle } from './appNavigation'
 import { resolveMemberAccess } from './memberAccess'
 import { normalizeActiveView } from './navigationPersistence'
@@ -20,6 +21,7 @@ import {
   clockOutMessage,
   describeTodayShift,
   failureMessage,
+  formatHoursMinutes,
   formatSignedHours,
   formatWorkingLabel,
   isOvernightShift,
@@ -110,6 +112,10 @@ describe('attendance hours and overnight shifts', () => {
     expect(summary.actual).toBe(456)
     expect(summary.difference).toBe(-24)
     expect(formatSignedHours(80)).toBe('+1h 20m')
+    setLocale('el')
+    expect(formatHoursMinutes(330)).toBe('5ώ 30λ')
+    setLocale('en')
+    expect(formatHoursMinutes(330)).toBe('5h 30m')
     expect(formatWorkingLabel(135)).toBe('Working 2h 15m')
   })
 

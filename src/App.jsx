@@ -15852,6 +15852,7 @@ function App() {
 
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [clockOpenToken, setClockOpenToken] = useState(0)
+  const [attendanceTab, setAttendanceTab] = useState('today')
   const [reservationLaunch, setReservationLaunch] = useState('')
   const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false)
   const [mobileReservationsHostMode, setMobileReservationsHostMode] = useState(false)
@@ -25557,6 +25558,7 @@ function App() {
       return
     }
     if (plan.action === 'attendance') {
+      setAttendanceTab(plan.tab === 'hours' ? 'hours' : 'today')
       handleOpenAttendance()
       return
     }
@@ -26836,6 +26838,7 @@ function App() {
             isOwner={isOwnerRole(role)}
             timeZone={workspaceTimeZone}
             employees={employees}
+            initialTab={attendanceTab}
           />
         ) : null}
 

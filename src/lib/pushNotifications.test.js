@@ -117,7 +117,12 @@ describe('push notification helpers', () => {
     expect(resolveNotificationTarget({ type: 'clockin_reminder_20' }).view).toBe('clock')
     expect(resolveNotificationTarget({ type: 'clockin_reminder_20_manager' }).view).toBe('attendance')
 
-    expect(planNotificationOpen({ view: 'attendance' }, { useMobileExperience: true, isManagerMobile: true }).action).toBe('attendance')
+    expect(planNotificationOpen({ view: 'attendance', tab: 'hours' }, { useMobileExperience: true, isManagerMobile: true })).toMatchObject({
+      action: 'attendance',
+      tab: 'hours',
+    })
+    expect(visibleNotificationGroups(true).map((group) => group.id)).toContain('hours_review')
+    expect(visibleNotificationGroups(false).map((group) => group.id)).not.toContain('hours_review')
     expect(planNotificationOpen({ view: 'clock' }, { useMobileExperience: true, isManagerMobile: false }).action).toBe('staff-clock')
     expect(planNotificationOpen({ view: 'clock' }, { useMobileExperience: false }).action).toBe('today')
     expect(planNotificationOpen({ view: 'schedule', weekStartDate: '2026-10-26' }, { useMobileExperience: true, isManagerMobile: true })).toMatchObject({

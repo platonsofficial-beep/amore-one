@@ -20,6 +20,9 @@ import {
   endBreak,
   loadAttendanceEntries,
   requestEdit,
+  reviewBulkApprove,
+  reviewEntry,
+  reviewReopen,
   setAttendanceSettings,
   startBreak,
 } from './attendanceService'
@@ -133,9 +136,26 @@ describe('attendance RPCs', () => {
       memberId: 'member-1',
     })
 
+    await reviewEntry({ entryId: 'entry-1', approve: false, note: 'Not scheduled' })
+    await reviewBulkApprove({ workspaceId: 'ws-1', entryIds: ['entry-2'], includeUnscheduled: false })
+    await reviewReopen({ entryId: 'entry-1', note: 'Look again' })
+    expect(rpcMock).toHaveBeenCalledWith('attendance_review_entry', {
+      p_entry: 'entry-1',
+      p_approve: false,
+      p_note: 'Not scheduled',
+    })
+    expect(rpcMock).toHaveBeenCalledWith('attendance_review_bulk_approve', {
+      p_workspace_id: 'ws-1',
+      p_entry_ids: ['entry-2'],
+      p_include_unscheduled: false,
+    })
+    expect(rpcMock).toHaveBeenCalledWith('attendance_review_reopen', {
+      p_entry: 'entry-1',
+      p_note: 'Look again',
+    })
+
     expect(fromMock).toHaveBeenCalledWith('attendance_entries')
     expect(builder.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
     expect(builder.eq).toHaveBeenCalledWith('member_id', 'member-1')
-    expect(rpcMock).not.toHaveBeenCalled()
   })
 })
