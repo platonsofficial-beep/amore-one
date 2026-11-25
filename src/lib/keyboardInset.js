@@ -89,11 +89,19 @@ export function revealFocusedSheetField(win = typeof window === 'undefined' ? un
   return true
 }
 
+/** A real page or panel, not an iOS leftover offset on a shell that does not scroll. */
+export function contentScrolls(node) {
+  if (!node) return false
+  const height = Number(node.scrollHeight) || 0
+  const visible = Number(node.clientHeight) || 0
+  return height > visible + 8
+}
+
 /**
  * iOS scrolls the whole page (window, not a scroller) to show a focused field.
- * The app shell never scrolls, so once the keyboard is gone any leftover
- * window offset only shifts the layout: gap on one side, content under the
- * Dynamic Island on the other (Platon t398u). Put it back to 0,0.
+ * Once the keyboard is gone, a leftover offset on a shell that does not scroll
+ * shifts the layout (Platon t398u). Clear that offset. A settings page that
+ * actually scrolls must stay where the reader left it.
  */
 export function restorePageScroll(win = typeof window === 'undefined' ? undefined : window) {
   if (!win) return false
@@ -102,15 +110,16 @@ export function restorePageScroll(win = typeof window === 'undefined' ? undefine
   const x = Number(win.scrollX ?? win.pageXOffset) || 0
   const y = Number(win.scrollY ?? win.pageYOffset) || 0
   const root = win.document?.scrollingElement
-  // The shell containers never scroll by design (overflow hidden), but
-  // iOS can still offset them while revealing a field.
+  const pageScrolls = contentScrolls(root)
   const frames = [root, ...(win.document?.querySelectorAll?.('#root, .app-shell, .main-panel') || [])]
-    .filter((node) => node && (node.scrollLeft || node.scrollTop))
+    .filter((node) => node && (node.scrollLeft || node.scrollTop || contentScrolls(node)))
   if (!x && !y && !frames.length) return false
-  win.scrollTo?.(0, 0)
+  const keepY = pageScrolls ? y : 0
+  if (x || y !== keepY) win.scrollTo?.(0, keepY)
   frames.forEach((node) => {
+    const keepTop = contentScrolls(node) ? node.scrollTop : 0
     node.scrollLeft = 0
-    node.scrollTop = 0
+    if (node.scrollTop !== keepTop) node.scrollTop = keepTop
   })
   return true
 }

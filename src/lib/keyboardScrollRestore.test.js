@@ -29,4 +29,24 @@ describe('restorePageScroll (t398u)', () => {
     const win = fakeWin()
     expect(restorePageScroll(win)).toBe(false)
   })
+
+  it('keeps a settings page that actually scrolls', () => {
+    const root = { scrollLeft: 0, scrollTop: 900, scrollHeight: 4000, clientHeight: 800 }
+    const panel = { scrollLeft: 12, scrollTop: 900, scrollHeight: 4000, clientHeight: 800, className: 'main-panel' }
+    const win = {
+      scrollX: 0,
+      scrollY: 900,
+      scrollTo: vi.fn(),
+      document: {
+        activeElement: null,
+        scrollingElement: root,
+        querySelectorAll: () => [panel],
+      },
+    }
+    restorePageScroll(win)
+    expect(win.scrollTo).not.toHaveBeenCalledWith(0, 0)
+    expect(root.scrollTop).toBe(900)
+    expect(panel.scrollTop).toBe(900)
+    expect(panel.scrollLeft).toBe(0)
+  })
 })

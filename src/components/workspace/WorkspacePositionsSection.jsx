@@ -3,6 +3,7 @@ import { t } from '../../i18n/i18n'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
 import { useSettingsEditorScroll } from '../../lib/settingsEditorScroll'
+import { WorkspaceSaveNotice } from './WorkspaceSaveNotice'
 const POSITION_DEPARTMENTS = ['Bar', 'Service', 'Kitchen', 'Management', 'Other']
 
 export function WorkspacePositionsSection({
@@ -47,7 +48,7 @@ export function WorkspacePositionsSection({
 
       {isLoadFailureMessage(noticeMessage) ? (
         <LoadFailureBanner message={noticeMessage} subject="positions" onRetry={onRetry} />
-      ) : noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      ) : null}
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading positions…")}</div> : null}
 
       <div className="panel staff-panel workspace-panel" ref={editorRef}>
@@ -74,6 +75,7 @@ export function WorkspacePositionsSection({
             </label>
           </div>
 
+          <WorkspaceSaveNotice message={isLoadFailureMessage(noticeMessage) ? '' : noticeMessage} />
           <div className="modal-actions">
             {editingPositionId ? <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>{t("Cancel edit")}</button> : null}
             <button type="submit" className="primary-btn workspace-action-btn" disabled={isSaving}>

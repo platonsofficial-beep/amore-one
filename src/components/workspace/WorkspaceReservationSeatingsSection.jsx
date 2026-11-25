@@ -17,6 +17,7 @@ import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatUserFacingLoadError, isLoadFailureMessage, isTechnicalErrorText } from '../../lib/userFacingLoadError'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
+import { WorkspaceSaveNotice } from './WorkspaceSaveNotice'
 import { sumVenueCovers } from '../../lib/onlineBooking'
 import { useSettingsEditorScroll } from '../../lib/settingsEditorScroll'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
@@ -280,9 +281,6 @@ export function WorkspaceReservationSeatingsSection({
   })
   const showAutoClose = !hoursOnly && typeof onAutoCloseTimeChange === 'function'
   const showEditActions = canEdit && typeof onStartEdit === 'function'
-  const autoCloseNoticeIsError = Boolean(
-    autoCloseNotice && !/saved|updated|success|applied/i.test(autoCloseNotice),
-  )
   const visibleNotice = hoursOnly ? readableSeatingNotice(noticeMessage) : `${noticeMessage ?? ''}`.trim()
   useEscapeToClose(() => onCancelEdit?.(), {
     enabled: Boolean(hoursOnly && editingSeatingId),
@@ -354,6 +352,7 @@ export function WorkspaceReservationSeatingsSection({
 
         <OnlineCapacityFields form={form} onFormChange={onFormChange} />
 
+        <WorkspaceSaveNotice message={isLoadFailureMessage(visibleNotice) ? '' : visibleNotice} />
         <div className="modal-actions">
           {editingSeatingId ? (
             <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>
@@ -495,14 +494,6 @@ export function WorkspaceReservationSeatingsSection({
             <p className="workspace-section-subtitle">
               {t("At this Europe/Nicosia time, reservations still seated from a previous business day are checked out and marked auto-closed. Default 05:00.")}
             </p>
-            {autoCloseNotice ? (
-              <div
-                className={`staff-status-banner${autoCloseNoticeIsError ? ' auth-banner-error' : ' auth-banner-success'}`}
-                role="status"
-              >
-                {autoCloseNotice}
-              </div>
-            ) : null}
             <label className="form-field">
               <span>{t("Cutoff time")}</span>
               <input
@@ -516,6 +507,7 @@ export function WorkspaceReservationSeatingsSection({
                 required
               />
             </label>
+            <WorkspaceSaveNotice message={autoCloseNotice} />
             <div className="modal-actions">
               <button
                 type="submit"
@@ -533,7 +525,7 @@ export function WorkspaceReservationSeatingsSection({
 
       {isLoadFailureMessage(visibleNotice) ? (
         <LoadFailureBanner message={visibleNotice} subject="seating hours" onRetry={onRetry} />
-      ) : visibleNotice ? <div className="staff-status-banner">{visibleNotice}</div> : null}
+      ) : null}
       {isLoading && !isLoadFailureMessage(visibleNotice) ? <div className="staff-status-banner">{t("Loading seatings…")}</div> : null}
 
       {hoursOnly && editingSeatingId && typeof document !== 'undefined'
@@ -620,6 +612,7 @@ export function WorkspaceReservationSeatingsSection({
 
           <OnlineCapacityFields form={form} onFormChange={onFormChange} />
 
+          <WorkspaceSaveNotice message={isLoadFailureMessage(visibleNotice) ? '' : visibleNotice} />
           <div className="modal-actions">
             {editingSeatingId ? (
               <button type="button" className="ghost-btn workspace-action-btn" onClick={onCancelEdit}>

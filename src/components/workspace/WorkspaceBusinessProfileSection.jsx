@@ -14,6 +14,7 @@ import { venueContactEmailError, venueContactPhoneError } from '../../lib/venueC
 import { captureVenueLocation, coordinateIsSet } from '../../lib/venueLocation'
 import { LoadFailureBanner } from '../shell/LoadFailureBanner'
 import { isLoadFailureMessage } from '../../lib/userFacingLoadError'
+import { WorkspaceSaveNotice } from './WorkspaceSaveNotice'
 
 export function WorkspaceBusinessProfileSection({
   workspaceProfile,
@@ -27,9 +28,6 @@ export function WorkspaceBusinessProfileSection({
   onClearLogo,
   onRetry,
 }) {
-  const noticeIsError = Boolean(
-    noticeMessage && !/saved|updated|success/i.test(noticeMessage),
-  )
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locationError, setLocationError] = useState('')
@@ -95,10 +93,6 @@ export function WorkspaceBusinessProfileSection({
 
       {isLoadFailureMessage(noticeMessage) ? (
         <LoadFailureBanner message={noticeMessage} subject="the business profile" onRetry={onRetry} />
-      ) : noticeMessage ? (
-        <div className={`staff-status-banner${noticeIsError ? ' auth-banner-error' : ' auth-banner-success'}`} role="status">
-          {noticeMessage}
-        </div>
       ) : null}
       {isLoading && !isLoadFailureMessage(noticeMessage) ? <div className="staff-status-banner">{t("Loading business profile…")}</div> : null}
       {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
@@ -289,6 +283,7 @@ export function WorkspaceBusinessProfileSection({
             </label>
           </div>
 
+          <WorkspaceSaveNotice message={isLoadFailureMessage(noticeMessage) ? '' : noticeMessage} />
           <div className="modal-actions">
             <LoadingButton
               type="submit"

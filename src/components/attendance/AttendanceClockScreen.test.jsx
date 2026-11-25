@@ -8,14 +8,16 @@ import { LOCATION_CONSENT_STORAGE_KEY } from '../../lib/attendance'
 import { setLocale } from '../../i18n/i18n'
 import { AttendanceClockScreen } from './AttendanceClockScreen'
 
-const { clockInMock, settingsMock, entriesMock } = vi.hoisted(() => ({
+const { clockInMock, settingsMock, entriesMock, syncMock } = vi.hoisted(() => ({
   clockInMock: vi.fn(),
   settingsMock: vi.fn(),
   entriesMock: vi.fn(async () => []),
+  syncMock: vi.fn(async () => false),
 }))
 
 vi.mock('../../services/attendanceService', () => ({
   loadAttendanceSettings: (...args) => settingsMock(...args),
+  syncProfileLocationToClock: (...args) => syncMock(...args),
   loadAttendanceEntries: (...args) => entriesMock(...args),
   loadAttendanceShifts: vi.fn(async () => [{
     employee_id: 'emp-1',
@@ -78,6 +80,8 @@ describe('AttendanceClockScreen', () => {
     localStorage.clear()
     clockInMock.mockReset()
     settingsMock.mockReset()
+    syncMock.mockReset()
+    syncMock.mockResolvedValue(false)
     entriesMock.mockReset()
     entriesMock.mockResolvedValue([])
     delete navigator.geolocation
@@ -108,6 +112,29 @@ describe('AttendanceClockScreen', () => {
     expect(button?.textContent).toContain('Set location')
     act(() => { button.click() })
     expect(onSetVenueLocation).toHaveBeenCalledTimes(1)
+    view.unmount()
+  })
+
+  it('treats a saved profile pin as the clock location and copies it into the geofence', async () => {
+    settingsMock
+      .mockResolvedValueOnce({ venue_lat: null, venue_lng: null, radius_m: null })
+      .mockResolvedValueOnce({ venue_lat: 35.15, venue_lng: 33.29, radius_m: 50 })
+    syncMock.mockResolvedValue(true)
+    const view = renderClock({
+      canSetVenueLocation: true,
+      venueLat: 35.152668,
+      venueLng: 33.29911,
+    })
+    await view.flush()
+    await view.flush()
+
+    expect(syncMock).toHaveBeenCalledWith(expect.objectContaining({
+      workspaceId: 'ws-1',
+      lat: 35.152668,
+      lng: 33.29911,
+    }))
+    expect(view.container.textContent).not.toContain('Set your venue location')
+    expect(view.container.querySelector('.attendance-clock-set-location')).toBeNull()
     view.unmount()
   })
 

@@ -1,5 +1,11 @@
 import { supabase } from '../lib/supabaseClient'
-import { addDaysToDateKey, weekDateKeys } from '../lib/attendance'
+import {
+  DEFAULT_LATE_GRACE_MINUTES,
+  DEFAULT_RADIUS_M,
+  addDaysToDateKey,
+  venueLocationIsSet,
+  weekDateKeys,
+} from '../lib/attendance'
 
 const SETTINGS_TABLE = 'workspace_attendance_settings'
 const ENTRIES_TABLE = 'attendance_entries'
@@ -174,6 +180,34 @@ export async function editEntry({ entryId, clockInAt, clockOutAt, note }) {
     p_clock_out_at: clockOutAt,
     p_note: note,
   }))
+}
+
+/** Copy a saved business-profile pin into the clock geofence when that row is still empty. */
+export async function syncProfileLocationToClock({
+  workspaceId,
+  lat = null,
+  lng = null,
+  timezone = null,
+} = {}) {
+  if (!venueLocationIsSet({ venue_lat: lat, venue_lng: lng })) return false
+  const current = await loadAttendanceSettings(workspaceId).catch(() => null)
+  if (
+    venueLocationIsSet(current)
+    && Number(current.venue_lat) === Number(lat)
+    && Number(current.venue_lng) === Number(lng)
+  ) {
+    return false
+  }
+  await setAttendanceSettings({
+    workspaceId,
+    lat: Number(lat),
+    lng: Number(lng),
+    radiusM: current?.radius_m ?? DEFAULT_RADIUS_M,
+    lateGraceMinutes: current?.late_grace_minutes ?? DEFAULT_LATE_GRACE_MINUTES,
+    requireLocation: current ? current.require_location !== false : true,
+    timezone: timezone || current?.timezone || null,
+  })
+  return true
 }
 
 export async function setAttendanceSettings({
