@@ -77,6 +77,10 @@ describe('Hours review screen', () => {
 
   it('shows a pending unscheduled row and blocks approval without a clock-out', () => {
     const view = renderReview()
+    expect(view.container.querySelectorAll('.hours-review-status button')).toHaveLength(4)
+    expect(view.container.querySelector('.hours-review-status').textContent).toContain('2')
+    expect(view.container.querySelector('.hours-review-range')?.getAttribute('aria-haspopup')).toBe('dialog')
+    expect(view.container.textContent).not.toContain('This week')
     expect(view.container.textContent).toContain('Nina')
     expect(view.container.textContent).toContain('Unscheduled')
     expect(view.container.textContent).toContain('Missing clock-out')

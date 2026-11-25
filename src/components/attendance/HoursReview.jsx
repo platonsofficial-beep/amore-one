@@ -99,6 +99,7 @@ export function HoursReview({
   const [fixClockIn, setFixClockIn] = useState('')
   const [fixClockOut, setFixClockOut] = useState('')
   const [fixNote, setFixNote] = useState('')
+  const [rangeOpen, setRangeOpen] = useState(false)
 
   const bounds = reviewRangeBounds({ range, now, timeZone, customFrom, customTo, month })
 
@@ -152,7 +153,17 @@ export function HoursReview({
   }, [onPendingCount, pendingCount])
 
   const monthRows = monthPersonRows(named.filter((entry) => entryInRange(entry, bounds)), breaksByEntry)
-  const pendingInView = monthRows.some((row) => row.waiting > 0) || days.some((day) => day.pending > 0)
+  const pendingInView = monthRows.some((row) => row.waiting > 0) || named.some((entry) => (
+    entryReviewStatus(entry) === 'pending' && entryInRange(entry, bounds)
+  ))
+  const inBounds = named.filter((entry) => entryInRange(entry, bounds))
+  const statusCounts = {
+    pending: inBounds.filter((entry) => entryReviewStatus(entry) === 'pending').length,
+    approved: inBounds.filter((entry) => entryReviewStatus(entry) === 'approved').length,
+    declined: inBounds.filter((entry) => entryReviewStatus(entry) === 'declined').length,
+    all: inBounds.length,
+  }
+  const rangeLabel = RANGES.find(([id]) => id === range)?.[1] || 'Today'
 
   async function run(id, task) {
     setBusyId(id)
@@ -258,34 +269,34 @@ export function HoursReview({
       {loadError ? <p className="attendance-clock-banner is-alert" role="alert">{loadError}</p> : null}
       {notice ? <p className="attendance-clock-message" role="status">{notice}</p> : null}
       {pendingInView ? (
-        <p className="attendance-clock-message" role="status">{t("Some hours are still waiting for approval.")}</p>
+        <p className="attendance-clock-message hours-review-banner" role="status">{t("Some hours are still waiting for approval.")}</p>
       ) : null}
 
-      <div className="attendance-person-row" role="tablist" aria-label={t("Status")}>
-        {STATUSES.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`attendance-choice${status === id ? ' is-selected' : ''}`}
-            aria-selected={status === id}
-            onClick={function pickStatus() { setStatus(id) }}
-          >
-            {t(label)}
-          </button>
-        ))}
-      </div>
-      <div className="attendance-person-row" role="tablist" aria-label={t("Dates")}>
-        {RANGES.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className={`attendance-choice${range === id ? ' is-selected' : ''}`}
-            aria-selected={range === id}
-            onClick={function pickRange() { setRange(id) }}
-          >
-            {t(label)}
-          </button>
-        ))}
+      <div className="hours-review-toolbar">
+        <div className="hours-review-status" role="tablist" aria-label={t("Status")}>
+          {STATUSES.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              className={`attendance-choice${status === id ? ' is-selected' : ''}`}
+              aria-selected={status === id}
+              onClick={function pickStatus() { setStatus(id) }}
+            >
+              <span>{t(label)}</span>
+              <span className="hours-review-count">{statusCounts[id]}</span>
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="attendance-choice hours-review-range"
+          aria-haspopup="dialog"
+          aria-expanded={rangeOpen}
+          onClick={function openRange() { setRangeOpen(true) }}
+        >
+          {t(rangeLabel)}
+        </button>
       </div>
       {range === 'month' ? (
         <label className="attendance-field">
@@ -293,16 +304,42 @@ export function HoursReview({
           <input type="month" value={month} onChange={function changeMonth(event) { setMonth(event.target.value) }} />
         </label>
       ) : null}
-      {range === 'custom' ? (
-        <div className="hours-review-dates">
-          <label className="attendance-field">
-            {t("From")}
-            <input type="date" value={customFrom} onChange={function changeFrom(event) { setCustomFrom(event.target.value) }} />
-          </label>
-          <label className="attendance-field">
-            {t("To")}
-            <input type="date" value={customTo} onChange={function changeTo(event) { setCustomTo(event.target.value) }} />
-          </label>
+      {rangeOpen ? (
+        <div className="attendance-consent" role="presentation">
+          <div className="attendance-consent-card" role="dialog" aria-modal="true" aria-label={t("Dates")}>
+            <h3>{t("Dates")}</h3>
+            <div className="hours-review-range-options">
+              {RANGES.map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`attendance-choice${range === id ? ' is-selected' : ''}`}
+                  aria-pressed={range === id}
+                  onClick={function pickRange() {
+                    setRange(id)
+                    if (id !== 'custom') setRangeOpen(false)
+                  }}
+                >
+                  {t(label)}
+                </button>
+              ))}
+            </div>
+            {range === 'custom' ? (
+              <div className="hours-review-dates">
+                <label className="attendance-field">
+                  {t("From")}
+                  <input type="date" value={customFrom} onChange={function changeFrom(event) { setCustomFrom(event.target.value) }} />
+                </label>
+                <label className="attendance-field">
+                  {t("To")}
+                  <input type="date" value={customTo} onChange={function changeTo(event) { setCustomTo(event.target.value) }} />
+                </label>
+              </div>
+            ) : null}
+            <button type="button" className="attendance-action attendance-action-break" onClick={function closeRange() { setRangeOpen(false) }}>
+              {t("Close")}
+            </button>
+          </div>
         </div>
       ) : null}
 
