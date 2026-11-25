@@ -1,6 +1,7 @@
 import './App.css'
 import './mobileShell.css'
 import { HoursReview } from './components/attendance/HoursReview'
+import { setLocale } from './i18n/i18n'
 
 const entries = [
   {
@@ -45,8 +46,11 @@ const monthEntries = [
 ]
 
 export function HoursReviewPreview({ shot = 'list' }) {
-  const decline = shot === 'decline'
-  const month = shot === 'month'
+  const greek = shot.endsWith('-el')
+  const view = greek ? shot.slice(0, -3) : shot
+  setLocale(greek ? 'el' : 'en')
+  const decline = view === 'decline'
+  const month = view === 'month'
   return (
     <div className="attendance-board" style={{ padding: 16, background: 'var(--one-bg)', minHeight: '100vh' }}>
       <HoursReview

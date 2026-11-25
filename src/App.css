@@ -52193,19 +52193,36 @@ summary:focus-visible {
 }
 
 .hours-review-status .attendance-choice {
+  display: inline-flex;
   flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
   min-height: 44px;
-  justify-content: center;
-  gap: 4px;
+  gap: 6px;
   padding: 4px 6px;
   font-size: 0.78rem;
   white-space: nowrap;
 }
 
 .hours-review-count {
-  font-size: 0.72rem;
-  opacity: 0.8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--one-overlay-08);
+  color: var(--one-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hours-review-status .attendance-choice.is-selected .hours-review-count {
+  background: var(--one-primary-text);
+  color: var(--one-primary-bg);
 }
 
 .hours-review-range {

@@ -4835,5 +4835,9 @@
   "Worked {{hours}}": "Worked {{hours}}",
   "You cannot approve your own hours. The owner can.": "You cannot approve your own hours. The owner can.",
   "pending": "pending",
+  "Hours pending": "Pending",
+  "Hours approved": "Approved",
+  "Hours declined": "Declined",
+  "Hours all": "All",
   "{{status}} {{when}}": "{{status}} {{when}}"
 }

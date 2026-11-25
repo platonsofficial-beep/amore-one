@@ -4835,5 +4835,9 @@
   "Worked {{hours}}": "Δούλεψε {{hours}}",
   "You cannot approve your own hours. The owner can.": "Δεν μπορείς να εγκρίνεις τις δικές σου ώρες. Μπορεί ο ιδιοκτήτης.",
   "pending": "σε αναμονή",
+  "Hours pending": "Εκκρεμεί",
+  "Hours approved": "Έγκριση",
+  "Hours declined": "Απόρριψη",
+  "Hours all": "Όλα",
   "{{status}} {{when}}": "{{status}} {{when}}"
 }

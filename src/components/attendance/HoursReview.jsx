@@ -37,10 +37,10 @@ function personLabel(entry, employees) {
 }
 
 const STATUSES = [
-  ['pending', 'Pending'],
-  ['approved', 'Approved'],
-  ['declined', 'Declined'],
-  ['all', 'All'],
+  ['pending', 'Hours pending'],
+  ['approved', 'Hours approved'],
+  ['declined', 'Hours declined'],
+  ['all', 'Hours all'],
 ]
 
 const RANGES = [
@@ -284,7 +284,7 @@ export function HoursReview({
               onClick={function pickStatus() { setStatus(id) }}
             >
               <span>{t(label)}</span>
-              <span className="hours-review-count">{statusCounts[id]}</span>
+              {statusCounts[id] > 0 ? <span className="hours-review-count">{statusCounts[id]}</span> : null}
             </button>
           ))}
         </div>
