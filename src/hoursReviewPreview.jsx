@@ -14,7 +14,7 @@ const entries = [
     is_unscheduled: true,
     shift_id: null,
     review_status: 'pending',
-    scheduledLabel: 'No scheduled shift',
+    scheduledLabel: '',
     reviewerName: '',
   },
   {

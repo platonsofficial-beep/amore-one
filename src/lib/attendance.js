@@ -1,6 +1,6 @@
 import { getDateKeyInTimeZone, getWeekDateKeys, getWeekStartDate } from './weekUtils'
 import { translateKnownLabel } from './areaLabels'
-import { t } from '../i18n/i18n'
+import { getLocale, t } from '../i18n/i18n'
 
 export const LOCATION_CONSENT_STORAGE_KEY = 'one.attendance.locationConsent.v1'
 
@@ -147,9 +147,11 @@ export function formatHoursMinutes(totalMinutes) {
   const abs = Math.abs(rounded)
   const hours = Math.floor(abs / 60)
   const minutes = abs % 60
-  if (hours === 0) return `${sign}${minutes}m`
-  if (minutes === 0) return `${sign}${hours}h`
-  return `${sign}${hours}h ${minutes}m`
+  const hourMark = getLocale() === 'el' ? 'ώ' : 'h'
+  const minuteMark = getLocale() === 'el' ? 'λ' : 'm'
+  if (hours === 0) return `${sign}${minutes}${minuteMark}`
+  if (minutes === 0) return `${sign}${hours}${hourMark}`
+  return `${sign}${hours}${hourMark} ${minutes}${minuteMark}`
 }
 
 export function formatSignedHours(differenceMinutes) {
