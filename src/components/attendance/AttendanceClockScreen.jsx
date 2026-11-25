@@ -13,6 +13,7 @@ import {
   dateKeyInZone,
   describeTodayShift,
   failureMessage,
+  formatClockTime,
   formatHoursMinutes,
   formatSignedHours,
   formatWorkingLabel,
