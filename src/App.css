@@ -21760,6 +21760,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   word-break: break-word;
 }
 
+.workspace-save-notice {
+  margin: 4px 0 0;
+}
+
 .staff-status-banner.inventory-legacy-context-notice {
   display: grid;
   gap: 6px;

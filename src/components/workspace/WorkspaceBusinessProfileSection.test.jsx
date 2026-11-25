@@ -232,6 +232,32 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     vi.unstubAllGlobals()
   })
 
+  it('shows a saved profile next to Save Profile, not at the top of the form', () => {
+    const { container, cleanup } = renderSection({ noticeMessage: 'Workspace profile saved.' })
+    const notice = container.querySelector('.workspace-save-notice')
+    const button = container.querySelector('.workspace-action-btn')
+    const header = container.querySelector('.workspace-section-header')
+
+    expect(notice?.textContent).toContain('Workspace profile saved.')
+    expect(notice?.getAttribute('role')).toBe('status')
+    expect(header?.textContent).not.toContain('Workspace profile saved.')
+    expect(notice.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+    cleanup()
+  })
+
+  it('shows a profile save error next to Save Profile', () => {
+    const { container, cleanup } = renderSection({
+      noticeMessage: 'Unable to save workspace profile right now.',
+    })
+    const notice = container.querySelector('.workspace-save-notice')
+
+    expect(notice?.getAttribute('role')).toBe('alert')
+    expect(notice?.textContent).toContain('Unable to save workspace profile right now.')
+
+    cleanup()
+  })
+
   it('shows Save Profile by default', () => {
     const { container, cleanup } = renderSection()
     const button = container.querySelector('.workspace-action-btn')
