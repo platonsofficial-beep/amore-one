@@ -86,9 +86,10 @@ export const HOST_LIST_HELPERS = {
   isReservationLate,
 }
 
-export function formatHostListMetaLine(guestCount, tableLabel) {
+export function formatHostListMetaLine(guestCount, tableLabel, seatingName = '') {
   const count = Number(guestCount) || 0
   const table = `${tableLabel ?? ''}`.trim()
-  if (!table || table === '—') return `${count} • ${t("Unassigned")}`
-  return `${count} • ${table}`
+  const seating = `${seatingName ?? ''}`.trim()
+  const base = !table || table === '—' ? `${count} • ${t("Unassigned")}` : `${count} • ${table}`
+  return seating ? `${base} • ${seating}` : base
 }

@@ -16,6 +16,7 @@ import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoCl
 import { OnlineReservationBadge } from '../../reservations/OnlineReservationBadge'
 import { ReservationCallIcon } from '../../reservations/ReservationCallIcon'
 import { needsVenueCallConfirm } from '../../../lib/onlineBooking'
+import { reservationListSeatingName } from '../../../lib/reservationSeatings'
 import { t } from '../../../i18n/i18n'
 
 function getActionClassName(action) {
@@ -46,9 +47,11 @@ function MobileHostReservationCompactRow({
   isAttentionFocus = false,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  seatings = [],
 }) {
   const guestName = `${reservation?.guestName ?? ''}`.trim() || t("Guest")
   const partySize = Number(reservation?.guests) || 0
+  const seatingName = reservationListSeatingName(reservation, seatings)
   const tableLabel = formatHostListTableLabel(reservation)
   const tableSection = tableLabel !== '—' ? tableLabel : t("Unassigned")
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
@@ -91,7 +94,7 @@ function MobileHostReservationCompactRow({
                   {guestName}
                   <HostQueueNameIndicators indicators={nameIndicators} />
                 </span>
-                <HostReservationPurposeLabel reservation={reservation} />
+                <HostReservationPurposeLabel reservation={reservation} seatings={seatings} />
                 {stillSeatedLabel ? (
                   <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
                 ) : null}
@@ -115,13 +118,14 @@ function MobileHostReservationCompactRow({
               <HostQueueReservationDetails
                 reservation={reservation}
                 layout={floorLayout}
+                seatings={seatings}
                 className="host-queue-row-details"
               />
             </div>
           ) : (
             <p className="mobile-host-reservation-row-meta">
               <OnlineReservationBadge reservation={reservation} />
-              <span>{t('{{count}} guest', { count: partySize })} · {tableSection}</span>
+              <span>{t('{{count}} guest', { count: partySize })} · {tableSection}{seatingName ? ` · ${seatingName}` : ''}</span>
             </p>
           )}
         </button>
@@ -180,9 +184,11 @@ export function MobileReservationHostCard({
   isAttentionFocus = false,
   canUndoAutoClose = false,
   onUndoAutoClose = null,
+  seatings = [],
 }) {
   const guestName = `${reservation?.guestName ?? ''}`.trim() || t("Guest")
   const partySize = Number(reservation?.guests) || 0
+  const seatingName = reservationListSeatingName(reservation, seatings)
   const phone = `${reservation?.phone ?? ''}`.trim()
   const tableLabel = formatHostListTableLabel(reservation)
   const tableSection = tableLabel !== '—' ? tableLabel : t("Unassigned")
@@ -253,6 +259,7 @@ export function MobileReservationHostCard({
         isAttentionFocus={isAttentionFocus}
         canUndoAutoClose={canUndoAutoClose}
         onUndoAutoClose={onUndoAutoClose}
+        seatings={seatings}
       />
     )
   }
@@ -287,7 +294,10 @@ export function MobileReservationHostCard({
               {t('{{count}} guest', { count: partySize })}
               {phone ? ` · ${phone}` : ''}
             </p>
-            <p className="mobile-host-reservation-table">{tableSection}</p>
+            <p className="mobile-host-reservation-table">
+              <span>{tableSection}</span>
+              {seatingName ? <span className="mobile-host-reservation-seating"> · {seatingName}</span> : null}
+            </p>
           </div>
         </button>
 

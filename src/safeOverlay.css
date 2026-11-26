@@ -1807,8 +1807,7 @@ body {
   .mobile-host-reservations.is-landscape .floor-plan-area-select-input,
   .mobile-host-reservations.is-landscape .floor-plan-zoom-btn,
   .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
-  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
-  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn {
     height: 36px !important;
     min-height: 36px !important;
     max-height: 36px;
@@ -1816,9 +1815,37 @@ body {
 
   .mobile-host-reservations.is-landscape .floor-plan-zoom-btn:not(.floor-plan-zoom-fit),
   .mobile-host-reservations.is-landscape .floor-plan-zoom-lock,
-  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn,
-  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+  .mobile-host-reservations.is-landscape .floor-plan-area-nav-btn {
     width: 36px;
     min-width: 36px;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-legend-slot,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure {
+    background: transparent;
+    align-items: center;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn {
+    box-sizing: border-box;
+    width: auto;
+    min-width: 32px;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid var(--one-overlay-06);
+    background: var(--one-overlay-03);
+    color: inherit;
+    line-height: 1;
+    list-style: none;
+    appearance: none;
+  }
+
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn::marker,
+  .mobile-host-reservations.is-landscape .floor-seating-legend-disclosure-btn::-webkit-details-marker {
+    content: none;
+    display: none;
   }
 }

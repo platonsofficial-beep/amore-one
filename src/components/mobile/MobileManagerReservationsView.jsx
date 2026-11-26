@@ -415,11 +415,12 @@ export function MobileManagerReservationsView({
                     <HostReservationGuestTypeBadge
                       badge={getHostNameGuestTypeBadgeMeta(reservation, HOST_LIST_HELPERS.getGuestCustomerType)}
                     />
-                    <HostReservationPurposeLabel reservation={reservation} />
+                    <HostReservationPurposeLabel reservation={reservation} seatings={seatings} />
                   </span>
                   <HostQueueReservationDetails
                     reservation={reservation}
                     layout={layout}
+                    seatings={seatings}
                     className="host-queue-row-details manager-portrait-reservation-details"
                   />
                 </span>

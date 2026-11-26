@@ -6,6 +6,7 @@ import {
   getReservationPurpose,
   getReservationPurposeLabel,
 } from '../../../lib/reservationPurpose'
+import { reservationListSeatingName } from '../../../lib/reservationSeatings'
 import {
   buildHostQueueRowPresentation,
   formatHostQueueTableSegment,
@@ -55,7 +56,7 @@ function buildLegacyMetaGroups(metaLine = '') {
     })
 }
 
-export function buildHostQueueMetaGroups(reservation, layout = null) {
+export function buildHostQueueMetaGroups(reservation, layout = null, seatings = []) {
   const partySize = Number(reservation?.guests) || 0
   const assignment = getReservationSeatingAssignment(reservation)
   const tableSegment = formatHostQueueTableSegment(reservation)
@@ -97,6 +98,15 @@ export function buildHostQueueMetaGroups(reservation, layout = null) {
       id: 'standing',
       icon: '',
       text: `Standing +${standingGuests}`,
+    })
+  }
+
+  const seatingName = reservationListSeatingName(reservation, seatings)
+  if (seatingName) {
+    groups.push({
+      id: 'seating',
+      icon: '◷',
+      text: seatingName,
     })
   }
 
@@ -147,10 +157,11 @@ export function HostReservationMetaLine({
 export function HostQueueReservationDetails({
   reservation,
   layout = null,
+  seatings = [],
   className = 'host-queue-row-details',
 }) {
   const presentation = buildHostQueueRowPresentation(reservation, layout)
-  const metaGroups = buildHostQueueMetaGroups(reservation, layout)
+  const metaGroups = buildHostQueueMetaGroups(reservation, layout, seatings)
 
   return (
     <div className={className}>
@@ -213,7 +224,11 @@ export function HostReservationGuestTypeBadge({ badge = null }) {
   )
 }
 
-export function HostReservationPurposeLabel({ reservation }) {
+export function HostReservationPurposeLabel({ reservation, seatings = [] }) {
+  const seatingName = reservationListSeatingName(reservation, seatings)
+  // The seating name on the guest line already says which service this is.
+  // Keep Drinks here: that is a visit type, not the seating.
+  if (seatingName && getReservationPurpose(reservation) !== 'drinks') return null
   const label = getReservationPurposeLabel(getReservationPurpose(reservation))
 
   return (

@@ -388,6 +388,16 @@ export function resolveHostQueueSeatingId(reservation, seatings = [], dateKey = 
   return resolveNearestActiveSeatingId(timeValue, resolvedDateKey, seatings)
 }
 
+/** Name of the seating this booking belongs to. Empty when it has none. */
+export function reservationListSeatingName(reservation, seatings = []) {
+  const list = seatings ?? []
+  if (list.length === 0) return ''
+  const id = resolveHostQueueSeatingId(reservation, list)
+  if (!id) return ''
+  const match = list.find((seating) => String(seating.id) === String(id))
+  return `${match?.name ?? ''}`.trim()
+}
+
 export function reservationMatchesTableDayViewSeating(
   reservation,
   seating,

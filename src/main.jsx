@@ -25,7 +25,10 @@ const staffHoursShot = previewParams?.get('preview') === 'staff-hours'
 const teamTabShot = previewParams?.get('preview') === 'team-tab'
   ? (previewParams.get('shot') || 'today')
   : ''
-const supabaseSetupError = hoursShot || staffHoursShot || teamTabShot || bookingPath ? null : getSupabaseSetupError()
+const bookingSeatingShot = previewParams?.get('preview') === 'booking-seating'
+  ? (previewParams.get('shot') || 'landscape')
+  : ''
+const supabaseSetupError = hoursShot || staffHoursShot || teamTabShot || bookingSeatingShot || bookingPath ? null : getSupabaseSetupError()
 
 if (hoursShot) {
   const { HoursReviewPreview } = await import('./hoursReviewPreview.jsx')
@@ -41,6 +44,11 @@ if (hoursShot) {
   const { TeamTabPreview } = await import('./teamTabPreview.jsx')
   createRoot(document.getElementById('root')).render(
     <TeamTabPreview shot={teamTabShot} />,
+  )
+} else if (bookingSeatingShot) {
+  const { BookingSeatingPreview } = await import('./bookingSeatingPreview.jsx')
+  createRoot(document.getElementById('root')).render(
+    <BookingSeatingPreview shot={bookingSeatingShot} />,
   )
 } else if (bookingPath) {
   import('./publicBooking/publicBookingEntry.jsx')

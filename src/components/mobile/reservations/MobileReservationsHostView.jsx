@@ -609,6 +609,7 @@ export function MobileReservationsHostView({
           useHostQueuePresentation={isSplitLayout}
           canUndoAutoClose={canUndoAutoClose}
           onUndoAutoClose={onUndoAutoClose}
+          seatings={reservationSeatings}
         />
       ))}
     </ul>
@@ -643,6 +644,7 @@ export function MobileReservationsHostView({
       timeZone={workspaceTimeZone}
       onClearQueueFilters={handleClearFilters}
       useHostQueuePresentation
+      seatings={reservationSeatings}
       canUndoAutoClose={canUndoAutoClose}
       onUndoAutoClose={onUndoAutoClose}
     />
