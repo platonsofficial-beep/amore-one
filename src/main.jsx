@@ -22,7 +22,10 @@ const hoursShot = previewParams?.get('preview') === 'hours'
 const staffHoursShot = previewParams?.get('preview') === 'staff-hours'
   ? (previewParams.get('shot') || 'settings')
   : ''
-const supabaseSetupError = hoursShot || staffHoursShot || bookingPath ? null : getSupabaseSetupError()
+const teamTabShot = previewParams?.get('preview') === 'team-tab'
+  ? (previewParams.get('shot') || 'today')
+  : ''
+const supabaseSetupError = hoursShot || staffHoursShot || teamTabShot || bookingPath ? null : getSupabaseSetupError()
 
 if (hoursShot) {
   const { HoursReviewPreview } = await import('./hoursReviewPreview.jsx')
@@ -33,6 +36,11 @@ if (hoursShot) {
   const { StaffHoursSettingsPreview } = await import('./staffHoursSettingsPreview.jsx')
   createRoot(document.getElementById('root')).render(
     <StaffHoursSettingsPreview shot={staffHoursShot} />,
+  )
+} else if (teamTabShot) {
+  const { TeamTabPreview } = await import('./teamTabPreview.jsx')
+  createRoot(document.getElementById('root')).render(
+    <TeamTabPreview shot={teamTabShot} />,
   )
 } else if (bookingPath) {
   import('./publicBooking/publicBookingEntry.jsx')

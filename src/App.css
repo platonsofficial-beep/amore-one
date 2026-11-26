@@ -227,6 +227,12 @@
   padding: 0 24px 16px;
 }
 
+.manager-portrait-schedule .module-section-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 16px 0;
+}
+
 .module-section-tab {
   border: 1px solid var(--one-steel-line);
   background: rgba(169, 192, 214, 0.06);

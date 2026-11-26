@@ -3,6 +3,7 @@ import { normalizeManagerMobileTab } from './mobileNavigationPersistence'
 import {
   buildManagerPortraitMoreItems,
   buildPortraitFloorTables,
+  resolveManagerPhoneTeamSection,
   resolveManagerPortraitScreen,
   resolveManagerPortraitTab,
   shouldUseManagerPhoneShell,
@@ -59,6 +60,14 @@ describe('manager portrait shell', () => {
     expect(resolveManagerPortraitTab('reservations')).toBe('reservations')
     expect(resolveManagerPortraitTab('stock')).toBe('more')
     expect(resolveManagerPortraitTab('schedule')).toBe('more')
+  })
+
+  it('opens the phone Team tab on the team, not a leftover schedule', () => {
+    expect(resolveManagerPhoneTeamSection('owner', 'schedule')).toBe('today')
+    expect(resolveManagerPhoneTeamSection('owner', 'members')).toBe('members')
+    expect(resolveManagerPhoneTeamSection('owner', 'today')).toBe('today')
+    expect(resolveManagerPhoneTeamSection('manager', '')).toBe('today')
+    expect(resolveManagerPhoneTeamSection('staff', 'schedule')).toBe('schedule')
   })
 
   it('lists the other areas a manager can open', () => {
