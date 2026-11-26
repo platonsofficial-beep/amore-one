@@ -9,6 +9,7 @@ import {
   canManageAttendance,
   canOpenTeamNav,
 } from './permissions'
+import { getDefaultTeamSection } from './appNavigation'
 import { LIMITED_SETTINGS_SUBTITLE } from './settingsSections'
 import { translateKnownLabel } from './areaLabels'
 import { t } from '../i18n/i18n'
@@ -114,6 +115,20 @@ export function resolveManagerPortraitScreen({
   if (view === 'insights') return 'insights'
   if (view === 'account') return 'profile'
   return 'today'
+}
+
+/**
+ * The phone Team tab shows the team. A schedule left open from the week
+ * grid or More is not the team, so that tap returns to who's working.
+ * Today and People stay put. A role that can only open the schedule
+ * still lands there.
+ */
+export function resolveManagerPhoneTeamSection(access, currentSection = '') {
+  const section = `${currentSection ?? ''}`.trim()
+  if ((section === 'today' || section === 'members') && canAccessTeamSection(access, section)) {
+    return section
+  }
+  return getDefaultTeamSection(access, canAccessTeamSection)
 }
 
 export function resolveManagerPortraitTab(screen) {

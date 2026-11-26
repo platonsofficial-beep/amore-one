@@ -6,6 +6,7 @@ import { formatTime24 } from '../../lib/timeFormatUtils'
 import { portraitShiftSubtitle } from '../../lib/managerPortrait'
 import { buildShiftDisplayNames, lookupShiftDisplayName } from '../../lib/shiftDisplayName'
 import { addCalendarDays, formatScheduleDayHeader } from '../../lib/weekUtils'
+import { ModuleSectionTabs } from '../shell/ModuleSectionTabs'
 import { ManagerPortraitBanner } from './ManagerPortraitBanner'
 import { t } from '../../i18n/i18n'
 
@@ -31,6 +32,9 @@ export function MobileManagerScheduleDayView({
   onRetryLoad,
   onDateChange,
   onUpdateShiftTimes,
+  sections = [],
+  activeSection = '',
+  onSectionChange,
 }) {
   const [editingId, setEditingId] = useState('')
   const [startTime, setStartTime] = useState('')
@@ -91,6 +95,13 @@ export function MobileManagerScheduleDayView({
 
   return (
     <div className="mobile-screen manager-portrait-schedule">
+      <ModuleSectionTabs
+        sections={sections}
+        activeSection={activeSection}
+        onSectionChange={onSectionChange}
+        ariaLabel="Team sections"
+        helpPrefix="team"
+      />
       <ManagerPortraitBanner area="schedule" />
       <header className="manager-portrait-screen-header">
         <div>

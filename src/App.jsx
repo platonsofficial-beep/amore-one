@@ -640,6 +640,7 @@ import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { readLiveViewportBox, shouldUseMobileShell } from './lib/viewportUtils'
 import {
   buildManagerPortraitMoreItems,
+  resolveManagerPhoneTeamSection,
   resolveManagerPortraitScreen,
   resolveManagerPortraitTab,
   shouldUseManagerPhoneShell,
@@ -24889,7 +24890,11 @@ function App() {
       if (tab === 'today') handleActiveViewChange('today')
       else if (tab === 'reservations') handleActiveViewChange('reservations')
       else if (tab === 'chat') handleActiveViewChange('chat')
-      else if (tab === 'team') handleActiveViewChange('team')
+      else if (tab === 'team') {
+        const nextSection = resolveManagerPhoneTeamSection(permissionAccess, teamSection)
+        handleActiveViewChange('team')
+        if (nextSection !== teamSection) handleTeamSectionChange(nextSection)
+      }
       else if (tab === 'tasks') {
         handleActiveViewChange('operations')
         handleOperationsSectionChange('dashboard')
@@ -24955,6 +24960,9 @@ function App() {
     handleActiveViewChange,
     handleOperationsSectionChange,
     handleStockSectionChange,
+    handleTeamSectionChange,
+    permissionAccess,
+    teamSection,
   ])
 
   const handleMobileOpenFullSchedule = () => {
@@ -27321,6 +27329,9 @@ function App() {
                           isSaving: isSavingShift,
                           canEdit: canEditScheduleRole,
                           noticeMessage: scheduleNotice,
+                          sections: visibleTeamSections,
+                          activeSection: teamSection,
+                          onSectionChange: handleTeamSectionChange,
                           onRetryLoad: () => setScheduleLoadNonce((nonce) => nonce + 1),
                           onDateChange: (nextDate) => {
                             setPortraitScheduleDate(nextDate)
