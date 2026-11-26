@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs'
 import { describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -72,6 +73,12 @@ describe('manager portrait chrome', () => {
     })
     expect(onSelect).toHaveBeenCalledWith('schedule')
     view.unmount()
+  })
+
+  it('does not paint a dark fade over the last More row', () => {
+    const css = readFileSync('src/mobileShell.css', 'utf8')
+    expect(css).not.toContain('.manager-more-list::after')
+    expect(css).toMatch(/\.manager-more-list\s*\{[^}]*padding-bottom:\s*24px/)
   })
 
   it('shows a repeated shift role once', () => {

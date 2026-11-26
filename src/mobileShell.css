@@ -10060,19 +10060,9 @@ body:not(:has(.inventory-count-session)) :is(
 .manager-more-list {
   position: relative;
   overflow: auto;
-  padding-bottom: 28px;
-}
-
-.manager-more-list::after {
-  content: '';
-  position: sticky;
-  left: 0;
-  bottom: 0;
-  display: block;
-  height: 28px;
-  margin-top: -28px;
-  pointer-events: none;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--one-bg) 0%, transparent), color-mix(in srgb, var(--one-bg) 98%, transparent));
+  /* Room under the last row. A sticky fade here used --one-bg, which is
+     darker than the sheet, so Sign out stayed dimmed even at the end. */
+  padding-bottom: 24px;
 }
 
 .manager-more-item {
