@@ -10,6 +10,7 @@ import {
   HostQueueReservationDetails,
   HostReservationMetaGroups,
   HostReservationMetaLine,
+  HostReservationPurposeLabel,
 } from './HostQueueReservationDetails'
 
 const LAYOUT = {
@@ -111,6 +112,64 @@ describe('buildHostQueueMetaGroups', () => {
     }, LAYOUT)
 
     expect(groups.map((group) => group.id)).toEqual(['guests', 'table'])
+  })
+
+  it('shows the seating name beside the table and omits it when there is no seating', () => {
+    const seatings = [{
+      id: 'dinner-1',
+      name: 'Dinner 1',
+      start_time: '19:00',
+      duration_minutes: 120,
+      days_of_week: [0, 1, 2, 3, 4, 5, 6],
+      is_active: true,
+    }]
+    const groups = buildHostQueueMetaGroups({
+      guests: 2,
+      date: '2026-11-26',
+      time: '19:00',
+      seatingId: 'dinner-1',
+      seatingAssignment: { assignedUnits: [{ id: 't109', label: 'T109' }] },
+    }, LAYOUT, seatings)
+    expect(groups.map((group) => group.text)).toEqual(['2 guests', 'T109', 'Dinner 1'])
+    expect(buildHostQueueMetaGroups({
+      guests: 2,
+      seatingAssignment: { assignedUnits: [{ id: 't109', label: 'T109' }] },
+    }, LAYOUT).some((group) => group.id === 'seating')).toBe(false)
+  })
+})
+
+describe('HostReservationPurposeLabel', () => {
+  it('drops the Dinner type next to the name once the seating name is on the card', () => {
+    const seatings = [{
+      id: 'dinner-1',
+      name: 'Dinner 1',
+      start_time: '19:00',
+      duration_minutes: 120,
+      days_of_week: [0, 1, 2, 3, 4, 5, 6],
+      is_active: true,
+    }]
+    const container = document.createElement('div')
+    const root = createRoot(container)
+    act(() => {
+      root.render(createElement(HostReservationPurposeLabel, {
+        reservation: { date: '2026-11-26', time: '19:00', seatingId: 'dinner-1' },
+        seatings,
+      }))
+    })
+    expect(container.querySelector('.host-reservation-card-purpose-label')).toBeNull()
+    act(() => {
+      root.render(createElement(HostReservationPurposeLabel, {
+        reservation: {
+          date: '2026-11-26',
+          time: '19:00',
+          seatingId: 'dinner-1',
+          notes: '\n@@PURPOSE@@drinks',
+        },
+        seatings,
+      }))
+    })
+    expect(container.querySelector('.host-reservation-card-purpose-label')?.textContent).toContain('Drinks')
+    act(() => root.unmount())
   })
 })
 

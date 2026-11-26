@@ -34,6 +34,7 @@ import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 import { ReservationAutoClosedBadge } from './ReservationAutoClosedBadge'
 import { isAutoClosedReservation } from '../../lib/reservationAutoClose'
+import { reservationListSeatingName } from '../../lib/reservationSeatings'
 import { t } from '../../i18n/i18n'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
@@ -126,7 +127,8 @@ function HostReservationListRow({
   const isVenueCallRow = quickActions.some((action) => action.id === 'confirm-online')
     && quickActions.some((action) => action.id === 'call-guest')
   const isCompactTablet = layout === 'compactTablet'
-  const metaLine = formatHostListMetaLine(guestCount, tableLabel)
+  const seatingName = reservationListSeatingName(reservation, seatings)
+  const metaLine = formatHostListMetaLine(guestCount, tableLabel, seatingName)
   const matchedSeating = (seatings ?? []).find((seating) => String(seating.id) === String(reservation.seatingId))
   const onlineSeatingName = `${reservation.seatingName || matchedSeating?.name || ''}`.trim()
   const onlineWhen = reservation.source === 'online' && onlineSeatingName
@@ -211,7 +213,7 @@ function HostReservationListRow({
           ) : null}
           <div className="host-reservation-card-name-purpose">
           <strong className="host-reservation-card-guest">{guestName}</strong>
-          <HostReservationPurposeLabel reservation={reservation} />
+          <HostReservationPurposeLabel reservation={reservation} seatings={seatings} />
           {stillSeatedLabel ? (
             <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
           ) : null}
@@ -241,6 +243,7 @@ function HostReservationListRow({
               <HostQueueReservationDetails
                 reservation={reservation}
                 layout={floorLayout}
+                seatings={seatings}
                 className="host-reservation-card-details host-queue-row-details"
               />
             ) : (
